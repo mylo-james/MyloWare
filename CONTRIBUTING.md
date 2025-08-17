@@ -59,6 +59,8 @@ Thank you for your interest in contributing to MyloWare! This document provides 
    npm run build
    ```
 
+   **Note:** Pre-commit hooks will automatically run ESLint and Prettier on staged files, and pre-push hooks will run the full test suite.
+
 4. **Commit your changes**
 
    ```bash

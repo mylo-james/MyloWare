@@ -131,6 +131,15 @@ npm run test:watch
 - **Prettier** - Code formatting
 - **Jest** - Unit and integration testing
 - **Snyk** - Security vulnerability scanning
+- **Husky** - Git hooks for automated quality checks
+- **lint-staged** - Run linting/formatting only on staged files
+
+### Git Hooks
+
+Pre-commit and pre-push hooks are automatically installed to ensure code quality:
+
+- **Pre-commit:** Runs ESLint and Prettier on staged files
+- **Pre-push:** Runs full build and test suite before pushing
 
 ## 🚀 Deployment
 
