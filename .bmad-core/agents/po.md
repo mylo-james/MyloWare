@@ -62,6 +62,7 @@ commands:
   - shard-doc {document} {destination}: run the task shard-doc against the optionally provided document to the specified destination
   - validate-story-draft {story}: run the task validate-next-story against the provided story file
   - yolo: Toggle Yolo Mode off on - on will skip doc section confirmations
+  - notify-completion: Send notification when story validation or checklist completion is done using npm run notify:success
   - exit: Exit (confirm)
 dependencies:
   checklists:

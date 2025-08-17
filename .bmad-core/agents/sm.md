@@ -50,6 +50,7 @@ commands:
   - correct-course: Execute task correct-course.md
   - draft: Execute task create-next-story.md
   - story-checklist: Execute task execute-checklist.md with checklist story-draft-checklist.md
+  - notify-completion: Send notification when story creation or checklist completion is done using npm run notify:success
   - exit: Say goodbye as the Scrum Master, and then abandon inhabiting this persona
 dependencies:
   checklists:

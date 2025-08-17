@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
 
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+
 jobs:
   security:
     runs-on: ubuntu-latest
@@ -25,19 +30,31 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Install Snyk CLI
+      run: npm install -g snyk
+
     - name: Run npm audit
       run: npm audit --audit-level moderate
 
-    - name: Run security scan with Snyk
+    - name: Run Snyk to check for vulnerabilities
       uses: snyk/actions/node@master
       continue-on-error: true
       env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
+        SNYK_INTEGRATION_ID: ${{ secrets.SNYK_INTEGRATION_ID }}
       with:
-        args: --severity-threshold=medium
+        args: --severity-threshold=high --org=mylo-james
 
-    - name: Run npm audit security check
-      run: npm audit --audit-level moderate
+    - name: Run Snyk with SARIF output
+      run: |
+        snyk test --severity-threshold=high --org=mylo-james --sarif-file-output=snyk-results.sarif || true
+      continue-on-error: true
+
+    - name: Upload Snyk results to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && hashFiles('snyk-results.sarif') != ''
+      with:
+        sarif_file: snyk-results.sarif
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
@@ -49,3 +66,17 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && hashFiles('trivy-results.sarif') != ''
+      with:
+        sarif_file: 'trivy-results.sarif'

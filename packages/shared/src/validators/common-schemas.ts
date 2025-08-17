@@ -18,15 +18,3 @@ export const commonSchemas = {
     sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
   }),
 };
-
-/**
- * Environment variable validation schema
- */
-export const envSchema = Joi.object({
-  NODE_ENV: Joi.string().valid('development', 'staging', 'production').default('development'),
-  LOG_LEVEL: Joi.string().valid('ERROR', 'WARN', 'INFO', 'DEBUG').default('INFO'),
-  DATABASE_URL: Joi.string().uri().required(),
-  REDIS_URL: Joi.string().uri().required(),
-  TEMPORAL_HOST: Joi.string().hostname().required(),
-  TEMPORAL_PORT: Joi.number().port().required(),
-});

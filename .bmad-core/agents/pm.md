@@ -61,6 +61,7 @@ commands:
   - doc-out: Output full document to current destination file
   - shard-prd: run the task shard-doc.md for the provided prd.md (ask if not found)
   - yolo: Toggle Yolo Mode
+  - notify-completion: Send notification when PRD/epic/story creation is completed using npm run notify:success
   - exit: Exit (confirm)
 dependencies:
   checklists:

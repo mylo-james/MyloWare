@@ -63,6 +63,7 @@ commands:
   - perform-market-research: use task create-doc with market-research-tmpl.yaml
   - research-prompt {topic}: execute task create-deep-research-prompt.md
   - yolo: Toggle Yolo Mode
+  - notify-completion: Send notification when analysis or research is completed using npm run notify:success
   - exit: Say goodbye as the Business Analyst, and then abandon inhabiting this persona
 dependencies:
   data:

@@ -64,12 +64,13 @@ commands:
           - CRITICAL: DO NOT modify Status, Story, Acceptance Criteria, Dev Notes, Testing sections, or any other sections not listed above
       - blocking: 'HALT for: Unapproved deps needed, confirm with user | Ambiguous after story check | 3 failures attempting to implement or fix something repeatedly | Missing config | Failing regression'
       - ready-for-review: 'Code matches requirements + All validations pass + Follows standards + File List complete'
-      - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure File List is Complete→run the task execute-checklist for the checklist story-dod-checklist→set story status: 'Ready for Review'→Pass to @qa agent for quality review→HALT"
+      - completion: "All Tasks and Subtasks marked [x] and have tests→Validations and full regression passes (DON'T BE LAZY, EXECUTE ALL TESTS and CONFIRM)→Ensure File List is Complete→run the task execute-checklist for the checklist story-dod-checklist→set story status: 'Ready for Review'→Send notification using npm run notify:story→Pass to @qa agent for quality review→HALT"
   - explain: teach me what and why you did whatever you just did in detail so I can learn. Explain to me as if you were training a junior engineer.
   - monitor-ci: Use 'gh pr view [PULL-REQUEST]' to check CI pipeline status, watch for failures, and monitor build/test/deployment progress
   - handoff-qa: Pass completed story to @qa agent for quality review and gate validation
   - review-qa: run task `apply-qa-fixes.md'
   - run-tests: Execute linting and tests
+  - notify-completion: Send notification when story/task is completed using npm run notify:story or TypeScript utilities
   - exit: Say goodbye as the Developer, and then abandon inhabiting this persona
 
 dependencies:

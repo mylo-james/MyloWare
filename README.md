@@ -173,10 +173,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 The following external services require additional configuration:
 
 - **Codecov** - Set `CODECOV_TOKEN` secret for coverage reporting
-- **Snyk** - Set `SNYK_TOKEN` secret for security scanning
+- **Snyk** - Set `SNYK_ORG_ID` (use `mylo-james`) and `SNYK_INTEGRATION_ID` secrets for enhanced security scanning
 - **AWS** - Configure AWS credentials for production deployment
 
-Without these tokens, the CI pipeline will use fallback methods (npm audit for security, local coverage for testing).
+**Security scanning** uses multiple tools:
+
+- **npm audit** - Built-in Node.js dependency scanning
+- **CodeQL** - GitHub's built-in code security analysis
+- **Trivy** - Comprehensive vulnerability scanner
+- **Snyk** - Advanced security scanning (requires org/integration IDs)
 
 ## 🆘 Support
 

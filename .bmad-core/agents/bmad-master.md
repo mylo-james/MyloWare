@@ -57,6 +57,7 @@ commands:
   - shard-doc {document} {destination}: run the task shard-doc against the optionally provided document to the specified destination
   - task {task}: Execute task, if not found or none specified, ONLY list available dependencies/tasks listed below
   - yolo: Toggle Yolo Mode
+  - notify-completion: Send notification when master task is completed using npm run notify:success
   - exit: Exit (confirm)
 
 dependencies:

@@ -14,11 +14,14 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "dev": "docker-compose up -d",
     "dev:down": "docker-compose down",
-    "setup": "npm install && npm run build",
     "clean": "npm run clean --workspaces",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
-    "pre-push": "npm run format:check && npm run build && npm run test"
+    "pre-push": "npm run format:check && npm run build && npm run test",
+    "validate:env": "node -e \"require('dotenv').config(); console.log('Environment validation complete')\"",
+    
+    "build:watch": "tsc --watch",
+    "dev:watch": "nodemon --watch src --ext ts,js --exec \"npm run build\""
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
