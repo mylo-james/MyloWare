@@ -115,12 +115,7 @@ async function sendCompletionNotification(
     const title = result.success ? 'MyloWare Task Complete' : 'MyloWare Task Failed';
 
     // Use the project's notification script
-    execFileSync('node', [
-      'scripts/notify-completion.js',
-      message,
-      priority,
-      title
-    ], {
+    execFileSync('node', ['scripts/notify-completion.js', message, priority, title], {
       cwd: process.cwd(),
       stdio: 'pipe',
     });
