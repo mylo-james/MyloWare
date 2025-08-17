@@ -10,16 +10,339 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Base model for all entities
-model BaseEntity {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Enum definitions
+enum WorkOrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 
-  @@map("base_entities")
+  @@map("work_order_status")
 }
 
-// User management
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@map("priority")
+}
+
+enum WorkItemType {
+  INVOICE
+  TICKET
+  STATUS_REPORT
+
+  @@map("work_item_type")
+}
+
+enum WorkItemStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("work_item_status")
+}
+
+enum AttemptStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  TIMEOUT
+
+  @@map("attempt_status")
+}
+
+enum MemDocType {
+  CONTEXT
+  KNOWLEDGE
+  TEMPLATE
+
+  @@map("mem_doc_type")
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  ESCALATED
+
+  @@map("approval_decision")
+}
+
+enum ConnectorType {
+  SLACK
+  EMAIL
+  API
+  DATABASE
+
+  @@map("connector_type")
+}
+
+enum ConnectorStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+
+  @@map("connector_status")
+}
+
+// Core business entities
+model WorkOrder {
+  id          String          @id @default(uuid())
+  status      WorkOrderStatus @default(PENDING)
+  priority    Priority        @default(MEDIUM)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  metadata    Json            @default("{}")
+  workflowId  String          @map("workflow_id")
+  tenantId    String          @map("tenant_id")
+  createdBy   String          @map("created_by")
+
+  // Relations
+  workItems WorkItem[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([tenantId, status, createdAt])
+  @@map("work_orders")
+}
+
+model WorkItem {
+  id           String         @id @default(uuid())
+  workOrderId  String         @map("work_order_id")
+  type         WorkItemType
+  content      String
+  status       WorkItemStatus @default(QUEUED)
+  result       Json?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  processedAt  DateTime?      @map("processed_at")
+
+  // Relations
+  workOrder      WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  attempts       Attempt[]
+  memDocs        MemDoc[]
+  approvalEvents ApprovalEvent[]
+  evalResults    EvalResult[]
+
+  @@index([workOrderId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([workOrderId, status, type])
+  @@map("work_items")
+}
+
+model Attempt {
+  id          String        @id @default(uuid())
+  workItemId  String        @map("work_item_id")
+  agentId     String        @map("agent_id")
+  status      AttemptStatus @default(STARTED)
+  input       Json
+  output      Json?
+  error       String?
+  startedAt   DateTime      @default(now()) @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+  durationMs  Int?          @map("duration_ms")
+
+  // Relations
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([agentId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([workItemId, status, startedAt])
+  @@map("attempts")
+}
+
+model MemDoc {
+  id           String     @id @default(uuid())
+  workItemId   String     @map("work_item_id")
+  type         MemDocType
+  content      String
+  embedding    Unsupported("vector(1536)")?
+  metadata     Json       @default("{}")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  lastAccessed DateTime   @default(now()) @map("last_accessed")
+
+  // Relations
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([type])
+  @@map("mem_docs")
+}
+
+model ApprovalEvent {
+  id            String           @id @default(uuid())
+  workItemId    String           @map("work_item_id")
+  approverId    String           @map("approver_id")
+  decision      ApprovalDecision
+  reason        String?
+  timestamp     DateTime         @default(now())
+  policyVersion String           @map("policy_version")
+
+  // Relations
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([approverId])
+  @@index([timestamp])
+  @@map("approval_events")
+}
+
+model DeadLetter {
+  id          String    @id @default(uuid())
+  source      String
+  eventType   String    @map("event_type")
+  payload     Json
+  error       String
+  retryCount  Int       @default(0) @map("retry_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  processedAt DateTime? @map("processed_at")
+
+  @@index([source])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("dead_letters")
+}
+
+// Platform entities
+model Connector {
+  id              String          @id @default(uuid())
+  name            String
+  type            ConnectorType
+  config          Json
+  status          ConnectorStatus @default(ACTIVE)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  lastHealthCheck DateTime?       @map("last_health_check")
+  tenantId        String          @map("tenant_id")
+
+  // Relations
+  tools Tool[]
+
+  @@index([type])
+  @@index([status])
+  @@index([tenantId])
+  @@map("connectors")
+}
+
+model Tool {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  connectorId String   @map("connector_id")
+  schema      Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  connector    Connector        @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  capabilities ToolCapability[]
+
+  @@index([connectorId])
+  @@index([isActive])
+  @@map("tools")
+}
+
+model Capability {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  scope       String
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tools ToolCapability[]
+
+  @@index([scope])
+  @@map("capabilities")
+}
+
+model ToolCapability {
+  toolId       String @map("tool_id")
+  capabilityId String @map("capability_id")
+
+  // Relations
+  tool       Tool       @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  capability Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, capabilityId])
+  @@map("tool_capabilities")
+}
+
+model Schema {
+  id               String   @id @default(uuid())
+  name             String
+  version          String
+  documentType     String   @map("document_type")
+  schemaDefinition Json     @map("schema_definition")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@unique([name, version])
+  @@index([documentType])
+  @@index([isActive])
+  @@map("schemas")
+}
+
+model WorkflowTemplate {
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?
+  documentType       String   @map("document_type")
+  workflowDefinition Json     @map("workflow_definition")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([documentType])
+  @@index([isActive])
+  @@map("workflow_templates")
+}
+
+model EvalResult {
+  id             String   @id @default(uuid())
+  workItemId     String   @map("work_item_id")
+  evaluationType String   @map("evaluation_type")
+  score          Decimal  @db.Decimal(3, 2)
+  metrics        Json
+  passed         Boolean
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([evaluationType])
+  @@index([score])
+  @@map("eval_results")
+}
+
+// Audit and tracking tables
+model AuditLog {
+  id           String    @id @default(uuid())
+  userId       String?   @map("user_id")
+  action       String
+  resourceType String    @map("resource_type")
+  resourceId   String?   @map("resource_id")
+  details      Json
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Legacy models (keeping for compatibility)
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -30,31 +353,29 @@ model User {
   @@map("users")
 }
 
-// Workflow runs and execution tracking
 model WorkflowRun {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   workflowId  String
-  runId       String   @unique
+  runId       String    @unique
   status      String
   input       Json?
   output      Json?
-  startedAt   DateTime @default(now())
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("workflow_runs")
 }
 
-// Memory and context storage
 model Memory {
-  id          String  @id @default(uuid())
-  agentId     String
-  content     String
-  embedding   Unsupported("vector(1536)")?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String                        @id @default(uuid())
+  agentId   String
+  content   String
+  embedding Unsupported("vector(1536)")?
+  metadata  Json?
+  createdAt DateTime                      @default(now())
+  updatedAt DateTime                      @updatedAt
 
   @@map("memories")
 }
