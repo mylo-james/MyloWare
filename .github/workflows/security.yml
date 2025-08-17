@@ -35,13 +35,18 @@ jobs:
         SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
         SNYK_INTEGRATION_ID: ${{ secrets.SNYK_INTEGRATION_ID }}
       with:
-        args: --severity-threshold=high --sarif-file-output=snyk.sarif --org=mylo-james
+        args: --severity-threshold=high --org=mylo-james
+
+    - name: Run Snyk with SARIF output
+      run: |
+        snyk test --severity-threshold=high --org=mylo-james --sarif-file-output=snyk-results.sarif || true
+      continue-on-error: true
 
     - name: Upload Snyk results to GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: always() && hashFiles('snyk-results.sarif') != ''
       with:
-        sarif_file: snyk.sarif
+        sarif_file: snyk-results.sarif
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
@@ -64,6 +69,6 @@ jobs:
 
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: always() && hashFiles('trivy-results.sarif') != ''
       with:
         sarif_file: 'trivy-results.sarif'
