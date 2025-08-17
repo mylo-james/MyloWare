@@ -3,12 +3,18 @@ import { createLogger } from '../utils/logger';
 /**
  * Method decorator for automatic logging
  */
-export function LogMethod(serviceName: string) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+export function LogMethod(
+  serviceName: string
+): (target: unknown, propertyName: string, descriptor: PropertyDescriptor) => PropertyDescriptor {
+  return function (
+    target: unknown,
+    propertyName: string,
+    descriptor: PropertyDescriptor
+  ): PropertyDescriptor {
     const method = descriptor.value;
     const logger = createLogger(serviceName);
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]): Promise<unknown> {
       const start = Date.now();
       logger.info(`[${propertyName}] Starting execution`, { args: args.length });
 

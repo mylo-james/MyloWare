@@ -13,7 +13,7 @@ async function validateSchema() {
 
     // Test enum creation by checking the schema
     const enums = await prisma.$queryRaw`
-      SELECT enumname, enumlabel 
+      SELECT t.typname as enum_name, e.enumlabel as enum_value
       FROM pg_enum e 
       JOIN pg_type t ON e.enumtypid = t.oid 
       WHERE t.typname IN (
@@ -21,7 +21,7 @@ async function validateSchema() {
         'work_item_status', 'attempt_status', 'mem_doc_type',
         'approval_decision', 'connector_type', 'connector_status'
       )
-      ORDER BY enumname, enumlabel;
+      ORDER BY t.typname, e.enumlabel;
     `;
 
     console.log('✅ Database enums validated:', enums);
@@ -57,12 +57,12 @@ async function validateSchema() {
     const constraints = await prisma.$queryRaw`
       SELECT 
         conname as constraint_name,
-        conrelid::regclass as table_name,
-        confrelid::regclass as referenced_table
+        conrelid::regclass::text as table_name,
+        confrelid::regclass::text as referenced_table
       FROM pg_constraint 
       WHERE contype = 'f'
       AND connamespace = 'public'::regnamespace
-      ORDER BY table_name, constraint_name;
+      ORDER BY conrelid::regclass::text, conname;
     `;
 
     console.log('✅ Foreign key constraints validated:', constraints);

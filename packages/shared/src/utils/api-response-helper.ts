@@ -22,7 +22,7 @@ export function createSuccessResponse<T>(data: T, meta?: ApiMeta): ApiResponse<T
 export function createErrorResponse(
   code: string,
   message: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): ApiResponse {
   const error: ApiError = {
     code,

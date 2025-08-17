@@ -133,11 +133,6 @@ async function main() {
       workOrderId: sampleWorkOrder.id,
       type: 'INVOICE',
       content: 'Sample invoice content for processing',
-      metadata: {
-        documentUrl: 'https://example.com/invoice-123.pdf',
-        fileSize: 245760,
-        mimeType: 'application/pdf',
-      },
     },
   });
 
