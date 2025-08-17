@@ -13,6 +13,6 @@ MyloWare is a greenfield project with no existing codebase or starter template d
 
 ## Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|---------|
-| 2024-12-19 | v1.0 | Initial architecture document based on validated PRD | Winton (PO) |
+| Date       | Version | Description                                          | Author      |
+| ---------- | ------- | ---------------------------------------------------- | ----------- |
+| 2024-12-19 | v1.0    | Initial architecture document based on validated PRD | Winton (PO) |

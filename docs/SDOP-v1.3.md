@@ -214,14 +214,7 @@ Interfaces
     },
     "scopes": { "type": "array", "items": { "type": "string" } }
   },
-  "required": [
-    "name",
-    "capability",
-    "version",
-    "input_schema",
-    "output_schema",
-    "side_effects"
-  ]
+  "required": ["name", "capability", "version", "input_schema", "output_schema", "side_effects"]
 }
 ```
 
@@ -667,14 +660,7 @@ WorkOrder (v1)
     "timeout_sec": { "type": "integer", "minimum": 1 },
     "cost_budget_tokens": { "type": "integer", "minimum": 0 }
   },
-  "required": [
-    "order_id",
-    "task_id",
-    "goal",
-    "input_json",
-    "output_schema_id",
-    "timeout_sec"
-  ],
+  "required": ["order_id", "task_id", "goal", "input_json", "output_schema_id", "timeout_sec"],
   "additionalProperties": false
 }
 ```
@@ -690,13 +676,7 @@ ApprovalAction (v1)
     "policy_key": { "type": "string" },
     "decision": {
       "type": "string",
-      "enum": [
-        "approve_retry",
-        "approve_skip",
-        "approve_abort",
-        "auto_allow",
-        "deny"
-      ]
+      "enum": ["approve_retry", "approve_skip", "approve_abort", "auto_allow", "deny"]
     },
     "note": { "type": "string" }
   },

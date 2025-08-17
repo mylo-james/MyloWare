@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: myloware-postgres
+    environment:
+      POSTGRES_DB: myloware
+      POSTGRES_USER: myloware
+      POSTGRES_PASSWORD: myloware_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myloware -d myloware"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for event bus and caching
+  redis:
+    image: redis:7.2.0-alpine
+    container_name: myloware-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal server
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: myloware-temporal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=myloware
+      - POSTGRES_PWD=myloware_dev_password
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./temporal-config:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "workflow", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Temporal Web UI
+  temporal-web:
+    image: temporalio/web:2.21.3
+    container_name: myloware-temporal-web
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: myloware-network

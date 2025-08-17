@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Base model for all entities
+model BaseEntity {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("base_entities")
+}
+
+// User management
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Workflow runs and execution tracking
+model WorkflowRun {
+  id          String   @id @default(uuid())
+  workflowId  String
+  runId       String   @unique
+  status      String
+  input       Json?
+  output      Json?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("workflow_runs")
+}
+
+// Memory and context storage
+model Memory {
+  id          String  @id @default(uuid())
+  agentId     String
+  content     String
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("memories")
+}

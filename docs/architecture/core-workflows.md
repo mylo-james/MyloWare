@@ -24,23 +24,23 @@ sequenceDiagram
     API->>Workflow: Create work order
     Workflow->>DB: Store work order
     Workflow->>Agent: Initialize processing
-    
+
     Agent->>Record: Generate initial record
     Record->>Memory: Store context
     Record->>Agent: Return record
-    
+
     Agent->>Extract: Extract data from document
     Extract->>Memory: Retrieve context
     Extract->>Extract: Process with LLM
     Extract->>Memory: Store extracted data
     Extract->>Agent: Return extracted data
-    
+
     Agent->>Json: Transform to JSON
     Json->>Agent: Return structured data
-    
+
     Agent->>Schema: Validate against schema
     Schema->>Agent: Return validation result
-    
+
     alt Validation failed
         Schema->>Policy: Request human approval
         Policy->>Slack: Send approval request
@@ -48,14 +48,14 @@ sequenceDiagram
         Slack->>Policy: Approval decision
         Policy->>Agent: Continue or retry
     end
-    
+
     Agent->>Persist: Persist validated data
     Persist->>DB: Store data
     Persist->>Agent: Return success
-    
+
     Agent->>Verify: Final verification
     Verify->>Agent: Return verification result
-    
+
     Agent->>Workflow: Processing complete
     Workflow->>DB: Update work order status
     Workflow->>Slack: Send completion notification
@@ -75,7 +75,7 @@ sequenceDiagram
 
     Agent->>Policy: Request approval decision
     Policy->>Policy: Evaluate policy rules
-    
+
     alt Policy requires human approval
         Policy->>Slack: Create approval card
         Slack->>User: Display approval request
@@ -103,7 +103,7 @@ sequenceDiagram
 
     Workflow->>Agent: Execute agent task
     Agent->>Circuit: Check circuit breaker state
-    
+
     alt Circuit closed (normal operation)
         Agent->>LLM: Make API call
         alt API call successful
@@ -127,6 +127,6 @@ sequenceDiagram
         Fallback->>Agent: Return response
         Agent->>Workflow: Task completed
     end
-    
+
     Workflow->>DB: Store attempt result
 ```

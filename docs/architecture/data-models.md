@@ -3,6 +3,7 @@
 ## Core Business Entities
 
 **WorkOrder**
+
 - **Purpose:** Represents a document processing request with associated metadata and workflow state
 - **Key Attributes:**
   - `id`: UUID - Unique identifier for the work order
@@ -19,6 +20,7 @@
   - Belongs to Tenant (many-to-one)
 
 **WorkItem**
+
 - **Purpose:** Individual document or task within a work order that gets processed by agents
 - **Key Attributes:**
   - `id`: UUID - Unique identifier for the work item
@@ -35,6 +37,7 @@
   - Has many MemDocs (one-to-many)
 
 **Attempt**
+
 - **Purpose:** Tracks individual processing attempts for work items with detailed execution history
 - **Key Attributes:**
   - `id`: UUID - Unique attempt identifier
@@ -52,6 +55,7 @@
   - Belongs to Agent (many-to-one)
 
 **MemDoc**
+
 - **Purpose:** Memory documents that store context and knowledge for agent processing
 - **Key Attributes:**
   - `id`: UUID - Unique memory document identifier
@@ -67,6 +71,7 @@
   - Has many related MemDocs (many-to-many through similarity)
 
 **ApprovalEvent**
+
 - **Purpose:** Tracks human-in-the-loop approval decisions and governance actions
 - **Key Attributes:**
   - `id`: UUID - Unique approval event identifier
@@ -81,6 +86,7 @@
   - Belongs to User (many-to-one)
 
 **DeadLetter**
+
 - **Purpose:** Stores failed events and messages for investigation and reprocessing
 - **Key Attributes:**
   - `id`: UUID - Unique dead letter identifier
@@ -97,6 +103,7 @@
 ## Platform Entities
 
 **Connector**
+
 - **Purpose:** Configuration for external system integrations and data sources
 - **Key Attributes:**
   - `id`: UUID - Unique connector identifier
@@ -111,6 +118,7 @@
   - Belongs to Tenant (many-to-one)
 
 **Tool**
+
 - **Purpose:** Defines available tools and capabilities that agents can use
 - **Key Attributes:**
   - `id`: UUID - Unique tool identifier
@@ -125,6 +133,7 @@
   - Has many Capabilities (many-to-many)
 
 **Capability**
+
 - **Purpose:** Defines permissions and access controls for users and services
 - **Key Attributes:**
   - `id`: UUID - Unique capability identifier
@@ -138,6 +147,7 @@
   - Has many Users (many-to-many)
 
 **Schema**
+
 - **Purpose:** Defines data schemas for document types and validation rules
 - **Key Attributes:**
   - `id`: UUID - Unique schema identifier
@@ -151,6 +161,7 @@
   - Has many WorkItems (one-to-many through document_type)
 
 **WorkflowTemplate**
+
 - **Purpose:** Defines reusable workflow templates for different document processing scenarios
 - **Key Attributes:**
   - `id`: UUID - Unique template identifier
@@ -164,6 +175,7 @@
   - Has many WorkOrders (one-to-many through document_type)
 
 **EvalResult**
+
 - **Purpose:** Stores evaluation results for quality assurance and performance monitoring
 - **Key Attributes:**
   - `id`: UUID - Unique evaluation result identifier
