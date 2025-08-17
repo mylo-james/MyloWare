@@ -12,17 +12,10 @@ Use this section to record the human decisions that tune policy, risk posture, a
 
 **Immediate decisions for MVP go/no-go**
 
-- [ ] Model tier for `ExtractorLLM` [MVP]: gpt-4o-mini | gpt-4o | other → Answer: gpt-4o-mini (Date: ____)
-- [ ] JSON restyler agent enabled Day‑1? [MVP]: yes | no → Answer: yes (Date: ____)
-- [ ] Slack deploy mode [MVP]: HTTPS Events | Socket Mode → Answer: Socket Mode (Date: ____)
-- [ ] Approval policy default for `schema_invalid` retry [MVP]: Auto | Soft Gate (2 min) | Hard Gate → Answer: Soft Gate (2 min) (Date: ____)
-- [ ] Token budgets (per run) [MVP]: input ≤ ___, output ≤ ___ → Answer: TBD — see “Token budgets explained” below (Date: ____)
-- [ ] Golden set composition [MVP]: invoices __, tickets __, status __; noise levels → Answer: TBD — see “Golden set explained” below (Date: ____)
-- [ ] Data residency/compliance flags [MVP]: PII allowed? yes | no → Answer: TBD — see “Data residency explained” below (Date: ____)
+- None (applied below)
 
 **Approval Policy Matrix (proposed defaults)**
 
-- **LLM schema invalid → stricter re-prompt once**: Soft Gate (auto after 2 min) → Decision: ____
 - **LLM wrong value (accuracy failure)**: Hard Gate (dead-letter + review) → Decision: ____
 - **Budget increase (token or cost) within +20% of run cap**: Soft Gate (auto after 1 min) → Decision: ____
 - **Budget increase beyond +20% of run cap**: Hard Gate → Decision: ____
@@ -50,25 +43,28 @@ Use this section to record the human decisions that tune policy, risk posture, a
 #### Quick explainers
 
 ##### Token budgets explained
+
 - What: Hard caps for tokens per run (input and output). Prevents cost/runaway prompts.
 - Why: Keeps LLM costs predictable; enforces refusal instead of overspending.
-- Recommend: input ≤ 800, output ≤ 200 for MVP; raise later with eval data.
+- Policy (MVP): input ≤ 800, output ≤ 200; refusal on breach.
 
 ##### Golden set explained
+
 - What: Fixed set of labeled documents used in CI to verify extraction accuracy.
 - Why: Guarantees regressions are caught; enables measurable quality gates.
-- Recommend: 12 docs (4× invoice, 4× ticket, 4× status) across low/med/high noise.
+- Policy (MVP): 12 docs (4× invoice, 4× ticket, 4× status) across low/med/high noise.
 
 ##### Data residency explained
+
 - What: Whether PII or sensitive data may be processed/stored and in which region.
 - Why: Compliance (e.g., GDPR/CCPA) and customer commitments.
-- Recommend (MVP): PII allowed: no; store only synthetic/test data until policies are in place.
+- Policy (MVP): PII allowed: no; store only synthetic/test data until policies are in place.
 
 ---
 
 ### 1) Changelog
 
-- **v1.2**: Added top-of-doc HITL Decision Board; expanded ADRs, data model, observability, security/compliance, and runbooks. Formalized approval policy matrix and audit model. Clarified Slack scopes, rate limits, and failure handling. Added schema contracts for policy/approvals.
+- **v1.2**: Added top-of-doc HITL Decision Board; expanded ADRs, data model, observability, security/compliance, and runbooks. Formalized approval policy matrix and audit model. Clarified Slack scopes, rate limits, and failure handling. Added schema contracts for policy/approvals. Implemented decisions: Extractor model `gpt-4o-mini`, JsonRestyler enabled, Slack Socket Mode, schema_invalid soft gate (2 min), token budgets (800/200), golden set (12 docs), PII not allowed for MVP.
 - **v1.1**: Slack-first interface added (single bot → Orchestrator), human-in-the-loop (HITL) approvals wired via Slack (mocked by policy for MVP).
 - **v1.0**: Hybrid, verifiable MVP; OpenAI Agents SDK for all agents; namespaced memory with importance+decay.
 
@@ -132,7 +128,7 @@ Compute: Agent workers (OpenAI Agents SDK, autoscale later).
 
 Interfaces
 
-- Slack adapter: signed requests, retry-safe endpoints with idempotency keys.
+- Slack adapter: Socket Mode (MVP) for commands/actions; optional HTTPS events retained for future ingress.
 - Policy service: synchronous decision API returning `allow | soft_gate(timeout_ms) | deny(reason)` plus UI metadata.
 - Outbox/inbox: at-least-once delivery with idempotent consumers.
 
@@ -143,11 +139,11 @@ Interfaces
 - **ADR-001 Orchestration**: Temporal for retries, timers, heartbeats, idempotency.
 - **ADR-002 DB**: Postgres (PITR on; partition work tables monthly).
 - **ADR-003 Bus**: Redis Streams now; partitioned NATS/Kafka later.
-- **ADR-004 Agents**: OpenAI Agents SDK everywhere. CPU steps = tool-only with `tool_choice`; LLM steps = JSON schema mode, `temperature=0`.
+- **ADR-004 Agents**: OpenAI Agents SDK everywhere. CPU steps = tool-only with `tool_choice`; LLM steps = JSON schema mode, `temperature=0`. ExtractorLLM model: `gpt-4o-mini` (MVP).
 - **ADR-005 Memory**: pgvector + KV with importance/decay and hot→warm→cold tiering.
 - **ADR-006 Auth**: JWT capability tokens (≤15 min TTL) with claims `{team_id, run_id, task_id, persona_id, aud[], scopes[], exp}`.
 - **ADR-007 Contracts**: JSON Schema (versioned); Integrator enforces.
-- **ADR-008 Slack Mode**: Prefer HTTPS events (public URL) if stable ingress exists; use Socket Mode if behind strict firewalls.
+- **ADR-008 Slack Mode**: Socket Mode for MVP (no public ingress required). HTTPS events can be enabled later.
 - **ADR-009 Schema Registry**: Store in repo `contracts/` with semantic versioning; Integrator checks compatibility on upgrade.
 - **ADR-010 Policy Service**: Declarative rules (YAML/JSON) + runtime evaluation; approvals stored in `approval_event`.
 - **ADR-011 Observability**: Structured logs (JSON), OpenTelemetry traces/metrics, correlation IDs propagated end-to-end.
@@ -205,6 +201,7 @@ Data hygiene
 - Channels: `#mylo-control` (commands/chat), `#mylo-approvals` (gates), `#mylo-feed` (summaries).
 - All run updates posted as threads in `#mylo-feed` keyed by `run_id`.
 - DM support for private chat with Orchestrator.
+- Deploy mode: Socket Mode (MVP).
 
 **Permissions (scopes)**
 
@@ -217,16 +214,11 @@ Data hygiene
 - `/mylo talk`
 - `/mylo stop [run_id]`, `/mylo mute [run_id]`
 
-**Approvals (actions)**
+**Event Handling & Mapping (Socket Mode)**
 
-- Approval cards in `#mylo-approvals` with buttons Retry once / Skip / Abort.
-- Soft Gate: auto-approve after configured timeout; message updates annotate auto decision.
-
-**Webhooks & Mapping**
-
-- `POST /slack/commands` → verify signature → Board MCP calls (create task/order, status).
-- `POST /slack/actions` → verify signature → `notify.action` → Orchestrator decision APIs.
-- Store `{slack_channel_id, thread_ts}` per `run_id` to update in place.
+- Socket Mode handlers for slash commands and interactive actions; verify signatures.
+- `notify.action` events forwarded to Orchestrator decision APIs.
+- Track `{slack_channel_id, thread_ts}` per `run_id` for in-place updates.
 
 **Message Anatomy (Block Kit)**
 
@@ -291,7 +283,8 @@ Rate limits & retries
 **Agents (OpenAI Agents SDK)**
 
 - **RecordGen** (CPU/tool-only) → synthetic doc + ground truth.
-- **ExtractorLLM** (LLM) → extract fields to strict JSON schema; cite `used_mem_ids`.
+- **ExtractorLLM** (LLM) → extract fields to strict JSON schema; cite `used_mem_ids`. Model: `gpt-4o-mini`.
+- **JsonRestyler** (CPU/tool-only) → normalize/validate output JSON to schema (no new facts).
 - **SchemaGuard** (CPU/tool-only) → compare to ground truth; classify fail reason.
 - **Persister** (CPU/tool-only) → write summaries to memory.
 - **Verifier** (CPU/tool-only) → consistency/hash check.
@@ -299,11 +292,11 @@ Rate limits & retries
 
 **Health DAG**
 
-`recordgen → extractorLLM → schemaguard → persister → verifier → (optional summarizerLLM)`
+`recordgen → extractorLLM → jsonrestyler → schemaguard → persister → verifier → (optional summarizerLLM)`
 
 **Branches**
 
-- `schema_invalid` → one stricter re-prompt → else dead-letter.
+- `schema_invalid` → soft gate (2 min auto) → one stricter re-prompt → else dead-letter.
 - `wrong_value` → no retry (shows real accuracy) → dead-letter.
 
 **LLM Prompts/Decoding**
@@ -411,14 +404,14 @@ Rate limits & retries
 - **Outbox→Bus with consumer inbox**; `orders.complete(op_id)` idempotent.
 - **Retry taxonomy**
 
-| Failure class        | Agent return | Orchestrator policy           |
-| -------------------- | ------------ | ----------------------------- |
-| rate_limit/transient | error        | backoff 1s/4s/10s, max 3      |
-| timeout              | error        | 2 retries                     |
-| schema_invalid (LLM) | decline      | 1 stricter re-prompt, else DL |
-| wrong_value (LLM)    | decline      | no retry, DL                  |
-| capability_missing   | decline      | replan                        |
-| tool_error (CPU)     | error        | retry 2×, else DL             |
+| Failure class        | Agent return | Orchestrator policy                                  |
+| -------------------- | ------------ | ---------------------------------------------------- |
+| rate_limit/transient | error        | backoff 1s/4s/10s, max 3                             |
+| timeout              | error        | 2 retries                                            |
+| schema_invalid (LLM) | decline      | soft_gate 2m auto → 1 stricter re-prompt, else DL    |
+| wrong_value (LLM)    | decline      | no retry, DL                                         |
+| capability_missing   | decline      | replan                                               |
+| tool_error (CPU)     | error        | retry 2×, else DL                                    |
 
 - **Persona mutex**: prevent double checkout.
 - **Backpressure**: throttle issuance when bus backlog or DB latency > threshold.
@@ -451,6 +444,7 @@ Rate limits & retries
 - Tokens: JWT capability tokens ≤15 min TTL, audience-bound, HTTPS only.
 - Data: encrypt at rest; redact PII in logs; optional PII detector for artifacts.
 - Access: role-based approver lists; approval events immutable (append-only).
+- Policy (MVP): PII allowed: no; store only synthetic/test data until policies are in place.
 - Audit: `audit_log` for all policy changes and escalations.
 
 ---
@@ -479,7 +473,7 @@ Rate limits & retries
 
 ### 17) Risks & Mitigations
 
-- **JSON drift** → JSON mode + schema; one self-revise; optional “restyler” (no new facts); refusal path.
+- **JSON drift** → JSON mode + schema; one self-revise; JsonRestyler (no new facts); refusal path.
 - **Retrieval junk** → importance scoring + TTL + compaction + diversity filter.
 - **Persona saturation** → concurrency caps; autoscale (KEDA later); fair scheduling.
 - **Cost overruns** → budgets, per-persona ceilings, refusal fallback.
@@ -494,9 +488,9 @@ Rate limits & retries
 
 - Deploy Postgres, Redis, Temporal.
 - Build MCPs: board, memory, notify (Slack adapter), policy.
-- Implement agents (RecordGen, ExtractorLLM, SchemaGuard, Persister, Verifier).
+- Implement agents (RecordGen, ExtractorLLM, JsonRestyler, SchemaGuard, Persister, Verifier).
 - Namespaces, capability tokens, leases, retries, idempotent completes.
-- Slack app: `/mylo new|status|talk`, approval card; mocked HITL policy.
+- Slack app: `/mylo new|status|talk`, approval card; policy soft gates wired.
 - Run Trace UI; golden tests pass.
 
 **Weeks 2–3 (Harden)**
@@ -516,9 +510,5 @@ Rate limits & retries
 
 ### 19) Open Questions (track until resolved or moved to HITL board)
 
-1. Extractor model tier and hard budgets. → Answer: ____
-2. JSON restyler included Day‑1 or added only if drift observed? → Answer: ____
-3. Schema registry location and versioning policy. → Answer: ____
-4. Golden templates exact mix & noise profiles. → Answer: ____
-5. Slack deploy mode (Socket Mode vs HTTPS) and which channels to start with. → Answer: ____
-6. Which actions require real human approval (beyond mocked policy)? → Answer: ____
+1. Schema registry location and versioning policy. → Answer: ____
+2. Which actions require real human approval (beyond mocked policy)? → Answer: ____
