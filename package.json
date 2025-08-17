@@ -19,10 +19,20 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "pre-push": "npm run format:check && npm run build && npm run test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "db:validate": "tsx scripts/validate-schema.ts",
     "notify": "node scripts/notify-completion.js",
     "notify:success": "node scripts/notify-completion.js \"Task completed successfully\" 0",
     "notify:error": "node scripts/notify-completion.js \"Task failed - check logs\" 2",
     "notify:story": "node scripts/notify-completion.js \"Story completed successfully\" 1 \"MyloWare Story Complete\""
+  },
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "prisma": "^6.14.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
@@ -35,6 +45,7 @@
     "jest": "^29.7.0",
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
+    "tsx": "^4.20.4",
     "typescript": "^5.3.3"
   },
   "engines": {
@@ -62,5 +73,9 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "prisma": "^6.14.0"
   }
 }
