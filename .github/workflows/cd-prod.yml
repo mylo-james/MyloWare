@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Deploy to Production
 
 on:
@@ -8,7 +9,8 @@ on:
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
     
     steps:
     - name: Checkout code

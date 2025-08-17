@@ -14,7 +14,6 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "dev": "docker-compose up -d",
     "dev:down": "docker-compose down",
-    "setup": "npm install && npm run build",
     "clean": "npm run clean --workspaces",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
@@ -25,10 +24,10 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "db:validate": "tsx scripts/validate-schema.ts",
-    "notify": "node scripts/notify-completion.js",
-    "notify:success": "node scripts/notify-completion.js \"Task completed successfully\" 0",
-    "notify:error": "node scripts/notify-completion.js \"Task failed - check logs\" 2",
-    "notify:story": "node scripts/notify-completion.js \"Story completed successfully\" 1 \"MyloWare Story Complete\""
+    "hitl:success": "node scripts/hitl-notify.js --priority=1 --title=\"MyloWare Workflow Success\"",
+    "hitl:failure": "node scripts/hitl-notify.js --priority=2 --title=\"MyloWare Workflow Failure\"",
+    "build:watch": "tsc --watch",
+    "dev:watch": "nodemon --watch src --ext ts,js --exec \"npm run build\""
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
