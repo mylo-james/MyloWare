@@ -10,12 +10,12 @@ services:
       POSTGRES_USER: myloware
       POSTGRES_PASSWORD: myloware_dev_password
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myloware -d myloware"]
+      test: ['CMD-SHELL', 'pg_isready -U myloware -d myloware']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,11 +25,11 @@ services:
     image: redis:7.2.0-alpine
     container_name: myloware-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,11 +49,11 @@ services:
       - POSTGRES_SEEDS=postgres
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
     ports:
-      - "7233:7233"
+      - '7233:7233'
     volumes:
       - ./temporal-config:/etc/temporal/config/dynamicconfig
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "workflow", "list"]
+      test: ['CMD', 'tctl', '--address', 'temporal:7233', 'workflow', 'list']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -69,7 +69,95 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     ports:
-      - "8080:8080"
+      - '8080:8080'
+
+  # Workflow Service
+  workflow-service:
+    build:
+      context: .
+      dockerfile: packages/workflow-service/Dockerfile
+    container_name: myloware-workflow-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - TEMPORAL_HOST=temporal
+      - TEMPORAL_PORT=7233
+      - DATABASE_URL=postgresql://myloware:myloware_dev_password@postgres:5432/myloware
+    ports:
+      - '3001:3001'
+
+  # Event Bus Service
+  event-bus-service:
+    build:
+      context: .
+      dockerfile: packages/event-bus-service/Dockerfile
+    container_name: myloware-event-bus-service
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - EVENT_BUS_CONSUMER_GROUP=myloware_consumers
+    ports:
+      - '3002:3002'
+
+  # Memory Service
+  memory-service:
+    build:
+      context: .
+      dockerfile: packages/memory-service/Dockerfile
+    container_name: myloware-memory-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://myloware:myloware_dev_password@postgres:5432/myloware
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8080
+    ports:
+      - '3003:3003'
+      - '8080:8080'
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: packages/notification-service/Dockerfile
+    container_name: myloware-notification-service
+    environment:
+      - NODE_ENV=development
+      - MCP_HOST=0.0.0.0
+      - NOTIFY_MCP_PORT=8081
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
+    ports:
+      - '3004:3004'
+      - '8081:8081'
+
+  # Policy Service
+  policy-service:
+    build:
+      context: .
+      dockerfile: packages/policy-service/Dockerfile
+    container_name: myloware-policy-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://myloware:myloware_dev_password@postgres:5432/myloware
+      - MCP_HOST=0.0.0.0
+      - POLICY_MCP_PORT=8082
+    ports:
+      - '3005:3005'
+      - '8082:8082'
 
 volumes:
   postgres_data:
