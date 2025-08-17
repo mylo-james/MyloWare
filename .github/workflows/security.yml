@@ -31,16 +31,13 @@ jobs:
     - name: Run security scan with Snyk
       uses: snyk/actions/node@master
       continue-on-error: true
-      if: ${{ secrets.SNYK_TOKEN != '' }}
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         args: --severity-threshold=medium
 
-    - name: Fallback security check (npm audit)
-      if: ${{ secrets.SNYK_TOKEN == '' }}
+    - name: Run npm audit security check
       run: npm audit --audit-level moderate
-      continue-on-error: false
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
