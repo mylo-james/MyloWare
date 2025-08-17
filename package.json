@@ -18,8 +18,8 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "pre-push": "npm run format:check && npm run build && npm run test",
-    "hitl:success": "node scripts/hitl-notify.js --priority=1 --title=\"MyloWare HITL Success\"",
-    "hitl:failure": "node scripts/hitl-notify.js --priority=2 --title=\"MyloWare HITL Failure\"",
+    "hitl:success": "node scripts/hitl-notify.js --priority=1 --title=\"MyloWare Workflow Success\"",
+    "hitl:failure": "node scripts/hitl-notify.js --priority=2 --title=\"MyloWare Workflow Failure\"",
     "build:watch": "tsc --watch",
     "dev:watch": "nodemon --watch src --ext ts,js --exec \"npm run build\""
   },

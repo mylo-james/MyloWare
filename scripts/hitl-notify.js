@@ -9,7 +9,7 @@
  *
  * Flags (optional):
  *   --priority=0|1|2   Priority level (default 0)
- *   --title=STRING     Custom title (default "MyloWare HITL Notification")
+ *   --title=STRING     Custom title (default "MyloWare Workflow Notification")
  */
 
 const https = require('https');
@@ -38,8 +38,10 @@ try {
 // Parse CLI args
 const args = process.argv.slice(2);
 let priority = 0;
-let title = 'MyloWare HITL Notification';
+let title = 'MyloWare Workflow Notification';
 let sound = 'cosmic';
+let retrySeconds = null; // only used for priority=2 (emergency)
+let expireSeconds = null; // only used for priority=2 (emergency)
 const messageParts = [];
 
 for (const arg of args) {
@@ -54,6 +56,16 @@ for (const arg of args) {
   }
   if (arg.startsWith('--sound=')) {
     sound = arg.split('=')[1] || sound;
+    continue;
+  }
+  if (arg.startsWith('--retry=')) {
+    const val = parseInt(arg.split('=')[1], 10);
+    if (!Number.isNaN(val) && val > 0) retrySeconds = val;
+    continue;
+  }
+  if (arg.startsWith('--expire=')) {
+    const val = parseInt(arg.split('=')[1], 10);
+    if (!Number.isNaN(val) && val > 0) expireSeconds = val;
     continue;
   }
   if (arg.startsWith('--')) {
@@ -73,7 +85,7 @@ try {
   gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 } catch (_) {}
 
-const messageBody = messageParts.length ? messageParts.join(' ') : 'HITL task completed.';
+const messageBody = messageParts.length ? messageParts.join(' ') : 'Task completed.';
 const fullMessage = `${messageBody}\n\nBranch: ${gitBranch}\nCommit: ${gitCommit}\nTime: ${timestamp}`;
 
 if (!process.env.PUSHOVER_USER_KEY || !process.env.PUSHOVER_APP_TOKEN) {
@@ -81,14 +93,34 @@ if (!process.env.PUSHOVER_USER_KEY || !process.env.PUSHOVER_APP_TOKEN) {
   process.exit(1);
 }
 
-const postData = new URLSearchParams({
+// For priority=2 (emergency), Pushover requires retry and expire parameters
+// Apply sensible defaults if not provided via CLI flags
+if (priority === 2) {
+  // Pushover requires retry >= 30 seconds and expire <= 10800 seconds
+  const MIN_RETRY = 30;
+  const DEFAULT_RETRY = 60;
+  const DEFAULT_EXPIRE = 3600;
+  retrySeconds = Math.max(MIN_RETRY, retrySeconds ?? DEFAULT_RETRY);
+  // Clamp expire to [retry, 10800] to satisfy API constraints
+  const MAX_EXPIRE = 10800;
+  expireSeconds = Math.min(MAX_EXPIRE, Math.max(retrySeconds, expireSeconds ?? DEFAULT_EXPIRE));
+}
+
+const params = new URLSearchParams({
   token: process.env.PUSHOVER_APP_TOKEN,
   user: process.env.PUSHOVER_USER_KEY,
   title,
   message: fullMessage,
   priority: String(priority),
   sound,
-}).toString();
+});
+
+if (priority === 2) {
+  params.append('retry', String(retrySeconds));
+  params.append('expire', String(expireSeconds));
+}
+
+const postData = params.toString();
 
 const options = {
   hostname: 'api.pushover.net',
@@ -108,9 +140,9 @@ const req = https.request(options, res => {
     try {
       const json = JSON.parse(data);
       if (json.status === 1) {
-        console.log('[INFO] HITL notification sent successfully');
+        console.log('[INFO] Notification sent successfully');
       } else {
-        console.error('[ERROR] Failed to send HITL notification');
+        console.error('[ERROR] Failed to send notification');
         console.error(data);
         process.exit(1);
       }
