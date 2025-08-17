@@ -84,6 +84,22 @@ export class EventBusController {
     failed: number;
     errors?: string[] | undefined;
   }> {
+    // Type check: ensure events is an array
+    if (!Array.isArray(events)) {
+      throw new HttpException(
+        { message: 'Request body must be an array of events' },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    // Optionally, check that each element is an object (not null)
+    for (const event of events) {
+      if (typeof event !== 'object' || event === null) {
+        throw new HttpException(
+          { message: 'Each event must be an object' },
+          HttpStatus.BAD_REQUEST
+        );
+      }
+    }
     try {
       logger.info('Publishing events batch via API', {
         eventCount: events.length,
