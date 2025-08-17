@@ -63,6 +63,7 @@ commands: # All commands require * prefix when used (e.g., *help, *agent pm)
   status: Show current context, active agent, and progress
   task: Run a specific task (list if name not specified)
   yolo: Toggle skip confirmations mode
+  notify-completion: Send notification when orchestration task is completed using npm run notify:success
   exit: Return to BMad or exit session
 help-display-template: |
   === BMad Orchestrator Commands ===
@@ -91,6 +92,7 @@ help-display-template: |
   *yolo ............... Toggle skip confirmations mode
   *party-mode ......... Group chat with all agents
   *doc-out ............ Output full document
+  *notify-completion .. Send notification when orchestration task is completed
 
   === Available Specialist Agents ===
   [Dynamically list each agent in bundle with format:

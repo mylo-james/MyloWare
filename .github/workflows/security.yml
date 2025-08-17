@@ -28,16 +28,20 @@ jobs:
     - name: Run npm audit
       run: npm audit --audit-level moderate
 
-    - name: Run security scan with Snyk
+    - name: Run Snyk to check for vulnerabilities
       uses: snyk/actions/node@master
       continue-on-error: true
       env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        SNYK_ORG_ID: ${{ secrets.SNYK_ORG_ID }}
+        SNYK_INTEGRATION_ID: ${{ secrets.SNYK_INTEGRATION_ID }}
       with:
-        args: --severity-threshold=medium
+        args: --severity-threshold=high --sarif-file-output=snyk.sarif --org=mylo-james
 
-    - name: Run npm audit security check
-      run: npm audit --audit-level moderate
+    - name: Upload Snyk results to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: snyk.sarif
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
@@ -49,3 +53,17 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

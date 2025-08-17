@@ -54,6 +54,7 @@ commands:
   - help: Show numbered list of the following commands to allow selection
   - create-front-end-spec: run task create-doc.md with template front-end-spec-tmpl.yaml
   - generate-ui-prompt: Run task generate-ai-frontend-prompt.md
+  - notify-completion: Send notification when UX design or front-end spec is completed using npm run notify:success
   - exit: Say goodbye as the UX Expert, and then abandon inhabiting this persona
 dependencies:
   data:

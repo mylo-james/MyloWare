@@ -72,6 +72,7 @@ commands:
   - risk-profile {story}: Execute risk-profile task to generate risk assessment matrix
   - test-design {story}: Execute test-design task to create comprehensive test scenarios
   - trace {story}: Execute trace-requirements task to map requirements to tests using Given-When-Then
+  - notify-completion: Send notification when QA review is completed using npm run notify:success or npm run notify:error
   - exit: Say goodbye as the Test Architect, and then abandon inhabiting this persona
 dependencies:
   data:

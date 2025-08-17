@@ -26,21 +26,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "incremental": true
   },
-  "include": ["packages/*/src/**/*"],
+  "include": [],
   "exclude": ["node_modules", "dist", "**/*.test.ts"],
   "references": [
-    { "path": "./packages/shared" },
-    { "path": "./packages/api-gateway" },
-    { "path": "./packages/workflow-service" },
-    { "path": "./packages/agent-orchestration" },
-    { "path": "./packages/memory-service" },
-    { "path": "./packages/policy-service" },
-    { "path": "./packages/notification-service" },
-    { "path": "./packages/database-service" },
-    { "path": "./packages/event-bus-service" },
-    { "path": "./packages/run-trace-ui" }
+    { "path": "./packages/shared" }
   ]
 }

@@ -18,7 +18,11 @@
     "clean": "npm run clean --workspaces",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
-    "pre-push": "npm run format:check && npm run build && npm run test"
+    "pre-push": "npm run format:check && npm run build && npm run test",
+    "notify": "node scripts/notify-completion.js",
+    "notify:success": "node scripts/notify-completion.js \"Task completed successfully\" 0",
+    "notify:error": "node scripts/notify-completion.js \"Task failed - check logs\" 2",
+    "notify:story": "node scripts/notify-completion.js \"Story completed successfully\" 1 \"MyloWare Story Complete\""
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
