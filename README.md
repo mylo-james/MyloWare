@@ -157,6 +157,18 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## ⚙️ Configuration
+
+### Optional External Services
+
+The following external services require additional configuration:
+
+- **Codecov** - Set `CODECOV_TOKEN` secret for coverage reporting
+- **Snyk** - Set `SNYK_TOKEN` secret for security scanning
+- **AWS** - Configure AWS credentials for production deployment
+
+Without these tokens, the CI pipeline will use fallback methods (npm audit for security, local coverage for testing).
+
 ## 🆘 Support
 
 For support and questions:
