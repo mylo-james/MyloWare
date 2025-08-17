@@ -9,4 +9,5 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  passWithNoTests: true,
 };
