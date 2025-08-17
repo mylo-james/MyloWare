@@ -3,6 +3,7 @@
 ## Core Service Components
 
 **API Gateway Service**
+
 - **Responsibility:** Central entry point for all external requests, authentication, rate limiting, and request routing
 - **Key Interfaces:**
   - REST API endpoints for work order management
@@ -13,6 +14,7 @@
 - **Technology Stack:** NestJS, JWT authentication, rate limiting middleware, OpenAPI documentation
 
 **Workflow Orchestration Service**
+
 - **Responsibility:** Manages Temporal workflows, coordinates document processing, and maintains workflow state
 - **Key Interfaces:**
   - Workflow creation and management APIs
@@ -23,6 +25,7 @@
 - **Technology Stack:** Temporal SDK, NestJS, Prisma ORM, Winston logging
 
 **Agent Orchestration Service**
+
 - **Responsibility:** Manages AI agents, coordinates agent interactions, and handles agent lifecycle
 - **Key Interfaces:**
   - Agent creation and configuration APIs
@@ -33,6 +36,7 @@
 - **Technology Stack:** OpenAI Agents SDK, NestJS, Axios for API calls, Circuit breaker pattern
 
 **Memory Service**
+
 - **Responsibility:** Manages agent memory, context storage, and knowledge retrieval
 - **Key Interfaces:**
   - Memory document CRUD operations
@@ -43,6 +47,7 @@
 - **Technology Stack:** Prisma ORM, pgvector extension, Redis caching, Vector similarity algorithms
 
 **Policy Service**
+
 - **Responsibility:** Implements human-in-the-loop policies, approval workflows, and governance rules
 - **Key Interfaces:**
   - Policy evaluation and decision APIs
@@ -53,6 +58,7 @@
 - **Technology Stack:** NestJS, Joi validation, Policy engine, Audit logging
 
 **Notification Service**
+
 - **Responsibility:** Handles all notifications, alerts, and communication with external systems
 - **Key Interfaces:**
   - Slack integration and message sending
@@ -63,6 +69,7 @@
 - **Technology Stack:** @slack/bolt SDK, Nodemailer, Webhook management, Template engine
 
 **Database Service**
+
 - **Responsibility:** Centralized data access layer with repository pattern implementation
 - **Key Interfaces:**
   - Repository interfaces for all entities
@@ -73,6 +80,7 @@
 - **Technology Stack:** Prisma ORM, Database migrations, Connection pooling, Data validation
 
 **Event Bus Service**
+
 - **Responsibility:** Manages Redis Streams for event-driven communication between services
 - **Key Interfaces:**
   - Event publishing and subscription
@@ -85,6 +93,7 @@
 ## AI Agent Components
 
 **RecordGen Agent**
+
 - **Responsibility:** Generates initial records and context for document processing
 - **Key Interfaces:**
   - Document analysis and record generation
@@ -94,6 +103,7 @@
 - **Technology Stack:** OpenAI Agents SDK, Prompt engineering, Context management
 
 **ExtractorLLM Agent**
+
 - **Responsibility:** Extracts structured data from documents using LLM processing
 - **Key Interfaces:**
   - Document content extraction
@@ -103,6 +113,7 @@
 - **Technology Stack:** OpenAI Agents SDK, Multi-provider strategy, Token budgeting
 
 **JsonRestyler Agent**
+
 - **Responsibility:** Transforms and standardizes extracted data into consistent JSON format
 - **Key Interfaces:**
   - Data transformation and normalization
@@ -112,6 +123,7 @@
 - **Technology Stack:** JSON processing, Schema validation, Data transformation
 
 **SchemaGuard Agent**
+
 - **Responsibility:** Validates data against schemas and ensures compliance with business rules
 - **Key Interfaces:**
   - Schema validation and enforcement
@@ -121,6 +133,7 @@
 - **Technology Stack:** JSON Schema validation, Business rule engine, Quality metrics
 
 **Persister Agent**
+
 - **Responsibility:** Persists validated data to the database and manages data lifecycle
 - **Key Interfaces:**
   - Data persistence operations
@@ -130,6 +143,7 @@
 - **Technology Stack:** Prisma ORM, Transaction management, Data versioning
 
 **Verifier Agent**
+
 - **Responsibility:** Performs final verification and quality assurance on processed data
 - **Key Interfaces:**
   - Data verification and validation
@@ -146,7 +160,7 @@ graph TB
         API[API Gateway]
         AUTH[Authentication]
     end
-    
+
     subgraph "Core Services"
         WORKFLOW[Workflow Service]
         AGENT[Agent Orchestration]
@@ -154,12 +168,12 @@ graph TB
         POLICY[Policy Service]
         NOTIFY[Notification Service]
     end
-    
+
     subgraph "Data Layer"
         DB[Database Service]
         EVENT[Event Bus Service]
     end
-    
+
     subgraph "AI Agents"
         RECORD[RecordGen]
         EXTRACT[ExtractorLLM]
@@ -168,32 +182,32 @@ graph TB
         PERSIST[Persister]
         VERIFY[Verifier]
     end
-    
+
     API --> AUTH
     API --> WORKFLOW
     API --> AGENT
-    
+
     WORKFLOW --> AGENT
     WORKFLOW --> DB
     WORKFLOW --> EVENT
-    
+
     AGENT --> RECORD
     AGENT --> EXTRACT
     AGENT --> JSON
     AGENT --> SCHEMA
     AGENT --> PERSIST
     AGENT --> VERIFY
-    
+
     RECORD --> MEMORY
     EXTRACT --> MEMORY
     JSON --> SCHEMA
     SCHEMA --> PERSIST
     PERSIST --> VERIFY
-    
+
     MEMORY --> DB
     POLICY --> DB
     NOTIFY --> EVENT
-    
+
     RECORD --> EVENT
     EXTRACT --> EVENT
     JSON --> EVENT

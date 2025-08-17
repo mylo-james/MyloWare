@@ -15,9 +15,9 @@ MyloWare is a greenfield project with no existing codebase or starter template d
 
 ### Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|---------|
-| 2024-12-19 | v1.0 | Initial architecture document based on validated PRD | Winton (PO) |
+| Date       | Version | Description                                          | Author      |
+| ---------- | ------- | ---------------------------------------------------- | ----------- |
+| 2024-12-19 | v1.0    | Initial architecture document based on validated PRD | Winton (PO) |
 
 ## High Level Architecture
 
@@ -31,13 +31,15 @@ MyloWare implements a **simplified microservices architecture** with **event-dri
 
 **Repository Structure:** Monorepo (as specified in PRD) for unified development and deployment
 
-**Service Architecture:** 
+**Service Architecture:**
+
 - Core microservices with clear boundaries
 - Temporal for workflow orchestration and state management
 - Event-driven communication via Redis Streams
 - HTTP REST APIs for service communication (MVP phase)
 
 **Primary User Interaction Flow:**
+
 1. Users interact primarily through Slack integration
 2. Document processing workflows are orchestrated by Temporal
 3. AI agents process documents using OpenAI Agents SDK
@@ -45,6 +47,7 @@ MyloWare implements a **simplified microservices architecture** with **event-dri
 5. Run Trace UI provides observability and debugging capabilities
 
 **Key Architectural Decisions:**
+
 - **Simplified Microservices**: Reduced complexity for MVP while maintaining scalability
 - **Temporal Workflow Orchestration**: Ensures deterministic execution, retries, and idempotency
 - **Event-Driven Communication**: Decouples services and enables async processing
@@ -59,12 +62,12 @@ graph TB
         SLACK[Slack Integration]
         WEB[Run Trace UI]
     end
-    
+
     subgraph "API Gateway Layer"
         API[API Gateway]
         AUTH[Authentication Service]
     end
-    
+
     subgraph "Core Services Layer"
         WORKFLOW[Temporal Workflow Engine]
         AGENT[Agent Orchestration Service]
@@ -72,7 +75,7 @@ graph TB
         POLICY[Policy Service]
         NOTIFY[Notification Service]
     end
-    
+
     subgraph "AI Processing Layer"
         RECORD[RecordGen Agent]
         EXTRACT[ExtractorLLM Agent]
@@ -81,19 +84,19 @@ graph TB
         PERSIST[Persister Agent]
         VERIFY[Verifier Agent]
     end
-    
+
     subgraph "Data Layer"
         DB[(PostgreSQL Database)]
         REDIS[(Redis Event Bus)]
         VECTOR[(Vector Storage)]
     end
-    
+
     subgraph "External Services"
         OPENAI[OpenAI API]
         ANTHROPIC[Anthropic API]
         SLACK_API[Slack API]
     end
-    
+
     SLACK --> API
     WEB --> API
     API --> AUTH
@@ -105,79 +108,80 @@ graph TB
     AGENT --> SCHEMA
     AGENT --> PERSIST
     AGENT --> VERIFY
-    
+
     RECORD --> MEMORY
     EXTRACT --> MEMORY
     JSON --> SCHEMA
     SCHEMA --> PERSIST
     PERSIST --> VERIFY
-    
+
     WORKFLOW --> DB
     MEMORY --> DB
     POLICY --> DB
-    
+
     AGENT --> REDIS
     WORKFLOW --> REDIS
-    
+
     RECORD --> VECTOR
     EXTRACT --> VECTOR
-    
+
     EXTRACT --> OPENAI
     EXTRACT --> ANTHROPIC
-    
+
     NOTIFY --> SLACK_API
     POLICY --> SLACK
 ```
 
 ### Architectural and Design Patterns
 
-**Event-Driven Architecture:** Using Redis Streams for asynchronous service communication - *Rationale:* Enables loose coupling, supports high throughput, and provides reliable message delivery with consumer groups
+**Event-Driven Architecture:** Using Redis Streams for asynchronous service communication - _Rationale:_ Enables loose coupling, supports high throughput, and provides reliable message delivery with consumer groups
 
-**Workflow Orchestration Pattern:** Using Temporal for complex workflow management - *Rationale:* Provides deterministic execution, built-in retries, idempotency, and comprehensive observability for document processing workflows
+**Workflow Orchestration Pattern:** Using Temporal for complex workflow management - _Rationale:_ Provides deterministic execution, built-in retries, idempotency, and comprehensive observability for document processing workflows
 
-**Repository Pattern:** Abstract data access logic across all services - *Rationale:* Enables testing, supports future database migrations, and provides consistent data access patterns
+**Repository Pattern:** Abstract data access logic across all services - _Rationale:_ Enables testing, supports future database migrations, and provides consistent data access patterns
 
-**Agent Pattern:** Using OpenAI Agents SDK for AI orchestration - *Rationale:* Provides standardized agent interfaces, built-in memory management, and tool integration capabilities
+**Agent Pattern:** Using OpenAI Agents SDK for AI orchestration - _Rationale:_ Provides standardized agent interfaces, built-in memory management, and tool integration capabilities
 
-**CQRS Pattern:** Separate read and write models for complex queries - *Rationale:* Optimizes performance for different access patterns and supports complex reporting requirements
+**CQRS Pattern:** Separate read and write models for complex queries - _Rationale:_ Optimizes performance for different access patterns and supports complex reporting requirements
 
-**Circuit Breaker Pattern:** For external API calls (OpenAI, Anthropic) - *Rationale:* Prevents cascading failures and provides graceful degradation when external services are unavailable
+**Circuit Breaker Pattern:** For external API calls (OpenAI, Anthropic) - _Rationale:_ Prevents cascading failures and provides graceful degradation when external services are unavailable
 
-**Outbox Pattern:** For reliable event publishing - *Rationale:* Ensures events are published even if the event bus is temporarily unavailable
+**Outbox Pattern:** For reliable event publishing - _Rationale:_ Ensures events are published even if the event bus is temporarily unavailable
 
 ## Tech Stack
 
 **CRITICAL: This section defines the definitive technology choices for the entire MyloWare platform. All other documents must reference these choices.**
 
 ### Cloud Infrastructure
+
 - **Provider:** AWS (Amazon Web Services)
 - **Key Services:** ECS Fargate, RDS PostgreSQL, ElastiCache Redis, CloudWatch, IAM, Secrets Manager
 - **Deployment Regions:** us-east-1 (primary), us-west-2 (backup)
 
 ### Technology Stack Table
 
-| Category | Technology | Version | Purpose | Rationale |
-|----------|------------|---------|---------|-----------|
-| **Language** | TypeScript | 5.3.3 | Primary development language | Strong typing, excellent tooling, team expertise, type safety for complex workflows |
-| **Runtime** | Node.js | 20.11.0 | JavaScript runtime | LTS version, stable performance, wide ecosystem, excellent async support |
-| **Framework** | NestJS | 10.3.2 | Backend framework | Enterprise-ready, dependency injection, decorators, excellent TypeScript support |
-| **Workflow Engine** | Temporal | 1.22.0 | Workflow orchestration | Deterministic execution, retries, idempotency, comprehensive observability |
-| **Database** | PostgreSQL | 15.5 | Primary data store | ACID compliance, JSON support, excellent performance, mature ecosystem |
-| **Event Bus** | Redis | 7.2.0 | Message queue and caching | High performance, streams support, pub/sub, in-memory caching |
-| **AI Framework** | OpenAI Agents SDK | 0.1.0 | Agent orchestration | Standardized agent interfaces, built-in memory, tool integration |
-| **API Documentation** | OpenAPI | 3.0.3 | API specification | Industry standard, excellent tooling, code generation support |
-| **Testing** | Jest | 29.7.0 | Unit and integration testing | Excellent TypeScript support, mocking capabilities, coverage reporting |
-| **Containerization** | Docker | 24.0.0 | Application packaging | Consistent environments, easy deployment, cloud-native ready |
-| **Orchestration** | Docker Compose | 2.20.0 | Local development | Simple local setup, service coordination, development workflow |
-| **CI/CD** | GitHub Actions | Latest | Continuous integration | Native GitHub integration, extensive marketplace, cost-effective |
-| **Monitoring** | CloudWatch | Latest | Application monitoring | Native AWS integration, comprehensive metrics, alerting |
-| **Logging** | Winston | 3.11.0 | Application logging | Structured logging, multiple transports, excellent performance |
-| **Validation** | Joi | 17.11.0 | Input validation | Schema-based validation, excellent error messages, TypeScript support |
-| **Authentication** | JWT | 9.0.2 | Token-based auth | Stateless, scalable, industry standard |
-| **HTTP Client** | Axios | 1.6.0 | HTTP requests | Promise-based, interceptors, excellent error handling |
-| **Database ORM** | Prisma | 5.7.0 | Database access | Type-safe queries, migrations, excellent TypeScript integration |
-| **Vector Storage** | pgvector | 0.5.0 | Vector embeddings | PostgreSQL extension, excellent performance, ACID compliance |
-| **Slack SDK** | @slack/bolt | 3.17.0 | Slack integration | Official SDK, comprehensive features, excellent documentation |
+| Category              | Technology        | Version | Purpose                      | Rationale                                                                           |
+| --------------------- | ----------------- | ------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| **Language**          | TypeScript        | 5.3.3   | Primary development language | Strong typing, excellent tooling, team expertise, type safety for complex workflows |
+| **Runtime**           | Node.js           | 20.11.0 | JavaScript runtime           | LTS version, stable performance, wide ecosystem, excellent async support            |
+| **Framework**         | NestJS            | 10.3.2  | Backend framework            | Enterprise-ready, dependency injection, decorators, excellent TypeScript support    |
+| **Workflow Engine**   | Temporal          | 1.22.0  | Workflow orchestration       | Deterministic execution, retries, idempotency, comprehensive observability          |
+| **Database**          | PostgreSQL        | 15.5    | Primary data store           | ACID compliance, JSON support, excellent performance, mature ecosystem              |
+| **Event Bus**         | Redis             | 7.2.0   | Message queue and caching    | High performance, streams support, pub/sub, in-memory caching                       |
+| **AI Framework**      | OpenAI Agents SDK | 0.1.0   | Agent orchestration          | Standardized agent interfaces, built-in memory, tool integration                    |
+| **API Documentation** | OpenAPI           | 3.0.3   | API specification            | Industry standard, excellent tooling, code generation support                       |
+| **Testing**           | Jest              | 29.7.0  | Unit and integration testing | Excellent TypeScript support, mocking capabilities, coverage reporting              |
+| **Containerization**  | Docker            | 24.0.0  | Application packaging        | Consistent environments, easy deployment, cloud-native ready                        |
+| **Orchestration**     | Docker Compose    | 2.20.0  | Local development            | Simple local setup, service coordination, development workflow                      |
+| **CI/CD**             | GitHub Actions    | Latest  | Continuous integration       | Native GitHub integration, extensive marketplace, cost-effective                    |
+| **Monitoring**        | CloudWatch        | Latest  | Application monitoring       | Native AWS integration, comprehensive metrics, alerting                             |
+| **Logging**           | Winston           | 3.11.0  | Application logging          | Structured logging, multiple transports, excellent performance                      |
+| **Validation**        | Joi               | 17.11.0 | Input validation             | Schema-based validation, excellent error messages, TypeScript support               |
+| **Authentication**    | JWT               | 9.0.2   | Token-based auth             | Stateless, scalable, industry standard                                              |
+| **HTTP Client**       | Axios             | 1.6.0   | HTTP requests                | Promise-based, interceptors, excellent error handling                               |
+| **Database ORM**      | Prisma            | 5.7.0   | Database access              | Type-safe queries, migrations, excellent TypeScript integration                     |
+| **Vector Storage**    | pgvector          | 0.5.0   | Vector embeddings            | PostgreSQL extension, excellent performance, ACID compliance                        |
+| **Slack SDK**         | @slack/bolt       | 3.17.0  | Slack integration            | Official SDK, comprehensive features, excellent documentation                       |
 
 **Please review these technology choices carefully. Are there any gaps, disagreements, or clarifications needed? These choices will guide all subsequent development.**
 
@@ -186,6 +190,7 @@ graph TB
 ### Core Business Entities
 
 **WorkOrder**
+
 - **Purpose:** Represents a document processing request with associated metadata and workflow state
 - **Key Attributes:**
   - `id`: UUID - Unique identifier for the work order
@@ -202,6 +207,7 @@ graph TB
   - Belongs to Tenant (many-to-one)
 
 **WorkItem**
+
 - **Purpose:** Individual document or task within a work order that gets processed by agents
 - **Key Attributes:**
   - `id`: UUID - Unique identifier for the work item
@@ -218,6 +224,7 @@ graph TB
   - Has many MemDocs (one-to-many)
 
 **Attempt**
+
 - **Purpose:** Tracks individual processing attempts for work items with detailed execution history
 - **Key Attributes:**
   - `id`: UUID - Unique attempt identifier
@@ -235,6 +242,7 @@ graph TB
   - Belongs to Agent (many-to-one)
 
 **MemDoc**
+
 - **Purpose:** Memory documents that store context and knowledge for agent processing
 - **Key Attributes:**
   - `id`: UUID - Unique memory document identifier
@@ -250,6 +258,7 @@ graph TB
   - Has many related MemDocs (many-to-many through similarity)
 
 **ApprovalEvent**
+
 - **Purpose:** Tracks human-in-the-loop approval decisions and governance actions
 - **Key Attributes:**
   - `id`: UUID - Unique approval event identifier
@@ -264,6 +273,7 @@ graph TB
   - Belongs to User (many-to-one)
 
 **DeadLetter**
+
 - **Purpose:** Stores failed events and messages for investigation and reprocessing
 - **Key Attributes:**
   - `id`: UUID - Unique dead letter identifier
@@ -280,6 +290,7 @@ graph TB
 ### Platform Entities
 
 **Connector**
+
 - **Purpose:** Configuration for external system integrations and data sources
 - **Key Attributes:**
   - `id`: UUID - Unique connector identifier
@@ -294,6 +305,7 @@ graph TB
   - Belongs to Tenant (many-to-one)
 
 **Tool**
+
 - **Purpose:** Defines available tools and capabilities that agents can use
 - **Key Attributes:**
   - `id`: UUID - Unique tool identifier
@@ -308,6 +320,7 @@ graph TB
   - Has many Capabilities (many-to-many)
 
 **Capability**
+
 - **Purpose:** Defines permissions and access controls for users and services
 - **Key Attributes:**
   - `id`: UUID - Unique capability identifier
@@ -321,6 +334,7 @@ graph TB
   - Has many Users (many-to-many)
 
 **Schema**
+
 - **Purpose:** Defines data schemas for document types and validation rules
 - **Key Attributes:**
   - `id`: UUID - Unique schema identifier
@@ -334,6 +348,7 @@ graph TB
   - Has many WorkItems (one-to-many through document_type)
 
 **WorkflowTemplate**
+
 - **Purpose:** Defines reusable workflow templates for different document processing scenarios
 - **Key Attributes:**
   - `id`: UUID - Unique template identifier
@@ -347,6 +362,7 @@ graph TB
   - Has many WorkOrders (one-to-many through document_type)
 
 **EvalResult**
+
 - **Purpose:** Stores evaluation results for quality assurance and performance monitoring
 - **Key Attributes:**
   - `id`: UUID - Unique evaluation result identifier
@@ -364,6 +380,7 @@ graph TB
 ### Core Service Components
 
 **API Gateway Service**
+
 - **Responsibility:** Central entry point for all external requests, authentication, rate limiting, and request routing
 - **Key Interfaces:**
   - REST API endpoints for work order management
@@ -374,6 +391,7 @@ graph TB
 - **Technology Stack:** NestJS, JWT authentication, rate limiting middleware, OpenAPI documentation
 
 **Workflow Orchestration Service**
+
 - **Responsibility:** Manages Temporal workflows, coordinates document processing, and maintains workflow state
 - **Key Interfaces:**
   - Workflow creation and management APIs
@@ -384,6 +402,7 @@ graph TB
 - **Technology Stack:** Temporal SDK, NestJS, Prisma ORM, Winston logging
 
 **Agent Orchestration Service**
+
 - **Responsibility:** Manages AI agents, coordinates agent interactions, and handles agent lifecycle
 - **Key Interfaces:**
   - Agent creation and configuration APIs
@@ -394,6 +413,7 @@ graph TB
 - **Technology Stack:** OpenAI Agents SDK, NestJS, Axios for API calls, Circuit breaker pattern
 
 **Memory Service**
+
 - **Responsibility:** Manages agent memory, context storage, and knowledge retrieval
 - **Key Interfaces:**
   - Memory document CRUD operations
@@ -404,6 +424,7 @@ graph TB
 - **Technology Stack:** Prisma ORM, pgvector extension, Redis caching, Vector similarity algorithms
 
 **Policy Service**
+
 - **Responsibility:** Implements human-in-the-loop policies, approval workflows, and governance rules
 - **Key Interfaces:**
   - Policy evaluation and decision APIs
@@ -414,6 +435,7 @@ graph TB
 - **Technology Stack:** NestJS, Joi validation, Policy engine, Audit logging
 
 **Notification Service**
+
 - **Responsibility:** Handles all notifications, alerts, and communication with external systems
 - **Key Interfaces:**
   - Slack integration and message sending
@@ -424,6 +446,7 @@ graph TB
 - **Technology Stack:** @slack/bolt SDK, Nodemailer, Webhook management, Template engine
 
 **Database Service**
+
 - **Responsibility:** Centralized data access layer with repository pattern implementation
 - **Key Interfaces:**
   - Repository interfaces for all entities
@@ -434,6 +457,7 @@ graph TB
 - **Technology Stack:** Prisma ORM, Database migrations, Connection pooling, Data validation
 
 **Event Bus Service**
+
 - **Responsibility:** Manages Redis Streams for event-driven communication between services
 - **Key Interfaces:**
   - Event publishing and subscription
@@ -446,6 +470,7 @@ graph TB
 ### AI Agent Components
 
 **RecordGen Agent**
+
 - **Responsibility:** Generates initial records and context for document processing
 - **Key Interfaces:**
   - Document analysis and record generation
@@ -455,6 +480,7 @@ graph TB
 - **Technology Stack:** OpenAI Agents SDK, Prompt engineering, Context management
 
 **ExtractorLLM Agent**
+
 - **Responsibility:** Extracts structured data from documents using LLM processing
 - **Key Interfaces:**
   - Document content extraction
@@ -464,6 +490,7 @@ graph TB
 - **Technology Stack:** OpenAI Agents SDK, Multi-provider strategy, Token budgeting
 
 **JsonRestyler Agent**
+
 - **Responsibility:** Transforms and standardizes extracted data into consistent JSON format
 - **Key Interfaces:**
   - Data transformation and normalization
@@ -473,6 +500,7 @@ graph TB
 - **Technology Stack:** JSON processing, Schema validation, Data transformation
 
 **SchemaGuard Agent**
+
 - **Responsibility:** Validates data against schemas and ensures compliance with business rules
 - **Key Interfaces:**
   - Schema validation and enforcement
@@ -482,6 +510,7 @@ graph TB
 - **Technology Stack:** JSON Schema validation, Business rule engine, Quality metrics
 
 **Persister Agent**
+
 - **Responsibility:** Persists validated data to the database and manages data lifecycle
 - **Key Interfaces:**
   - Data persistence operations
@@ -491,6 +520,7 @@ graph TB
 - **Technology Stack:** Prisma ORM, Transaction management, Data versioning
 
 **Verifier Agent**
+
 - **Responsibility:** Performs final verification and quality assurance on processed data
 - **Key Interfaces:**
   - Data verification and validation
@@ -507,7 +537,7 @@ graph TB
         API[API Gateway]
         AUTH[Authentication]
     end
-    
+
     subgraph "Core Services"
         WORKFLOW[Workflow Service]
         AGENT[Agent Orchestration]
@@ -515,12 +545,12 @@ graph TB
         POLICY[Policy Service]
         NOTIFY[Notification Service]
     end
-    
+
     subgraph "Data Layer"
         DB[Database Service]
         EVENT[Event Bus Service]
     end
-    
+
     subgraph "AI Agents"
         RECORD[RecordGen]
         EXTRACT[ExtractorLLM]
@@ -529,32 +559,32 @@ graph TB
         PERSIST[Persister]
         VERIFY[Verifier]
     end
-    
+
     API --> AUTH
     API --> WORKFLOW
     API --> AGENT
-    
+
     WORKFLOW --> AGENT
     WORKFLOW --> DB
     WORKFLOW --> EVENT
-    
+
     AGENT --> RECORD
     AGENT --> EXTRACT
     AGENT --> JSON
     AGENT --> SCHEMA
     AGENT --> PERSIST
     AGENT --> VERIFY
-    
+
     RECORD --> MEMORY
     EXTRACT --> MEMORY
     JSON --> SCHEMA
     SCHEMA --> PERSIST
     PERSIST --> VERIFY
-    
+
     MEMORY --> DB
     POLICY --> DB
     NOTIFY --> EVENT
-    
+
     RECORD --> EVENT
     EXTRACT --> EVENT
     JSON --> EVENT
@@ -566,6 +596,7 @@ graph TB
 ## External APIs
 
 ### OpenAI API
+
 - **Purpose:** Primary LLM provider for document processing and AI agent operations
 - **Documentation:** https://platform.openai.com/docs
 - **Base URL(s):** https://api.openai.com/v1
@@ -573,6 +604,7 @@ graph TB
 - **Rate Limits:** Varies by model and plan (typically 3,000-10,000 requests/minute)
 
 **Key Endpoints Used:**
+
 - `POST /chat/completions` - Generate text completions for document processing
 - `POST /embeddings` - Generate embeddings for vector storage
 - `POST /models` - List available models and capabilities
@@ -580,6 +612,7 @@ graph TB
 **Integration Notes:** Implement circuit breaker pattern, token budgeting, and fallback to alternative providers
 
 ### Anthropic API
+
 - **Purpose:** Secondary LLM provider for redundancy and cost optimization
 - **Documentation:** https://docs.anthropic.com/
 - **Base URL(s):** https://api.anthropic.com
@@ -587,12 +620,14 @@ graph TB
 - **Rate Limits:** Varies by plan (typically 1,000-5,000 requests/minute)
 
 **Key Endpoints Used:**
+
 - `POST /v1/messages` - Generate text completions using Claude models
 - `POST /v1/embeddings` - Generate embeddings for vector storage
 
 **Integration Notes:** Used as fallback when OpenAI is unavailable or for specific use cases requiring Claude's capabilities
 
 ### Slack API
+
 - **Purpose:** Primary user interface and notification system
 - **Documentation:** https://api.slack.com/
 - **Base URL(s):** https://slack.com/api
@@ -600,6 +635,7 @@ graph TB
 - **Rate Limits:** 50 requests per second per workspace
 
 **Key Endpoints Used:**
+
 - `POST /chat.postMessage` - Send messages to channels or users
 - `POST /views.open` - Open modal dialogs for user interaction
 - `POST /chat.postEphemeral` - Send temporary messages
@@ -634,23 +670,23 @@ sequenceDiagram
     API->>Workflow: Create work order
     Workflow->>DB: Store work order
     Workflow->>Agent: Initialize processing
-    
+
     Agent->>Record: Generate initial record
     Record->>Memory: Store context
     Record->>Agent: Return record
-    
+
     Agent->>Extract: Extract data from document
     Extract->>Memory: Retrieve context
     Extract->>Extract: Process with LLM
     Extract->>Memory: Store extracted data
     Extract->>Agent: Return extracted data
-    
+
     Agent->>Json: Transform to JSON
     Json->>Agent: Return structured data
-    
+
     Agent->>Schema: Validate against schema
     Schema->>Agent: Return validation result
-    
+
     alt Validation failed
         Schema->>Policy: Request human approval
         Policy->>Slack: Send approval request
@@ -658,14 +694,14 @@ sequenceDiagram
         Slack->>Policy: Approval decision
         Policy->>Agent: Continue or retry
     end
-    
+
     Agent->>Persist: Persist validated data
     Persist->>DB: Store data
     Persist->>Agent: Return success
-    
+
     Agent->>Verify: Final verification
     Verify->>Agent: Return verification result
-    
+
     Agent->>Workflow: Processing complete
     Workflow->>DB: Update work order status
     Workflow->>Slack: Send completion notification
@@ -685,7 +721,7 @@ sequenceDiagram
 
     Agent->>Policy: Request approval decision
     Policy->>Policy: Evaluate policy rules
-    
+
     alt Policy requires human approval
         Policy->>Slack: Create approval card
         Slack->>User: Display approval request
@@ -713,7 +749,7 @@ sequenceDiagram
 
     Workflow->>Agent: Execute agent task
     Agent->>Circuit: Check circuit breaker state
-    
+
     alt Circuit closed (normal operation)
         Agent->>LLM: Make API call
         alt API call successful
@@ -737,7 +773,7 @@ sequenceDiagram
         Fallback->>Agent: Return response
         Agent->>Workflow: Task completed
     end
-    
+
     Workflow->>DB: Store attempt result
 ```
 
@@ -1541,21 +1577,25 @@ myloware/
 ## Infrastructure and Deployment
 
 ### Infrastructure as Code
+
 - **Tool:** Terraform 1.5.0
 - **Location:** `infrastructure/terraform/`
 - **Approach:** Modular Terraform with environment-specific configurations
 
 ### Deployment Strategy
+
 - **Strategy:** Blue-Green deployment with ECS Fargate
 - **CI/CD Platform:** GitHub Actions
 - **Pipeline Configuration:** `.github/workflows/`
 
 ### Environments
+
 - **Development:** Local Docker Compose environment for development and testing
 - **Staging:** AWS ECS Fargate with staging configuration for pre-production testing
 - **Production:** AWS ECS Fargate with production configuration for live deployment
 
 ### Environment Promotion Flow
+
 ```
 Development → Staging → Production
      ↓           ↓          ↓
@@ -1565,6 +1605,7 @@ Development → Staging → Production
 ```
 
 ### Rollback Strategy
+
 - **Primary Method:** ECS service rollback to previous task definition
 - **Trigger Conditions:** Health check failures, error rate thresholds, manual intervention
 - **Recovery Time Objective:** < 5 minutes for service rollback
@@ -1572,11 +1613,13 @@ Development → Staging → Production
 ## Error Handling Strategy
 
 ### General Approach
+
 - **Error Model:** Standardized error response format with error codes and messages
 - **Exception Hierarchy:** Custom exception classes extending base error types
 - **Error Propagation:** Consistent error handling across all services with proper logging
 
 ### Logging Standards
+
 - **Library:** Winston 3.11.0
 - **Format:** JSON structured logging with correlation IDs
 - **Levels:** ERROR, WARN, INFO, DEBUG
@@ -1588,17 +1631,20 @@ Development → Staging → Production
 ### Error Handling Patterns
 
 #### External API Errors
+
 - **Retry Policy:** Exponential backoff with jitter, max 3 retries
 - **Circuit Breaker:** Hystrix-style circuit breaker for external API calls
 - **Timeout Configuration:** 30-second timeout for LLM API calls, 10-second for other APIs
 - **Error Translation:** Map external errors to internal error codes
 
 #### Business Logic Errors
+
 - **Custom Exceptions:** Domain-specific exceptions for business rule violations
 - **User-Facing Errors:** Clear, actionable error messages without sensitive information
 - **Error Codes:** Standardized error code system for API responses
 
 #### Data Consistency
+
 - **Transaction Strategy:** Database transactions for multi-step operations
 - **Compensation Logic:** Saga pattern for distributed transactions
 - **Idempotency:** Idempotency keys for all write operations
@@ -1606,21 +1652,24 @@ Development → Staging → Production
 ## Coding Standards
 
 ### Core Standards
+
 - **Languages & Runtimes:** TypeScript 5.3.3, Node.js 20.11.0
 - **Style & Linting:** ESLint with TypeScript rules, Prettier for formatting
 - **Test Organization:** Jest for testing with `*.test.ts` file convention
 
 ### Naming Conventions
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files | kebab-case | `user-service.ts` |
-| Classes | PascalCase | `UserService` |
-| Functions | camelCase | `getUserById` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_ATTEMPTS` |
-| Interfaces | PascalCase with I prefix | `IUserRepository` |
-| Enums | PascalCase | `UserStatus` |
+
+| Element    | Convention               | Example              |
+| ---------- | ------------------------ | -------------------- |
+| Files      | kebab-case               | `user-service.ts`    |
+| Classes    | PascalCase               | `UserService`        |
+| Functions  | camelCase                | `getUserById`        |
+| Constants  | UPPER_SNAKE_CASE         | `MAX_RETRY_ATTEMPTS` |
+| Interfaces | PascalCase with I prefix | `IUserRepository`    |
+| Enums      | PascalCase               | `UserStatus`         |
 
 ### Critical Rules
+
 - **Security:** Never log sensitive data (passwords, tokens, PII)
 - **Error Handling:** Always use try-catch blocks for async operations
 - **Type Safety:** Strict TypeScript configuration with no implicit any
@@ -1632,6 +1681,7 @@ Development → Staging → Production
 ### Language-Specific Guidelines
 
 #### TypeScript Specifics
+
 - **Strict Mode:** Enable all strict TypeScript compiler options
 - **Type Definitions:** Create interfaces for all external API responses
 - **Async/Await:** Prefer async/await over Promises.then()
@@ -1640,6 +1690,7 @@ Development → Staging → Production
 ## Test Strategy and Standards
 
 ### Testing Philosophy
+
 - **Approach:** Test-driven development (TDD) for critical business logic
 - **Coverage Goals:** 80% code coverage for business logic, 60% for utilities
 - **Test Pyramid:** 70% unit tests, 20% integration tests, 10% end-to-end tests
@@ -1647,6 +1698,7 @@ Development → Staging → Production
 ### Test Types and Organization
 
 #### Unit Tests
+
 - **Framework:** Jest 29.7.0
 - **File Convention:** `*.test.ts` alongside source files
 - **Location:** `test/` directory in each package
@@ -1654,12 +1706,14 @@ Development → Staging → Production
 - **Coverage Requirement:** 80% for business logic
 
 **AI Agent Requirements:**
+
 - Generate tests for all public methods
 - Cover edge cases and error conditions
 - Follow AAA pattern (Arrange, Act, Assert)
 - Mock all external dependencies
 
 #### Integration Tests
+
 - **Scope:** Service-to-service communication, database operations
 - **Location:** `test/integration/` in each package
 - **Test Infrastructure:**
@@ -1668,18 +1722,21 @@ Development → Staging → Production
   - **External APIs:** WireMock for API stubbing
 
 #### End-to-End Tests
+
 - **Framework:** Playwright 1.40.0
 - **Scope:** Complete user workflows from Slack to database
 - **Environment:** Dedicated test environment with test data
 - **Test Data:** Factory pattern with cleanup after each test
 
 ### Test Data Management
+
 - **Strategy:** Factory pattern with builders for complex objects
 - **Fixtures:** `test/fixtures/` directory with reusable test data
 - **Factories:** `test/factories/` directory with object builders
 - **Cleanup:** Automatic cleanup after each test using database transactions
 
 ### Continuous Testing
+
 - **CI Integration:** Automated testing in GitHub Actions pipeline
 - **Performance Tests:** Artillery.js for API performance testing
 - **Security Tests:** OWASP ZAP for security vulnerability scanning
@@ -1687,6 +1744,7 @@ Development → Staging → Production
 ## Security
 
 ### Input Validation
+
 - **Validation Library:** Joi 17.11.0
 - **Validation Location:** API boundary before processing
 - **Required Rules:**
@@ -1695,6 +1753,7 @@ Development → Staging → Production
   - Whitelist approach preferred over blacklist
 
 ### Authentication & Authorization
+
 - **Auth Method:** JWT tokens with capability-based access control
 - **Session Management:** Stateless JWT tokens with short expiration
 - **Required Patterns:**
@@ -1703,6 +1762,7 @@ Development → Staging → Production
   - Token refresh mechanism for long-running operations
 
 ### Secrets Management
+
 - **Development:** Environment variables with .env files (not committed)
 - **Production:** AWS Secrets Manager for sensitive configuration
 - **Code Requirements:**
@@ -1711,23 +1771,27 @@ Development → Staging → Production
   - No secrets in logs or error messages
 
 ### API Security
+
 - **Rate Limiting:** Redis-based rate limiting with sliding window
 - **CORS Policy:** Restrictive CORS policy for web UI
 - **Security Headers:** HSTS, CSP, X-Frame-Options, X-Content-Type-Options
 - **HTTPS Enforcement:** Redirect all HTTP to HTTPS
 
 ### Data Protection
+
 - **Encryption at Rest:** AES-256 encryption for database and file storage
 - **Encryption in Transit:** TLS 1.3 for all communications
 - **PII Handling:** PII detection and masking in logs
 - **Logging Restrictions:** No sensitive data in logs, structured logging only
 
 ### Dependency Security
+
 - **Scanning Tool:** Snyk for vulnerability scanning
 - **Update Policy:** Weekly security updates, monthly dependency reviews
 - **Approval Process:** Security team approval for new dependencies
 
 ### Security Testing
+
 - **SAST Tool:** SonarQube for static analysis
 - **DAST Tool:** OWASP ZAP for dynamic analysis
 - **Penetration Testing:** Quarterly penetration testing by security team
@@ -1741,10 +1805,13 @@ Development → Staging → Production
 ## Next Steps
 
 ### Frontend Architecture Prompt
+
 Create comprehensive frontend architecture specifications for the MyloWare Run Trace UI, focusing on React-based observability interface, real-time workflow visualization, and mobile-responsive design. Ensure the frontend architecture aligns with the backend architecture and supports the governance-first approach while maintaining excellent user experience.
 
 ### Development Team Prompt
+
 Begin implementation of the MyloWare platform based on this architecture document, starting with the foundational infrastructure and core services. Focus on the Epic 1 requirements from the PRD, establishing the temporal workflow engine, database schema, and basic API endpoints. Ensure adherence to the coding standards and security requirements outlined in this architecture.
 
 ### DevOps Team Prompt
+
 Set up the infrastructure and deployment pipeline for the MyloWare platform using the Terraform configurations and GitHub Actions workflows defined in this architecture. Establish monitoring, logging, and alerting systems using CloudWatch and implement the security controls and compliance requirements outlined in this document.
