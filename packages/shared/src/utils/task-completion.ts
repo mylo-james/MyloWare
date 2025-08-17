@@ -5,7 +5,7 @@
  * Provides guardrails to prevent missing success/failure notifications.
  */
 
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { createLogger } from './logger';
 
 const logger = createLogger('task-completion');
@@ -115,7 +115,12 @@ async function sendCompletionNotification(
     const title = result.success ? 'MyloWare Task Complete' : 'MyloWare Task Failed';
 
     // Use the project's notification script
-    execSync(`node scripts/notify-completion.js "${message}" ${priority} "${title}"`, {
+    execFileSync('node', [
+      'scripts/notify-completion.js',
+      message,
+      priority,
+      title
+    ], {
       cwd: process.cwd(),
       stdio: 'pipe',
     });
