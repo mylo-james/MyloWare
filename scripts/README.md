@@ -7,6 +7,7 @@ These scripts allow AI agents to send Pushover notifications when they complete 
 **This Pushover notification system is a temporary solution until Slack integration is implemented as part of Epic 2: Slack Integration & HITL Framework.**
 
 ### **Current Status:**
+
 - **Active:** Pushover notifications for immediate agent communication
 - **Future:** Will transition to Slack integration for better team collaboration
 - **Timeline:** Temporary until Epic 2 completion
@@ -28,6 +29,7 @@ export PUSHOVER_APP_TOKEN="your_app_token_here"
 ```
 
 Or add to your `.bashrc` or `.zshrc`:
+
 ```bash
 echo 'export PUSHOVER_USER_KEY="your_user_key_here"' >> ~/.bashrc
 echo 'export PUSHOVER_APP_TOKEN="your_app_token_here"' >> ~/.bashrc
@@ -71,6 +73,7 @@ node scripts/notify-completion.js "Build complete" "0" "Build Status"
 ## What Gets Sent
 
 Each notification includes:
+
 - Your custom message
 - Current git branch
 - Current git commit hash
@@ -80,21 +83,25 @@ Each notification includes:
 ## Example Notifications
 
 ### Story Completion
+
 ```bash
 ./scripts/notify-completion.sh "Story 1.2: Database Schema completed successfully" "1" "MyloWare Story Complete"
 ```
 
 ### Test Results
+
 ```bash
 ./scripts/notify-completion.sh "All 47 tests passing, coverage: 89%" "0" "Test Results"
 ```
 
 ### Deployment Status
+
 ```bash
 ./scripts/notify-completion.sh "Production deployment successful - v1.2.3" "1" "Deployment Complete"
 ```
 
 ### Error Notification
+
 ```bash
 ./scripts/notify-completion.sh "Build failed - check logs for details" "2" "Build Error"
 ```
@@ -123,14 +130,17 @@ When Epic 2 (Slack Integration) is implemented, this notification system will be
 ## Troubleshooting
 
 ### "PUSHOVER_USER_KEY not set"
+
 - Make sure you've set the environment variables
 - Check with: `echo $PUSHOVER_USER_KEY`
 
 ### "Failed to send notification"
+
 - Verify your credentials are correct
 - Check your internet connection
 - Ensure Pushover service is available
 
 ### "Invalid priority"
+
 - Use only 0, 1, or 2 for priority levels
 - Default is 0 (normal) if not specified

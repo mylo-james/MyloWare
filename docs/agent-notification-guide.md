@@ -7,6 +7,7 @@ This guide shows AI agents how to easily notify completion status using the Mylo
 **This Pushover notification system is a temporary solution until Slack integration is implemented as part of Epic 2: Slack Integration & HITL Framework.**
 
 ### **Current Status:**
+
 - **Active:** Pushover notifications for immediate agent communication
 - **Future:** Will transition to Slack integration for better team collaboration
 - **Timeline:** Temporary until Epic 2 completion
@@ -32,12 +33,12 @@ npm run notify "Your custom message here" "1" "Custom Title"
 ### 2. Using TypeScript utilities (Recommended for AI agents)
 
 ```typescript
-import { 
-  notifySuccess, 
-  notifyError, 
-  notifyStoryComplete, 
+import {
+  notifySuccess,
+  notifyError,
+  notifyStoryComplete,
   notifyTestResults,
-  notifyDeployment 
+  notifyDeployment,
 } from '@myloware/shared';
 
 // Success notification
@@ -54,24 +55,27 @@ notifyTestResults(47, 0, 89); // 47 passed, 0 failed, 89% coverage
 
 // Deployment status
 notifyDeployment('production', 'v1.2.3', true); // success
-notifyDeployment('staging', 'v1.2.3', false);   // failed
+notifyDeployment('staging', 'v1.2.3', false); // failed
 ```
 
 ## Common Use Cases
 
 ### Story Completion
+
 ```typescript
 // When completing a story
 notifyStoryComplete('1.2', 'Database schema with 12 tables, 47 tests passing');
 ```
 
 ### Test Results
+
 ```typescript
 // After running tests
 notifyTestResults(passedTests, failedTests, coveragePercentage);
 ```
 
 ### Build Status
+
 ```typescript
 // After building
 if (buildSuccess) {
@@ -82,12 +86,14 @@ if (buildSuccess) {
 ```
 
 ### Deployment Status
+
 ```typescript
 // After deployment
 notifyDeployment(environment, version, success);
 ```
 
 ### Long-Running Tasks
+
 ```typescript
 // For tasks that take a while
 notifyImportant('Database migration completed - 1,000 records processed');
@@ -102,6 +108,7 @@ notifyImportant('Database migration completed - 1,000 records processed');
 ## Best Practices
 
 ### 1. Always notify story completions
+
 ```typescript
 // At the end of each story implementation
 notifyStoryComplete('1.2', 'All acceptance criteria met, tests passing');
@@ -120,24 +127,28 @@ When Epic 2 (Slack Integration) is implemented, this notification system will be
 **Current Pushover notifications will continue to work until the Slack integration is fully deployed.**
 
 ### 2. Notify test results
+
 ```typescript
 // After running test suites
 notifyTestResults(passed, failed, coverage);
 ```
 
 ### 3. Notify deployment status
+
 ```typescript
 // After CI/CD deployments
 notifyDeployment('staging', version, success);
 ```
 
 ### 4. Notify errors with context
+
 ```typescript
 // When something goes wrong
 notifyError('Database migration failed: connection timeout');
 ```
 
 ### 5. Use appropriate priorities
+
 ```typescript
 // Normal task completion
 notifySuccess('Code formatting completed');
@@ -152,17 +163,17 @@ notifyError('Production deployment failed');
 ## Integration Examples
 
 ### In a Story Implementation
+
 ```typescript
 async function implementStory12() {
   try {
     // ... implementation code ...
-    
+
     // Run tests
     const testResults = await runTests();
-    
+
     // Notify completion
     notifyStoryComplete('1.2', `Database schema implemented, ${testResults.passed} tests passing`);
-    
   } catch (error) {
     notifyError(`Story 1.2 failed: ${error.message}`);
     throw error;
@@ -171,13 +182,13 @@ async function implementStory12() {
 ```
 
 ### In a CI/CD Pipeline
+
 ```typescript
 async function deployToProduction() {
   try {
     // ... deployment code ...
-    
+
     notifyDeployment('production', version, true);
-    
   } catch (error) {
     notifyDeployment('production', version, false);
     throw error;
@@ -188,15 +199,18 @@ async function deployToProduction() {
 ## Troubleshooting
 
 ### Notification not working?
+
 1. Check that `.env` file exists with Pushover credentials
 2. Verify `PUSHOVER_USER_KEY` and `PUSHOVER_APP_TOKEN` are set
 3. Test with: `npm run notify:success`
 
 ### TypeScript errors?
+
 1. Make sure `@myloware/shared` is imported correctly
 2. Check that the shared package is built: `npm run build`
 
 ### No notification received?
+
 1. Check your Pushover app settings
 2. Verify your device is online
 3. Check the notification priority level

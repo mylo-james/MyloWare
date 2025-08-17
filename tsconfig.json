@@ -30,7 +30,5 @@
   },
   "include": [],
   "exclude": ["node_modules", "dist", "**/*.test.ts"],
-  "references": [
-    { "path": "./packages/shared" }
-  ]
+  "references": [{ "path": "./packages/shared" }]
 }

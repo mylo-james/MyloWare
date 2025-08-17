@@ -177,8 +177,9 @@ The following external services require additional configuration:
 - **AWS** - Configure AWS credentials for production deployment
 
 **Security scanning** uses multiple tools:
+
 - **npm audit** - Built-in Node.js dependency scanning
-- **CodeQL** - GitHub's built-in code security analysis  
+- **CodeQL** - GitHub's built-in code security analysis
 - **Trivy** - Comprehensive vulnerability scanner
 - **Snyk** - Advanced security scanning (requires org/integration IDs)
 
