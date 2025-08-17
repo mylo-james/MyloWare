@@ -1,0 +1,71 @@
+# MyloWare Background Agents Dockerfile
+# Optimized for background agents with notification support and environment variable handling
+
+FROM node:20.11.0-alpine AS base
+
+# Install dependencies needed for native modules and git (for notifications)
+RUN apk add --no-cache python3 make g++ git curl
+
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package*.json ./
+COPY packages/*/package.json ./packages/*/
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Build stage
+FROM base AS build
+
+# Install all dependencies (including dev dependencies for building)
+RUN npm ci
+
+# Copy source code (excluding .env files - they'll be mounted at runtime)
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Agent runtime stage
+FROM node:20.11.0-alpine AS agents
+
+WORKDIR /app
+
+# Install runtime dependencies needed for agents
+RUN apk add --no-cache git curl bash
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S myloware -u 1001
+
+# Copy built application and dependencies
+COPY --from=build --chown=myloware:nodejs /app/dist ./dist
+COPY --from=build --chown=myloware:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=myloware:nodejs /app/package*.json ./
+
+# Copy scripts directory for notifications
+COPY --from=build --chown=myloware:nodejs /app/scripts ./scripts
+
+# Copy packages for shared utilities
+COPY --from=build --chown=myloware:nodejs /app/packages ./packages
+
+# Make scripts executable
+RUN chmod +x ./scripts/*.sh ./scripts/*.js
+
+# Create directory for environment files (to be mounted)
+RUN mkdir -p /app/env && chown myloware:nodejs /app/env
+
+# Switch to non-root user
+USER myloware
+
+# Set default environment variables (can be overridden)
+ENV NODE_ENV=development
+ENV LOG_LEVEL=INFO
+
+# Health check for agent readiness
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "const { isNotificationAvailable } = require('./packages/shared/dist/utils/notify'); process.exit(isNotificationAvailable() ? 0 : 1)"
+
+# Default command - can be overridden for specific agent tasks
+CMD ["node", "-e", "console.log('MyloWare Background Agent Ready - Use docker run with specific commands')"]

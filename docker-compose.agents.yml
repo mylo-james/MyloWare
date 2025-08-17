@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Background Agent Service
+  myloware-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+      target: agents
+    image: myloware-agent:latest
+    container_name: myloware-background-agent
+    env_file:
+      - .env
+    volumes:
+      # Mount the workspace for file access
+      - .:/workspace
+      # Mount git directory for commit info in notifications
+      - ./.git:/workspace/.git:ro
+    working_dir: /workspace
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=INFO
+    networks:
+      - myloware-network
+    # Keep container running for interactive agent tasks
+    tty: true
+    stdin_open: true
+    # Default command can be overridden
+    command: ["tail", "-f", "/dev/null"]
+
+  # Test notification service
+  notification-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents
+      target: agents
+    image: myloware-agent:latest
+    env_file:
+      - .env
+    volumes:
+      - .:/workspace
+      - ./.git:/workspace/.git:ro
+    working_dir: /workspace
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=INFO
+    networks:
+      - myloware-network
+    # Run a test notification and exit
+    command: ["npm", "run", "notify:success"]
+    depends_on:
+      - myloware-agent
+
+networks:
+  myloware-network:
+    driver: bridge
+    name: myloware-network
