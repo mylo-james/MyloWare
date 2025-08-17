@@ -7,7 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build:shared && npm run build:services",
+    "build:shared": "npm run build --workspace=@myloware/shared",
+    "build:services": "npm run build --workspace=@myloware/workflow-service && npm run build --workspace=@myloware/event-bus-service && npm run build --workspace=@myloware/memory-service && npm run build --workspace=@myloware/notification-service && npm run build --workspace=@myloware/policy-service",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
