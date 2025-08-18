@@ -10,11 +10,15 @@ import { HealthController } from './controllers/health.controller';
 import { NotificationService } from './services/notification.service';
 import { SlackService } from './services/slack.service';
 import { McpServer } from './services/mcp-server.service';
+import { ThreadManagementController } from './controllers/thread-management.controller';
+import { ThreadManagerService } from './services/thread-manager.service';
+import { MessageFormatterService } from './services/message-formatter.service';
+import { ChannelManagerService } from './services/channel-manager.service';
 
 @Module({
   imports: [],
-  controllers: [NotificationController, HealthController],
-  providers: [],
+  controllers: [NotificationController, HealthController, ThreadManagementController],
+  providers: [ThreadManagerService, MessageFormatterService, ChannelManagerService],
 })
 export class NotificationModule {
   private notificationService: NotificationService | null = null;
