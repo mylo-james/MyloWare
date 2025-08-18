@@ -9,6 +9,7 @@ import { Injectable } from '@nestjs/common';
 import { getSlackServiceInstance } from './singletons';
 import { createLogger } from '@myloware/shared';
 import axios from 'axios';
+import type { Block, KnownBlock } from '@slack/web-api';
 
 const logger = createLogger('notification-service:slack-command');
 
@@ -36,7 +37,13 @@ export interface SlackCommandResponse {
 @Injectable()
 export class SlackCommandService {
   private readonly workflowServiceUrl: string;
-  private slackService: unknown;
+  private slackService!: {
+    sendMessage: (message: {
+      channel: string;
+      text: string;
+      blocks?: (Block | KnownBlock)[];
+    }) => Promise<{ success: boolean; ts?: string; error?: string }>;
+  };
 
   constructor() {
     this.workflowServiceUrl = process.env['WORKFLOW_SERVICE_URL'] || 'http://localhost:3001';

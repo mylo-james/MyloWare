@@ -34,6 +34,7 @@ describe('SlackCommandService', () => {
 
   beforeEach(() => {
     svc = new SlackCommandService();
+    svc.initialize(); // Initialize the service to set up slackService
   });
 
   const mockPayload = {

@@ -7,6 +7,7 @@
 
 import { App } from '@slack/bolt';
 import { WebClient } from '@slack/web-api';
+import type { Block, KnownBlock, View } from '@slack/web-api';
 import { createLogger } from '@myloware/shared';
 
 const logger = createLogger('notification-service:slack');
@@ -14,14 +15,14 @@ const logger = createLogger('notification-service:slack');
 export interface SlackMessage {
   channel: string;
   text: string;
-  blocks?: unknown[];
+  blocks?: (Block | KnownBlock)[];
   attachments?: unknown[];
   thread_ts?: string;
 }
 
 export interface SlackModal {
   trigger_id: string;
-  view: unknown;
+  view: View;
 }
 
 export interface SlackReaction {
@@ -34,8 +35,16 @@ export interface SlackUser {
   id: string;
   name: string;
   real_name: string;
-  email?: string;
+  email: string | undefined;
   is_bot: boolean;
+}
+
+interface SlackMember {
+  id?: string;
+  name?: string;
+  real_name?: string;
+  profile?: { email?: string };
+  is_bot?: boolean;
 }
 
 export class SlackService {
@@ -169,7 +178,7 @@ export class SlackService {
     channel: string,
     user: string,
     text: string,
-    blocks?: unknown[]
+    blocks?: (Block | KnownBlock)[]
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (this.isSimulationMode) {
@@ -221,7 +230,7 @@ export class SlackService {
       if (this.isSimulationMode) {
         logger.info('Simulating Slack modal', {
           trigger_id: modal.trigger_id,
-          title: modal.view?.title?.text || 'Unknown',
+          title: (modal.view as { title?: { text?: string } })?.title?.text || 'Unknown',
         });
         return { success: true };
       }
@@ -320,7 +329,13 @@ export class SlackService {
             email: 'bob@example.com',
             is_bot: false,
           },
-          { id: 'B001', name: 'myloware-bot', real_name: 'MyloWare Bot', is_bot: true },
+          {
+            id: 'B001',
+            name: 'myloware-bot',
+            real_name: 'MyloWare Bot',
+            email: undefined,
+            is_bot: true,
+          },
         ];
 
         logger.info('Simulating Slack users list', { count: simulatedUsers.length });
@@ -337,21 +352,13 @@ export class SlackService {
         throw new Error(`Slack API error: ${result.error}`);
       }
 
-      const users: SlackUser[] = (result.members || []).map(
-        (member: {
-          id: string;
-          name: string;
-          real_name: string;
-          profile?: { email?: string };
-          is_bot: boolean;
-        }) => ({
-          id: member.id,
-          name: member.name,
-          real_name: member.real_name,
-          email: member.profile?.email,
-          is_bot: member.is_bot,
-        })
-      );
+      const users: SlackUser[] = (result.members || []).map((member: SlackMember) => ({
+        id: member.id || '',
+        name: member.name || '',
+        real_name: member.real_name || '',
+        email: member.profile?.email || undefined,
+        is_bot: member.is_bot || false,
+      }));
 
       logger.info('Slack users retrieved successfully', { count: users.length });
 

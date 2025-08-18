@@ -11,7 +11,14 @@ describe('SlackService (simulation mode)', () => {
     const eph = await svc.sendEphemeralMessage('#test', 'U001', 'temp');
     expect(eph.success).toBe(true);
 
-    const modal = await svc.openModal({ trigger_id: 't1', view: { title: { text: 'T' } } });
+    const modal = await svc.openModal({
+      trigger_id: 't1',
+      view: {
+        type: 'modal',
+        title: { type: 'plain_text', text: 'T' },
+        blocks: [],
+      },
+    });
     expect(modal.success).toBe(true);
 
     const react = await svc.addReaction({ channel: '#test', timestamp: '1.0', name: 'thumbsup' });
