@@ -9,6 +9,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
 import { createLogger } from '@myloware/shared';
 import { NotificationModule } from './app.module';
 import { SlackService } from './services/slack.service';
@@ -64,6 +65,23 @@ async function bootstrap() {
 
     // Create NestJS application for HTTP endpoints
     const app = await NestFactory.create(NotificationModule);
+
+    // Configure raw body capture for Slack signature verification
+    app.use(
+      json({
+        verify: (req: any, _res, buf) => {
+          req.rawBody = Buffer.from(buf);
+        },
+      })
+    );
+    app.use(
+      urlencoded({
+        extended: true,
+        verify: (req: any, _res, buf) => {
+          req.rawBody = Buffer.from(buf);
+        },
+      })
+    );
 
     // Configure CORS
     app.enableCors({
