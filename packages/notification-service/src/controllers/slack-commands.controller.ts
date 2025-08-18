@@ -31,12 +31,10 @@ export class SlackCommandsController {
       logger.error('Slash command failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      return res
-        .status(200)
-        .json({
-          response_type: 'ephemeral',
-          text: 'An error occurred while processing the command.',
-        });
+      return res.status(200).json({
+        response_type: 'ephemeral',
+        text: 'An error occurred while processing the command.',
+      });
     }
   }
 }
