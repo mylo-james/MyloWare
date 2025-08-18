@@ -70,7 +70,7 @@ export class McpServer {
   /**
    * Handle incoming messages
    */
-  private async handleMessage(clientId: string, ws: WebSocket, message: any): Promise<void> {
+  private async handleMessage(clientId: string, ws: WebSocket, message: unknown): Promise<void> {
     // Basic message handling - would be expanded with full MCP protocol
     logger.debug('Received notification MCP message', {
       clientId,
@@ -103,7 +103,7 @@ export class McpServer {
 
       this.isRunning = false;
 
-      for (const [clientId, ws] of this.clients) {
+      for (const [, ws] of this.clients) {
         ws.close();
       }
 

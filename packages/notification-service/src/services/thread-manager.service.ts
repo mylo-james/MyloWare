@@ -43,7 +43,7 @@ export class ThreadManagerService {
   async createRunThread(
     runId: string,
     initialMessage: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<ThreadContext> {
     const existing = this.runIdToContext.get(runId);
     if (existing) {
@@ -76,7 +76,7 @@ export class ThreadManagerService {
     message: string,
     options?: {
       status?: 'STARTED' | 'IN_PROGRESS' | 'DONE' | 'ERROR';
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<void> {
     const ctx = this.runIdToContext.get(runId);

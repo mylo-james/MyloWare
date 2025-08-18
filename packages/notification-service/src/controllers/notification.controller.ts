@@ -21,7 +21,7 @@ export class NotificationController {
     body: {
       templateId: string;
       recipient: string;
-      variables: Record<string, any>;
+      variables: Record<string, unknown>;
       priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     }
   ): Promise<{ success: boolean; deliveryId: string; error?: string }> {
@@ -80,7 +80,7 @@ export class NotificationController {
    * Slack health status
    */
   @Get('slack/health')
-  async getSlackHealth() {
+  async getSlackHealth(): Promise<{ success: boolean; slack: unknown }> {
     const slack = getSlackServiceInstance();
     const health = slack.getHealthStatus();
     return {
@@ -93,7 +93,9 @@ export class NotificationController {
    * Get delivery status
    */
   @Get('deliveries/:id')
-  async getDeliveryStatus(@Param('id') deliveryId: string): Promise<any> {
+  async getDeliveryStatus(
+    @Param('id') deliveryId: string
+  ): Promise<{ id: string; status: string; sentAt: string; recipient: string }> {
     try {
       logger.info('Getting delivery status via API', { deliveryId });
 

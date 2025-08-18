@@ -5,9 +5,6 @@
  */
 
 import { Controller, Get } from '@nestjs/common';
-import { createLogger } from '@myloware/shared';
-
-const logger = createLogger('notification-service:health');
 
 @Controller('health')
 export class HealthController {

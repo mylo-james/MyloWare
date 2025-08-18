@@ -4,7 +4,7 @@ import { ChannelManagerService } from '../src/services/channel-manager.service';
 
 class MockSlackService {
   messages: any[] = [];
-  async sendMessage(msg: any) {
+  async sendMessage(msg: any): Promise<{ success: boolean; ts: string }> {
     this.messages.push(msg);
     return { success: true, ts: `ts_${this.messages.length}` };
   }

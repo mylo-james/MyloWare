@@ -27,9 +27,9 @@ export class ThreadManagementController {
     body: {
       run_id: string;
       message: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
-  ) {
+  ): Promise<unknown> {
     try {
       const ctx = await this.threadManager.createRunThread(
         body.run_id,
@@ -48,7 +48,7 @@ export class ThreadManagementController {
   }
 
   @Get(':run_id')
-  async getThread(@Param('run_id') runId: string) {
+  async getThread(@Param('run_id') runId: string): Promise<unknown> {
     const ctx = await this.threadManager.getThreadContext(runId);
     if (!ctx) {
       throw new HttpException({ message: 'Thread not found' }, HttpStatus.NOT_FOUND);
@@ -63,12 +63,12 @@ export class ThreadManagementController {
     body: {
       message: string;
       status?: 'STARTED' | 'IN_PROGRESS' | 'DONE' | 'ERROR';
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
-  ) {
+  ): Promise<{ success: boolean }> {
     const options: {
       status?: 'STARTED' | 'IN_PROGRESS' | 'DONE' | 'ERROR';
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {};
     if (body.status !== undefined) options.status = body.status;
     if (body.metadata !== undefined) options.metadata = body.metadata;
@@ -77,7 +77,7 @@ export class ThreadManagementController {
   }
 
   @Delete(':run_id')
-  async archiveThread(@Param('run_id') runId: string) {
+  async archiveThread(@Param('run_id') runId: string): Promise<{ success: boolean }> {
     await this.threadManager.archiveThread(runId);
     return { success: true };
   }

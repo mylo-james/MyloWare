@@ -15,15 +15,15 @@ export interface NotificationTemplate {
   type: 'slack_message' | 'slack_modal' | 'email' | 'webhook';
   template: string;
   variables: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationRequest {
   templateId: string;
   recipient: string;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationDelivery {
@@ -36,7 +36,7 @@ export interface NotificationDelivery {
   failedAt?: Date;
   error?: string;
   retryCount: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class NotificationService {
@@ -164,7 +164,7 @@ export class NotificationService {
   /**
    * Render template with variables
    */
-  private renderTemplate(template: string, variables: Record<string, any>): string {
+  private renderTemplate(template: string, variables: Record<string, unknown>): string {
     let rendered = template;
 
     for (const [key, value] of Object.entries(variables)) {

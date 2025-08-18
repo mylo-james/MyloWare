@@ -10,16 +10,22 @@ import * as fs from 'node:fs';
 import dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
 import { json, urlencoded } from 'express';
+import type { Request, Response } from 'express';
+
+interface RequestWithRawBody extends Request {
+  rawBody?: Buffer;
+}
 import { createLogger } from '@myloware/shared';
 import { NotificationModule } from './app.module';
 import { SlackService } from './services/slack.service';
 import { NotificationService } from './services/notification.service';
 import { McpServer } from './services/mcp-server.service';
+import { SlackCommandService } from './services/slack-command.service';
 import { setSlackServiceInstance } from './services/singletons';
 
 const logger = createLogger('notification-service:main');
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   try {
     logger.info('Starting MyloWare Notification Service');
 
@@ -69,7 +75,7 @@ async function bootstrap() {
     // Configure raw body capture for Slack signature verification
     app.use(
       json({
-        verify: (req: any, _res, buf) => {
+        verify: (req: RequestWithRawBody, _res: Response, buf: Buffer) => {
           req.rawBody = Buffer.from(buf);
         },
       })
@@ -77,7 +83,7 @@ async function bootstrap() {
     app.use(
       urlencoded({
         extended: true,
-        verify: (req: any, _res, buf) => {
+        verify: (req: RequestWithRawBody, _res: Response, buf: Buffer) => {
           req.rawBody = Buffer.from(buf);
         },
       })
@@ -110,12 +116,18 @@ async function bootstrap() {
     // Make services available globally
     app.get(NotificationModule).setServices(notificationService, slackService, mcpServer);
 
+    // Initialize SlackCommandService after SlackService is ready
+    const slackCommandService = app.get(SlackCommandService);
+    if (slackCommandService && typeof slackCommandService.initialize === 'function') {
+      slackCommandService.initialize();
+    }
+
     // Start HTTP server
     await app.listen(servicePort);
     logger.info('HTTP server started', { port: servicePort });
 
     // Handle graceful shutdown
-    const shutdown = async () => {
+    const shutdown = async (): Promise<void> => {
       logger.info('Shutting down Notification Service');
 
       try {

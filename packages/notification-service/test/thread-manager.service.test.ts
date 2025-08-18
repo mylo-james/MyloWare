@@ -3,7 +3,7 @@ import { MessageFormatterService } from '../src/services/message-formatter.servi
 
 class MockSlackService {
   messages: any[] = [];
-  async sendMessage(msg: any) {
+  async sendMessage(msg: any): Promise<{ success: boolean; ts: string }> {
     this.messages.push(msg);
     return { success: true, ts: `ts_${this.messages.length}` };
   }

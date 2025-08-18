@@ -14,14 +14,14 @@ const logger = createLogger('notification-service:slack');
 export interface SlackMessage {
   channel: string;
   text: string;
-  blocks?: any[];
-  attachments?: any[];
+  blocks?: unknown[];
+  attachments?: unknown[];
   thread_ts?: string;
 }
 
 export interface SlackModal {
   trigger_id: string;
-  view: any;
+  view: unknown;
 }
 
 export interface SlackReaction {
@@ -169,7 +169,7 @@ export class SlackService {
     channel: string,
     user: string,
     text: string,
-    blocks?: any[]
+    blocks?: unknown[]
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (this.isSimulationMode) {
@@ -337,13 +337,21 @@ export class SlackService {
         throw new Error(`Slack API error: ${result.error}`);
       }
 
-      const users: SlackUser[] = (result.members || []).map((member: any) => ({
-        id: member.id,
-        name: member.name,
-        real_name: member.real_name,
-        email: member.profile?.email,
-        is_bot: member.is_bot,
-      }));
+      const users: SlackUser[] = (result.members || []).map(
+        (member: {
+          id: string;
+          name: string;
+          real_name: string;
+          profile?: { email?: string };
+          is_bot: boolean;
+        }) => ({
+          id: member.id,
+          name: member.name,
+          real_name: member.real_name,
+          email: member.profile?.email,
+          is_bot: member.is_bot,
+        })
+      );
 
       logger.info('Slack users retrieved successfully', { count: users.length });
 
