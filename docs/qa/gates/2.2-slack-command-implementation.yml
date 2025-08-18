@@ -1,0 +1,21 @@
+story: 2.2.slack-command-implementation
+title: Slack Command Implementation
+date: 2025-08-18
+reviewer: QA.mdc (Quinn)
+decision: PASS
+rationale:
+  - All acceptance criteria satisfied with code and tests in notification-service
+  - Signature verification implemented with timestamp freshness checks
+  - Env template updated to include WORKFLOW_SERVICE_URL
+risks:
+  - Ensure raw body capture for Slack signature verification in production
+  - User-specific mute is acknowledged but not persisted; acceptable for MVP
+evidence:
+  tests:
+    notification-service: 10/10 passed
+    workspace: all packages build and tests pass
+  endpoints:
+    - POST /api/v1/slack/commands (notification-service)
+    - POST /api/v1/workflows/docs-extract-verify (workflow-service)
+    - GET /api/v1/workflows/:id/status
+    - DELETE /api/v1/workflows/:id
