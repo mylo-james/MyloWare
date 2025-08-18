@@ -60,7 +60,7 @@ services:
 
   # Temporal Web UI
   temporal-web:
-    image: temporalio/web:2.21.3
+    image: temporalio/ui:2.21.3
     container_name: myloware-temporal-web
     depends_on:
       temporal:

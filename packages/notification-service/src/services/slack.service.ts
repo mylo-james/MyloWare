@@ -43,6 +43,7 @@ export class SlackService {
   private webClient: WebClient | null = null;
   private isInitialized = false;
   private isSimulationMode = false;
+  private isSocketModeActive = false;
 
   constructor(
     private readonly botToken?: string,
@@ -94,6 +95,13 @@ export class SlackService {
         teamId: authResult.team_id,
         userId: authResult.user_id,
       });
+
+      // Start Socket Mode if configured
+      if (this.app && this.appToken) {
+        await this.app.start();
+        this.isSocketModeActive = true;
+        logger.info('Slack Socket Mode started');
+      }
 
       this.isInitialized = true;
     } catch (error) {
@@ -354,11 +362,13 @@ export class SlackService {
     isInitialized: boolean;
     isSimulationMode: boolean;
     hasWebClient: boolean;
+    isSocketModeActive: boolean;
   } {
     return {
       isInitialized: this.isInitialized,
       isSimulationMode: this.isSimulationMode,
       hasWebClient: !!this.webClient,
+      isSocketModeActive: this.isSocketModeActive,
     };
   }
 
@@ -371,6 +381,7 @@ export class SlackService {
 
       if (this.app) {
         await this.app.stop();
+        this.isSocketModeActive = false;
         this.app = null;
       }
 

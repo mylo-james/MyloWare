@@ -176,6 +176,37 @@ The following external services require additional configuration:
 - **Snyk** - Set `SNYK_ORG_ID` (use `mylo-james`) and `SNYK_INTEGRATION_ID` secrets for enhanced security scanning
 - **AWS** - Configure AWS credentials for production deployment
 
+### Slack Setup (Epic 2)
+
+1. Create Slack App and add scopes: `chat:write`, `chat:write.customize`, `commands`, `reactions:write`, `users:read` (optional: `chat:write.public`, `channels:read`).
+2. Enable Socket Mode and generate App Token with `connections:write`.
+3. Install app to workspace; capture `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
+4. Set env vars in `.env`:
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...
+SLACK_APP_TOKEN=xapp-...
+```
+
+5. Create channels and invite the bot: `#mylo-control`, `#mylo-approvals`, `#mylo-feed`.
+6. Start services and verify:
+
+```bash
+curl -X POST http://localhost:3004/api/v1/notifications/slack/test \
+  -H 'Content-Type: application/json' \
+  -d '{"channel":"#mylo-control","text":"MyloWare connectivity test"}'
+
+curl http://localhost:3004/api/v1/notifications/slack/health
+```
+
+#### Troubleshooting
+
+- 426 Upgrade Required: You likely hit the MCP WebSocket port (8081). Use the HTTP API port 3004 instead.
+- Socket Mode not active: Ensure `SLACK_APP_TOKEN` is set and the service has been restarted; check `slack.isSocketModeActive` at `/api/v1/notifications/slack/health`.
+- Auth errors: Verify `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` are correct and the bot is installed in the workspace.
+- No messages in channel: Confirm the bot is invited to the channel and the channel name is correct (e.g., `#mylo-control`).
+
 **Security scanning** uses multiple tools:
 
 - **npm audit** - Built-in Node.js dependency scanning

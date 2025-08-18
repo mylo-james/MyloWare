@@ -77,6 +77,19 @@ export class NotificationController {
   }
 
   /**
+   * Slack health status
+   */
+  @Get('slack/health')
+  async getSlackHealth() {
+    const slack = getSlackServiceInstance();
+    const health = slack.getHealthStatus();
+    return {
+      success: true,
+      slack: health,
+    };
+  }
+
+  /**
    * Get delivery status
    */
   @Get('deliveries/:id')

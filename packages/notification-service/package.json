@@ -14,7 +14,8 @@
     "test:coverage": "jest --coverage",
     "lint": "echo 'Linting handled at root level'",
     "lint:fix": "echo 'Linting handled at root level'",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "check:slack-bot": "tsx scripts/check-slack-bot.ts"
   },
   "dependencies": {
     "@myloware/shared": "*",
