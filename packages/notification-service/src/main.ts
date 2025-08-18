@@ -5,18 +5,48 @@
  */
 
 import 'reflect-metadata';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
 import { createLogger } from '@myloware/shared';
 import { NotificationModule } from './app.module';
 import { SlackService } from './services/slack.service';
 import { NotificationService } from './services/notification.service';
 import { McpServer } from './services/mcp-server.service';
+import { setSlackServiceInstance } from './services/singletons';
 
 const logger = createLogger('notification-service:main');
 
 async function bootstrap() {
   try {
     logger.info('Starting MyloWare Notification Service');
+
+    // Load environment from common locations (dev)
+    const repoRoot = path.resolve(__dirname, '../../..');
+    const packageRoot = path.resolve(__dirname, '..');
+    const candidateEnvPaths = [
+      path.join(repoRoot, '.env'),
+      path.join(repoRoot, '.env.local'),
+      path.join(packageRoot, '.env'),
+      path.join(packageRoot, '.env.local'),
+      path.join(process.cwd(), '.env'),
+      path.join(process.cwd(), '.env.local'),
+    ];
+    const loadedEnvPaths: string[] = [];
+    for (const p of candidateEnvPaths) {
+      if (fs.existsSync(p)) {
+        dotenv.config({ path: p });
+        loadedEnvPaths.push(p);
+      }
+    }
+    if (loadedEnvPaths.length > 0) {
+      logger.info('Loaded environment variables from', { paths: loadedEnvPaths });
+      process.env['ENV_LOADED_PATHS'] = loadedEnvPaths.join(',');
+    } else {
+      logger.warn('No .env files found in common locations', { candidateEnvPaths });
+      process.env['ENV_LOADED_PATHS'] = '';
+    }
 
     // Environment configuration
     const servicePort = parseInt(process.env['NOTIFICATION_SERVICE_PORT'] || '3004');
@@ -47,6 +77,9 @@ async function bootstrap() {
     // Initialize Slack Service
     const slackService = new SlackService(slackBotToken, slackSigningSecret, slackAppToken);
     await slackService.initialize();
+
+    // Expose SlackService instance for controllers
+    setSlackServiceInstance(slackService);
 
     // Initialize Notification Service
     const notificationService = new NotificationService(slackService);

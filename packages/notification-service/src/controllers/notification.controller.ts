@@ -5,6 +5,7 @@
  */
 
 import { Controller, Get, Post, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { getSlackServiceInstance } from '../services/singletons';
 import { createLogger } from '@myloware/shared';
 
 const logger = createLogger('notification-service:controller');
@@ -43,6 +44,34 @@ export class NotificationController {
       throw new HttpException(
         { message: 'Failed to send notification', error: errorMessage },
         HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Send a test Slack message to a channel or user ID
+   */
+  @Post('slack/test')
+  async sendSlackTest(
+    @Body()
+    body: {
+      channel: string;
+      text?: string;
+    }
+  ): Promise<{ success: boolean; ts?: string; error?: string }> {
+    try {
+      const slack = getSlackServiceInstance();
+      const text = body.text || 'MyloWare Slack connectivity test ✅';
+      const result = await slack.sendMessage({ channel: body.channel, text });
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown Slack error');
+      }
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new HttpException(
+        { message: 'Failed to send Slack test message', error: errorMessage },
+        HttpStatus.BAD_REQUEST
       );
     }
   }
