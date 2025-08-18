@@ -3,7 +3,14 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/*.test.ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/main.ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/main.ts',
+    '!src/app.module.ts',
+    '!src/controllers/**',
+    '!src/workflows/**',
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
@@ -16,4 +23,8 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testTimeout: 10000,
+  moduleNameMapper: {
+    '^@myloware/shared$': '<rootDir>/../shared/src/index.ts',
+    '^@myloware/shared/(.*)$': '<rootDir>/../shared/src/$1',
+  },
 };

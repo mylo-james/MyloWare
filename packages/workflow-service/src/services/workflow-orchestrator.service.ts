@@ -6,12 +6,8 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import {
-  createLogger,
-  withTaskCompletion,
-  notifyTaskSuccess,
-  setupCompletionGuardrails,
-} from '@myloware/shared';
+import { createLogger } from '@myloware/shared';
+import { withTaskCompletion, notifyTaskSuccess, setupCompletionGuardrails } from '@myloware/shared';
 import { TemporalClientService } from './temporal-client.service';
 import type { WorkOrderInput, WorkflowResult } from '../types/workflow';
 
