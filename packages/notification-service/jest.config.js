@@ -18,5 +18,7 @@ module.exports = {
   passWithNoTests: true,
   moduleNameMapper: {
     '^@myloware/shared$': '<rootDir>/../shared/src/index.ts',
+    '^@myloware/shared/(.*)$': '<rootDir>/../shared/src/$1',
   },
+  transformIgnorePatterns: ['/node_modules/(?!(supertest)/)'],
 };
