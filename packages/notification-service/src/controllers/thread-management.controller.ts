@@ -66,10 +66,13 @@ export class ThreadManagementController {
       metadata?: Record<string, any>;
     }
   ) {
-    await this.threadManager.updateRunThread(runId, body.message, {
-      status: body.status,
-      metadata: body.metadata,
-    });
+    const options: {
+      status?: 'STARTED' | 'IN_PROGRESS' | 'DONE' | 'ERROR';
+      metadata?: Record<string, any>;
+    } = {};
+    if (body.status !== undefined) options.status = body.status;
+    if (body.metadata !== undefined) options.metadata = body.metadata;
+    await this.threadManager.updateRunThread(runId, body.message, options);
     return { success: true };
   }
 

@@ -5,8 +5,8 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@myloware/shared": ["../shared/src/index.ts"],
-      "@myloware/shared/*": ["../shared/src/*"]
+      "@myloware/shared": ["../shared/dist/index.d.ts"],
+      "@myloware/shared/*": ["../shared/dist/*"]
     }
   },
   "include": ["src/**/*"],
