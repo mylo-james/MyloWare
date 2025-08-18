@@ -5,6 +5,8 @@
     "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
+      // IMPORTANT: For builds, resolve shared to compiled dist types to avoid TS6059 rootDir errors
+      // Do NOT change this to shared/src; tests use jest config mapping to src separately
       "@myloware/shared": ["../shared/dist/index.d.ts"],
       "@myloware/shared/*": ["../shared/dist/*"]
     }

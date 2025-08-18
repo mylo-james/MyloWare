@@ -16,7 +16,11 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   passWithNoTests: true,
+  // IMPORTANT: In tests we map to shared/src for rich type info and easier mocking.
+  // Build uses tsconfig paths to shared/dist to avoid rootDir errors (TS6059).
   moduleNameMapper: {
     '^@myloware/shared$': '<rootDir>/../shared/src/index.ts',
+    '^@myloware/shared/(.*)$': '<rootDir>/../shared/src/$1',
   },
+  transformIgnorePatterns: ['/node_modules/(?!(supertest)/)'],
 };
