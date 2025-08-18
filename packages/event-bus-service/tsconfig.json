@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@myloware/shared": ["../shared/src/index.ts"],
+      "@myloware/shared/*": ["../shared/src/*"]
+    },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },

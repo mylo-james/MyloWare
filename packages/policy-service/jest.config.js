@@ -10,4 +10,8 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   passWithNoTests: true,
+  moduleNameMapper: {
+    '^@myloware/shared$': '<rootDir>/../shared/src/index.ts',
+    '^@myloware/shared/(.*)$': '<rootDir>/../shared/src/$1',
+  },
 };

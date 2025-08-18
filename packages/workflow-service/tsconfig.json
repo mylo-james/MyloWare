@@ -4,6 +4,10 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
+    "paths": {
+      "@myloware/shared": ["../shared/src/index.ts"],
+      "@myloware/shared/*": ["../shared/src/*"]
+    },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
