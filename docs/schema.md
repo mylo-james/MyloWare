@@ -252,7 +252,7 @@ CREATE TABLE videos (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   idea TEXT NOT NULL,
   user_idea TEXT,
-  mood TEXT,
+  vibe TEXT,
   prompt TEXT,
   video_link TEXT,
   status video_status DEFAULT 'idea_gen',
@@ -273,10 +273,10 @@ CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 | `project_id`    | UUID         | Foreign key to projects table (NOT NULL)                |
 | `idea`          | TEXT         | The two-word video idea                                 |
 | `user_idea`     | TEXT         | Normalized object extracted from the request            |
-| `mood`          | TEXT         | Mood keyword (serene, mysterious, etc.)                 |
+| `vibe`          | TEXT         | Emotional descriptor for the idea (serene, tense, etc.) |
 | `prompt`        | TEXT         | Generated Sora 2 video prompt                           |
 | `video_link`    | TEXT         | Link to generated video                                 |
-| `status`        | video_status | Generation status (idea_gen/script_gen/rendering/ready) |
+| `status`        | video_status | Lifecycle status (`idea_gen`, `script_gen`, `video_gen`, `upload`, `complete`, `failed`) |
 | `error_message` | TEXT         | Error details if generation failed                      |
 | `started_at`    | TIMESTAMPTZ  | When video generation started                           |
 | `completed_at`  | TIMESTAMPTZ  | When video generation completed                         |
@@ -379,8 +379,9 @@ ORDER BY level, persona_name, project_name;
 ### Get all AISMR ideas by status
 
 ```sql
-SELECT status, COUNT(*) as count
-FROM AISMR
+SELECT status, COUNT(*) AS count
+FROM videos
+WHERE project_id = (SELECT id FROM projects WHERE name = 'AISMR')
 GROUP BY status
 ORDER BY status;
 ```
@@ -388,14 +389,15 @@ ORDER BY status;
 ### Get pending AISMR videos
 
 ```sql
-SELECT month, idea, mood, created_at
-FROM AISMR
-WHERE status = 'pending'
+SELECT
+  date_trunc('month', created_at) AS month,
+  idea,
+  vibe,
+  created_at
+FROM videos
+WHERE project_id = (SELECT id FROM projects WHERE name = 'AISMR')
+  AND status IN ('video_gen', 'upload')
 ORDER BY created_at ASC;
-```
-
-ORDER BY created_at ASC;
-
 ```
 
 ---

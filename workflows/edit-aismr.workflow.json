@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "jsCode": "// n8n Script node: build minimal Shotstack edit JSON (text asset minimal)\nconst months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst duration = 10; // seconds per clip\n\n// grab input items (n8n provides $input)\nconst inputItems = $input.all();\n\n// build video list from input or fallback sample\nconst videos = (inputItems\n  .filter(v => v?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12)\n  .map((v, i) => ({ link: v.json.video_link, title: v.json.idea || (`Idea ${i+1}`) }))\n) .length ? (inputItems\n  .filter(v => v?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12)\n  .map((v, i) => ({ link: v.json.video_link, label: v.json.idea || (`Idea ${i+1}`) }))\n) : [\n  // fallback/test videos — replace/remove in production\n  { link: 'https://tempfile.aiquickdraw.com/v/d62967ee64de5f4def1c7eeb98467c7a_1761485969.mp4', label: 'Sample idea 1' },\n  { link: 'https://tempfile.aiquickdraw.com/v/bc45d511685d85430ce100539d64653c_1761485995.mp4', label: 'Sample idea 2' }\n];\n\n// create items with start times and labels\nconst items = videos.map((v, idx) => ({\n  link: v.link,\n  title: months[idx % months.length],\n  label: v.label,\n  start: idx * duration\n}));\n\n// build top text clips (minimal fields exactly as requested)\nconst topClips = items.map(it => ({\n  asset: {\n    type: \"text\",\n    text: it.title,\n    width: 1000,\n    height: 200,\n    font: {\n      family: \"Open Sans\",\n      color: \"#ffffff\",\n      opacity: 0.8,\n      size: 48,\n      weight: 400,\n      lineHeight: 0.85\n    },\n    alignment: {\n      horizontal: \"center\",\n      vertical: \"top\"\n    }\n  },\n  start: it.start,\n  length: duration,\n  position: \"bottom\"\n}));\n\n// build bottom text clips (minimal fields)\nconst bottomClips = items.map(it => ({\n  asset: {\n    type: \"text\",\n    text: it.label,\n    width: 1000,\n    height: 100,\n    font: {\n      family: \"Open Sans\",\n      color: \"#ffffff\",\n      opacity: 0.8,\n      size: 24,\n      weight: 400,\n      lineHeight: 0.85\n    },\n    alignment: {\n      horizontal: \"center\",\n      vertical: \"top\"\n    }\n  },\n  start: it.start,\n  length: duration,\n  position: \"bottom\"\n}));\n\n// build video clips (hard cuts)\nconst videoClips = items.map(it => ({\n  asset: {\n    type: \"video\",\n    src: it.link\n  },\n  start: it.start,\n  length: duration\n}));\n\n// final edit JSON (minimal)\nconst edit = {\n  timeline: {\n    background: \"#000000\",\n    tracks: [\n      { clips: topClips },    // top overlay (first = topmost)\n      { clips: bottomClips }, // bottom overlay\n      { clips: videoClips }   // base video track\n    ]\n  },\n  output: {\n    format: \"mp4\",\n    resolution: \"hd\",\n    aspectRatio: \"9:16\"\n  }\n};\n\n// return for next node (HTTP Request)\nreturn [{ json: edit }];"
+        "jsCode": "// n8n Script node: build Shotstack edit JSON honoring AISMR transition spec\nconst zodiacSigns = [\n  'Aries',\n  'Taurus',\n  'Gemini',\n  'Cancer',\n  'Leo',\n  'Virgo',\n  'Libra',\n  'Scorpio',\n  'Sagittarius',\n  'Capricorn',\n  'Aquarius',\n  'Pisces',\n];\n\nconst MAX_CLIPS = 12;\nconst CLIP_DURATION = 8; // Match actual video duration (Veo 3 Fast max)\nconst TRANSITION_DURATION = 1; // 1-second crossfade transitions\nconst STRIDE = 6.5; // Clips overlap by 1.5 seconds for crossfade\nconst MICRO_MOTION_SECONDS = 1;\nconst MICRO_MOTION_DELTA = 0.015;\nconst MICRO_MOTION_START = Math.max(CLIP_DURATION - MICRO_MOTION_SECONDS, 0);\nconst TEXT_VISIBLE_DURATION = 5; // Text visible window per clip\nconst TEXT_ENTRY_DELAY = 0.5; // Delay before text appears, shifts fade window later\n\nconst inputItems = $input.all();\n\n// With 12 clips at STRIDE=6.5, total duration = (12-1)*6.5 + 8 = 71.5 + 8 = 79.5 seconds\n\nconst toTimestamp = (value) => {\n  const ts = Date.parse(value ?? '');\n  return Number.isNaN(ts) ? 0 : ts;\n};\n\nconst videos = (() => {\n  const candidates = inputItems\n    .filter((item) => item?.json?.video_link)\n    .sort(\n      (a, b) =>\n        toTimestamp(a.json.created_at ?? a.json.createdAt) -\n        toTimestamp(b.json.created_at ?? b.json.createdAt)\n    )\n    .slice(0, MAX_CLIPS)\n    .map((item, idx) => ({\n      link: item.json.video_link,\n      label: item.json.idea?.trim() || `Idea ${idx + 1}`,\n    }));\n\n  console.log(`Found ${candidates.length} videos from input data`);\n\n  if (candidates.length === 0) {\n    throw new Error(\n      'No videos found in input data. Expected items with video_link property.'\n    );\n  }\n\n  console.log(`Using ${candidates.length} videos from input`);\n  return candidates;\n})();\n\nconst items = videos.map((video, idx) => ({\n  link: video.link,\n  label: video.label,\n  title: zodiacSigns[idx % zodiacSigns.length],\n  start: idx * STRIDE,\n}));\n\nconsole.log(\n  `Creating ${\n    items.length\n  } video clips with ${TRANSITION_DURATION}s crossfade (stride: ${STRIDE}s, total: ${\n    (items.length - 1) * STRIDE + CLIP_DURATION\n  }s)`\n);\n\nconst buildTextClip = (item, { text, fontSize, height, position }) => ({\n  asset: {\n    type: 'text',\n    text,\n    width: 1000,\n    height,\n    font: {\n      family: 'Futura', // Elegant, minimal, modern — perfect for ASMR aesthetic\n      color: '#ffffff',\n      size: fontSize,\n      weight: 500, // Medium weight for clean readability\n    },\n    alignment: {\n      horizontal: 'center',\n      vertical: 'top',\n    },\n  },\n  start: item.start + TEXT_ENTRY_DELAY,\n  length: TEXT_VISIBLE_DURATION,\n  position,\n  transition: { in: 'fade', out: 'fade' },\n});\n\nconst topTracks = items.map((item) => ({\n  clips: [\n    buildTextClip(item, {\n      text: item.title,\n      fontSize: 92,\n      height: 400,\n      position: 'bottom',\n    }),\n  ],\n}));\n\nconst bottomTracks = items.map((item) => ({\n  clips: [\n    buildTextClip(item, {\n      text: item.label,\n      fontSize: 64,\n      height: 250,\n      position: 'bottom',\n    }),\n  ],\n}));\n\nconst makeVideoClip = (item, index, totalClips) => {\n  const clip = {\n    asset: {\n      type: 'video',\n      src: item.link,\n    },\n    start: item.start,\n    length: CLIP_DURATION,\n    effect: 'zoomInSlow',\n  };\n\n  // Add micro-motion at the end of each clip\n  // CRITICAL: Tween start times are RELATIVE TO CLIP, not timeline!\n  if (CLIP_DURATION > MICRO_MOTION_SECONDS) {\n    clip.offset = {\n      x: [\n        {\n          from: 0,\n          to: MICRO_MOTION_DELTA,\n          start: MICRO_MOTION_START, // Clip-relative: starts at 7s into the clip\n          length: MICRO_MOTION_SECONDS,\n          interpolation: 'bezier',\n          easing: 'easeInOutSine',\n        },\n      ],\n    };\n  }\n\n  // Use custom opacity tweens for crossfade (no built-in transitions)\n  // Per AISMR spec: \"Transitions never pause content - clips continue moving through transitions\"\n  // CRITICAL: Tween start times are RELATIVE TO CLIP, not timeline (start from 0)\n  const opacityTweens = [];\n\n  if (index === 0) {\n    // First clip: fade in 0→1 (0-1s), hold at 1 (1-7s), fade out 1→0 (7-8s)\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - 2 * TRANSITION_DURATION, // Hold for 6 seconds\n        interpolation: 'linear',\n      },\n      {\n        from: 1,\n        to: 0,\n        start: CLIP_DURATION - TRANSITION_DURATION,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      }\n    );\n  } else if (index === totalClips - 1) {\n    // Last clip: fade in 0→1 (0-1s), hold at 1 (1-8s), no fade out\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - TRANSITION_DURATION, // Hold for 7 seconds\n        interpolation: 'linear',\n      }\n    );\n  } else {\n    // Middle clips: fade in 0→1 (0-1s), hold at 1 (1-7s), fade out 1→0 (7-8s)\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - 2 * TRANSITION_DURATION, // Hold for 6 seconds\n        interpolation: 'linear',\n      },\n      {\n        from: 1,\n        to: 0,\n        start: CLIP_DURATION - TRANSITION_DURATION,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      }\n    );\n  }\n\n  clip.opacity = opacityTweens;\n\n  return clip;\n};\n\n// Create video tracks with proper layering for crossfade transitions\n// Each clip on separate track so top clip fades out to reveal clip below\nconst videoTracks = items.map((item, idx) => ({\n  clips: [makeVideoClip(item, idx, items.length)],\n}));\n\nconst tracks = [\n  ...topTracks, // text overlays stay above video\n  ...bottomTracks,\n  ...videoTracks,\n];\n\nconst timeline = {\n  background: '#000000',\n  tracks,\n};\n\nconst edit = {\n  timeline,\n  output: {\n    format: 'mp4',\n    resolution: 'hd',\n    aspectRatio: '9:16',\n  },\n};\n\nreturn [{ json: edit }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -117,7 +117,7 @@
     },
     {
       "parameters": {
-        "amount": 10
+        "amount": 7
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -396,7 +396,62 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "runId": "8b3c4420-4cd6-426f-b68b-19232dd49375"
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+        }
+      },
+      {
+        "json": {
+          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
         }
       }
     ]
