@@ -146,7 +146,19 @@ async function apiRequest(method, endpoint, body) {
 }
 
 async function loadManifest() {
-  manifestText = await fsp.readFile(manifestPath, 'utf8');
+  try {
+    manifestText = await fsp.readFile(manifestPath, 'utf8');
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      const initial = '[]\n';
+      await ensureDirExistsForFile(manifestPath);
+      await fsp.writeFile(manifestPath, initial);
+      manifestText = initial;
+    } else {
+      throw err;
+    }
+  }
+
   const data = JSON.parse(manifestText);
   if (!Array.isArray(data)) {
     throw new Error('Workflow manifest must be a JSON array.');
@@ -199,7 +211,7 @@ async function pushWorkflows() {
 
     if (remote) {
       console.log(`↻ Updating ${entry.name || remote.name} (${remote.id})`);
-      await apiRequest('PATCH', `/workflows/${remote.id}`, payload);
+      await apiRequest('PUT', `/workflows/${remote.id}`, payload);
       if (entry.workflowId !== remote.id) {
         entry.workflowId = remote.id;
         manifestDirty = true;
@@ -220,22 +232,60 @@ async function pushWorkflows() {
 
 async function pullWorkflows() {
   const remoteIndex = await buildRemoteIndex();
-  const matchedRemoteIds = new Set();
+  const previousEntriesById = new Map();
+  const previousEntriesByCanonicalName = new Map();
+  for (const entry of manifest) {
+    if (!entry) continue;
+    if (entry.workflowId) {
+      previousEntriesById.set(String(entry.workflowId), entry);
+      continue;
+    }
+    const canonical = canonicalName(entry.name || fallbackNameFromFile(entry.file));
+    if (canonical && !previousEntriesByCanonicalName.has(canonical)) {
+      previousEntriesByCanonicalName.set(canonical, entry);
+    }
+  }
 
   await resetWorkflowDirectoryForPull();
 
-  for (const entry of manifest) {
-    const remote = findRemoteMatch(entry, remoteIndex);
-    if (!remote) {
-      console.warn(`⚠️  Remote workflow not found for ${entry.file}.`);
-      continue;
+  const usedRelativePaths = new Set();
+  const nextManifest = [];
+
+  for (const remote of remoteIndex.list) {
+    const remoteId = String(remote.id);
+    let previous = previousEntriesById.get(remoteId);
+    if (!previous) {
+      const canonical = canonicalName(remote.name);
+      if (canonical && previousEntriesByCanonicalName.has(canonical)) {
+        previous = previousEntriesByCanonicalName.get(canonical);
+        previousEntriesByCanonicalName.delete(canonical);
+      }
     }
 
-    await downloadAndWriteWorkflow(remote, entry.file, entry);
-    matchedRemoteIds.add(String(remote.id));
+    let relativePath = adjustRelativePathForArchive(previous?.file, remote);
+    if (!relativePath) {
+      relativePath = buildDefaultRelativeFilename(remote);
+    }
+
+    if (usedRelativePaths.has(relativePath)) {
+      relativePath = await reserveFileNameForRemote(remote, usedRelativePaths);
+    }
+
+    const manifestEntry = {
+      file: relativePath,
+      name: previous?.name || remote.name,
+      workflowId: remote.id,
+      active: typeof remote.active === 'boolean' ? remote.active : previous?.active,
+      archived: remote.archived === true,
+    };
+
+    await downloadAndWriteWorkflow(remote, manifestEntry.file, manifestEntry);
+    usedRelativePaths.add(manifestEntry.file);
+    nextManifest.push(manifestEntry);
   }
 
-  await pullMissingRemoteWorkflows(remoteIndex, matchedRemoteIds);
+  manifest = nextManifest;
+  manifestDirty = true;
 }
 
 async function downloadAndWriteWorkflow(remoteSummary, fileName, manifestEntry) {
@@ -247,7 +297,7 @@ async function downloadAndWriteWorkflow(remoteSummary, fileName, manifestEntry) 
   }
 
   const snapshot = extractSnapshot(detail);
-  const relativePath = adjustRelativePathForArchive(fileName, remoteSummary, manifestEntry);
+  const relativePath = adjustRelativePathForArchive(fileName, remoteSummary);
   const paths = getWorkflowPaths(relativePath);
   await ensureDirExistsForFile(paths.absolute);
   await fsp.writeFile(paths.absolute, JSON.stringify(snapshot, null, 2) + '\n');
@@ -265,30 +315,11 @@ async function downloadAndWriteWorkflow(remoteSummary, fileName, manifestEntry) 
       manifestEntry.file = paths.relative;
       manifestDirty = true;
     }
-  }
-}
-
-async function pullMissingRemoteWorkflows(remoteIndex, matchedRemoteIds) {
-  for (const remote of remoteIndex.list) {
-    const remoteId = String(remote.id);
-    if (matchedRemoteIds.has(remoteId)) {
-      continue;
+    const archivedFlag = remoteSummary.archived === true;
+    if (manifestEntry.archived !== archivedFlag) {
+      manifestEntry.archived = archivedFlag;
+      manifestDirty = true;
     }
-
-    const filename = await reserveFileNameForRemote(remote);
-    const remoteArchived = remote.archived === true;
-    const newEntry = {
-      file: filename,
-      name: remote.name,
-      workflowId: remote.id,
-      active: typeof remote.active === 'boolean' ? remote.active : undefined,
-      archived: remoteArchived,
-    };
-    manifest.push(newEntry);
-    manifestDirty = true;
-
-    await downloadAndWriteWorkflow(remote, filename, newEntry);
-    matchedRemoteIds.add(remoteId);
   }
 }
 
@@ -400,7 +431,7 @@ function isArchivePath(relativePath) {
   return normalized === archiveSubdir || normalized.startsWith(`${archiveSubdir}/`);
 }
 
-function adjustRelativePathForArchive(preferredFile, remoteSummary, manifestEntry) {
+function adjustRelativePathForArchive(preferredFile, remoteSummary) {
   const remoteArchived = Boolean(remoteSummary?.archived);
   let normalized = normalizeManifestPath(preferredFile);
 
@@ -412,11 +443,6 @@ function adjustRelativePathForArchive(preferredFile, remoteSummary, manifestEntr
     normalized = path.posix.join(archiveSubdir, path.posix.basename(normalized));
   } else if (!remoteArchived && isArchivePath(normalized)) {
     normalized = path.posix.basename(normalized);
-  }
-
-  if (manifestEntry && manifestEntry.archived !== remoteArchived) {
-    manifestEntry.archived = remoteArchived;
-    manifestDirty = true;
   }
 
   return normalized;
@@ -431,12 +457,12 @@ function buildDefaultRelativeFilename(remoteSummary) {
   return fileName;
 }
 
-async function reserveFileNameForRemote(remote) {
+async function reserveFileNameForRemote(remote, usedRelativePaths = new Set()) {
   const base = slugify(remote?.name) || `workflow-${String(remote?.id || '').slice(0, 8) || 'remote'}`;
   const dirPrefix = remote?.archived ? `${archiveSubdir}/` : '';
   let candidate = dirPrefix ? path.posix.join(archiveSubdir, `${base}.workflow.json`) : `${base}.workflow.json`;
   let suffix = 1;
-  while (await pathExists(getWorkflowPaths(candidate).absolute)) {
+  while (usedRelativePaths.has(candidate) || (await pathExists(getWorkflowPaths(candidate).absolute))) {
     const nextName = `${base}-${++suffix}.workflow.json`;
     candidate = dirPrefix ? path.posix.join(archiveSubdir, nextName) : nextName;
   }
@@ -461,6 +487,11 @@ async function pathExists(targetPath) {
   }
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+
 function assertWorkflowsDirSafe() {
   const projectResolved = path.resolve(projectRoot);
   const workflowsResolved = path.resolve(workflowsDir);
@@ -473,37 +504,43 @@ function assertWorkflowsDirSafe() {
 }
 
 function buildPayload(localWorkflow, entry, remoteSummary) {
-  const payload = { ...localWorkflow };
-  delete payload.id;
-  delete payload.createdAt;
-  delete payload.updatedAt;
-  delete payload.versionId;
+  const nodes = Array.isArray(localWorkflow.nodes) ? localWorkflow.nodes : [];
+  const connections = isPlainObject(localWorkflow.connections) ? localWorkflow.connections : {};
+  const settings = buildWorkflowSettings(localWorkflow.settings, remoteSummary?.settings);
 
-  payload.nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
-  payload.connections = payload.connections || {};
-  payload.pinData = payload.pinData || {};
-  payload.meta = payload.meta || {};
-  payload.settings = payload.settings || remoteSummary?.settings || {};
-
-  payload.name = entry.name || localWorkflow.name || remoteSummary?.name || fallbackNameFromFile(entry.file);
-
-  const desiredActive = determineActive(entry, localWorkflow, remoteSummary);
-  if (typeof desiredActive === 'boolean') {
-    payload.active = desiredActive;
-  }
-
-  if (!payload.tags && (entry.tags || remoteSummary?.tags)) {
-    payload.tags = entry.tags || remoteSummary?.tags || [];
-  }
-
-  return payload;
+  return {
+    name: entry.name || localWorkflow.name || remoteSummary?.name || fallbackNameFromFile(entry.file),
+    nodes,
+    connections,
+    settings,
+  };
 }
 
-function determineActive(entry, localWorkflow, remoteSummary) {
-  if (typeof entry.active === 'boolean') return entry.active;
-  if (typeof localWorkflow.active === 'boolean') return localWorkflow.active;
-  if (typeof remoteSummary?.active === 'boolean') return remoteSummary.active;
-  return undefined;
+const SAFE_SETTINGS_KEYS = [
+  'saveExecutionProgress',
+  'saveManualExecutions',
+  'saveDataErrorExecution',
+  'saveDataSuccessExecution',
+  'executionTimeout',
+  'errorWorkflow',
+  'timezone',
+  'executionOrder',
+];
+
+function buildWorkflowSettings(localSettings, remoteSettings) {
+  const source = isPlainObject(localSettings)
+    ? localSettings
+    : isPlainObject(remoteSettings)
+      ? remoteSettings
+      : {};
+
+  const filtered = {};
+  for (const key of SAFE_SETTINGS_KEYS) {
+    if (source[key] !== undefined) {
+      filtered[key] = source[key];
+    }
+  }
+  return filtered;
 }
 
 function extractSnapshot(workflow) {
