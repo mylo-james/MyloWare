@@ -79,7 +79,16 @@
         "useCustomSchema": true,
         "operation": "getAll",
         "tableId": "videos",
-        "returnAll": true
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "project_id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called').item.json.projectId }}"
+            }
+          ]
+        }
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
@@ -105,6 +114,9 @@
             },
             {
               "name": "runId"
+            },
+            {
+              "name": "projectId"
             }
           ]
         }
@@ -290,6 +302,58 @@
       ],
       "id": "9076cc25-067a-42ab-8d29-85aaf77e690d",
       "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        160
+      ],
+      "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called').item.json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "ideas_error"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        160
+      ],
+      "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
+      "name": "Mark Run Failed (Ideas)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
   "connections": {
@@ -407,6 +471,22 @@
           }
         ]
       ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (Ideas)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (Ideas)": {
+      "main": [
+        []
+      ]
     }
   },
   "pinData": {
@@ -414,7 +494,8 @@
       {
         "json": {
           "userInput": "Create an ASMR video featuring puppies with a mix of comforting, cute puppies and some that are weird and gross like slime puppies. Include soothing sounds, gentle visuals, and a surreal, tactile aesthetic.",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
         }
       }
     ]

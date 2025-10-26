@@ -146,7 +146,7 @@
         "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\",\n  \"model\": \"{{ $json.model }}\",\n  \"aspectRatio\": \"{{ $json.aspect_ratio }}\",\n  \"generationType\": \"TEXT_2_VIDEO\"\n}",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\",\n  \"model\": \"{{ $json.model }}\",\n  \"aspectRatio\": \"{{ $json.aspect_ratio }}\",\n  \"generationType\": \"TEXT_2_VIDEO\",\n  \"seconds\": \"{{ $json.seconds }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -327,6 +327,58 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        160
+      ],
+      "id": "8fc9ecd5-9265-4347-993a-856c9d291db1",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called').item.json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "videos_error"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        160
+      ],
+      "id": "23ace120-e8d8-4789-8726-f4470e311afb",
+      "name": "Mark Run Failed (Videos)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
   "connections": {
@@ -439,6 +491,22 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (Videos)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (Videos)": {
+      "main": [
+        []
       ]
     }
   },

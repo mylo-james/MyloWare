@@ -49,7 +49,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "userInput": "={{ $('When Executed by Another Workflow').item.json.userInput }}",
-            "runId": "={{ $json.id }}"
+            "runId": "={{ $json.id }}",
+            "projectId": "={{ $json.project_id }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -66,6 +67,16 @@
             {
               "id": "runId",
               "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "projectId",
+              "displayName": "projectId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -422,6 +433,158 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Create Run').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "ideas"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -304
+      ],
+      "id": "35f1a80e-df98-45fb-8458-ca40f8321e01",
+      "name": "Mark Run Ideas",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Create Run').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "scripts"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -304
+      ],
+      "id": "48487db6-9519-44af-8da0-4ac7c4a6d563",
+      "name": "Mark Run Scripts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Create Run').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "videos"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -304
+      ],
+      "id": "bfb1429b-68d1-4634-9a68-d64df09dac95",
+      "name": "Mark Run Videos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Create Run').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "complete"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "success"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        -304
+      ],
+      "id": "bc1c81f1-85c6-472b-b5de-da3bfb6c2e5b",
+      "name": "Mark Run Complete",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
   "connections": {
@@ -462,7 +625,7 @@
       "main": [
         [
           {
-            "node": "Poll 'video_link'",
+            "node": "Mark Run Videos",
             "type": "main",
             "index": 0
           }
@@ -484,7 +647,7 @@
       "main": [
         [
           {
-            "node": "Call 'Generate Video'",
+            "node": "Mark Run Scripts",
             "type": "main",
             "index": 0
           }
@@ -506,7 +669,56 @@
       "main": [
         [
           {
+            "node": "Mark Run Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Ideas": {
+      "main": [
+        [
+          {
             "node": "Generate Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Scripts": {
+      "main": [
+        [
+          {
+            "node": "Call 'Generate Video'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Videos": {
+      "main": [
+        [
+          {
+            "node": "Poll 'video_link'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Complete": {
+      "main": [
+        []
+      ]
+    },
+    "Edit": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Complete",
             "type": "main",
             "index": 0
           }

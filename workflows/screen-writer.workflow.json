@@ -235,6 +235,58 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        160
+      ],
+      "id": "e7643002-dae8-441f-be64-a2040255f6a8",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called').item.json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "scripts_error"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        160
+      ],
+      "id": "a477a4ea-efbd-4aba-af0a-bd0fb4f9dc27",
+      "name": "Mark Run Failed (Scripts)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
   "connections": {
@@ -329,6 +381,22 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (Scripts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (Scripts)": {
+      "main": [
+        []
       ]
     }
   },

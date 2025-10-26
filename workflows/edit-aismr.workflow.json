@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "jsCode": "const months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst videos = $input.all()\n  .filter(video => video?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12);\n\nconst duration = 8;\nconst items = videos.map((video, index) => ({\n  link: video.json.video_link,\n  title: video.json.idea || `Idea ${index + 1}`,\n  label: months[index % months.length],\n  start: index * duration\n}));\n\nconst edit = {\n  timeline: {\n    background: '#000000',\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: 'video', src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: 'fade', out: 'fade' }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: 'title',\n            text: item.label,\n            style: 'minimal',\n            size: 'large',\n            color: '#FFFFFF'\n          },\n          start: item.start,\n          length: duration,\n          position: 'top'\n        }))\n      }\n    ]\n  },\n  output: {\n    format: 'mp4',\n    resolution: 'sd'\n  }\n};\n\nreturn [{ json: edit }];"
+        "jsCode": "const months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst videos = $input.all()\n  .filter(video => video?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12);\n\nconst duration = 10;\nconst items = videos.map((video, index) => ({\n  link: video.json.video_link,\n  title: video.json.idea || `Idea ${index + 1}`,\n  label: months[index % months.length],\n  start: index * duration\n}));\n\nconst edit = {\n  timeline: {\n    background: '#000000',\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: 'video', src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: 'fade', out: 'fade' }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: 'title',\n            text: item.label,\n            style: 'minimal',\n            size: 'large',\n            color: '#FFFFFF'\n          },\n          start: item.start,\n          length: duration,\n          position: 'top'\n        }))\n      }\n    ]\n  },\n  output: {\n    format: 'mp4',\n    resolution: 'hd',\n    aspectRatio: '9:16'\n  }\n};\n\nreturn [{ json: edit }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -194,6 +194,58 @@
       ],
       "id": "e8f852dd-0b33-43b5-9cf8-bc8df619a37f",
       "name": "Switch"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        160
+      ],
+      "id": "9bc69749-e21d-4276-839a-e264f24cadf5",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Executed by Another Workflow').item.json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "edit_error"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        160
+      ],
+      "id": "d0f105bf-554f-4e60-8754-a59b7245a978",
+      "name": "Mark Run Failed (Edit)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
   "connections": {
@@ -273,6 +325,22 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (Edit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (Edit)": {
+      "main": [
+        []
       ]
     }
   },

@@ -92,7 +92,8 @@ CREATE TABLE IF NOT EXISTS runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   chat_id TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'rendering', 'done', 'failed')),
+  status TEXT DEFAULT 'pending',
+  result TEXT,
   error_message TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -111,6 +112,7 @@ CREATE TYPE video_status AS ENUM ('idea_gen', 'script_gen', 'video_gen', 'upload
 CREATE TABLE IF NOT EXISTS videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   idea TEXT NOT NULL,
   user_idea TEXT,
   mood TEXT,
@@ -126,6 +128,7 @@ CREATE TABLE IF NOT EXISTS videos (
 
 CREATE INDEX idx_videos_status ON videos(status);
 CREATE INDEX idx_videos_created ON videos(created_at DESC);
+CREATE INDEX idx_videos_project ON videos(project_id);
 
 -- ============================================================================
 -- SEED DATA
@@ -134,7 +137,7 @@ CREATE INDEX idx_videos_created ON videos(created_at DESC);
 -- Insert Projects with fixed UUIDs
 INSERT INTO projects (id, name, table_name, prompt_text, config) VALUES
 ('a372acc6-5b6a-46c5-835d-6e9859d5055c', 'AISMR', 'videos', 'AI-generated ASMR video production', 
- '{"provider": "google", "model": "veo-3", "resolution": "720x1280", "duration": 4, "drive_folder": "12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf"}');
+ '{"provider": "google", "model": "veo-3", "resolution": "720x1280", "duration": 10, "drive_folder": "12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf"}');
 
 -- Insert Personas with fixed UUIDs
 INSERT INTO personas (id, name, prompt_text) VALUES
@@ -182,7 +185,7 @@ INSERT INTO prompts (persona_id, project_id, prompt_text, metadata) VALUES
 -- PROJECT:  AISMR
 INSERT INTO prompts (persona_id, project_id, prompt_text, metadata) VALUES
 (NULL, (SELECT id FROM projects WHERE name = 'AISMR'),
- '# Overview\n\nAISMR is a catalog of surreal ASMR micro-films designed to merge dream logic with tactile realism. Your role is to understand the project''s creative framework, technical constraints, and quality standards so that every video feels like a whispered secret worth watching on repeat.\n\nEach video must deliver an **immediate visual hook, rich sensory texture, and tiny narrative arc** in exactly 4 seconds. Focus on dreamlike realism, impossible function, and emotional resonance to create filmable concepts that balance surreal physics with disciplined cinematography.\n\nFollow these rules when working within AISMR:\n\n1. Always structure around:\n\n   - The core concept: every idea is a two-word pair `<Descriptor> <Object>` where the descriptor visibly or audibly transforms the object.\n   - The visual DNA: surreal physics grounded in slow motion, macro textures, floating particles, and tactile focus.\n   - The technical spine: 4.0 seconds, single shot, 2.39:1 anamorphic, 65–85mm shallow DOF, 180° shutter, slow dolly or orbital drift.\n   - The audio identity: vacuum hum ambient bed, hyper-detailed foley, dry whisper at 2.0s, ethereal ambient score.\n   - The uniqueness pipeline: all ideas stored in Supabase; never repeat descriptors or concepts across the archive.\n\n2. Every video should showcase an \"impossible function\" mechanic (light refracting into ribbons, echo creating after-images, gravity reversing droplets).\n3. Emotional moods range across serene, haunting, awe, nostalgic, playful, and tense.\n4. The three-act structure is non-negotiable: establishing (0–1.5s), exploration (1.5–3.5s), close-up fade to black (3.5–4.0s).\n5. Success metrics include visual strikingness, tactile/sonic richness, filmability, emotional contrast, and brand consistency.\n\nWhen ready, apply these standards to generate, refine, or evaluate AISMR content with no additional commentary.',
+ '# Overview\n\nAISMR is a catalog of surreal ASMR micro-films designed to merge dream logic with tactile realism. Your role is to understand the project''s creative framework, technical constraints, and quality standards so that every video feels like a whispered secret worth watching on repeat.\n\nEach video must deliver an **immediate visual hook, rich sensory texture, and tiny narrative arc** in exactly 10 seconds. Focus on dreamlike realism, impossible function, and emotional resonance to create filmable concepts that balance surreal physics with disciplined cinematography.\n\nFollow these rules when working within AISMR:\n\n1. Always structure around:\n\n   - The core concept: every idea is a two-word pair `<Descriptor> <Object>` where the descriptor visibly or audibly transforms the object.\n   - The visual DNA: surreal physics grounded in slow motion, macro textures, floating particles, and tactile focus.\n   - The technical spine: 10.0 seconds, single shot, 9:16 vertical (1080×1920), 65–85mm shallow DOF, 180° shutter, slow dolly or orbital drift.\n   - The audio identity: vacuum hum ambient bed, hyper-detailed foley, dry whisper at 5.0s, ethereal ambient score.\n   - The uniqueness pipeline: all ideas stored in Supabase; never repeat descriptors or concepts across the archive.\n\n2. Every video should showcase an \"impossible function\" mechanic (light refracting into ribbons, echo creating after-images, gravity reversing droplets).\n3. Emotional moods range across serene, haunting, awe, nostalgic, playful, and tense.\n4. The three-act structure is non-negotiable: establishing (0–3.0s), exploration (3.0–7.0s), close-up fade to black (7.0–10.0s).\n5. Success metrics include visual strikingness, tactile/sonic richness, filmability, emotional contrast, and brand consistency.\n\nWhen ready, apply these standards to generate, refine, or evaluate AISMR content with no additional commentary.',
  '{"project":"AISMR"}');
 
 -- ============================================================================
@@ -199,7 +202,7 @@ INSERT INTO prompts (persona_id, project_id, prompt_text, metadata) VALUES
 -- PERSONA-PROJECT: Screen Writer AISMR
 INSERT INTO prompts (persona_id, project_id, prompt_text, metadata) VALUES
 ((SELECT id FROM personas WHERE name = 'Screen Writer'), (SELECT id FROM projects WHERE name = 'AISMR'),
- '# Workflow: Screen Writer for AISMR\n\nYou transform AISMR two-word concepts into production-ready Veo 3 video prompts.\n\n## Input Contract\n\n- `month`: string (e.g., \"January\")\n- `idea`: string (exactly two words: \"Descriptor Object\", e.g., \"Slime Puppy\")\n- `mood`: string (lowercase emotion word, e.g., \"playful\")\n\n## Process\n\n1. **Interpret the descriptor**: Determine how it visibly transforms the object (e.g., \"Slime\" makes the puppy gelatinous and fluid).\n2. **Apply AISMR technical specs** from the project-aismr.md framework.\n3. **Build the 10-section Veo 3 prompt** following the template below.\n4. **Ensure timing accuracy**: Whisper at exactly 2.0s, fade to black at 3.5-4.0s.\n5. **Create color palette**: 3–5 cohesive colors that match the mood.\n\n## Output Contract\n\nComplete Veo 3 prompt with all 10 sections in order:\n\n1. **STYLE / GENRE** — \"Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\"\n2. **REFERENCE IMAGE INSTRUCTION** — (only if reference image provided)\n3. **SCENE DESCRIPTION** — Subject, descriptor manifestation, environment, text elements\n4. **CINEMATOGRAPHY** — 2.39:1 anamorphic, 65-85mm shallow DOF, 180° shutter, camera motion, lighting\n5. **ACTIONS & TIMING** — Beat-by-beat breakdown: 0-1.5s (establishing), 1.5-3.5s (exploration), 2.0s (whisper begins), 3.5-4.0s (close-up + fade)\n6. **AUDIO / ASMR** — Ambient (-28 dBFS), foley, whisper (dry, 2.0s start, states idea verbatim)\n7. **MUSIC / SCORE** — Ethereal ambient minimalism, structure (0-1s rise, 1-3s swell, 3-4s tail), -12 LUFS\n8. **COLOR / GRADE** — 3-5 color palette matching mood (comma-separated)\n9. **NOTES / CONSTRAINTS** — 4 seconds, single shot, whisper mandatory, fade to black + particle shimmer\n10. **SINGLE-LINE SUMMARY** — A 4-second surreal ASMR micro-film for {month}: \"{idea}\" — {key beats + palette}.\n\n## AISMR-Specific Requirements\n\n- **Runtime**: 4.0 seconds exactly, single continuous shot\n- **Three-act structure**:\n  - 0.0–1.5s: Establishing (subject in motion, environment revealed)\n  - 1.5–3.5s: Exploration (descriptor''s surreal function demonstrated)\n  - 3.5–4.0s: Close-up + fade to black with particle shimmer\n- **Whisper**: Begins at 2.0s, dry (no reverb), says idea verbatim once\n- **Descriptor function**: Must be visibly demonstrated (crystal refracts, velvet absorbs light, echo duplicates, etc.)\n- **Camera**: Slow dolly-in or orbital drift obeying inertia\n- **Lighting**: Key + rim + volumetric dust/haze\n- **End**: Always fade to black with faint particle shimmer\n\n## Example\n\n**Input:**\n\n```json\n{\n  \"month\": \"January\",\n  \"idea\": \"Slime Puppy\",\n  \"mood\": \"playful\"\n}\n```\n\n**Output:**  \n(Complete Sora 2 prompt with all 10 sections describing a gelatinous puppy bouncing through a tranquil environment, with slime mechanics demonstrated at 1.5-3.5s, whisper at 2.0s saying \"Slime Puppy\", and fade to black with shimmer at 3.5-4.0s. Color palette: powder blue, lavender haze, pearl white, rose gold shimmer.)',
+ '# Workflow: Screen Writer for AISMR\n\nYou transform AISMR two-word concepts into production-ready Veo 3 video prompts.\n\n## Input Contract\n\n- `month`: string (e.g., \"January\")\n- `idea`: string (exactly two words: \"Descriptor Object\", e.g., \"Slime Puppy\")\n- `mood`: string (lowercase emotion word, e.g., \"playful\")\n\n## Process\n\n1. **Interpret the descriptor**: Determine how it visibly transforms the object (e.g., \"Slime\" makes the puppy gelatinous and fluid).\n2. **Apply AISMR technical specs** from the project-aismr.md framework.\n3. **Build the 10-section Veo 3 prompt** following the template below.\n4. **Ensure timing accuracy**: Whisper at exactly 5.0s, fade to black between 9.0-10.0s.\n5. **Create color palette**: 3–5 cohesive colors that match the mood.\n\n## Output Contract\n\nComplete Veo 3 prompt with all 10 sections in order:\n\n1. **STYLE / GENRE** — \"Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\"\n2. **REFERENCE IMAGE INSTRUCTION** — (only if reference image provided)\n3. **SCENE DESCRIPTION** — Subject, descriptor manifestation, environment, text elements\n4. **CINEMATOGRAPHY** — 9:16 vertical (1080x1920), 65-85mm shallow DOF, 180° shutter, camera motion, lighting\n5. **ACTIONS & TIMING** — Beat-by-beat breakdown: 0-3.0s (establishing), 3.0-7.0s (exploration), 5.0s (whisper begins), 7.0-10.0s (close-up + fade)\n6. **AUDIO / ASMR** — Ambient (-28 dBFS), foley, whisper (dry, 5.0s start, states idea verbatim)\n7. **MUSIC / SCORE** — Ethereal ambient minimalism, structure (0-3s rise, 3-7s swell, 7-10s tail), -12 LUFS\n8. **COLOR / GRADE** — 3-5 color palette matching mood (comma-separated)\n9. **NOTES / CONSTRAINTS** — 10 seconds, single shot, whisper mandatory, fade to black + particle shimmer\n10. **SINGLE-LINE SUMMARY** — A 10-second surreal ASMR micro-film for {month}: \"{idea}\" — {key beats + palette}.\n\n## AISMR-Specific Requirements\n\n- **Runtime**: 10.0 seconds exactly, single continuous shot\n- **Three-act structure**:\n  - 0.0–3.0s: Establishing (subject in motion, environment revealed)\n  - 3.0–7.0s: Exploration (descriptor''s surreal function demonstrated)\n  - 7.0–10.0s: Close-up + fade to black with particle shimmer\n- **Whisper**: Begins at 5.0s, dry (no reverb), says idea verbatim once\n- **Descriptor function**: Must be visibly demonstrated (crystal refracts, velvet absorbs light, echo duplicates, etc.)\n- **Camera**: Slow dolly-in or orbital drift obeying inertia\n- **Lighting**: Key + rim + volumetric dust/haze\n- **End**: Always fade to black with faint particle shimmer\n\n## Example\n\n**Input:**\n\n```json\n{\n  \"month\": \"January\",\n  \"idea\": \"Slime Puppy\",\n  \"mood\": \"playful\"\n}\n```\n\n**Output:**  \n(Complete Sora 2 prompt with all 10 sections describing a gelatinous puppy drifting through a tranquil vertical frame, with slime mechanics demonstrated at 3-7s, whisper at 5.0s saying \"Slime Puppy\", and fade to black with shimmer at 7-10s. Color palette: powder blue, lavender haze, pearl white, rose gold shimmer.)',
  '{"project":"AISMR","persona":"Screen Writer"}');
 
 
@@ -210,6 +213,7 @@ INSERT INTO runs (
   project_id,
   chat_id,
   status,
+  result,
   error_message,
   created_at,
   updated_at
@@ -218,6 +222,7 @@ INSERT INTO runs (
   (SELECT id FROM projects WHERE name = 'AISMR'),
   '123456789',
   'done',
+  'success',
   NULL,
   '2025-10-26 00:00:00+00',
   '2025-10-26 00:05:30+00'
@@ -226,6 +231,7 @@ INSERT INTO runs (
 INSERT INTO videos (
   id,
   run_id,
+  project_id,
   idea,
   user_idea,
   mood,
@@ -238,6 +244,7 @@ INSERT INTO videos (
 ) VALUES (
   'ed7911cd-3943-4c9f-8839-ccc4c5949a21',
   'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  (SELECT id FROM projects WHERE name = 'AISMR'),
   'Slime Puppy',
   'puppy',
   'serene',
@@ -248,26 +255,26 @@ Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score;
 A playful slime puppy bounces gently through a tranquil, softly glowing environment. The puppy's gelatinous body shimmers and flexes, light reflecting on its surface with smooth ripples. The environment is filled with drifting, glowing particles that slowly float around. The word "JANUARY" appears at the top in small caps serif at 40% opacity for the first half-second. The phrase "Slime Puppy" appears at the bottom, glowing faintly during the final second.
 
 ### CINEMATOGRAPHY
-- Aspect ratio: 2.39:1 anamorphic
+- Aspect ratio: 9:16 vertical (1080x1920)
 - Lens: 65-85mm, shallow DOF
 - Shutter: 180°
 - Motion: slow dolly-in to orbital drift
 - Lighting: key + rim with soft volumetric atmosphere
 
 ### ACTIONS & TIMING
-**0.0-1.5s** — Establishing
+**0.0-3.0s** — Establishing
 - The slime puppy bounces gently into the frame
 - Serenity of environment established with smooth lighting and gentle motion
 
-**1.5-3.5s** — Exploration
+**3.0-7.0s** — Exploration
 - The body of the puppy flexes like mercury—smooth and flowing
 - The light plays across its surface, showing fluid, reflective properties
 
-**2.0-5.0s** — ASMR Whisper
-- At 2.0s, whisper begins saying "Slime Puppy"
-- The whisper continues slowly, overlapping to ~5.0s conceptually
+**5.0s** — ASMR Whisper
+- At 5.0s, whisper begins saying "Slime Puppy"
+- The whisper continues slowly, overlapping to ~8.0s conceptually
 
-**3.5-4.0s** — Close-up & Fade
+**7.0-10.0s** — Close-up & Fade
 - Focus tightens on the reflective surface detail
 - Fade to black with subtle particle shimmer
 
@@ -276,25 +283,25 @@ A playful slime puppy bounces gently through a tranquil, softly glowing environm
 
 **Foley**: Tactile ASMR sounds of gentle sloshing, soft squishes, and ambient motion
 
-**Whisper** (at 2.0s): "Slime Puppy", dry whisper, centered, 3-second duration
+**Whisper** (at 5.0s): "Slime Puppy", dry whisper, centered, 3-second duration
 
 ### MUSIC / SCORE
 **Style**: Ethereal ambient minimalism
-**Structure**: 0-1s pad rise, 1-3s swell under whisper, 3-4s reverb tail
+**Structure**: 0-3s pad rise, 3-7s swell under whisper, 7-10s reverb tail
 **Level**: -12 LUFS
 
 ### COLOR / GRADE
 Soft, serene palette of "Powder blue, lavender haze, pearl white, rose gold shimmer"
 
 ### NOTES / CONSTRAINTS
-- 4 seconds hard limit
+- 10 seconds hard limit
 - One continuous shot (no cuts)
-- ASMR whisper at 2.0s is mandatory and ONLY dialogue
+- ASMR whisper at 5.0s is mandatory and ONLY dialogue
 - Camera motion obeys inertia and physical plausibility
 - End on black with residual particle shimmer
 
 ### SINGLE-LINE SUMMARY
-A 4-second surreal ASMR micro-film for January: "Slime Puppy" — bouncing entry, fluid exploration with serene lighting, ASMR whisper at 2s, powder blue/lavender/pearl grade.$$,
+A 10-second surreal ASMR micro-film for January: "Slime Puppy" — bouncing entry, fluid exploration with serene lighting, ASMR whisper at 2s, powder blue/lavender/pearl grade.$$,
   'https://drive.google.com/file/d/1TrK9t6SQw-KLU6aQqw09K_uE1VfFQMds/view?usp=drivesdk',
   'complete',
   NULL,

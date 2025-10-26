@@ -14,11 +14,10 @@ This directory contains all the AI prompts used in the AISMR workflow system, ex
 
 ### Idea Generator Persona
 
-- **idea-generator-system.md** - Generates 12 monthly surreal ASMR video ideas
+- **idea-generator-system.md** - Generates 12 surreal ASMR video ideas
   - Creates unique descriptors for video concepts
   - Queries database to avoid duplicates
-  - Scores ideas for entertainment value
-  - Assigns mood tags
+  - Adds vibe (short phrase) and a brief why (1–3 sentences)
 
 ### Screen Writer Persona
 

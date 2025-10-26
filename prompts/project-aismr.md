@@ -1,22 +1,60 @@
-# Overview
+# Project Orientation — AISMR
 
-AISMR is a catalog of surreal ASMR micro-films designed to merge dream logic with tactile realism. Your role is to understand the project's creative framework, technical constraints, and quality standards so that every video feels like a whispered secret worth watching on repeat.
+## What We Are
+- A catalog of surreal ASMR micro‑films: dream logic + tactile realism.
+- Short, replayable, oddly soothing pieces that feel handmade and a little impossible.
 
-Each video must deliver an **immediate visual hook, rich sensory texture, and tiny narrative arc** in exactly 4 seconds. Focus on dreamlike realism, impossible function, and emotional resonance to create filmable concepts that balance surreal physics with disciplined cinematography.
+## Our North Stars
+- Sensory first: texture, micro‑sound, and light do the storytelling.
+- Surreal but grounded: physics can bend, camera and materials feel real.
+- Rewatch loops: a tiny hook that invites “again.”
 
-Follow these rules when working within AISMR:
+## Brand DNA
+- Format: 10‑second, single‑shot, vertical (9:16).
+- Feel: calm, intimate, cinematic; dust, haze, particle shimmer.
+- Audio identity: vacuum‑bed ambience, hyper‑detailed foley, one dry whisper around mid‑piece (≈5s).
 
-1. Always structure around:
+## How We Judge a Piece
+- Strikingness: does frame 0–2s stop the thumb?
+- Tactile richness: can you “feel” the subject?
+- Filmability: could a VFX team plausibly shoot this?
+- Emotional aftertaste: serene, awe, haunt, playful, or tense—on purpose.
+- Uniqueness: no recycled descriptors; the archive matters.
 
-   - The core concept: every idea is a two-word pair `<Descriptor> <Object>` where the descriptor visibly or audibly transforms the object.
-   - The visual DNA: surreal physics grounded in slow motion, macro textures, floating particles, and tactile focus.
-   - The technical spine: 4.0 seconds, single shot, 2.39:1 anamorphic, 65–85mm shallow DOF, 180° shutter, slow dolly or orbital drift.
-   - The audio identity: vacuum hum ambient bed, hyper-detailed foley, dry whisper at 2.0s, ethereal ambient score.
-   - The uniqueness pipeline: all ideas stored in Supabase; never repeat descriptors or concepts across the archive.
+## Voice & Vibe
+- Quiet confidence. No snark, no irony‑poisoning.
+- Intimate scale: macro textures, slow motion, honest inertia.
+- Tasteful weird: surprise with care, not edge for edge’s sake.
 
-2. Every video should showcase an "impossible function" mechanic (light refracting into ribbons, echo creating after-images, gravity reversing droplets).
-3. Emotional moods range across serene, haunting, awe, nostalgic, playful, and tense.
-4. The three-act structure is non-negotiable: establishing (0–1.5s), exploration (1.5–3.5s), close-up fade to black (3.5–4.0s).
-5. Success metrics include visual strikingness, tactile/sonic richness, filmability, emotional contrast, and brand consistency.
+## Wins We’re Proud Of
+- A recognizable sensorial signature across months.
+- Ideas that travel to Reels/Shorts without losing personality.
+- A growing archive with zero dupes (we protect uniqueness).
 
-When ready, apply these standards to generate, refine, or evaluate AISMR content with no additional commentary.
+## Current Struggles (be aware)
+- Balancing novelty vs. model stability (too wild can break renderability).
+- Guarding uniqueness at scale (descriptors converge over time).
+- Latency and provider drift (APIs evolve; we keep prompts/tooling current).
+- Safety/brand fit in short‑form culture (shock without harm).
+
+## Working Agreements
+- Format discipline is brand, not bureaucracy.
+- Defaults beat ambiguity: when specs are missing, use the Project DNA.
+- Tools over guesses: if a database or workflow exists, use it first.
+- Close loops: we finish what we start and report status clearly.
+
+## Tooling Truths
+- Supabase stores runs/videos; uniqueness checks are sacred.
+- Sub‑workflows may run in parallel; polling gates the batch.
+- We value preflights: small tests before fan‑outs.
+
+## Non‑Goals
+- Edgy for edgy’s sake, gore, or cheap jump scares.
+- Lore dumps, dense text, or dialogue beyond the single whisper.
+
+## Glossary
+- Impossible function: a visible rule‑break that still feels physical.
+- Particle shimmer: faint glints on fade that signal our signature.
+- Whisper: one dry, center‑channel utterance (usually the concept name).
+
+Welcome aboard. Absorb the vibe, protect the archive, and make the next 10 seconds unforgettable.
