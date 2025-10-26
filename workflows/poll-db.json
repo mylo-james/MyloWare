@@ -1,0 +1,198 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "id"
+            },
+            {
+              "name": "column"
+            },
+            {
+              "name": "condition"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        120
+      ],
+      "id": "c0c2561f-dc54-481f-a324-6e34d84ab7b0",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        128
+      ],
+      "id": "6bec188f-b611-40dd-ac6b-fa2f6d82124a",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "debfc1f4-f7ee-48c3-aefb-929fc6a02c17",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $('Get a row').item.json[$('When Executed by Another Workflow').item.json.column] }}",
+                    "rightValue": "={{ $('When Executed by Another Workflow').item.json.passText }}"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Completed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "3d03417e-a385-4bf2-992d-2b46a18cde03",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $('Get a row').item.json[$('When Executed by Another Workflow').item.json.column] }}",
+                    "rightValue": "={{ $('When Executed by Another Workflow').item.json.passText }}"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "In Progress"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bdbd316e-eb19-442c-b98a-419d7a1309dc",
+      "name": "Status Switch2",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -704,
+        48
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "id": "806eb511-8d5c-4b85-9a26-8b576054d0a3",
+      "name": "Wait 30 seconds1",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        -480,
+        120
+      ],
+      "webhookId": "d6b5d4ee-dce9-4053-97c0-75b49c1158a4",
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Status Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Switch2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait 30 seconds1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 seconds1": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "id": "0e2c4554-2010-4bcf-999c-a695785fc31a",
+          "column": "prompt"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

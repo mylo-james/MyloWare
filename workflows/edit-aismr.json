@@ -1,0 +1,303 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const months = [\n  \"January\", \"February\", \"March\", \"April\", \"May\", \"June\",\n  \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"\n];\n\n// Get all rows from Supabase - each row is a video\nconst videos = $input.all();\nconst duration = 8;\n\n// Sort videos and map to items with month names\nconst items = videos\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12) // Take first 12 videos\n  .map((video, i) => ({\n    month: months[i],\n    link: video.json.video_link,\n    title: video.json.idea,\n    start: i * duration\n  }));\n\n// Create the full Edit object with timeline and output\nconst edit = {\n  timeline: {\n    background: \"#000000\",\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: \"video\", src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: \"fade\", out: \"fade\" }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: \"title\",\n            text: item.month,\n            style: \"minimal\",\n            size: \"large\",\n            color: \"#FFFFFF\"\n          },\n          start: item.start,\n          length: duration,\n          position: \"top\"\n        }))\n      }\n    ]\n  },\n  output: {\n    format: \"mp4\",\n    resolution: \"sd\"\n  }\n};\n\nreturn [{ json: edit }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        160
+      ],
+      "id": "636b315f-1053-49f3-b551-c8ce2c1c0e21",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "videos",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.sessionId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        672,
+        160
+      ],
+      "id": "9fd8087d-0070-4442-bb17-a55effeade3c",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "sessionId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        160
+      ],
+      "id": "ab013440-cbc9-4aec-b30b-a74ee5615021",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.shotstack.io/edit/stage/render",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        160
+      ],
+      "id": "4d8a32a6-eb44-454d-b789-373ae2d77742",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "S31bXA351k9zXbHo",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.shotstack.io/edit/stage/render/{{ $json.response.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1312,
+        160
+      ],
+      "id": "b9a7113d-6245-418d-be27-18d6717e2bc1",
+      "name": "Get Video4",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "AXZk8w06m78wmbXh",
+          "name": "Bearer Auth account 2"
+        },
+        "httpHeaderAuth": {
+          "id": "S31bXA351k9zXbHo",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        256
+      ],
+      "id": "ace47c24-b39f-4a52-bc4f-7c827e7eb6e5",
+      "name": "Wait",
+      "webhookId": "9fd30610-c0b9-4f5c-9af5-89b821c11ec3"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6888dba1-6521-483a-a544-e9044c397f1c",
+                    "leftValue": "={{ $json.response.url }}",
+                    "rightValue": "null",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "973ecf21-58b8-41df-a780-1ad778e963bf",
+                    "leftValue": "={{ $json.response.url }}",
+                    "rightValue": "generating",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "generating"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1536,
+        80
+      ],
+      "id": "e8f852dd-0b33-43b5-9cf8-bc8df619a37f",
+      "name": "Switch"
+    }
+  ],
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video4": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Video4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Get Video4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "sessionId": "6559268788"
+        }
+      }
+    ],
+    "HTTP Request": [
+      {
+        "json": {
+          "success": true,
+          "message": "Created",
+          "response": {
+            "message": "Render Successfully Queued",
+            "id": "e99f70d8-b373-4317-968d-d742ebccafbd"
+          }
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

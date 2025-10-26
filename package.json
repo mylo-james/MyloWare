@@ -1,0 +1,20 @@
+{
+  "name": "n8n-workflow-split-helpers",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Helper scripts and tests to refactor n8n workflows safely",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:prompts": "node scripts/test-prompts.js",
+    "build:prompts": "node scripts/build-prompts-sql.js",
+    "update:dev-reset": "npm run build:prompts && node scripts/update-dev-reset.js",
+    "dev-reset:sql": "node scripts/dev-reset-export.js",
+    "n8n:push": "node scripts/n8n-sync.js push",
+    "n8n:pull": "node scripts/n8n-sync.js pull"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.75.0",
+    "dotenv": "^17.2.3",
+    "pg": "^8.16.3"
+  }
+}

@@ -1,0 +1,451 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "ideaId"
+            },
+            {
+              "name": "projectName"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        64
+      ],
+      "id": "f04e16d3-8cf3-4346-9d8e-2223bada4f03",
+      "name": "When Called by Generate Video",
+      "notes": "Binary data (video file) is automatically passed from calling workflow"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $('When Called by Generate Video').item.json.projectName }}_{{ $now.format('yyyy-MM-dd') }}",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf",
+            "mode": "list",
+            "cachedResultName": "Google AI Studio",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        144
+      ],
+      "id": "dfce21ff-6e6b-4788-8b6a-22fbed73af8c",
+      "name": "Search for Project Folder",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "XvgG5PyrXOSpnzIh",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "abc12345-def6-7890-abcd-ef1234567890"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Folder Exists"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "def67890-abc1-2345-6789-0abcdef12345",
+                    "leftValue": "={{ $json.id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Folder Not Found"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1488,
+        144
+      ],
+      "id": "e9a67af8-e807-42a0-925c-d2c966dcef60",
+      "name": "Check Folder Exists"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('When Called by Generate Video').item.json.projectName }}_{{ $now.format('yyyy-MM-dd') }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf",
+          "mode": "list",
+          "cachedResultName": "Google AI Studio",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/12iZhxhVe2cyuos9Wzl7Y_7iy0yZRdfgf"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1712,
+        208
+      ],
+      "id": "d044f2e2-5dbd-40fa-af2a-6f4ccc0a7ea4",
+      "name": "Create Project Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "XvgG5PyrXOSpnzIh",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Get Idea').item.json.month }}_{{ $('Get Idea').item.json.idea }}.mp4",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Check Folder Exists')?.item?.json?.id || $('Create Project Folder')?.item?.json?.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "f6136cc9-8df1-4495-9fab-003004ad662c",
+      "name": "Upload Video to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2384,
+        64
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "XvgG5PyrXOSpnzIh",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called by Generate Video').item.json.ideaId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "video_link",
+              "fieldValue": "={{ $json.webViewLink }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2608,
+        64
+      ],
+      "id": "4073ed37-f232-4846-9a3b-bae1666746f1",
+      "name": "Update Row with Drive Link",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.ideaId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        816,
+        144
+      ],
+      "id": "7c40ac71-3d3b-4ae1-b4ff-c66cf537bc92",
+      "name": "Get Idea",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1936,
+        64
+      ],
+      "id": "0834aadf-9af0-4e7e-9640-7f1ec4767f1e",
+      "name": "Merge Binary with Folder Info"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.openai.com/v1/videos/{{ $('Get Idea').item.json.video_id }}/content",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "50e5ce79-6281-450c-b6e7-2b5fd3a54573",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2160,
+        64
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "projects",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.project_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        144
+      ],
+      "id": "3a209915-d668-4295-9181-0861ea858224",
+      "name": "Get Idea1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Get Idea",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Binary with Folder Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search for Project Folder": {
+      "main": [
+        [
+          {
+            "node": "Check Folder Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Folder Exists": {
+      "main": [
+        [
+          {
+            "node": "Merge Binary with Folder Info",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Create Project Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Project Folder": {
+      "main": [
+        [
+          {
+            "node": "Merge Binary with Folder Info",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upload Video to Drive": {
+      "main": [
+        [
+          {
+            "node": "Update Row with Drive Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Idea": {
+      "main": [
+        [
+          {
+            "node": "Get Idea1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Binary with Folder Info": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Idea1": {
+      "main": [
+        [
+          {
+            "node": "Search for Project Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Called by Generate Video": [
+      {
+        "json": {
+          "ideaId": "b9d17547-b997-4a44-b88d-77128fa36f92",
+          "projectName": "AISMR"
+        }
+      }
+    ]
+  },
+  "meta": {}
+}

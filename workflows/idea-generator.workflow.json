@@ -1,0 +1,413 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{\"userInput: \" + $('When Called').item.json.userInput }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.prompt_text }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        984,
+        -128
+      ],
+      "id": "21858edb-2408-45bd-906b-e3133b27e126",
+      "name": "Idea Generator"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4eaPRf4DiHKOvOrc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4eaPRf4DiHKOvOrc",
+          "cachedResultName": "Load Persona"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $json.id }}",
+            "personaId": "b711679b-5e52-460d-92bf-f1ec285ab9f4"
+          },
+          "matchingColumns": [
+            "persona_name"
+          ],
+          "schema": [
+            {
+              "id": "personaId",
+              "displayName": "personaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "4f61b0e2-dc97-481b-ae26-8c1e46783f5e",
+      "name": "Call 'Load Persona'"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "REQUIRED! Query all existing ideas from the database to avoid duplicates",
+        "useCustomSchema": true,
+        "operation": "getAll",
+        "tableId": "videos",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "5aee3c25-fcd1-4d5c-b6c4-78f32cf87346",
+      "name": "Query Ideas from Database",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "userInput"
+            },
+            {
+              "name": "runId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "4fec7160-d643-4754-b2fe-902bd69ccb67",
+      "name": "When Called"
+    },
+    {
+      "parameters": {
+        "tableId": "videos",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        -128
+      ],
+      "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[{\n  \"idea\": \"Glass Apple\",\n  \"mood\": \"spooky\"\n  }]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        96
+      ],
+      "id": "86175964-7f37-435a-9aea-af0af9df2cf3",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        96
+      ],
+      "id": "ea60c98e-b995-48c7-950f-dba02d51a528",
+      "name": "4.1 mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        -128
+      ],
+      "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "460ccabd-86a2-4125-8a0d-7393263eed5a",
+              "name": "idea",
+              "value": "={{ $json.idea }}",
+              "type": "string"
+            },
+            {
+              "id": "669d4c08-bc8e-44ef-8111-b41159f88225",
+              "name": "mood",
+              "value": "={{ $json.mood }}",
+              "type": "string"
+            },
+            {
+              "id": "6709048c-774a-4eb1-8782-af9197463098",
+              "name": "started_at",
+              "value": "={{ $now }}",
+              "type": "string"
+            },
+            {
+              "id": "13d977db-ba6d-495c-bbb5-a5e3dc11d2c2",
+              "name": "status",
+              "value": "idea_gen",
+              "type": "string"
+            },
+            {
+              "id": "dd923ce7-7c83-43d7-aaab-a9a16f157009",
+              "name": "project_id",
+              "value": "={{ $('Get Run').item.json.project_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1680,
+        -128
+      ],
+      "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -128
+      ],
+      "id": "2fe33b20-dde7-41a6-8cf1-e5f9a85080b3",
+      "name": "Get Run",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Get Run').item.json.chat_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        96
+      ],
+      "id": "9076cc25-067a-42ab-8d29-85aaf77e690d",
+      "name": "Simple Memory"
+    }
+  ],
+  "connections": {
+    "When Called": {
+      "main": [
+        [
+          {
+            "node": "Get Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Load Persona'": {
+      "main": [
+        [
+          {
+            "node": "Idea Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ideas from Database": {
+      "ai_tool": [
+        [
+          {
+            "node": "Idea Generator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Idea Generator": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        []
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Idea Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1 mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Idea Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Run": {
+      "main": [
+        [
+          {
+            "node": "Call 'Load Persona'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Idea Generator",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Called": [
+      {
+        "json": {
+          "userInput": "Create an ASMR video featuring puppies with a mix of comforting, cute puppies and some that are weird and gross like slime puppies. Include soothing sounds, gentle visuals, and a surreal, tactile aesthetic.",
+          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

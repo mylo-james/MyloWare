@@ -1,0 +1,469 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "=videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('When Called').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        248
+      ],
+      "id": "284d395e-f99f-402c-9b42-f0c89b9b6ce1",
+      "name": "Get Idea",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78950a7f-e225-430d-a262-e5d82962d231",
+              "name": "=prompt",
+              "type": "string",
+              "value": "={{ $json.prompt }}"
+            },
+            {
+              "id": "083ce6d6-8cd2-4f73-8edd-eecd98002b1c",
+              "name": "model",
+              "type": "string",
+              "value": "veo3_fast"
+            },
+            {
+              "id": "aa4fa43a-85f5-400b-9b2b-0d0de6590d39",
+              "name": "seconds",
+              "type": "string",
+              "value": "10"
+            },
+            {
+              "id": "b1c23456-789d-0123-4567-89abcdef0123",
+              "name": "idea",
+              "type": "string",
+              "value": "={{ $json.idea }}"
+            },
+            {
+              "id": "c7f50045-50f8-4646-9e30-7c07b670d2a8",
+              "name": "aspect_ratio",
+              "value": "9:16",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "51408947-fa2a-4730-a0b9-3cb446564e75",
+      "name": "Prepare Video Settings",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        48,
+        248
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "id"
+            },
+            {
+              "name": "runId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        248
+      ],
+      "id": "a1f21b44-6bc4-480e-85fe-23258beb3c76",
+      "name": "When Called"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "=videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Called').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            },
+            {
+              "fieldId": "video_link",
+              "fieldValue": "={{ $json.data.response.resultUrls[0] || \"failed\" }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        128
+      ],
+      "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\",\n  \"model\": \"{{ $json.model }}\",\n  \"aspectRatio\": \"{{ $json.aspect_ratio }}\",\n  \"generationType\": \"TEXT_2_VIDEO\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        248
+      ],
+      "id": "6a8ab5a1-30fe-4c9e-9a45-b1d84216b166",
+      "name": "Text to Video2",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "AXZk8w06m78wmbXh",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        248
+      ],
+      "id": "ccd769a4-f9b1-4a53-8101-128aa1020347",
+      "name": "Get Video4",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "AXZk8w06m78wmbXh",
+          "name": "Bearer Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        344
+      ],
+      "id": "94066f8c-c680-4342-8275-173e98172325",
+      "name": "Wait",
+      "webhookId": "9fd30610-c0b9-4f5c-9af5-89b821c11ec3"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6888dba1-6521-483a-a544-e9044c397f1c",
+                    "leftValue": "={{ $json.data.response.resultUrls[0] }}",
+                    "rightValue": "null",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "973ecf21-58b8-41df-a780-1ad778e963bf",
+                    "leftValue": "={{ $json.data.response.resultUrls[0] }}",
+                    "rightValue": "generating",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "generating"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        720,
+        176
+      ],
+      "id": "36a1e18a-990a-4708-a535-ae6e07484748",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b90a09d-8e9f-4690-81a2-a8821e7fcbdf",
+              "name": "status",
+              "value": "={{ $json.data.successFlag ? \"video_gen\" : \"failed\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        128
+      ],
+      "id": "8a19cb99-efcd-462c-b311-068e355b7df0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.runId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        248
+      ],
+      "id": "7afa8ae6-ead1-4479-90c2-11a37decf0d6",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Get Idea": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Video Settings": {
+      "main": [
+        [
+          {
+            "node": "Text to Video2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Called": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text to Video2": {
+      "main": [
+        [
+          {
+            "node": "Get Video4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video4": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Video4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        []
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Get Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When Called": [
+      {
+        "json": {
+          "id": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
+          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        }
+      }
+    ],
+    "Text to Video2": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "f151c6ee84f9391ef71537628964ecf4"
+          }
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

@@ -1,0 +1,571 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": false
+        }
+      },
+      "id": "2812bb4a-0f77-4dcb-ba24-d547a489f29d",
+      "name": "Telegram Message Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1520,
+        32
+      ],
+      "webhookId": "55acc711-c248-4ac9-b6cd-e295c2d33f4b",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -960,
+        -176
+      ],
+      "id": "74ceec8d-3c5f-4357-849d-faa41f1b730c",
+      "name": "Get Voice File",
+      "webhookId": "e0769871-efe3-49da-81a5-2f88a6fdd33f",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -736,
+        -176
+      ],
+      "id": "d288e5a6-3318-4cd3-b2db-2f6217238941",
+      "name": "Transcribe Audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text-field",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "session-field",
+              "name": "sessionId",
+              "value": "={{ $json.message.from.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -736,
+        32
+      ],
+      "id": "abc0ea3c-7c0c-489f-83b0-af44d33ac081",
+      "name": "Set Text Message"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4eaPRf4DiHKOvOrc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4eaPRf4DiHKOvOrc",
+          "cachedResultName": "Load Persona"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "personaName": "Chatbot",
+            "projectId": "308f8cb8-36b5-4def-ac6f-c4937509e9f5"
+          },
+          "matchingColumns": [
+            "persona_name"
+          ],
+          "schema": [
+            {
+              "id": "personaName",
+              "displayName": "personaName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "projectId",
+              "displayName": "projectId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -80
+      ],
+      "id": "99627989-f19b-45dc-be58-3d49da876392",
+      "name": "Load Chatbot Persona"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the system prompt from the Load Persona workflow\nconst personaData = $('Load Chatbot Persona').first().json;\nconst systemPrompt = personaData.system_prompt || 'You are a helpful AI assistant.';\n\n// Get the user input from previous nodes - handle both text and voice paths\nlet userText = 'Hello';\nlet sessionId = null;\n\n// Try to get from Set Text Message node (text path)\ntry {\n  const setTextData = $('Set Text Message').first();\n  if (setTextData?.json?.text) {\n    userText = setTextData.json.text;\n    sessionId = setTextData.json.sessionId;\n  }\n} catch (e) {\n  // Node didn't execute, will try transcribe path\n}\n\n// If not from text path, try Transcribe Audio (voice path)\nif (userText === 'Hello') {\n  try {\n    const transcribeData = $('Transcribe Audio').first();\n    if (transcribeData?.json?.text) {\n      userText = transcribeData.json.text;\n    }\n  } catch (e) {\n    // Node didn't execute either\n  }\n}\n\n// Get session ID from telegram trigger if not already set\nif (!sessionId) {\n  try {\n    const telegramData = $('Telegram Message Trigger').first();\n    if (telegramData?.json?.message?.from?.id) {\n      sessionId = telegramData.json.message.from.id;\n    }\n  } catch (e) {\n    sessionId = 'default';\n  }\n}\n\n// Add timestamp context\nconst now = new Date();\nconst dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });\n\nconst contextualSystemPrompt = systemPrompt + \n  `\\n\\n## Context\\n- Today is ${dateStr}\\n- Current time is ${timeStr}`;\n\nreturn {\n  json: {\n    systemPrompt: contextualSystemPrompt,\n    text: userText,\n    sessionId: sessionId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -80
+      ],
+      "id": "6c8ac93a-a75d-4da8-a807-9e3d424de891",
+      "name": "Prepare Agent Input"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "id": "ce13a580-5dee-46a2-8716-3f02304c8141",
+      "name": "Assistant Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        160
+      ],
+      "id": "37388d2b-d9b4-4ecf-b79d-af04fbbf92e5",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to make viral ASMR videos or to interact with the AISMR project",
+        "workflowId": {
+          "__rl": true,
+          "value": "DPQUPd5e4Uxkp5Bd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DPQUPd5e4Uxkp5Bd",
+          "cachedResultName": "AISMR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sessionId": "={{ $('Merge').item.json.sessionId }}",
+            "userInput": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('userInput', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "item"
+          ],
+          "schema": [
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "userInput",
+              "displayName": "userInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        160
+      ],
+      "id": "0be3d454-9150-4b6b-8991-f6ce65fc1ac8",
+      "name": "AISMR Tool"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        160
+      ],
+      "id": "e955e988-e077-4191-9c4c-7ae992217bc4",
+      "name": "Conversation Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Message Trigger').first().json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        -80
+      ],
+      "id": "58d10bab-9172-4f3d-8859-a5389453113e",
+      "name": "Reply in Telegram",
+      "webhookId": "b96b7a41-9806-455f-b72e-00aa638eda71",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1520,
+        -192
+      ],
+      "id": "634d21f9-8e4d-4bb9-9669-e05d5d727d37",
+      "name": "When chat message received",
+      "webhookId": "e3de0da7-b71b-4add-a8e7-ba57bea9b2e4"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "d1184e3b-d1c0-4981-b57a-1665af763023"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "isVoice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9051798c-e739-4313-8d0e-1aec014a289b",
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "!isVoice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1184,
+        -80
+      ],
+      "id": "28e521d5-605b-4f2a-bfc5-7c0c8d0a3199",
+      "name": "Switch"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -512,
+        -80
+      ],
+      "id": "336ec7ba-657c-40eb-8ea3-dbb6854688fe",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Telegram Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Text Message": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Chatbot Persona": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "Assistant Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assistant Agent": {
+      "main": [
+        [
+          {
+            "node": "Reply in Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Assistant Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AISMR Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Assistant Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Assistant Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Text Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Load Chatbot Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Telegram Message Trigger": [
+      {
+        "json": {
+          "update_id": 96971969,
+          "message": {
+            "message_id": 34,
+            "from": {
+              "id": 6559268788,
+              "is_bot": false,
+              "first_name": "Mylo",
+              "last_name": "James",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 6559268788,
+              "first_name": "Mylo",
+              "last_name": "James",
+              "type": "private"
+            },
+            "date": 1760644225,
+            "text": "please run the aismr tool with the user input of 'croissants'"
+          }
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
