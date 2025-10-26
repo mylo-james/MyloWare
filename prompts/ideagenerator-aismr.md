@@ -1,6 +1,6 @@
 # Workflow: Idea Generator for AISMR
 
-**CRITICAL: You generate EXACTLY 12 ideas (one for each month January-December). Each idea is ONLY two words + mood. Nothing else.**
+**CRITICAL: You generate EXACTLY 12 ideas per request. Each idea is ONLY two words + a single-word mood. Nothing else.**
 
 ## Input Contract
 
@@ -20,7 +20,7 @@
    - Store this list in memory - you will check against it multiple times
    - **DO NOT PROCEED** to step 3 until you have the complete list of existing ideas
 
-3. **Generate 12 variations**: Create 12 different descriptors for the object, one for each month:
+3. **Generate 12 variations**: Create 12 different descriptors for the object:
 
    - Each descriptor must be ONE single word (material, texture, or abstract concept)
    - Each must match the user's creative direction with different interpretations
@@ -46,73 +46,61 @@ Return EXACTLY this JSON array with 12 objects, NO additional fields:
 ```json
 [
   {
-    "month": "January",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "February",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "March",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "April",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "May",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "June",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "July",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "August",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "September",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "October",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "November",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
   },
   {
-    "month": "December",
     "idea": "Descriptor Object",
     "userIdea": "object",
     "mood": "lowercase"
@@ -125,7 +113,7 @@ Return EXACTLY this JSON array with 12 objects, NO additional fields:
 ## CRITICAL CONSTRAINTS - READ TWICE
 
 1. **EACH IDEA MUST BE EXACTLY TWO WORDS**: One descriptor + one object with a single space
-2. **Generate EXACTLY 12 ideas**: One for each month (January through December)
+2. **Generate EXACTLY 12 ideas**: Always return 12 unique entries
 3. **Format**: `<Descriptor> <Object>` — capitalize both words, use singular form
 4. **Valid examples**:
    - "Slime Puppy" ✓
@@ -134,7 +122,7 @@ Return EXACTLY this JSON array with 12 objects, NO additional fields:
 5. **INVALID examples** (DO NOT OUTPUT THESE):
    - "Slime Puppies" ✗ (plural)
    - "Slimy Wet Puppy" ✗ (three words)
-   - "January Puppy Duet" ✗ (three+ words)
+   - "January Puppy Duet" ✗ (introduces month label/three+ words)
    - "Comforting Pups vs. Slime Pups" ✗ (elaborate phrase)
    - "Split-Texture Puppers: January ASMR video..." ✗ (elaborate description)
    - "Puppy" ✗ (one word only)
@@ -164,73 +152,61 @@ Return EXACTLY this JSON array with 12 objects, NO additional fields:
 ```json
 [
   {
-    "month": "January",
     "idea": "Slime Puppy",
     "userIdea": "puppy",
     "mood": "playful"
   },
   {
-    "month": "February",
     "idea": "Velvet Puppy",
     "userIdea": "puppy",
     "mood": "serene"
   },
   {
-    "month": "March",
     "idea": "Glass Puppy",
     "userIdea": "puppy",
     "mood": "haunting"
   },
   {
-    "month": "April",
     "idea": "Shadow Puppy",
     "userIdea": "puppy",
     "mood": "mysterious"
   },
   {
-    "month": "May",
     "idea": "Crystal Puppy",
     "userIdea": "puppy",
     "mood": "awe"
   },
   {
-    "month": "June",
     "idea": "Moss Puppy",
     "userIdea": "puppy",
     "mood": "nostalgic"
   },
   {
-    "month": "July",
     "idea": "Marble Puppy",
     "userIdea": "puppy",
     "mood": "serene"
   },
   {
-    "month": "August",
     "idea": "Smoke Puppy",
     "userIdea": "puppy",
     "mood": "tense"
   },
   {
-    "month": "September",
     "idea": "Pearl Puppy",
     "userIdea": "puppy",
     "mood": "serene"
   },
   {
-    "month": "October",
     "idea": "Frost Puppy",
     "userIdea": "puppy",
     "mood": "haunting"
   },
   {
-    "month": "November",
     "idea": "Honey Puppy",
     "userIdea": "puppy",
     "mood": "playful"
   },
   {
-    "month": "December",
     "idea": "Cloud Puppy",
     "userIdea": "puppy",
     "mood": "serene"

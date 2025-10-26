@@ -248,15 +248,14 @@ Generic table storing video generation data for all projects.
 ```sql
 CREATE TABLE videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id TEXT,
+  run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  month TEXT,
   idea TEXT NOT NULL,
+  user_idea TEXT,
   mood TEXT,
   prompt TEXT,
-  video_id TEXT,
   video_link TEXT,
-  status video_status DEFAULT 'pending',
+  status video_status DEFAULT 'idea_gen',
   error_message TEXT,
   started_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
@@ -270,15 +269,14 @@ CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 | Column          | Type         | Description                                             |
 | --------------- | ------------ | ------------------------------------------------------- |
 | `id`            | UUID         | Primary key                                             |
-| `session_id`    | TEXT         | Chat session that produced the idea                     |
+| `run_id`        | UUID         | Owning automation run (links back to `runs.id`)         |
 | `project_id`    | UUID         | Foreign key to projects table (NOT NULL)                |
-| `month`         | TEXT         | Month assignment (e.g., "January", "2025-01")           |
-| `idea`          | TEXT         | The video idea (unique per project)                     |
+| `idea`          | TEXT         | The two-word video idea                                 |
+| `user_idea`     | TEXT         | Normalized object extracted from the request            |
 | `mood`          | TEXT         | Mood keyword (serene, mysterious, etc.)                 |
 | `prompt`        | TEXT         | Generated Sora 2 video prompt                           |
-| `video_id`      | TEXT         | Sora API video ID                                       |
 | `video_link`    | TEXT         | Link to generated video                                 |
-| `status`        | video_status | Generation status (pending/generating/completed/failed) |
+| `status`        | video_status | Generation status (idea_gen/script_gen/rendering/ready) |
 | `error_message` | TEXT         | Error details if generation failed                      |
 | `started_at`    | TIMESTAMPTZ  | When video generation started                           |
 | `completed_at`  | TIMESTAMPTZ  | When video generation completed                         |
@@ -289,7 +287,7 @@ CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 
 ```sql
 CREATE INDEX idx_videos_status ON videos(status);
-CREATE INDEX idx_videos_session ON videos(session_id);
+CREATE INDEX idx_videos_run ON videos(run_id);
 CREATE INDEX idx_videos_created ON videos(created_at DESC);
 CREATE INDEX idx_videos_project ON videos(project_id);
 CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);

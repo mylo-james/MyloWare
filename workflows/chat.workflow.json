@@ -79,9 +79,9 @@
               "type": "string"
             },
             {
-              "id": "session-field",
-              "name": "sessionId",
-              "value": "={{ $json.message.from.id }}",
+              "id": "chat-field",
+              "name": "chatId",
+              "value": "={{ $json.message.chat.id }}",
               "type": "string"
             }
           ]
@@ -153,7 +153,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get the system prompt from the Load Persona workflow\nconst personaData = $('Load Chatbot Persona').first().json;\nconst systemPrompt = personaData.system_prompt || 'You are a helpful AI assistant.';\n\n// Get the user input from previous nodes - handle both text and voice paths\nlet userText = 'Hello';\nlet sessionId = null;\n\n// Try to get from Set Text Message node (text path)\ntry {\n  const setTextData = $('Set Text Message').first();\n  if (setTextData?.json?.text) {\n    userText = setTextData.json.text;\n    sessionId = setTextData.json.sessionId;\n  }\n} catch (e) {\n  // Node didn't execute, will try transcribe path\n}\n\n// If not from text path, try Transcribe Audio (voice path)\nif (userText === 'Hello') {\n  try {\n    const transcribeData = $('Transcribe Audio').first();\n    if (transcribeData?.json?.text) {\n      userText = transcribeData.json.text;\n    }\n  } catch (e) {\n    // Node didn't execute either\n  }\n}\n\n// Get session ID from telegram trigger if not already set\nif (!sessionId) {\n  try {\n    const telegramData = $('Telegram Message Trigger').first();\n    if (telegramData?.json?.message?.from?.id) {\n      sessionId = telegramData.json.message.from.id;\n    }\n  } catch (e) {\n    sessionId = 'default';\n  }\n}\n\n// Add timestamp context\nconst now = new Date();\nconst dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });\n\nconst contextualSystemPrompt = systemPrompt + \n  `\\n\\n## Context\\n- Today is ${dateStr}\\n- Current time is ${timeStr}`;\n\nreturn {\n  json: {\n    systemPrompt: contextualSystemPrompt,\n    text: userText,\n    sessionId: sessionId\n  }\n};"
+        "jsCode": "// Get the system prompt from the Load Persona workflow\nconst personaData = $('Load Chatbot Persona').first().json;\nconst systemPrompt = personaData.system_prompt || 'You are a helpful AI assistant.';\n\n// Get the user input from previous nodes - handle both text and voice paths\nlet userText = 'Hello';\nlet chatId = null;\n\n// Try to get from Set Text Message node (text path)\ntry {\n  const setTextData = $('Set Text Message').first();\n  if (setTextData?.json?.text) {\n    userText = setTextData.json.text;\n    chatId = setTextData.json.chatId;\n  }\n} catch (e) {\n  // Node didn't execute, will try transcribe path\n}\n\n// If not from text path, try Transcribe Audio (voice path)\nif (userText === 'Hello') {\n  try {\n    const transcribeData = $('Transcribe Audio').first();\n    if (transcribeData?.json?.text) {\n      userText = transcribeData.json.text;\n    }\n  } catch (e) {\n    // Node didn't execute either\n  }\n}\n\n// Get chat ID from telegram trigger if not already set\nif (!chatId) {\n  try {\n    const telegramData = $('Telegram Message Trigger').first();\n    if (telegramData?.json?.message?.chat?.id) {\n      chatId = telegramData.json.message.chat.id;\n    }\n  } catch (e) {\n    chatId = 'default';\n  }\n}\n\n// Add timestamp context\nconst now = new Date();\nconst dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });\n\nconst contextualSystemPrompt = systemPrompt + \n  `\\n\\n## Context\\n- Today is ${dateStr}\\n- Current time is ${timeStr}`;\n\nreturn {\n  json: {\n    systemPrompt: contextualSystemPrompt,\n    text: userText,\n    chatId\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -219,16 +219,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "sessionId": "={{ $('Merge').item.json.sessionId }}",
+            "chatId": "={{ $('Merge').item.json.chatId }}",
             "userInput": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('userInput', ``, 'string') }}"
           },
-          "matchingColumns": [
-            "item"
-          ],
+          "matchingColumns": [],
           "schema": [
             {
-              "id": "sessionId",
-              "displayName": "sessionId",
+              "id": "chatId",
+              "displayName": "chatId",
               "required": false,
               "defaultMatch": false,
               "display": true,

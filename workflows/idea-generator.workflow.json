@@ -140,7 +140,7 @@
     },
     {
       "parameters": {
-        "jsonSchemaExample": "[{\n  \"idea\": \"Glass Apple\",\n  \"mood\": \"spooky\"\n  }]"
+        "jsonSchemaExample": "[{\n  \"idea\": \"Glass Apple\",\n  \"userIdea\": \"apple\",\n  \"mood\": \"spooky\"\n  }]"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
@@ -222,6 +222,18 @@
               "id": "dd923ce7-7c83-43d7-aaab-a9a16f157009",
               "name": "project_id",
               "value": "={{ $('Get Run').item.json.project_id }}",
+              "type": "string"
+            },
+            {
+              "id": "run-id-field",
+              "name": "run_id",
+              "value": "={{ $('When Called').item.json.runId }}",
+              "type": "string"
+            },
+            {
+              "id": "user-idea-field",
+              "name": "user_idea",
+              "value": "={{ $json.userIdea || $json.user_idea || '' }}",
               "type": "string"
             }
           ]

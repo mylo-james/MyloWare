@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "jsCode": "const months = [\n  \"January\", \"February\", \"March\", \"April\", \"May\", \"June\",\n  \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"\n];\n\n// Get all rows from Supabase - each row is a video\nconst videos = $input.all();\nconst duration = 8;\n\n// Sort videos and map to items with month names\nconst items = videos\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12) // Take first 12 videos\n  .map((video, i) => ({\n    month: months[i],\n    link: video.json.video_link,\n    title: video.json.idea,\n    start: i * duration\n  }));\n\n// Create the full Edit object with timeline and output\nconst edit = {\n  timeline: {\n    background: \"#000000\",\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: \"video\", src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: \"fade\", out: \"fade\" }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: \"title\",\n            text: item.month,\n            style: \"minimal\",\n            size: \"large\",\n            color: \"#FFFFFF\"\n          },\n          start: item.start,\n          length: duration,\n          position: \"top\"\n        }))\n      }\n    ]\n  },\n  output: {\n    format: \"mp4\",\n    resolution: \"sd\"\n  }\n};\n\nreturn [{ json: edit }];"
+        "jsCode": "const months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst videos = $input.all()\n  .filter(video => video?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12);\n\nconst duration = 8;\nconst items = videos.map((video, index) => ({\n  link: video.json.video_link,\n  title: video.json.idea || `Idea ${index + 1}`,\n  label: months[index % months.length],\n  start: index * duration\n}));\n\nconst edit = {\n  timeline: {\n    background: '#000000',\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: 'video', src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: 'fade', out: 'fade' }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: 'title',\n            text: item.label,\n            style: 'minimal',\n            size: 'large',\n            color: '#FFFFFF'\n          },\n          start: item.start,\n          length: duration,\n          position: 'top'\n        }))\n      }\n    ]\n  },\n  output: {\n    format: 'mp4',\n    resolution: 'sd'\n  }\n};\n\nreturn [{ json: edit }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -21,9 +21,9 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "session_id",
+              "keyName": "run_id",
               "condition": "eq",
-              "keyValue": "={{ $json.sessionId }}"
+              "keyValue": "={{ $json.runId }}"
             }
           ]
         }
@@ -48,7 +48,7 @@
         "workflowInputs": {
           "values": [
             {
-              "name": "sessionId"
+              "name": "runId"
             }
           ]
         }
@@ -280,7 +280,7 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "sessionId": "6559268788"
+          "runId": "6559268788"
         }
       }
     ],

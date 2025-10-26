@@ -157,7 +157,7 @@
     },
     {
       "parameters": {
-        "name": "={{ $('Get Idea').item.json.month }}_{{ $('Get Idea').item.json.idea }}.mp4",
+        "name": "={{ $('Get Idea').item.json.idea }}_{{ $now.format('yyyy-MM-dd-hh-mm') }}.mp4",
         "driveId": {
           "__rl": true,
           "mode": "list",

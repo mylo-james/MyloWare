@@ -303,7 +303,7 @@ The approach is pragmatic: fix what's broken, add visibility where it's missing,
       "message": "AISMR workflow started",
       "metadata": {
         "userInput": "={{ $json.userInput }}",
-        "sessionId": "={{ $json.sessionId }}"
+        "chatId": "={{ $json.chatId }}"
       }
     }
     ```

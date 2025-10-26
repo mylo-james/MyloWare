@@ -214,7 +214,7 @@ Trigger
 
 #### Data Movement
 
-- **Input:** `userInput`, `sessionId`
+- **Input:** `userInput`, `chatId`
 - **Output:** None (side effects only)
 - **Bottleneck:** Sequential loop processing
 
