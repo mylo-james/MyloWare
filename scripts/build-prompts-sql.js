@@ -22,6 +22,7 @@ const PERSONAS = {
   chat: 'Chatbot',
   ideagenerator: 'Idea Generator',
   screenwriter: 'Screen Writer',
+  captionhashtag: 'Caption & Hashtag Expert',
 };
 
 const PROJECTS = {

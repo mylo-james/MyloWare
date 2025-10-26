@@ -1,0 +1,79 @@
+[
+  {
+    "file": "load-persona.workflow.json",
+    "name": "Load Persona",
+    "workflowId": "4eaPRf4DiHKOvOrc",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "edit-aismr.workflow.json",
+    "name": "Edit_AISMR",
+    "workflowId": "CiFjhZbMj5L9blcH",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "aismr.workflow.json",
+    "name": "AISMR",
+    "workflowId": "DPQUPd5e4Uxkp5Bd",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "generate-video.workflow.json",
+    "name": "Generate Video",
+    "workflowId": "ZBScJvTKGpbLGN8K",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "chat.workflow.json",
+    "name": "Chat",
+    "workflowId": "iGydAd7mC3NocD9X",
+    "active": true,
+    "archived": false
+  },
+  {
+    "file": "idea-generator.workflow.json",
+    "name": "Idea Generator",
+    "workflowId": "ljH4wBxJn069C282",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "poll-db.workflow.json",
+    "name": "poll-db",
+    "workflowId": "mtQuVF88e3mo20Mo",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "hitl-temp.workflow.json",
+    "name": "HITL TEMP",
+    "workflowId": "npVoihZwWs7hAxeF",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "screen-writer.workflow.json",
+    "name": "Screen Writer",
+    "workflowId": "qOgWNfGwMpWkPWjK",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "upload-to-tiktok.workflow.json",
+    "name": "Upload to TikTok",
+    "workflowId": "vmp9L5Bhin2jQCPC",
+    "active": false,
+    "archived": false
+  },
+  {
+    "file": "upload-file-to-google-drive.workflow.json",
+    "name": "Upload file to Google Drive",
+    "workflowId": "xXfy1EgFoH6EZU7v",
+    "active": false,
+    "archived": false
+  }
+]
