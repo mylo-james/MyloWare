@@ -12,8 +12,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        984,
-        -128
+        1128,
+        -32
       ],
       "id": "21858edb-2408-45bd-906b-e3133b27e126",
       "name": "Idea Generator"
@@ -66,8 +66,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        640,
-        -128
+        784,
+        -32
       ],
       "id": "4f61b0e2-dc97-481b-ae26-8c1e46783f5e",
       "name": "Call 'Load Persona'"
@@ -93,8 +93,8 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        1120,
-        96
+        1264,
+        192
       ],
       "id": "5aee3c25-fcd1-4d5c-b6c4-78f32cf87346",
       "name": "Query Ideas from Database",
@@ -124,8 +124,8 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        192,
-        -128
+        112,
+        -32
       ],
       "id": "4fec7160-d643-4754-b2fe-902bd69ccb67",
       "name": "When Called"
@@ -138,8 +138,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1904,
-        -128
+        2048,
+        -32
       ],
       "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
       "name": "Create a row",
@@ -152,13 +152,13 @@
     },
     {
       "parameters": {
-        "jsonSchemaExample": "[{\n  \"idea\": \"Glass Apple\",\n  \"userIdea\": \"apple\",\n  \"mood\": \"spooky\"\n  }]"
+        "jsonSchemaExample": "[{\n  \"idea\": \"Glass Apple\",\n  \"userIdea\": \"apple\",\n  \"vibe\": \"spooky shimmer\"\n  }]"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1248,
-        96
+        1392,
+        192
       ],
       "id": "86175964-7f37-435a-9aea-af0af9df2cf3",
       "name": "Structured Output Parser"
@@ -176,8 +176,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        864,
-        96
+        1008,
+        192
       ],
       "id": "ea60c98e-b995-48c7-950f-dba02d51a528",
       "name": "4.1 mini",
@@ -196,8 +196,8 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        1456,
-        -128
+        1600,
+        -32
       ],
       "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
       "name": "Split Out"
@@ -214,8 +214,8 @@
             },
             {
               "id": "669d4c08-bc8e-44ef-8111-b41159f88225",
-              "name": "mood",
-              "value": "={{ $json.mood }}",
+              "name": "vibe",
+              "value": "={{ $json.vibe }}",
               "type": "string"
             },
             {
@@ -255,8 +255,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1680,
-        -128
+        1824,
+        -32
       ],
       "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
       "name": "Edit Fields1"
@@ -277,7 +277,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        416,
+        336,
         -128
       ],
       "id": "2fe33b20-dde7-41a6-8cf1-e5f9a85080b3",
@@ -297,8 +297,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        992,
-        96
+        1136,
+        192
       ],
       "id": "9076cc25-067a-42ab-8d29-85aaf77e690d",
       "name": "Simple Memory"
@@ -308,8 +308,8 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        -32,
-        160
+        112,
+        296
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
@@ -343,8 +343,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        192,
-        160
+        336,
+        296
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
       "name": "Mark Run Failed (Ideas)",
@@ -354,6 +354,54 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "ideas"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        336,
+        64
+      ],
+      "id": "c0afe2f7-d3af-4b9f-bca7-c6a5749e414d",
+      "name": "Mark Run Ideas",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        -32
+      ],
+      "id": "f174f750-5d1a-4308-ab94-cbb0ee6949f3",
+      "name": "Merge"
     }
   ],
   "connections": {
@@ -362,6 +410,11 @@
         [
           {
             "node": "Get Run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark Run Ideas",
             "type": "main",
             "index": 0
           }
@@ -454,7 +507,7 @@
       "main": [
         [
           {
-            "node": "Call 'Load Persona'",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -487,14 +540,36 @@
       "main": [
         []
       ]
+    },
+    "Mark Run Ideas": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Call 'Load Persona'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {
     "When Called": [
       {
         "json": {
-          "userInput": "Create an ASMR video featuring puppies with a mix of comforting, cute puppies and some that are weird and gross like slime puppies. Include soothing sounds, gentle visuals, and a surreal, tactile aesthetic.",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "userInput": "Let's create an aismr video about different baby birds. We should see hand interacting with the chicks",
+          "runId": "6c4e01b2-5446-40a7-8bdb-45131b98b0d4",
           "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
         }
       }

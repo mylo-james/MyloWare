@@ -16,8 +16,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -176,
-        248
+        -400,
+        544
       ],
       "id": "284d395e-f99f-402c-9b42-f0c89b9b6ce1",
       "name": "Get Idea",
@@ -36,7 +36,7 @@
               "id": "78950a7f-e225-430d-a262-e5d82962d231",
               "name": "=prompt",
               "type": "string",
-              "value": "={{ $json.prompt }}"
+              "value": "={{ $('Get Idea').item.json.prompt }}"
             },
             {
               "id": "083ce6d6-8cd2-4f73-8edd-eecd98002b1c",
@@ -54,7 +54,7 @@
               "id": "b1c23456-789d-0123-4567-89abcdef0123",
               "name": "idea",
               "type": "string",
-              "value": "={{ $json.idea }}"
+              "value": "={{ $('Get Idea').item.json.idea }}"
             },
             {
               "id": "c7f50045-50f8-4646-9e30-7c07b670d2a8",
@@ -70,8 +70,8 @@
       "name": "Prepare Video Settings",
       "type": "n8n-nodes-base.set",
       "position": [
-        48,
-        248
+        272,
+        544
       ],
       "typeVersion": 3.4
     },
@@ -92,7 +92,7 @@
       "typeVersion": 1.1,
       "position": [
         -624,
-        248
+        544
       ],
       "id": "a1f21b44-6bc4-480e-85fe-23258beb3c76",
       "name": "When Called"
@@ -126,8 +126,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1168,
-        128
+        1392,
+        424
       ],
       "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
       "name": "Update a row",
@@ -152,8 +152,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        272,
-        248
+        496,
+        544
       ],
       "id": "6a8ab5a1-30fe-4c9e-9a45-b1d84216b166",
       "name": "Text to Video2",
@@ -183,8 +183,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        496,
-        248
+        720,
+        544
       ],
       "id": "ccd769a4-f9b1-4a53-8101-128aa1020347",
       "name": "Get Video4",
@@ -202,8 +202,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        944,
-        344
+        1168,
+        640
       ],
       "id": "94066f8c-c680-4342-8275-173e98172325",
       "name": "Wait",
@@ -270,8 +270,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        720,
-        176
+        944,
+        472
       ],
       "id": "36a1e18a-990a-4708-a535-ae6e07484748",
       "name": "Switch"
@@ -294,8 +294,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        944,
-        128
+        1168,
+        424
       ],
       "id": "8a19cb99-efcd-462c-b311-068e355b7df0",
       "name": "Edit Fields"
@@ -317,7 +317,7 @@
       "typeVersion": 1,
       "position": [
         -400,
-        248
+        352
       ],
       "id": "7afa8ae6-ead1-4479-90c2-11a37decf0d6",
       "name": "Get a row",
@@ -333,8 +333,8 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        -32,
-        160
+        -624,
+        128
       ],
       "id": "8fc9ecd5-9265-4347-993a-856c9d291db1",
       "name": "On Error"
@@ -368,8 +368,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        192,
-        160
+        -400,
+        128
       ],
       "id": "23ace120-e8d8-4789-8726-f4470e311afb",
       "name": "Mark Run Failed (Videos)",
@@ -379,6 +379,76 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "videos"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        736
+      ],
+      "id": "832e7b6c-4d94-4725-a0aa-89ac13a813de",
+      "name": "Mark Run Videos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -176,
+        528
+      ],
+      "id": "b0b5807f-6a1a-4446-8ea9-95766b63ce05",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "prompt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        48,
+        544
+      ],
+      "id": "efe81140-2103-486f-b680-3df46de17ded",
+      "name": "Aggregate"
     }
   ],
   "connections": {
@@ -386,9 +456,9 @@
       "main": [
         [
           {
-            "node": "Prepare Video Settings",
+            "node": "Merge",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -409,6 +479,16 @@
         [
           {
             "node": "Get a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Idea",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark Run Videos",
             "type": "main",
             "index": 0
           }
@@ -486,7 +566,7 @@
       "main": [
         [
           {
-            "node": "Get Idea",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -508,25 +588,58 @@
       "main": [
         []
       ]
+    },
+    "Mark Run Videos": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "id": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-        }
-      }
-    ],
     "Text to Video2": [
       {
         "json": {
           "code": 200,
           "msg": "success",
           "data": {
-            "taskId": "f151c6ee84f9391ef71537628964ecf4"
+            "taskId": "4592d211c4e7aa67fce974b199981765"
           }
+        }
+      }
+    ],
+    "When Called": [
+      {
+        "json": {
+          "id": "91a62758-fca2-4e79-9122-2a89fc5fabdb",
+          "runId": "91a62758-fca2-4e79-9122-2a89fc5fabdb"
         }
       }
     ]

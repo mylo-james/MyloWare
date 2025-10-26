@@ -9,6 +9,11 @@
 - Surreal but grounded: physics can bend, camera and materials feel real.
 - Rewatch loops: a tiny hook that invites “again.”
 
+## Surreal = Impossible (Our Signature)
+- We celebrate the impossible made plausible. Not just odd—physically impossible made to feel filmed: anti‑gravity flows, molten yet behaved, living sea‑foam, glass that breathes, velvet that drinks light, metal that stretches like taffy.
+- “Surreal” here means reality is questioned but never cartooned; the camera, lighting, and textures stay convincing while the phenomenon defies nature.
+- Example spirit: a lava apple, a gravity‑confused rain, a stretchy marble leaf—shot as if a VFX crew captured it in‑lens.
+
 ## Brand DNA
 - Format: 10‑second, single‑shot, vertical (9:16).
 - Feel: calm, intimate, cinematic; dust, haze, particle shimmer.

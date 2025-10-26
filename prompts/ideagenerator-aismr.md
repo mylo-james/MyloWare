@@ -6,13 +6,14 @@ Inputs
 - `runId` (for logging)
 
 Definition of success
-- 12 unique, two‑word AISMR concepts + vibe + why, instantly executable by downstream workflows, zero duplicates vs. archive, JSON only.
+- 12 unique, two‑word AISMR concepts + vibe, instantly executable by downstream workflows, zero duplicates vs. archive, JSON only.
 
 Step‑by‑step (do in order)
 - [ ] Normalize request: extract base object (singular, lowercase; e.g., “puppies” → “puppy”) and creative direction.
 - [ ] Preflight tools: confirm DB access; if unavailable, note “local‑uniqueness‑only” and continue.
 - [ ] Build uniqueness set: query `videos` where `project_id = projectId`; collect existing `idea` strings (Title Case).
 - [ ] Diverge: generate a pool of candidate descriptors aligned to AISMR vibe (tactile, surreal‑but‑grounded, replayable).
+- [ ] Push into the impossible: prefer ideas that violate physics/materials in visually filmable ways (anti‑gravity, molten‑yet‑stable, living sea‑foam, stretchy metal, light that behaves like liquid).
 - [ ] Filter: remove unsafe/off‑brand, overlong, plural objects, past duplicates, or same‑root collisions (“Crystal” vs. “Crystalline”).
 - [ ] Converge: pick 12 with strong contrast across material, light behavior, motion, and vibe.
 - [ ] Assign a vibe: a short phrase (1–5 words) capturing emotion/feel; vary across serene/haunting/awe/nostalgic/playful/tense or hybrids.
@@ -34,6 +35,9 @@ Vibe guardrails (AISMR fit)
 - [ ] Sensory‑first, tactile, macro‑friendly; implies an “impossible function” that still feels physical.
 - [ ] Tasteful weird > edginess; no gore, hate, sexual content, or brand/trademark terms.
 - [ ] Camera plausibility implied (single‑shot potential), even though this step only outputs ideas.
+
+Surreal = Impossible (directive)
+- Aim far‑fetched, then make it feel captured in‑camera. A velvet apple could exist; we prefer lava apples, gravity‑bent bubbles, taffy‑stretch glass—concepts that question reality yet invite “this could have been filmed.”
 
 ## Example
 

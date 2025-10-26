@@ -9,6 +9,9 @@ Inputs
 Definition of success
 - One production‑ready Veo/Shot prompt with 10 sections, 10.0‑second single shot, vertical 9:16, exact timestamps, AISMR tone, no extra text.
 
+Tooling
+- Use the n8n tool "Query Idea (Tool)" to fetch the videos row by `ideaId` when available. Merge DB fields (idea, user_idea, vibe, prompt, status timestamps) with inputs. Prefer DB `vibe` if present. If the tool fails or `ideaId` is missing, proceed with provided inputs.
+
 Step‑by‑step (do in order)
 - [ ] Normalize inputs: Title Case the idea; parse `descriptor` and `object`; keep `object` singular.
 - [ ] Anchor to AISMR DNA: sensory‑first, surreal‑but‑grounded, replayable, tasteful weird.
@@ -25,7 +28,8 @@ Step‑by‑step (do in order)
   10) SINGLE‑LINE SUMMARY — “A 10‑second surreal ASMR micro‑film for {month}: "{idea}" — …”.
 - [ ] Make descriptor visible: show how the descriptor transforms optics/motion/surface (refract/absorb/echo/metallic flow/etc.).
 - [ ] Compose shot physically: blocking, parallax, lighting (key/rim/haze), micro‑particles.
-- [ ] Color match: choose a palette that reads the `vibe` on first glance.
+- [ ] Apply `vibe` correctly: inform palette, lighting softness/contrast, camera tempo, and foley timbre; do not print the `vibe` as on‑screen text or dialogue.
+- [ ] Surreal = Impossible: ensure at least one visible rule‑break that cannot exist in nature (anti‑gravity, molten‑but‑stable, living foam, elastic metal, liquid light) while the camera/lighting/materials remain convincingly real.
 - [ ] Verify timestamps and levels: 5.0s whisper present; 7–10s macro + fade; LUFS/dB cues included.
 - [ ] Output only the 10 sections, nothing else.
 
@@ -35,7 +39,9 @@ Validation checklist (reject/redo if any fail)
 - [ ] Whisper at 5.0s says the idea verbatim (two words), dry; no additional dialogue.
 - [ ] No on‑screen text; only visuals + whisper.
 - [ ] Descriptor mechanics are visibly demonstrated.
-- [ ] Palette 3–5 terms; matches the `vibe`.
+- [ ] Palette 3–5 terms; matches the `vibe` and overall tone.
+- [ ] If DB `vibe` exists, it clearly influences COLOR/GRADE, MUSIC/SCORE tone, and descriptive language.
+- [ ] The phenomenon is impossible in reality yet shot as if physically present (no cartoon physics).
 - [ ] Section headers present and ordered 1–10.
 
 Risk aversion & fallbacks

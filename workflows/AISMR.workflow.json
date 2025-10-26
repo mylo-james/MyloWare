@@ -24,7 +24,7 @@
       "typeVersion": 1,
       "position": [
         -32,
-        -304
+        -432
       ],
       "id": "974dec2a-917d-4f4c-80c2-f0aea3546e93",
       "name": "Get Project Config1",
@@ -96,7 +96,7 @@
       "typeVersion": 1.2,
       "position": [
         416,
-        -304
+        -432
       ],
       "id": "dda7f671-2950-450f-b487-8c5d65aee8ca",
       "name": "Generate Ideas",
@@ -119,7 +119,7 @@
       "typeVersion": 1.1,
       "position": [
         -256,
-        -304
+        -432
       ],
       "id": "5b0e8131-c9bb-48f8-bb4c-92da03f80ae6",
       "name": "When Executed by Another Workflow"
@@ -136,8 +136,8 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "id": "={{ $json.id }}",
-            "runId": "={{ $('Create Run').item.json.id }}"
+            "id": "={{ $('Generate Ideas').item.json.id }}",
+            "runId": "={{ $json.id }}"
           },
           "matchingColumns": [
             "id"
@@ -176,7 +176,7 @@
       "typeVersion": 1.3,
       "position": [
         1088,
-        -304
+        -432
       ],
       "id": "44b5eef2-eff2-42a6-98d1-98d1eae152fb",
       "name": "Call 'Generate Video'"
@@ -231,7 +231,7 @@
       "typeVersion": 1.3,
       "position": [
         640,
-        -304
+        -432
       ],
       "id": "14df8a30-d73c-409b-a24c-145251041c3b",
       "name": "Write Screen"
@@ -293,7 +293,7 @@
       "typeVersion": 1.3,
       "position": [
         864,
-        -304
+        -432
       ],
       "id": "be7270bc-23f7-480c-ac53-f526359dad0b",
       "name": "Poll 'prompt'"
@@ -310,7 +310,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "id": "={{ $json.id }}",
+            "id": "={{ $('Write Screen').item.json.id }}",
             "column": "=video_link"
           },
           "matchingColumns": [],
@@ -355,7 +355,7 @@
       "typeVersion": 1.3,
       "position": [
         1312,
-        -304
+        -432
       ],
       "id": "c573e0cb-0604-4e25-980c-8539d596a177",
       "name": "Poll 'video_link'"
@@ -398,7 +398,7 @@
       "typeVersion": 1.3,
       "position": [
         1536,
-        -304
+        -432
       ],
       "id": "68f25316-3fe8-438f-86c0-212adbcc13c0",
       "name": "Edit"
@@ -423,121 +423,10 @@
       "typeVersion": 1,
       "position": [
         192,
-        -304
+        -432
       ],
       "id": "d2326f15-605a-41e5-a1cc-8751134625ca",
       "name": "Create Run",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Create Run').item.json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "ideas"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        304,
-        -304
-      ],
-      "id": "35f1a80e-df98-45fb-8458-ca40f8321e01",
-      "name": "Mark Run Ideas",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Create Run').item.json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "scripts"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        976,
-        -304
-      ],
-      "id": "48487db6-9519-44af-8da0-4ac7c4a6d563",
-      "name": "Mark Run Scripts",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Create Run').item.json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "videos"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1200,
-        -304
-      ],
-      "id": "bfb1429b-68d1-4634-9a68-d64df09dac95",
-      "name": "Mark Run Videos",
       "credentials": {
         "supabaseApi": {
           "id": "Dt66cXjjQayuOdrT",
@@ -574,8 +463,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1728,
-        -304
+        1760,
+        -432
       ],
       "id": "bc1c81f1-85c6-472b-b5de-da3bfb6c2e5b",
       "name": "Mark Run Complete",
@@ -625,7 +514,7 @@
       "main": [
         [
           {
-            "node": "Mark Run Videos",
+            "node": "Poll 'video_link'",
             "type": "main",
             "index": 0
           }
@@ -647,7 +536,7 @@
       "main": [
         [
           {
-            "node": "Mark Run Scripts",
+            "node": "Call 'Generate Video'",
             "type": "main",
             "index": 0
           }
@@ -669,40 +558,7 @@
       "main": [
         [
           {
-            "node": "Mark Run Ideas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Run Ideas": {
-      "main": [
-        [
-          {
             "node": "Generate Ideas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Run Scripts": {
-      "main": [
-        [
-          {
-            "node": "Call 'Generate Video'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Run Videos": {
-      "main": [
-        [
-          {
-            "node": "Poll 'video_link'",
             "type": "main",
             "index": 0
           }
@@ -731,662 +587,711 @@
       {
         "json": {
           "chatId": "6559268788",
-          "userInput": "Let's create an aismr video about different bubbles. We should see hand interacting with the bubbles"
+          "userInput": "Let's create an aismr video about different baby birds. We should see hand interacting with the chicks"
         }
       }
     ],
     "Create Run": [
       {
         "json": {
-          "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
           "chat_id": "6559268788",
           "status": "pending",
+          "result": null,
           "error_message": null,
-          "created_at": "2025-10-26T08:25:53.001036+00:00",
-          "updated_at": "2025-10-26T08:25:53.001036+00:00"
+          "created_at": "2025-10-26T13:08:16.914853+00:00",
+          "updated_at": "2025-10-26T13:08:16.914853+00:00"
         }
       }
     ],
     "Generate Ideas": [
       {
         "json": {
-          "id": "354857fc-5c6a-49cb-b2d9-8a3759e9ef6a",
+          "id": "39a7c3ba-5ada-43d9-a771-dc7bd63877bb",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Velvet Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene intimate calm",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.049+00:00",
+          "started_at": "2025-10-26T13:08:30.608+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "8329fa02-cbe7-4e9c-8711-5c74f489af71",
+          "id": "b9211a8b-9709-4efc-85c0-7456b56772fa",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Bubble",
-          "user_idea": null,
-          "mood": "playful",
+          "idea": "Glass Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe fragile wonder",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.609+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "c08feb6a-0f09-4b51-a657-e80f8668acd8",
+          "id": "a2b9fe3a-7f5e-4ac9-88ec-602dd1a50f15",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silent Bubble",
-          "user_idea": null,
-          "mood": "haunting",
+          "idea": "Frost Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense icy stillness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "7a52072d-06fb-47e1-b049-78aa4f4bb50b",
+          "id": "c8bbbddf-fd4e-4d61-ada3-f8326d8dbff0",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Bubble",
-          "user_idea": null,
-          "mood": "nostalgic",
+          "idea": "Mercury Chick",
+          "user_idea": "baby bird",
+          "vibe": "playful liquid metal",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "cc0b57ed-0e5c-485d-80d0-6c1f70646a2b",
+          "id": "318de31e-d888-4587-8feb-318e90f6c27e",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Electric Bubble",
-          "user_idea": null,
-          "mood": "tense",
+          "idea": "Moss Chick",
+          "user_idea": "baby bird",
+          "vibe": "nostalgic natural softness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.611+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "7d3e407c-7c10-453c-9cff-7df04a10f106",
+          "id": "68d93b2a-87dc-43e4-a91f-f3762ff790ea",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Bubble",
-          "user_idea": null,
-          "mood": "awe",
+          "idea": "Smoke Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting ephemeral mist",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "15ef82c3-2ff6-4e20-91cd-06a6123b5080",
+          "id": "d38737ed-a5fa-49d3-a814-b377fe3191ca",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frosted Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Pearl Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene lustrous calm",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.052+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "ba82e90f-0497-4ebd-aaf2-0ff89b397076",
+          "id": "c357a238-1f6e-4f55-87e4-c3286a79f91d",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Luminous Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
+          "idea": "Honey Chick",
+          "user_idea": "baby bird",
+          "vibe": "warm viscous glow",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.053+00:00",
+          "started_at": "2025-10-26T13:08:30.613+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
+          "id": "a792968b-7217-412a-8f82-74adaeb76269",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Shadow Bubble",
-          "user_idea": null,
-          "mood": "haunting",
+          "idea": "Liquid Chick",
+          "user_idea": "baby bird",
+          "vibe": "fluid gentle grace",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.614+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "b02f24ec-cf14-4051-b380-7d39ee5bc8e5",
+          "id": "bc7989ee-3cc9-4d23-b20e-4affba17e8ec",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Golden Bubble",
-          "user_idea": null,
-          "mood": "playful",
+          "idea": "Crystal Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe transparent intensity",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.615+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "b6ec48b1-48ee-4bac-9e1b-d9e546b11e92",
+          "id": "3fc6c702-89c3-4e4b-9ddc-ba1bb76f2b05",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Whisper Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Echo Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting reverberating stillness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.617+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       },
       {
         "json": {
-          "id": "4b77ae28-3300-4ea3-bddb-9ba2bd5f5d78",
+          "id": "ba777cb9-d892-4189-9529-805f5a42ab4b",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Magnetic Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
+          "idea": "Shadow Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense dark mystery",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.618+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00"
         }
       }
     ],
     "Write Screen": [
       {
         "json": {
-          "id": "354857fc-5c6a-49cb-b2d9-8a3759e9ef6a",
+          "id": "39a7c3ba-5ada-43d9-a771-dc7bd63877bb",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Velvet Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene intimate calm",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.049+00:00",
+          "started_at": "2025-10-26T13:08:30.608+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "354857fc-5c6a-49cb-b2d9-8a3759e9ef6a",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "39a7c3ba-5ada-43d9-a771-dc7bd63877bb",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "8329fa02-cbe7-4e9c-8711-5c74f489af71",
+          "id": "b9211a8b-9709-4efc-85c0-7456b56772fa",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Bubble",
-          "user_idea": null,
-          "mood": "playful",
+          "idea": "Glass Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe fragile wonder",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.609+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "8329fa02-cbe7-4e9c-8711-5c74f489af71",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "b9211a8b-9709-4efc-85c0-7456b56772fa",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "c08feb6a-0f09-4b51-a657-e80f8668acd8",
+          "id": "a2b9fe3a-7f5e-4ac9-88ec-602dd1a50f15",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silent Bubble",
-          "user_idea": null,
-          "mood": "haunting",
+          "idea": "Frost Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense icy stillness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "c08feb6a-0f09-4b51-a657-e80f8668acd8",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "a2b9fe3a-7f5e-4ac9-88ec-602dd1a50f15",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "7a52072d-06fb-47e1-b049-78aa4f4bb50b",
+          "id": "c8bbbddf-fd4e-4d61-ada3-f8326d8dbff0",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Bubble",
-          "user_idea": null,
-          "mood": "nostalgic",
+          "idea": "Mercury Chick",
+          "user_idea": "baby bird",
+          "vibe": "playful liquid metal",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "7a52072d-06fb-47e1-b049-78aa4f4bb50b",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "c8bbbddf-fd4e-4d61-ada3-f8326d8dbff0",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "cc0b57ed-0e5c-485d-80d0-6c1f70646a2b",
+          "id": "318de31e-d888-4587-8feb-318e90f6c27e",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Electric Bubble",
-          "user_idea": null,
-          "mood": "tense",
+          "idea": "Moss Chick",
+          "user_idea": "baby bird",
+          "vibe": "nostalgic natural softness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.611+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "cc0b57ed-0e5c-485d-80d0-6c1f70646a2b",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "318de31e-d888-4587-8feb-318e90f6c27e",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "7d3e407c-7c10-453c-9cff-7df04a10f106",
+          "id": "68d93b2a-87dc-43e4-a91f-f3762ff790ea",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Bubble",
-          "user_idea": null,
-          "mood": "awe",
+          "idea": "Smoke Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting ephemeral mist",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "7d3e407c-7c10-453c-9cff-7df04a10f106",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "68d93b2a-87dc-43e4-a91f-f3762ff790ea",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "15ef82c3-2ff6-4e20-91cd-06a6123b5080",
+          "id": "d38737ed-a5fa-49d3-a814-b377fe3191ca",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frosted Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Pearl Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene lustrous calm",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.052+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "15ef82c3-2ff6-4e20-91cd-06a6123b5080",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "d38737ed-a5fa-49d3-a814-b377fe3191ca",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "ba82e90f-0497-4ebd-aaf2-0ff89b397076",
+          "id": "c357a238-1f6e-4f55-87e4-c3286a79f91d",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Luminous Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
+          "idea": "Honey Chick",
+          "user_idea": "baby bird",
+          "vibe": "warm viscous glow",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.053+00:00",
+          "started_at": "2025-10-26T13:08:30.613+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "ba82e90f-0497-4ebd-aaf2-0ff89b397076",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "c357a238-1f6e-4f55-87e4-c3286a79f91d",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
+          "id": "a792968b-7217-412a-8f82-74adaeb76269",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Shadow Bubble",
-          "user_idea": null,
-          "mood": "haunting",
+          "idea": "Liquid Chick",
+          "user_idea": "baby bird",
+          "vibe": "fluid gentle grace",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.614+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "a792968b-7217-412a-8f82-74adaeb76269",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "b02f24ec-cf14-4051-b380-7d39ee5bc8e5",
+          "id": "bc7989ee-3cc9-4d23-b20e-4affba17e8ec",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Golden Bubble",
-          "user_idea": null,
-          "mood": "playful",
+          "idea": "Crystal Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe transparent intensity",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.615+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "b02f24ec-cf14-4051-b380-7d39ee5bc8e5",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "bc7989ee-3cc9-4d23-b20e-4affba17e8ec",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "b6ec48b1-48ee-4bac-9e1b-d9e546b11e92",
+          "id": "3fc6c702-89c3-4e4b-9ddc-ba1bb76f2b05",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Whisper Bubble",
-          "user_idea": null,
-          "mood": "serene",
+          "idea": "Echo Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting reverberating stillness",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.617+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "b6ec48b1-48ee-4bac-9e1b-d9e546b11e92",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "3fc6c702-89c3-4e4b-9ddc-ba1bb76f2b05",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       },
       {
         "json": {
-          "id": "4b77ae28-3300-4ea3-bddb-9ba2bd5f5d78",
+          "id": "ba777cb9-d892-4189-9529-805f5a42ab4b",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Magnetic Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
+          "idea": "Shadow Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense dark mystery",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.618+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00",
-          "ideaId": "4b77ae28-3300-4ea3-bddb-9ba2bd5f5d78",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "ideaId": "ba777cb9-d892-4189-9529-805f5a42ab4b",
+          "runId": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180"
         }
       }
     ],
-    "Poll 'prompt'": [
+    "Call 'Generate Video'": [
       {
         "json": {
-          "id": "354857fc-5c6a-49cb-b2d9-8a3759e9ef6a",
+          "id": "39a7c3ba-5ada-43d9-a771-dc7bd63877bb",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Bubble",
-          "user_idea": null,
-          "mood": "serene",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A perfectly round, hyper-real glass bubble hovers serenely above a marble surface in a sun-drenched, softly out-of-focus room. The bubble's impossibly thin exterior glimmers with rainbow-like refractions; faint veins and seams reveal shifting internal patterns as if the glass is subtly alive. As light passes through, the bubble casts intricate prismatic shadows on the marble below and suspended dust motes are rendered in glistening detail.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 75mm shallow depth of field, 180\u00b0 shutter speed. Camera executes a slow dolly-in from table level, framing the bubble centrally. Sunbeam key light creates crisp caustics and soft rim, with volumetric haze for luminous dust and shadow interplay.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera approaches, bubble sparkles and begins a slow spin, refracting light onto the surface below.\n1.5\u20133.5s (Exploration): The internal glass structure undulates gently\u2014faint crystalline veins appear to shift, making the bubble feel sentient as lights dance around.\n2.0s (Whisper): A faint, dry whisper says, \"Glass Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Camera tightens to macro, focusing on a prismatic vein as it flashes with color, then scene fades to black with shimmering glass fragments.\n\n6. AUDIO / ASMR \u2014 Airy vacuum hum at -28 dBFS, minuscule tinks and glass crackles, delicate surface friction. Whisper (dry, 2.0s): \"Glass Bubble.\" Enhanced foley for refracting motion and surface interaction.\n\n7. MUSIC / SCORE \u2014 Minimal ethereal ambient score, soft pad builds 0-1s, airy shimmer swells from 1-3s, fading to near silence and light crystalline echoes in final second, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Crystal clear, pale sapphire, soft gold, white marble, opalescent shimmer.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds exactly, one continuous shot, dry whisper mandatory at 2.0s, macro fade and glass shimmer particle effect at end.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Glass Bubble \u2014 a sentient glass bubble spins atop marble, refracting light and shimmering colors, closing on opalescent details.",
+          "idea": "Velvet Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene intimate calm",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tactile, serene, physically impossible yet shot with real-world optics.\n\n2) SCENE DESCRIPTION — A baby chick perches quietly on a thick, cushiony surface of impossibly deep velvet, each feather seamlessly blending into the surrounding fabric. The chick’s down and the velvet beneath it are one continuous, matte-black expanse—every subtle movement causes the velvet and feathers to ripple together, swallowing light and glowing faintly along the curves. Surrounding dust motes and micro-fibers float, caught in soft volumetric haze. No on-screen text anywhere.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920); 75mm lens, ultra-shallow DOF, 180° shutter. Slow dolly-in with gentle leftward drift for deeply cinematic parallax; velvet’s matte surface absorbs light, while subtle rim-lighting outlines undulating contours. Inertia of lens movement reads as physically real.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides in to establish chick and velvet unity; surface undulates with the chick’s slow breathing.\n3.0–7.0s: The chick shifts, and velvet ripples radiate outward, swallowing and then revealing faint highlights; occasional feather-fibers twinkle and dissolve back into the fabric. 5.0s: Dry whisper: \"Velvet Chick.\"\n7.0–10.0s: Ultra-macro on the velvet surface as a single feather merges into the matte depths, then fade to black as dust motes shimmer in silhouette.\n\n5) AUDIO / ASMR — Ambient vacuum-bed at ~–28 dBFS; hyper-detailed foley: soft fiber brushes, muffled ruffling, faint plush compressions. Whisper “Velvet Chick” at 5.0s (dry, centered, no reverb). No other dialogue.\n\n6) MUSIC / SCORE — Gentle, ethereal ambient. 0–3s: calm, low pads rise softly; 3–7s: warm, pillowy chords swell; 7–10s: drift into airy, serene decay. All music ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: deep matte black, muted midnight blue, soft ash gray, faint lavender, velvety ivory. Tone is calming, intimate, and minimal—soft cool highlights and immersive shadow detail.\n\n8) NOTES / CONSTRAINTS — 10 seconds, one continuous vertical shot (9:16); no scene cuts. Velvet/feather mechanics and their unity must be visible. Mandatory whisper (\"Velvet Chick\") at 5.0s, dry. Fade to black with shimmering fiber particles. No on-screen text or extra dialogue.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Velvet Chick — a serene baby bird and its velvet world merge as one, pulsing with intimate, impossible calm.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.049+00:00",
+          "started_at": "2025-10-26T13:08:30.608+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "39a7c3ba-5ada-43d9-a771-dc7bd63877bb"
         }
       },
       {
         "json": {
-          "id": "8329fa02-cbe7-4e9c-8711-5c74f489af71",
+          "id": "b9211a8b-9709-4efc-85c0-7456b56772fa",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Bubble",
-          "user_idea": null,
-          "mood": "playful",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optical refractions and iridescence.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A luminous, oversized soap bubble floats in midair, its surface radiating shifting bands of iridescent color that glide and ripple with every motion. The bubble hovers above a brushed chrome pedestal set in a sunlit, dust-filled gallery, with soft beams filtering through high windows. The entire environment glows with prismatic highlights and reflective particles. No text overlays.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 75mm lens for close macro focus, shallow depth of field, 180\u00b0 shutter. Camera uses a slow dolly-in, orbiting gently to catch different angles of refracted light. Lighting: strong warm key from one side, cool rim on the other, rich volumetric haze and floating particulate matter emphasize prismatic reflections.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Bubble slowly undulates in air, surface shimmering as camera draws near, refracted rainbows shifting beautifully.\n1.5\u20133.5s (Exploration): Iridescent bands intensify and pulse, surface tension flickering with micro-ripples. At 2.0s, a soft, dry whisper intones, \"Iridescent Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Extreme close-up as colors fracture into a bursting spectrum, micro-particles glinting and then fading to black with a shimmering overlay.\n\n6. AUDIO / ASMR \u2014 Soft vacuum hum at -28 dBFS, crisp, detailed sounds of the bubble's surface stretching, faint watery pops, and rainbow refraction sizzle. Whisper at 2.0s: \"Iridescent Bubble,\" dry and intimate. Bubble foley is heightened and tactile.\n\n7. MUSIC / SCORE \u2014 Ethereal ambient minimalism; pad gently rising for first second, shimmering arpeggios swelling 1-3 seconds, trailing to silence on fade, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Opal white, spectral pink, electric teal, lemon gold, sunset mauve.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single continuous shot, mandatory whisper at 2.0s, fade to black with prismatic particle shimmer at end.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Iridescent Bubble \u2014 a glowing rainbow bubble undulates, fracturing into color with opal and spectral highlights.",
+          "idea": "Glass Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe fragile wonder",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tactile, awe-striking yet gentle, physically plausible lighting.\n\n2) SCENE DESCRIPTION — On a shadowed, velvety pedestal sits a tiny baby bird entirely shaped from luminous, prismatic glass. Its delicate form refracts beams of soft morning light into spectral color patches on nearby surfaces. With every subtle motion—a flutter, a blink—fine cracks shimmer and flow smoothly across its body, impossibly repairing themselves. Interior bubbles and imperfections create shifting rainbows as internal reflections move. The setting is close, dreamy, dappled with floating dust, no on‑screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920); 80mm lens, shallow DOF focused tight on the chick’s glass head and chest. 180° shutter for natural inertia. Slow dolly‑in and gentle right orbit produce shifting reflections and lens flares, with macro dust drifting in foreground parallax.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides inward, catching rainbows as the glass chick exhales; minute internal bubbles and light scatters drift through its body.\n3.0–7.0s: The chick turns and twitches its wings; cracks and swirls pulse within, refracting the light, brilliant spectral glows on chest and eyes. At 5.0s, chick tilts beak at the lens.\n5.0s: Single, dry whisper: \"Glass Chick.\"\n7.0–10.0s: Macro focus on one prismatic crack sealing itself; rays of color flicker, dust motes shimmer, and shot fades to black with lingering light particles.\n\n5) AUDIO / ASMR — Ambient vacuum-bed at ~–28 dBFS; hyper-real foley: fine tings, faint creaks, glass friction, subtle breath. 5.0s: Whisper “Glass Chick” (dry, center, minimal reverb), surrounded by micro shatters and gentle tick sounds.\n\n6) MUSIC / SCORE — Ethereal, airy pads and fragile high notes. 0–3s: gentle crystalline rise; 3–7s: iridescent, swelling chords; 7–10s: music dissolves to thin, shimmering tail, holding ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: frosted clear, prism white, warm gold, indigo blue, blush pink. Emphasizes \"awe, fragile wonder\" with diffused light, soft-focus contrast, radiant spectral highlights.\n\n8) NOTES / CONSTRAINTS — 10 seconds, single vertical 9:16 shot; no scene cuts; mandatory dry whisper at 5.0s: “Glass Chick.” Fade to black with signature prismatic particle shimmer. Impossible self-repair and refracting optics must be shown.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Glass Chick — a prismatic, glass-bodied baby bird pulses with living light and impossible self-repair, shimmering with awe and fragile wonder.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.609+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "b9211a8b-9709-4efc-85c0-7456b56772fa"
         }
       },
       {
         "json": {
-          "id": "c08feb6a-0f09-4b51-a657-e80f8668acd8",
+          "id": "a2b9fe3a-7f5e-4ac9-88ec-602dd1a50f15",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silent Bubble",
-          "user_idea": null,
-          "mood": "haunting",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 An ethereal, glassy bubble hovers in still air, its surface almost motionless, refracting the softly muted environment and haloed with gentle, mist-like light. All sonic vibrations appear absorbed: dust motes levitate, frozen mid-float, and ripples on the bubble's surface pause, as if sound itself has stopped. The background is a minimal, velvety-black expanse punctuated by diffused glimmers of pale light. No text overlays.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 70mm lens, extreme shallow DOF, 180\u00b0 shutter. Gentle dolly drift towards the bubble; the camera floats, mimicking weightless inertia. Lighting is soft key with subtle rim, scattering through suspended haze, accentuating the bubble\u2019s glassy surface and the stilled particles.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera pushes slowly in; bubble appears to shimmer without motion; the world around is frozen and hushed.\n1.5\u20133.5s (Exploration): Close study of the bubble's unreal silence\u2014micro-ripples seem to halt, and dust within the frame stays perfectly suspended. At exactly 2.0s, a dry whisper says, \"Silent Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Camera closes in for a macro shot as the bubble pulses faintly and releases a shimmer of particles, fading to black.\n\n6. AUDIO / ASMR \u2014 Ambient bed is an ultra-soft, filtered vacuum hush at -28 dBFS with almost no foley; at 2.0s, a single dry whisper: \"Silent Bubble.\" The absence of all other sound heightens tactile presence.\n\n7. MUSIC / SCORE \u2014 Sparse ethereal pads, soft harmonic shimmer rising from 0\u20131s, brief swell from 1\u20133s, dissolving into near silence by 4s, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Moonstone white, obsidian, silken gray, faint pastel blue, pearl mist.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single shot, whisper at 2.0s, absolute minimal foley, fade to black with frozen particle shimmer.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Silent Bubble \u2014 all vibration halts as a pristine bubble suspends silence, with moonstone and pearl mist tones.",
+          "idea": "Frost Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense icy stillness",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tactile, impossible yet filmable, sensorial first.\n\n2) SCENE DESCRIPTION — Extreme macro: a baby chick is sculpted entirely from dense, crystalline frost. Its texture bristles with tiny ice feathers that crackle and subtly shift, light refracting through facets as cold vapor gently swirls around it. Each motion—blink, breath, micro-fluff—sends fine frost crystals showering and reforming, impossible to maintain outside the impossible chill. The environment is an intimate, midnight-cold surface dusted with snow and shimmering with particles, suspended in absolute stillness. No on-screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920); 80mm macro lens; shallow DOF isolates chick's frost-detailed face, icy plumage and rising vapor. 180° shutter. Slow dolly-in with subtle rightward orbit, creating refractive parallax with ice particles and haze. Inertia and lens weight preserved.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides in, crisp frost crackles and breath vapor rises. Macro focus highlights spiked ice feathers, frost crystals drift in cold air.\n3.0–7.0s: Chick shifts, icy feathers bristle and snap. Breath freezes instantly, micro shatters sparkle. 5.0s: Whisper begins: \"Frost Chick.\"\n7.0–10.0s: Ultra-close-up: fractal frost grows and erases itself over the eye; cold dust motes shimmer as stillness deepens into fade out.\n\n5) AUDIO / ASMR — Sub-bass frozen ambience at ~–28 dBFS, layered with icy crackle, brittle feather foley, inhale/exhale vapor hiss, granular crystallizing sounds. Dry, center whisper at 5.0s: \"Frost Chick.\"\n\n6) MUSIC / SCORE — Ethereal, glacial ambient; resonant high pads and buried icy arpeggios. 0–3s: icy suspense builds; 3–7s: distant, tense swells and static; 7–10s: permafrost tail, music fades into crystalline echoes. ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: glacial blue, pure white, argent silver, midnight navy, violet ice. Scene glows with frozen, shadowed lowlights, crisp highlights, and iridescent shimmer, echoing \"tense icy stillness.\"\n\n8) NOTES / CONSTRAINTS — 10.0 seconds, single vertical (9:16) continuous shot, 80mm macro, shallow DOF, 180° shutter. No scene cuts. Dry whisper at 5.0s: \"Frost Chick.\" Fade to black with signature icy particle shimmer. Frost/ice mechanics are always visible. No on-screen text.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Frost Chick — a baby bird made of crackling frost pulses and shivers with tense, icy stillness in macro cinematic detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.05+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "a2b9fe3a-7f5e-4ac9-88ec-602dd1a50f15"
         }
       },
       {
         "json": {
-          "id": "7a52072d-06fb-47e1-b049-78aa4f4bb50b",
+          "id": "c8bbbddf-fd4e-4d61-ada3-f8326d8dbff0",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Bubble",
-          "user_idea": null,
-          "mood": "nostalgic",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A delicate, oversized soap bubble floats in gentle suspension above a slate-gray silk table. Its surface ripples with impossible plushness: the iridescence is softly matte, as if a layer of lush, midnight-blue velvet coats the membrane. Fine dust motes caress the plush exterior. The environment is a luminous dusk with soft window light breaking gently through haze.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 75mm lens with ultra-shallow depth of field to emphasize the bubble\u2019s pillowy texture. Camera performs a slow, frictionless dolly-in along a diagonal, capturing light raking across the velvet fuzz and amplifying the tactility. Warm key light, cool rim glow, volumetric haze, and floating particles.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera approaches the floating velvet-coated bubble as it slowly rotates, revealing its plush texture and deep shadows.\n1.5\u20133.5s (Exploration): Macro focus traces over the velvet surface\u2014fibers compress and undulate under the bubble\u2019s shifting weight, catching light in hypnotic gradients. At 2.0s, a gentle whisper says, \u201cVelvet Bubble.\u201d\n3.5\u20134.0s (Close-up + Fade): Extreme close-up dives into the soft nap of the velvet, where microscopic fibers glint and shimmer as the shot fades to deep black with a cloud of sparkling particles.\n\n6. AUDIO / ASMR \u2014 Soft vacuum ambient at -28 dBFS, gentle fabric friction, plushy rubs, and a muffled static as velvet compresses. Whisper, dry at 2.0s: \u201cVelvet Bubble.\u201d Feathered foley of cloth and barely-audible bubble wobble.\n\n7. MUSIC / SCORE \u2014 Ethereal ambient minimalism, velvet synth swells and airy pads building from 0\u20133s, trailing to silence at the fade, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Midnight blue, graphite gray, lavender mist, pale rose, opaline white.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single continuous shot, mandatory dry whisper at 2.0s, three-act structure with macro fade-out and particle shimmer at end.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Velvet Bubble \u2014 plush, velvet-coated bubble in soft dusk, extreme macro fade, midnight blue and graphite palette.",
+          "idea": "Mercury Chick",
+          "user_idea": "baby bird",
+          "vibe": "playful liquid metal",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; tactile, cinematic, dreamlike, impossible-but-filmed.\n\n2) SCENE DESCRIPTION — In macro scale, a baby chick sculpted from glinting, liquid mercury stands atop a matte, dark stone inside a softly luminous vignette. The chick’s metallic surface flows with smooth, playful undulations—droplets detach, hover, and rejoin as if defying gravity. Its form flexes, feathers morphing as mirrored ripples sweep under the skin. Mercury’s surface tension creates bulbous, lively refractions that catch camera and set light. Suspended fine dust and faint mist envelop the space. No on-screen text.\n\n3) CINEMATOGRAPHY — Vertical 9:16 (1080×1920), 80mm macro lens, shallow DOF tightly frames the chick’s head and body. 180° shutter applies physical camera inertia. Slow dolly-in with rightward orbit creates dynamic metallic reflections and liquid parallax.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides inward, revealing the mercury chick and its swirling, mirrored flow. Light sweeps across undulating feathers.\n3.0–7.0s: Chick twitches, droplets split off and orbit playfully, then reabsorb. Surface flexes with radiant ripples; internal reflections shimmer.\n5.0s: Dry, center whisper: “Mercury Chick.”\n7.0–10.0s: Ultra-macro close-up: a mercury bead hovers, then merges in a perfect, silent splash. Scene fades to black with silver particle shimmer.\n\n5) AUDIO / ASMR — Ambient bed ~–28 dBFS: metallic undercurrent, liquid flicks, soft popping beads, rapid micro-drips. Whisper at 5.0s—\"Mercury Chick,\" dry and centered, no effect.\n\n6) MUSIC / SCORE — Ethereal, fluid pads with brief metallic harmonics: 0–3s playful rise; 3–7s swelling shimmer; 7–10s light, rippling tail with silvery high end; ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: chrome silver, gunmetal gray, blue steel, black velvet, white highlight. Lighting is cool yet lively, reflecting a \"playful liquid metal\" mood—color pops in lens flares and ripple refraction.\n\n8) NOTES / CONSTRAINTS — 10 seconds, single continuous vertical (9:16) shot; macro lens, shallow DOF; no scene cuts or text; whisper \"Mercury Chick\" at 5.0s mandatory; fade out with liquid-metal shimmer. Impossible effect: mercury moves and morphs naturally, never cartooned.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Mercury Chick — a baby bird formed of playful liquid metal ripples, flexes, and shimmers in impossible macro detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.61+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "c8bbbddf-fd4e-4d61-ada3-f8326d8dbff0"
         }
       },
       {
         "json": {
-          "id": "cc0b57ed-0e5c-485d-80d0-6c1f70646a2b",
+          "id": "318de31e-d888-4587-8feb-318e90f6c27e",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Electric Bubble",
-          "user_idea": null,
-          "mood": "tense",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 Suspended midair, a glassy iridescent bubble glimmers above a slate surface. Within and across its surface, tiny arcs of electric-blue lightning course and pulse, branching like nerves and flashing with energy. The environment is a hushed, midnight room filled with ionized mist and wisps of static-charged particles drifting through shafts of cobalt light. No text overlays.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 70mm shallow depth of field focused tightly on the bubble, 180\u00b0 shutter. The camera performs a slow lateral dolly drift, enhancing the shimmering highlights and electrical tendrils. Lighting combines cool blue key with subtle golden rim and volumetric fog.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera gently approaches the bubble as mini lightning arcs flicker along its surface.\n1.5\u20133.5s (Exploration): Surreal, branching electric veins glow brighter and pulse inside the bubble, flickering rhythmically. The arcs intensify, creating radiant, fractal patterns that illuminate the bubble and its surroundings. At exactly 2.0s, a whisper states, \"Electric Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Camera pushes in tight on an especially luminous arc crackling within the bubble; energy surges, and the frame fades to black as fine, glowing particles shimmer in the afterimage.\n\n6. AUDIO / ASMR \u2014 Ambient vacuum hum at -28 dBFS; delicate crackling static, soft electrical zaps and sizzle, occasional glassy resonance. Whisper at 2.0s says, \"Electric Bubble.\" All sound hyper-detailed, up close and tactile.\n\n7. MUSIC / SCORE \u2014 Ethereal, minimal synth with high, airy textures; swelling from 0-1s, warm intensification 1-3s, fading out with shimmer at 3-4s, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Electric blue, onyx black, steel gray, violet haze, argent white.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds runtime, single continuous shot, whisper required, fade to black with shimmering particle overlay.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Electric Bubble \u2014 streaks of lightning animate a glowing bubble ending in an electric close-up and a blue-silver fade.",
+          "idea": "Moss Chick",
+          "user_idea": "baby bird",
+          "vibe": "nostalgic natural softness",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; nostalgic, tactile, dreamlike, physically impossible but convincingly filmed.\n\n2) SCENE DESCRIPTION — In extreme macro, a tiny baby chick is completely composed of lush, living moss, delicate shoots and miniature leaves forming soft contours for beak, wings, and eyes. The chick gently stands atop a moist stone surrounded by blurred, dew-flecked forest floor micro-landscape. Water droplets bead and roll on the moss down, and with each slight movement, the moss appears to slow-breathe: tiny fronds pulse, sprouting and retracting, impossible in real-time. A nostalgic haze fills the air, with golden particulates drifting through dappled sunlight. No on‑screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920), 78mm macro lens, shallow DOF to isolate moss chick’s head and chest; 180° shutter. Slow dolly-in with gentle rightward orbit reveals mossy textures, parallax from foreground dew and glimmering specks; all camera inertia and lens falloff physically real.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides in on chick, dew beads glint, moss \"breathes\" gently, soft sunlight halos it.\n3.0–7.0s: Chick blinks, moss fronds unfold and retract in gentle waves, dropping miniature spores and droplets that fall upward, defying gravity.\n5.0s: Whisper: “Moss Chick.”\n7.0–10.0s: Macro close-up on a moss tendril slowly coiling around a dew drop; golden dust swirls as shot fades to black and faint particle shimmer.\n\n5) AUDIO / ASMR — Whisper-quiet ambient bed at –28 dBFS; layers: soft leaf bristle, faint dew drips, moist earth movement, spore puff sounds. At 5.0s, dry center whisper: “Moss Chick.”\n\n6) MUSIC / SCORE — Ethereal, gentle ambient: 0–3s soft nostalgia-tinged pads rise; 3–7s mellow warm swells; 7–10s subtle dissolve. Always ~–12 LUFS, with organic warmth and acoustic undertones.\n\n7) COLOR / GRADE — Palette: moss green, muted gold, mist gray, dew silver, earth brown. Colors evoke \"nostalgic natural softness\"—diffuse warm highlights, soft contrast, earthy/sunny feel.\n\n8) NOTES / CONSTRAINTS — 10 seconds, single vertical 9:16 shot, no scene cuts, macro lens and shallow DOF. Mandatory dry whisper at 5.0s: \"Moss Chick.\" Show impossible moss breathing/sprouting. Fade to black with golden particle shimmer. No on-screen text, no extra dialogue.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Moss Chick — a living baby bird of moss pulses and grows in nostalgic natural softness, captured in tactile macro cinematic detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.611+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "318de31e-d888-4587-8feb-318e90f6c27e"
         }
       },
       {
         "json": {
-          "id": "7d3e407c-7c10-453c-9cff-7df04a10f106",
+          "id": "68d93b2a-87dc-43e4-a91f-f3762ff790ea",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Bubble",
-          "user_idea": null,
-          "mood": "awe",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in refractive optics and tactile macro detail.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A perfectly spherical bubble floats midair above a velvety midnight backdrop. Its surface is not smooth but faceted and multi-layered, resembling a delicate, transparent crystal\u2014panes and edges refract light into shifting spectral patterns. The interior gleams with soft rainbows and diamond-like glints that shimmer as the bubble rotates gently. Particles drift through the air, and everything is bathed in ambient prismatic light.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic ratio, 75mm lens for intimate, shallow focus. Slow, hypnotic dolly-in that tracks the crystal bubble\u2019s axis as it slowly spins. Lighting setup includes a cool, diffused key with shimmering rim, accentuating the crystalline structure and glancing off the facets, and volumetric haze to catch refracted colors and drifting dust.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera approaches the floating crystal bubble, its faceted surface catching beams of spectral light.\n1.5\u20133.5s (Exploration): The facets shift and refract, bending light into swirling rainbows inside the bubble. Delicate glints and caustics crawl across the surface. At 2.0s, a soft whisper says, \"Crystal Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Extreme close-up of a prism edge dispersing light as the bubble pulses softly, then fades to black with flickering crystal sparkles.\n\n6. AUDIO / ASMR \u2014 Ambient vacuum hum (-28 dBFS), hyper-detailed glassy tings, faint prismatic shimmers, gentle crackles. Dry whisper begins at 2.0s, stating clearly: \u201cCrystal Bubble.\u201d\n\n7. MUSIC / SCORE \u2014 Ethereal, minimal ambient with bell-like synths and glass harmonics; subtle tail-off with a glistening chime; -12 LUFS.\n\n8. COLOR / GRADE \u2014 Icy blue, crystal white, spectral lavender, prismatic pink, pale gold.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single continuous shot, mandatory dry whisper at 2.0s, fade to black from 3.5\u20134.0s, final shimmer on crystal fragments.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Crystal Bubble \u2014 faceted crystal bubble refracts swirling light, climaxing in a macro prism fade; icy blue and spectral pink palette.",
+          "idea": "Smoke Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting ephemeral mist",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; haunting, tactile, physically impossible yet plausibly filmed.\n\n2) SCENE DESCRIPTION — In an intimate macro space, a baby chick is composed entirely of rolling, translucent smoke. The bird’s form pulses and reforms: feathers manifest as whorls and filaments, details shimmer and dissipate in continuous, shape-shifting bloom. Every breath and blink causes soft vortex spirals, breaking body borders before reforming. Diffuse, pearly backlight pierces drifting vapor, revealing nested volumes—never cartooned, always smoky and present. No on-screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920), 80mm macro lens, shallow DOF for severe feather–smoke separation, 180° shutter. Slow dolly-in with gentle left orbit, micro-parallax as smoke layers swirl. Physical inertia kept.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Macro establishing: camera glides in, smoke-chick pulses, hazy threads coil.\n3.0–7.0s: Chick shifts and blinks—turbulent smoke feathers bloom, dissolve, and reform impossibly with gesture.\n5.0s: Dry, center whisper: “Smoke Chick.”\n7.0–10.0s: Macro push to eye; smoky filaments part, shimmer, and drift apart. Slow fade to black through glinting particle mist.\n\n5) AUDIO / ASMR — Vacuum-bed ambience at ~–28 dBFS. Hyper-detailed “smoke” foley: breathy micro-rushes, faint crackling, fluttery pulses. Whisper “Smoke Chick” at 5.0s, dry and centered, no extra lines.\n\n6) MUSIC / SCORE — Ethereal drone score: 0–3s spectral rise, 3–7s swelling airy tones, 7–10s tail off into grainy, dissolving hiss. Maintain ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: opaline white, mist gray, spectral silver, moon blue, faint ash black. Visual grade is cool, matte, and diffused—mirrors the “haunting ephemeral mist” vibe.\n\n8) NOTES / CONSTRAINTS — 10.0s; single continuous shot; vertical 9:16; macro 80mm; shallow DOF; 180° shutter; whisper required at 5.0s; fade to black with shimmering particles; no scene cuts or text; physically impossible form (stable smoke chick) must be the focus.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Smoke Chick — a baby bird formed from shifting smoke pulses and breathes in haunting, ephemeral macro detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.051+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "68d93b2a-87dc-43e4-a91f-f3762ff790ea"
         }
       },
       {
         "json": {
-          "id": "15ef82c3-2ff6-4e20-91cd-06a6123b5080",
+          "id": "d38737ed-a5fa-49d3-a814-b377fe3191ca",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frosted Bubble",
-          "user_idea": null,
-          "mood": "serene",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in macro ice phenomena.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A delicate soap bubble hovers above a frost-dusted surface, its form rapidly frosting over with intricate crystalline patterns. The translucence is subtly clouded\u2014delicate icicle veins spread across the sphere, glinting with tiny reflective sparkles. The background is softly blurred, wintry and luminous, with cool ambient glow and floating ice particles.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic format, 70mm shallow DOF, 180\u00b0 shutter. Camera executes a slow, mesmerized dolly-in toward the bubble, orbiting slightly to accentuate the shifting, light-catching frost patterns. Lighting: crisp bluish-white key, soft rim, volumetric haze and sparkling floating particles catching stray beams.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera glides in on the bubble as faint frost begins to form.\n1.5\u20133.5s (Exploration): Frost blossoms outwards in real time\u2014veined ice crystals expand fractally over the bubble\u2019s surface, shimmering gently. At 2.0s, a soft whisper says, \"Frosted Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Target a macro close-up on the most stunning frost segment as crystalline shimmer intensifies, then dissolve to black with a cascade of glinting particle shimmer.\n\n6. AUDIO / ASMR \u2014 Subdued arctic ambient bed (-28 dBFS), delicate crackling and whispering ice, frosted glass foley, and a dry whispered \"Frosted Bubble\" at 2.0s.\n\n7. MUSIC / SCORE \u2014 Ethereal ambient minimalism with icy tones: swelling, bell-like accents from 1\u20133s, soft decay and airy resonance, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Glacier blue, frosted white, pale silver, crystalline teal, cool lavender.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single continuous shot, 2.0s whisper mandatory, fade to black at 3.5\u20134.0s with fine crystalline particle cascade.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Frosted Bubble \u2014 sparkling ice crystals spread across a translucent bubble, climaxing with a shimmering macro fade in glacier blue and frosted white tones.",
+          "idea": "Pearl Chick",
+          "user_idea": "baby bird",
+          "vibe": "serene lustrous calm",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tactile, gentle, physically impossible yet plausibly filmed.\n\n2) SCENE DESCRIPTION — In an intimate macro setting, a newborn chick is entirely formed from luminous, iridescent pearl. Its body shimmers with layers of nacre, radiating shifting colors with every micro-movement. Fine surface ridges ripple with opalescent highlights as the chick breathes, blinks, and gently ruffles its wings; light caustics dance around its outline, and a subtle haze fills the air, catching scattered reflections. No on-screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920); 80mm lens, shallow DOF focuses closely on the chick’s head and chest. 180° shutter. Slow dolly-in and minor left orbit create parallax between pearlescent shell and warm, diffuse haze. Inertia and macro dynamics observed.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides in; pearl chick inhales, nacre ripples subtly across its surface.\n3.0–7.0s: Chick softly turns, wings flick with luminous, iridescent flashes; surface colors shift, highlights dance.\n5.0s: Whisper—dry, center, “Pearl Chick.”\n7.0–10.0s: Macro close-up on a single feather as nacre undulates; camera softens, focus drifts as the whole frame fades to black, lingering soft particles shimmer.\n\n5) AUDIO / ASMR — Ambient vacuum-bed at ~–28 dBFS; hyper-detailed foley: delicate shell touches, faint pearl clicks, close mic breaths. Whisper at 5.0s, dry, center: “Pearl Chick.”\n\n6) MUSIC / SCORE — Ethereal, flowing ambient beds with soft bell overtones. 0–3s: lush, gentle chords rise; 3–7s: swelling, crystalline tones; 7–10s: tranquil, luminous tail. Maintain ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: opal white, soft blush pink, cool lavender, misty blue, pale gold. “Serene lustrous calm” expressed via radiant mids, soft contrast, pastel sheen, and diffused ambient light.\n\n8) NOTES / CONSTRAINTS — 10 seconds, single vertical 9:16 shot; 80mm shallow DOF, 180° shutter. No scene cuts or on-screen text. Whisper at 5.0s only (“Pearl Chick”), fade to black with nacreous particle shimmer. Iridescence and shell layering must always be visible, never cartooned.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Pearl Chick — a luminous, nacre-bodied baby bird breathes and shimmers with serene, opaline calm in impossible tactile detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.052+00:00",
+          "started_at": "2025-10-26T13:08:30.612+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "d38737ed-a5fa-49d3-a814-b377fe3191ca"
         }
       },
       {
         "json": {
-          "id": "ba82e90f-0497-4ebd-aaf2-0ff89b397076",
+          "id": "c357a238-1f6e-4f55-87e4-c3286a79f91d",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Luminous Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A translucent, delicate bubble hovers midair, emitting a soft, inner radiant glow that pulses gently as if alive. The bubble's surface shimmers with living light, luminous veins crawling just beneath its skin and lighting up the suspended particles around it. This occurs in a dim, velvet-draped room; muted background, subtle floating dust illuminated by the bubble's aura. No text overlays.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 80mm shallow DOF, 180\u00b0 shutter. Slow dolly-in movement, camera gliding closer as the radiant bubble floats. Lighting is moody and ambient, with a bright, centered key coming from within the bubble; rim lighting highlights the bubble\u2019s edges, while volumetric haze captures the illumination and particles.\n\n5. ACTIONS & TIMING \u2014 0.0\u20131.5s (Establishing): The bubble floats in dimness, soft ambient light pulsing from within. 1.5\u20133.5s (Exploration): The inner glow brightens and swirls, sending streaks of colored light through the bubble and creating a radiant optical pattern that dances across the environment; glowing veins pulse with each swirl. At 2.0s, a gentle whisper says, \u201cLuminous Bubble.\u201d 3.5\u20134.0s (Close-up + Fade): Camera closes in as the bubble\u2019s surface bursts into a final auroral shimmer, transitioning into a glowing particle fade to black.\n\n6. AUDIO / ASMR \u2014 Subtle, spacious vacuum ambience (-28 dBFS), crackling glassy texture as light streaks animate, microscopic effervescence, soft dry whisper at 2.0s: \u201cLuminous Bubble.\u201d\n\n7. MUSIC / SCORE \u2014 Ethereal ambient minimalism, shimmering synth pad rises gently 0\u20131s, subtle harmonic bloom swells 1\u20133s, trailing sparkle fades 3\u20134s, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Electric gold, opal white, radiant cerulean, pale magenta, midnight indigo.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single seamless shot, mandatory dry whisper at 2.0s, fade to black with radiant particle shimmer at 3.5\u20134.0s.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Luminous Bubble \u2014 a glowing bubble pulses with radiant veins and swirling light, climaxing in an auroral color burst over an electric gold and cerulean palette.",
+          "idea": "Honey Chick",
+          "user_idea": "baby bird",
+          "vibe": "warm viscous glow",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; tactile, cinematic, sensorial first, physically impossible yet plausibly filmed.\n\n2) SCENE DESCRIPTION — Macro shot on a rough stone surface: a tiny baby chick, but its entire body is transparent, golden honey. The honey forms downy outlines and interior ripples with every subtle movement. Droplets slowly rise from its back, hesitating and floating before defying gravity to rejoin the chick, all in luscious slow motion. Interior glows pulse with each feathery breath. Volumetric warm haze and drifting dust fill the intimate space. No on‑screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920), 80mm lens, shallow DOF isolating the head and upper body; 180° shutter. Slow dolly-in with gentle leftward orbit, real inertia and macro parallax in the honey and dust motes.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Gentle dolly/orbit establishes the honey chick—surface glow, refraction, and internal ripple seen clearly.\n3.0–7.0s: Chick turns, inhales—honey rises in elongated droplets that float then melt back into its wing in impossible, mesmerizing arcs. Camera lingers as pulse glows within the body.\n5.0s: Whisper begins, dead center: “Honey Chick.”\n7.0–10.0s: Macro close-up as a droplet merges and light ripples inside; slow fade to black as shimmering gold motes drift.\n\n5) AUDIO / ASMR — Deep, soft vacuum-bed at –28 dBFS; tactile, sticky foley: slow honey oozes, faint pops, micro-movements. Whisper “Honey Chick” at 5.0s, dry and centered.\n\n6) MUSIC / SCORE — Ethereal ambient: 0–3s warm ascending pads, 3–7s glowing chords swell gently, 7–10s dissolve to soft, golden tail. Target loudness ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: glowing amber, honey gold, soft chestnut, muted cream, deep bronze. Grading emphasizes “warm viscous glow”: radiant mids and highlights, rich luminous undertones.\n\n8) NOTES / CONSTRAINTS — 10.0 seconds; single continuous vertical shot, 80mm macro; shallow DOF, 180° shutter; 5.0s mandatory dry whisper (“Honey Chick”); descriptor effect (honey, droplets, rising/merging mechanics) always visible and tactile; no on-screen text, only whisper; fade to black with gold particle shimmer.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Honey Chick — a baby bird formed of pure honey pulses and flows with glowing, impossible warmth in macro cinematic detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.053+00:00",
+          "started_at": "2025-10-26T13:08:30.613+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "c357a238-1f6e-4f55-87e4-c3286a79f91d"
         }
       },
       {
         "json": {
-          "id": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
+          "id": "a792968b-7217-412a-8f82-74adaeb76269",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Shadow Bubble",
-          "user_idea": null,
-          "mood": "haunting",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A delicate, translucent bubble hovers just above a dark velvet tabletop, illuminated by a narrow shaft of soft light; within its glassy skin, inky shadows slither and pulse, shifting as if alive. The environment is a dreamlike, dusk-lit interior shrouded in gentle haze, with fine dust particles catching the light. No visible text overlays; all focus on the surreal bubble and its moving internal shadow forms.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic aspect ratio, 80mm lens for shallow depth of field, 180\u00b0 shutter. Camera executes a slow dolly-in, tracking the bubble's subtle rotation, with rim lighting emphasizing the bubble\u2019s edges and volumetric haze revealing suspended particulate shimmer.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s: Establishing \u2014 Camera glides in to reveal the bubble, motives of swirling shadows stir inside.\n1.5\u20133.5s: Exploration \u2014 The shadows ooze and flicker in mesmerizing patterns, flowing in and out of the bubble's surface, as spectral light refracts in their wakes; at 2.0s, a dry whisper: \"Shadow Bubble.\"\n3.5\u20134.0s: Close-up & fade \u2014 Macro on a shadow pulse against the surface, particle shimmer intensifies, then fade to black.\n\n6. AUDIO / ASMR \u2014 Persistent low vacuum hum (-28 dBFS), glassy crackles, faint wet pops accompany the shadow motion; at 2.0s a single dry whispered phrase: \"Shadow Bubble.\"\n\n7. MUSIC / SCORE \u2014 Ethereal ambient minimalism: slow rise in first second, gentle swelling to 3s, then airy, soft tail as scene fades, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Onyx black, midnight blue, silver pearl, smoky lavender, shadow violet.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds runtime, single shot, three-act micro-arc, dry whisper mandatory at 2.0s, fade to black with fine particle shimmer overlay at end.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Shadow Bubble \u2014 inky shadows swirl inside a luminous bubble, climaxing in macro shimmer and fade with midnight blue and silver pearl highlights.",
+          "idea": "Liquid Chick",
+          "user_idea": "baby bird",
+          "vibe": "fluid gentle grace",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; tactile, fluid, cinematic, physically impossible yet viscerally present.\n\n2) SCENE DESCRIPTION — Close-up: a baby bird, rendered entirely from shimmering, translucent liquid, perches atop a matte stone in a softly glowing macro world. Rippling currents run through its body; wings and tiny beak constantly reshape as watery geometry flows, bulges, and reforms. Gravity bends: droplets lift away, float, and spiral gently before threading back into the chick. Ambient mist and suspended particles swirl around in slow eddies. No on-screen text.\n\n3) CINEMATOGRAPHY — 9:16 vertical (1080×1920); 78mm macro lens, shallow DOF isolates the chick’s liquid contours; 180° shutter for gentle motion blur. Slow dolly-in with rightward micro-orbit, parallax in drifting haze and floating droplets. Camera inertia respected.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera slides in, revealing the bird’s liquid form: waves glimmer along surface; faint ripples pulse when it blinks.\n3.0–7.0s: The chick lifts its watery head; a droplet detaches, dances upward, and spirals in the air before rejoining body—physics feel plausible but impossible.\n5.0s: Dry, center whisper: \"Liquid Chick.\"\n7.0–10.0s: Ultra-macro focus on a bead unspooling and flowing back; shot softly fades to black as lingering ellipsoidal droplets shimmer in frame.\n\n5) AUDIO / ASMR — Ambience at ~–28 dBFS (soft hush, close); layered with slick ripples, smooth water surface details, miniature flows, drop detach and merge; 5.0s: dry, centered whisper: “Liquid Chick.” No other dialogue.\n\n6) MUSIC / SCORE — Ethereal ambient: watery synths, lush pads, subtle glass resonances. 0–3s rise; 3–7s swell in warmth; 7–10s tail soft and suspended, ~–12 LUFS overall.\n\n7) COLOR / GRADE — Palette: clear water, pale turquoise, soft gold, subtle teal, obsidian black. Grading soft and luminous, with liquid highlights and dreamy, tranquil contrasts—matching “fluid gentle grace” vibe.\n\n8) NOTES / CONSTRAINTS — 10.0 seconds, one continuous vertical shot; no scene cuts. Macro lens, shallow DOF, 180° shutter. Descriptor effect (liquid form with impossible motion) always visible. Whisper at 5.0s: “Liquid Chick” (only), dry, center. Fade to black with signature particle shimmer. No on-screen text.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Liquid Chick — a baby bird of rippling liquid pulses and recombines in tranquil, impossible detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.614+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "a792968b-7217-412a-8f82-74adaeb76269"
         }
       },
       {
         "json": {
-          "id": "b02f24ec-cf14-4051-b380-7d39ee5bc8e5",
+          "id": "bc7989ee-3cc9-4d23-b20e-4affba17e8ec",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Golden Bubble",
-          "user_idea": null,
-          "mood": "playful",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A single, oversized soap bubble, its surface glowing with rich, molten gold hues, floats above a slate-black marble surface in a dusky, softly sunlit room. Golden light refracts and dances in liquid ripples along its glossy, shimmering shell. The atmosphere is filled with airborne dust particles and flecks of gold, glinting as the bubble rotates.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic aspect ratio, 75mm focal length for a creamy, shallow depth of field, 180\u00b0 shutter. A very slow dolly-in tracks the bubble\u2019s elegant drift, camera positioned low for a regal upward angle. Lighting is soft but radiant, with a gold rim light, subtle volumetric haze, and glowing particle motes throughout.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): The camera glides in, focusing on the luminous golden bubble as it hovers gently and catches the light.\n1.5\u20133.5s (Exploration): Glints of gold ripple across the bubble\u2019s surface; micro-rivulets pulse and swirl, emitting golden sparkles. At exactly 2.0s, a clear, dry whisper intones, \u201cGolden Bubble.\u201d\n3.5\u20134.0s (Close-up + Fade): Camera pushes into a macro shot as the bubble\u2019s gold intensifies; golden flecks explode into shimmering particles, fading to black.\n\n6. AUDIO / ASMR \u2014 Ambient, gentle vacuum hum (-28 dBFS), nuanced foley of soft pops and liquid gold ripples; at 2.0s, dry whisper: \"Golden Bubble.\" Sparkle and rub of gold leaf.\n\n7. MUSIC / SCORE \u2014 Ethereal ambient score: rising crystalline tones (0\u20131s), lush pad and soft chimes (1\u20133s), long trailing shimmer (3\u20134s), -12 LUFS.\n\n8. COLOR / GRADE \u2014 Liquid gold, black marble, pearl white, sunlit amber, faint smoky gray.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds runtime, single continuous shot, whisper required at 2.0s, fade to black with golden particle shimmer at 3.5\u20134.0s.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Golden Bubble \u2014 molten gold bubble glows, ripples, and shimmers in golden particle bursts; palette of liquid gold and sunlit amber.",
+          "idea": "Crystal Chick",
+          "user_idea": "baby bird",
+          "vibe": "awe transparent intensity",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; tactile, cinematic, physically impossible yet grounded in photographic realism.\n\n2) SCENE DESCRIPTION — In a luminous, close-cropped macro space, a baby chick is sculpted from flawless, transparent crystal. Its facets shimmer, sharp and delicate, refracting beams of light in all directions—edges spray miniature rainbows onto a soft velvet surface. Tiny interior bubbles ride through its form, distorting and twisting the light with every subtle movement. With each blink and breath, cracks spider delicately across its body and heal instantly, visually impossible yet tangible. Ambient dust and suspended particles glow in the diffused light. No on-screen text.\n\n3) CINEMATOGRAPHY — Vertical 9:16 (1080×1920), 80mm lens, shallow DOF isolates the crystal chick’s face and chest; 180° shutter. Smooth dolly-in with a gentle rightward orbit reveals shifting rainbow refractions and dancing highlights, with visible inertia and parallax from floating dust.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Establishing dolly/orbit as crystal chick preens, eye glints sparkle, spectral rays scatter around.\n3.0–7.0s: Chick turns; interior bubbles slide; crystal facets pulse with brilliant light; cracks form and vanish in perfect sync with movements. At 5.0s, chick pauses eye-forward.\n5.0s: Dry, centered whisper: \"Crystal Chick.\"\n7.0–10.0s: Macro close-up on the crystal beak as a prismatic crack heals, color scattering intensifies; dust motes shimmer as shot fades to black with a lingering spectral particle glint.\n\n5) AUDIO / ASMR — Ambient vacuum at ~-28 dBFS, layered with soft crystal chimes, micro glass tinks, delicate foley of rotating mineral facets. 5.0s: dry, dead-center whisper: \"Crystal Chick.\" No additional dialogue.\n\n6) MUSIC / SCORE — Ethereal, crystalline soundscape: thin glass pads, bright harmonics. 0–3s rise with shimmering tones, 3–7s swell of bright, layered intensity, and 7–10s elegant tail, holding ~-12 LUFS.\n\n7) COLOR / GRADE — Palette: ice clear, prism white, radiant silver, spectral blue, flecks of rainbow. Matches \"awe transparent intensity\"—bright, crisp, dazzling.\n\n8) NOTES / CONSTRAINTS — 10 seconds, single continuous vertical shot (9:16); macro lens; 180° shutter. Mandatory dry whisper \"Crystal Chick\" at 5.0s, no extra dialogue. Fade to black with signature spectral particle shimmer; no on-screen text. Impossible: instant self-healing cracks, pure prismatic refraction filmed as physical crystal.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Crystal Chick — a baby bird sculpted from prism-clear crystal pulses with dazzling, impossible light in ultra-tactile cinematic detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.054+00:00",
+          "started_at": "2025-10-26T13:08:30.615+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "bc7989ee-3cc9-4d23-b20e-4affba17e8ec"
         }
       },
       {
         "json": {
-          "id": "b6ec48b1-48ee-4bac-9e1b-d9e546b11e92",
+          "id": "3fc6c702-89c3-4e4b-9ddc-ba1bb76f2b05",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Whisper Bubble",
-          "user_idea": null,
-          "mood": "serene",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A flawless, delicate soap bubble floats just above a velvety, blurred surface, its surface rippling with iridescent pastel hues. Inside the bubble, faint, silvery wisps coil and dance\u2014each exhalation taking on the forms of miniature, whispering mouths and trailing vapor. The background is a soft, serene dusk filled with drifting particles and gentle volumetric haze, evoking a tranquil, intimate mood. No visible text.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 75mm shallow DOF, 180\u00b0 shutter. Slow dolly-in toward the bubble, lens gliding at a low angle. Key and rim lighting wraps gently, highlighting the wisps and refracting colors through the bubble's surface. Air thick with subtle dust particles, catching the light.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera glides toward and focuses on the lone floating bubble as its surface glistens and shimmers.\n1.5\u20133.5s (Exploration): Whispery silver threads swirl inside the bubble, mouths gently forming as if sighing silent secrets; trails of vapor spiral and dissipate. At exactly 2.0s, a soft whisper states, \"Whisper Bubble.\"\n3.5\u20134.0s (Close-up + Fade): Camera pushes to extreme macro as one of the wispy mouths opens, releasing a tiny shimmer of particles\u2014fade to black as they scatter.\n\n6. AUDIO / ASMR \u2014 Ambient vacuum hum at -28 dBFS, layered with hyper-detailed bubble creaks, soft exhalations, and faint airy whooshes. Dry whisper at 2.0s: \"Whisper Bubble.\" Bubble foley is intimate and tactile.\n\n7. MUSIC / SCORE \u2014 Ethereal, minimal ambient pad rises in first second, dreamy airy motif swells 1\u20133s, trailing into silence with a lingering shimmer, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Misty lavender, opal white, silvery blue, blush pink, pale gold.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds only, single camera shot, whisper mandatory at 2.0s, fade to black from 3.5\u20134.0s with fine iridescent particle shimmer overlay.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Whisper Bubble \u2014 glistening bubble swirls with whispering vapor spirits, climaxing in a macro shimmer fade with pastel iridescent palette.",
+          "idea": "Echo Chick",
+          "user_idea": "baby bird",
+          "vibe": "haunting reverberating stillness",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tactile, echoic, physically impossible yet plausibly filmed.\n\n2) SCENE DESCRIPTION — A lone, downy chick stands atop an endless, matte obsidian plain inside a quiet, mist-filled studio. The “echo” descriptor manifests as every movement, breath, or peep the chick makes produces luminous, rippling afterimages—soft, translucent echoes of its own form—that radiate and loop back through both air and matte surface. These after-chicks shimmer, multiply, and dissolve in gentle, rhythmic pulses, never quite separating from the original. No on-screen text anywhere.\n\n3) CINEMATOGRAPHY — Vertical 9:16 (1080×1920), 85mm macro lens, shallow DOF isolates the original chick and its afterimage echoes. 180° shutter gives inertia and natural fluidity. Slow dolly-in with subtle rightward orbit, enhancing parallax as echo ripples extend through haze and micro dust.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Establishing macro shot. Camera glides in as subtle echo glows chase the chick’s outline, surface and air shimmer.\n3.0–7.0s: Chick blinks, shifts, and peeps; every motion and sound triggers radiating echo duplicates and light ripples, each linger then slowly dissolve back. At 5.0s, the whisper: \"Echo Chick.\"\n7.0–10.0s: Extreme close focus on one fading afterimage, light particles swirl, echoes stretch and vanish as the frame fades to black with trailing shimmer.\n\n5) AUDIO / ASMR — Ambient vacuum bed at –28 dBFS; hyper-detailed foley: soft footfalls, faint glassy reverbs, gentle air movement, pulsing duplications. Dry, center-channel whisper at 5.0s: \"Echo Chick.\" No other dialogue.\n\n6) MUSIC / SCORE — Ethereal, glassy drone with subtle harmonic undertones; 0–3s gentle, spectral rise; 3–7s haunting resonance builds in layers; 7–10s long reverberant tail, ~–12 LUFS for all music.\n\n7) COLOR / GRADE — Palette: charcoal black, spectral gray, moonlit silver, mist blue, opaline white. Lighting is cool and reverberant, shadows diffuse, edges vibrate with spectral aura, echoing the “haunting reverberating stillness” vibe.\n\n8) NOTES / CONSTRAINTS — 10.0 seconds, one vertical (9:16) continuous shot, 85mm shallow DOF, 180° shutter; no cuts; single dry whisper at 5.0s must say “Echo Chick”; fade to black with shimmering echo particles; no on-screen text; visible echo/afterimage mechanics are mandatory.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Echo Chick — a baby bird’s every motion triggers luminous, spectral echoes that ripple through stillness and dissolve in haunting cinematic detail.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.617+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "3fc6c702-89c3-4e4b-9ddc-ba1bb76f2b05"
         }
       },
       {
         "json": {
-          "id": "4b77ae28-3300-4ea3-bddb-9ba2bd5f5d78",
+          "id": "ba777cb9-d892-4189-9529-805f5a42ab4b",
+          "run_id": "4ecec413-fc4f-4ced-9cc4-d4c2f89f7180",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Magnetic Bubble",
-          "user_idea": null,
-          "mood": "mysterious",
-          "prompt": "1. STYLE / GENRE \u2014 Cinematic photoreal surrealism; ASMR micro-sound design; ethereal ambient score; impossible realism grounded in optics.\n\n2. REFERENCE IMAGE INSTRUCTION \u2014\n\n3. SCENE DESCRIPTION \u2014 A glossy, transparent bubble hovers above a metallic surface scattered with shimmering iron filings, gently rotating in the air. Inside and around the bubble, miniature iron particles ripple and spiral, drawn into mesmerizing patterns by unseen magnetic currents. Thin, delicate lines of filings bridge the gap between the bubble and the ground, bending and reconnecting with dreamlike fluidity as the magnetic field visibly shapes them. No text overlays.\n\n4. CINEMATOGRAPHY \u2014 2.39:1 anamorphic, 70mm lens, shallow depth of field, 180\u00b0 shutter; camera executes a slow orbital drift encircling the bubble, creating parallax between bubble, filings, and background. Volumetric side light with a cool silver key and warm rim; soft haze highlights shifting iron and reflections on the bubble's surface.\n\n5. ACTIONS & TIMING \u2014\n0.0\u20131.5s (Establishing): Camera orbits to reveal the floating bubble and metallic surface, capturing iron filings just starting to quiver and align with hidden magnetic forces.\n1.5\u20133.5s (Exploration): Patterns intensify; filings spiral along the bubble\u2019s shell, form spikes, then break apart and reassemble, tugging gently in and out of the bubble\u2019s surface. At exactly 2.0s, a dry whisper says, \u201cMagnetic Bubble.\u201d\n3.5\u20134.0s (Close-up + Fade): Extreme close-up of iron filings dancing at the bubble\u2019s membrane, shimmering with energy, as the view fades to black with a glinting particle shimmer.\n\n6. AUDIO / ASMR \u2014 Ambient low drone (-28 dBFS) with subtle metallic pings, shuffles, and the faint rasp of iron filings. Hyper-detailed crackle as grains shift. Whisper starts dry at 2.0s: \u201cMagnetic Bubble.\u201d\n\n7. MUSIC / SCORE \u2014 Ethereal ambient score, airy synths and faint metallic pulses, gentle swell from 0\u20131s, lush crescendo 1\u20133s, soft tailing-off at the close, -12 LUFS.\n\n8. COLOR / GRADE \u2014 Graphite gray, sapphire blue, chrome silver, iris purple, soft white.\n\n9. NOTES / CONSTRAINTS \u2014 4 seconds, single shot, whisper mandatory at 2.0s, fade to black with particle shimmer at 3.5\u20134.0s.\n\n10. SINGLE-LINE SUMMARY \u2014 A 4-second surreal ASMR micro-film for June: Magnetic Bubble \u2014 iron filings magnetically orbit and spike around a floating bubble, climaxing in a chrome-hued macro with graphite and iris purple highlights.",
+          "idea": "Shadow Chick",
+          "user_idea": "baby bird",
+          "vibe": "tense dark mystery",
+          "prompt": "1) STYLE / GENRE — Surreal ASMR micro‑film; cinematic, tense, tactile, physically impossible but lens-plausible.\n\n2) SCENE DESCRIPTION — Macro, tightly focused: a baby chick forged entirely from active, rippling shadow perches atop textured, almost black volcanic rock. Instead of feathers, its body is shaped by constantly shifting layers of semi-opaque darkness that flicker and reform—shadow veins flow where down should be. Ambient haze drifts as the shadowed creature blinks; its edges bleed, a hint of translucent light slipping through now and then. Shadows from the chick move counter to the key light, breaking logic. No on-screen text.\n\n3) CINEMATOGRAPHY — Vertical 9:16 (1080×1920), 80mm macro lens, shallow DOF isolates chick’s shifting shadow form. 180° shutter for smooth inertia. Slow, deliberate dolly-in; slight left orbit; parallax from motion in drifting haze and shifting shadows.\n\n4) ACTIONS & TIMING —\n0.0–3.0s: Camera glides in, texture of rock and shadowy body revealed, surface flickers tense.\n3.0–7.0s: Chick blinks, tiny shadow wings pulse; its shadow splits, then fuses, light briefly leaking through. At 5.0s, camera holds—whisper: “Shadow Chick.”\n7.0–10.0s: Macro focus: shadow splits into thin tendrils that swirl, wrap around, then dissolve; slow fade to black with silvery haze and particle shimmer.\n\n5) AUDIO / ASMR — Vacuum-bed ambience at ~–28 dBFS, subtle granular distortion, low-frequency rumbles, micro scratches from rock; deliberate silence between sounds. 5.0s: dry, centered whisper—\"Shadow Chick.\" No other dialogue.\n\n6) MUSIC / SCORE — Ethereal, mysterious dark drone. 0–3s: tension-building low pad; 3–7s: uneasy, pulsing undertones; 7–10s: drawn-out tail into silence; score maintains ~–12 LUFS.\n\n7) COLOR / GRADE — Palette: obsidian black, ash gray, storm blue, highlight silver, bruised violet. Contrast high, details crisp around edges, shadows dense and deep—vibe channels \"tense dark mystery\".\n\n8) NOTES / CONSTRAINTS — 10.0s, single vertical (9:16) continuous shot; no cuts, no text; whisper at 5.0s (“Shadow Chick” only); shadow body must visibly break light direction/logic; fade to black with shimmering residue.\n\n9) SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Shadow Chick — a baby bird shaped from shifting shadows blinks and pulses against mystery, tension, and impossible living darkness.",
           "video_link": null,
           "status": "script_gen",
           "error_message": null,
-          "started_at": "2025-10-26T08:26:35.055+00:00",
+          "started_at": "2025-10-26T13:08:30.618+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T08:26:35.173291+00:00",
-          "updated_at": "2025-10-26T08:26:35.173291+00:00"
+          "created_at": "2025-10-26T13:08:30.715494+00:00",
+          "updated_at": "2025-10-26T13:08:30.715494+00:00",
+          "runId": "ba777cb9-d892-4189-9529-805f5a42ab4b"
         }
       }
     ]

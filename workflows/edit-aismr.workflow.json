@@ -7,8 +7,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        160
+        416,
+        384
       ],
       "id": "636b315f-1053-49f3-b551-c8ce2c1c0e21",
       "name": "Code in JavaScript"
@@ -31,11 +31,12 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        672,
-        160
+        192,
+        384
       ],
       "id": "9fd8087d-0070-4442-bb17-a55effeade3c",
       "name": "Get many rows",
+      "executeOnce": true,
       "credentials": {
         "supabaseApi": {
           "id": "Dt66cXjjQayuOdrT",
@@ -56,8 +57,8 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        496,
-        160
+        -32,
+        384
       ],
       "id": "ab013440-cbc9-4aec-b30b-a74ee5615021",
       "name": "When Executed by Another Workflow"
@@ -76,8 +77,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1104,
-        160
+        640,
+        384
       ],
       "id": "4d8a32a6-eb44-454d-b789-373ae2d77742",
       "name": "HTTP Request",
@@ -98,8 +99,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1312,
-        160
+        864,
+        384
       ],
       "id": "b9a7113d-6245-418d-be27-18d6717e2bc1",
       "name": "Get Video4",
@@ -121,8 +122,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1760,
-        256
+        1312,
+        384
       ],
       "id": "ace47c24-b39f-4a52-bc4f-7c827e7eb6e5",
       "name": "Wait",
@@ -189,8 +190,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1536,
-        80
+        1088,
+        304
       ],
       "id": "e8f852dd-0b33-43b5-9cf8-bc8df619a37f",
       "name": "Switch"
@@ -201,7 +202,7 @@
       "typeVersion": 1,
       "position": [
         -32,
-        160
+        80
       ],
       "id": "9bc69749-e21d-4276-839a-e264f24cadf5",
       "name": "On Error"
@@ -236,10 +237,51 @@
       "typeVersion": 1,
       "position": [
         192,
-        160
+        80
       ],
       "id": "d0f105bf-554f-4e60-8754-a59b7245a978",
       "name": "Mark Run Failed (Edit)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('When Executed by Another Workflow').first().json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "complete"
+            },
+            {
+              "fieldId": "result",
+              "fieldValue": "={{ $json.response.url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        224
+      ],
+      "id": "e5dfd393-2996-4c9a-a3f6-f35696501914",
+      "name": "Mark Run Complete",
       "credentials": {
         "supabaseApi": {
           "id": "Dt66cXjjQayuOdrT",
@@ -306,7 +348,13 @@
     },
     "Switch": {
       "main": [
-        [],
+        [
+          {
+            "node": "Mark Run Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Wait",
@@ -348,7 +396,7 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "runId": "6559268788"
+          "runId": "3da09de0-5fb7-4a16-a327-e7cb894f73a2"
         }
       }
     ],
@@ -359,7 +407,7 @@
           "message": "Created",
           "response": {
             "message": "Render Successfully Queued",
-            "id": "e99f70d8-b373-4317-968d-d742ebccafbd"
+            "id": "46242eba-40b3-409a-b9c7-b17e2d46015e"
           }
         }
       }

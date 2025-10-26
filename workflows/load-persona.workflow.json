@@ -16,7 +16,7 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1584,
+        -1824,
         -64
       ],
       "id": "2c9f23b3-5d3c-4caa-9505-210c863d0c17",
@@ -42,7 +42,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -1072,
+        -1152,
         -208
       ],
       "id": "310abe35-b5cc-4307-9288-b23fbbe73633",
@@ -73,8 +73,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -1072,
-        112
+        -1152,
+        80
       ],
       "id": "351e8cfb-67aa-4976-814b-e8f48f3ec965",
       "name": "Get Project",
@@ -114,7 +114,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -624,
+        -704,
         -64
       ],
       "id": "172859d4-6575-41f0-aa51-1a354d6d5747",
@@ -133,7 +133,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        288,
+        192,
         -64
       ],
       "id": "a33c3582-a4f4-466d-ab48-1100459b5cf7",
@@ -153,7 +153,7 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        64,
+        -32,
         -64
       ],
       "id": "eba855a1-a420-48fe-b62d-7108c25d4578",
@@ -164,7 +164,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -848,
+        -928,
         -64
       ],
       "id": "e5ba18b1-71bb-4f8d-aeeb-91f65b07e6d6",
@@ -177,7 +177,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -400,
+        -480,
         -80
       ],
       "id": "2eab0147-0af1-4e01-96a9-7b2a7fe7e45c",
@@ -212,7 +212,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -624,
+        -704,
         -256
       ],
       "id": "875f2471-1a54-4935-8390-6041d6b7f5f8",
@@ -253,8 +253,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -624,
-        160
+        -704,
+        128
       ],
       "id": "6ee182aa-11c1-49e3-8d36-3c7777bcff3e",
       "name": "Get Project Prompts",
@@ -279,7 +279,7 @@
       "type": "n8n-nodes-base.sort",
       "typeVersion": 1,
       "position": [
-        -176,
+        -256,
         -64
       ],
       "id": "c43f5ebc-485a-4822-bbe9-a8ff3a500d8e",
@@ -302,17 +302,53 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -1392,
-        -64
+        -1376,
+        80
       ],
       "id": "69d0437b-0ad4-4443-9cb7-959a0a76d8d4",
       "name": "Get Run",
+      "alwaysOutputData": true,
       "credentials": {
         "supabaseApi": {
           "id": "Dt66cXjjQayuOdrT",
           "name": "Supabase account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1db29745-4dc8-418d-844d-e812fa16005f",
+              "leftValue": "={{ $json.runId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1632,
+        32
+      ],
+      "id": "f82debc5-a16f-47c4-8a0e-a3ce9cb8275a",
+      "name": "If"
     }
   ],
   "connections": {
@@ -320,7 +356,12 @@
       "main": [
         [
           {
-            "node": "Get Run",
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Persona",
             "type": "main",
             "index": 0
           }
@@ -440,12 +481,19 @@
       "main": [
         [
           {
-            "node": "Get Persona",
+            "node": "Get Project",
             "type": "main",
             "index": 0
-          },
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
           {
-            "node": "Get Project",
+            "node": "Get Run",
             "type": "main",
             "index": 0
           }
@@ -457,8 +505,8 @@
     "When Called": [
       {
         "json": {
-          "personaId": "b711679b-5e52-460d-92bf-f1ec285ab9f4",
-          "runId": "62dafc58-22a2-4b53-a78f-9319582c772a"
+          "personaId": "5b522eeb-32d8-4523-9d99-e2fe9df345c1",
+          "runId": "1"
         }
       }
     ]

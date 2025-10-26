@@ -109,16 +109,15 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "personaName": "Chatbot",
-            "projectId": "308f8cb8-36b5-4def-ac6f-c4937509e9f5"
+            "personaId": "5b522eeb-32d8-4523-9d99-e2fe9df345c1"
           },
           "matchingColumns": [
             "persona_name"
           ],
           "schema": [
             {
-              "id": "personaName",
-              "displayName": "personaName",
+              "id": "personaId",
+              "displayName": "personaId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -127,14 +126,14 @@
               "removed": false
             },
             {
-              "id": "projectId",
-              "displayName": "projectId",
+              "id": "runId",
+              "displayName": "runId",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
               "type": "string",
-              "removed": false
+              "removed": true
             }
           ],
           "attemptToConvertTypes": false,
@@ -259,7 +258,10 @@
       "name": "AISMR Tool"
     },
     {
-      "parameters": {},
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Message Trigger').item.json.message.from.id }}"
+      },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
@@ -540,9 +542,9 @@
     "Telegram Message Trigger": [
       {
         "json": {
-          "update_id": 96971969,
+          "update_id": 96972001,
           "message": {
-            "message_id": 34,
+            "message_id": 92,
             "from": {
               "id": 6559268788,
               "is_bot": false,
@@ -556,8 +558,8 @@
               "last_name": "James",
               "type": "private"
             },
-            "date": 1760644225,
-            "text": "please run the aismr tool with the user input of 'croissants'"
+            "date": 1761484835,
+            "text": "Use the aismr tool to make me a viral asmr video about sandwiches"
           }
         }
       }

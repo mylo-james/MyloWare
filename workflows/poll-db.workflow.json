@@ -19,8 +19,8 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1152,
-        120
+        -1328,
+        128
       ],
       "id": "c0c2561f-dc54-481f-a324-6e34d84ab7b0",
       "name": "When Executed by Another Workflow"
@@ -129,7 +129,7 @@
       "type": "n8n-nodes-base.wait",
       "position": [
         -480,
-        120
+        128
       ],
       "webhookId": "d6b5d4ee-dce9-4053-97c0-75b49c1158a4",
       "typeVersion": 1.1
@@ -186,8 +186,86 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "id": "0e2c4554-2010-4bcf-999c-a695785fc31a",
-          "column": "prompt"
+          "id": "c7ebb5a4-8edf-49ee-bf1f-55bd25e9f9c9",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "99466407-0f51-44ad-afd2-d3d995371b64",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "b84c7ae9-21b6-4685-86a9-b34ed8b4d1db",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "bcedea2a-eea5-4c91-bd65-fef25d28be1a",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "dd9bce21-95b6-4166-91a6-0fc68d5e496a",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "40fc132c-6a98-4dd6-bccc-2fad91fb5952",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "756c19c9-195e-4dd4-8c11-dd0b6bb2a684",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "6dd012b5-b6fa-4a9b-b77b-95d1c6f92535",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "8979c1c9-c149-47b3-8554-429bf91eb5b0",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "ef31887e-8124-4c2b-adab-8185f627b5e4",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "94ff767d-425d-4c71-a409-5544cee64a06",
+          "column": "prompt",
+          "condition": null
+        }
+      },
+      {
+        "json": {
+          "id": "e97feba2-408a-407f-9185-71ccdc88f080",
+          "column": "prompt",
+          "condition": null
         }
       }
     ]

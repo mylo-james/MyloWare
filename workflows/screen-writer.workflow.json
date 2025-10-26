@@ -2,13 +2,44 @@
   "nodes": [
     {
       "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Fetch the full videos row (history) for the current ideaId",
+        "useCustomSchema": true,
+        "operation": "get",
+        "tableId": "videos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('When Called').item.json.ideaId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        272
+      ],
+      "id": "7e0ef9f5-3b9d-4b9a-9d31-2c0e0f3f0b77",
+      "name": "Query Idea (Tool)",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsonSchemaExample": "{\n  \"prompt\": \"string\"\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1152,
-        224
+        1248,
+        272
       ],
       "id": "b6cf6d71-3e1d-44da-ab1a-8639f04cbda0",
       "name": "Structured Output Parser"
@@ -21,8 +52,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        1024,
-        224
+        992,
+        272
       ],
       "id": "bead73fd-3b21-4698-8670-5b0110f1db05",
       "name": "Simple Memory"
@@ -40,8 +71,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        896,
-        224
+        864,
+        272
       ],
       "id": "7fa5fb5a-c7c0-4f3c-a3fd-9f38473c23ae",
       "name": "5-nano",
@@ -55,7 +86,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $('Get idea').item.json.idea }}",
+        "text": "=Query {{ $('Get idea').item.json.id }} in the db to get all of the info you need for the idea.",
         "hasOutputParser": true,
         "options": {
           "systemMessage": "={{ $json.prompt_text }}"
@@ -64,8 +95,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        960,
-        0
+        992,
+        48
       ],
       "id": "b66930b5-18ed-4821-a3a5-c1e7a24f3b2e",
       "name": "Screen Writer"
@@ -92,8 +123,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1360,
-        0
+        1456,
+        48
       ],
       "id": "57862e5d-433e-435c-af38-079cfa6ef2c8",
       "name": "Update Row with Prompt",
@@ -120,8 +151,8 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        0
+        -32,
+        48
       ],
       "id": "34768d2d-693d-438f-8a1a-c3a415cba168",
       "name": "When Called"
@@ -174,8 +205,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        672,
-        0
+        640,
+        48
       ],
       "id": "75dcd3b1-8f4f-480e-ae1d-c0030d8b8e87",
       "name": "Call 'Load Persona'"
@@ -196,8 +227,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        448,
-        0
+        192,
+        48
       ],
       "id": "67f0e3f7-3960-4d1e-b584-744776a266b6",
       "name": "Get idea",
@@ -224,8 +255,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        224,
-        0
+        192,
+        -144
       ],
       "id": "7cb22214-6a9d-42a1-b3d2-16906598cf94",
       "name": "Get a row",
@@ -242,7 +273,7 @@
       "typeVersion": 1,
       "position": [
         -32,
-        160
+        464
       ],
       "id": "e7643002-dae8-441f-be64-a2040255f6a8",
       "name": "On Error"
@@ -277,7 +308,7 @@
       "typeVersion": 1,
       "position": [
         192,
-        160
+        464
       ],
       "id": "a477a4ea-efbd-4aba-af0a-bd0fb4f9dc27",
       "name": "Mark Run Failed (Scripts)",
@@ -287,6 +318,56 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "runs",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.runId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "scripts"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        240
+      ],
+      "id": "039c04c9-d871-47b8-ac92-18279ac7ff5b",
+      "name": "Mark Run Scripts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Dt66cXjjQayuOdrT",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        416,
+        32
+      ],
+      "id": "3ca6c35b-ea2d-4fa8-aab9-5c19977881b6",
+      "name": "Merge"
     }
   ],
   "connections": {
@@ -307,6 +388,17 @@
           {
             "node": "Screen Writer",
             "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Idea (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Screen Writer",
+            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -341,6 +433,16 @@
             "node": "Get a row",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Mark Run Scripts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get idea",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -365,9 +467,9 @@
       "main": [
         [
           {
-            "node": "Call 'Load Persona'",
+            "node": "Merge",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -376,7 +478,7 @@
       "main": [
         [
           {
-            "node": "Get idea",
+            "node": "Merge",
             "type": "main",
             "index": 0
           }
@@ -398,14 +500,86 @@
       "main": [
         []
       ]
+    },
+    "Mark Run Scripts": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Call 'Load Persona'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {
+    "On Error": [
+      {
+        "json": {
+          "execution": {
+            "id": "3109",
+            "url": "https://crocs93.app.n8n.cloud/workflow/qOgWNfGwMpWkPWjK/executions/3109",
+            "error": {
+              "level": "warning",
+              "tags": {},
+              "description": "Expected to find the prompt in an input field called 'chatInput' (this is what the chat trigger node outputs). To use something else, change the 'Prompt' parameter",
+              "timestamp": 1761481990571,
+              "context": {},
+              "functionality": "regular",
+              "name": "NodeOperationError",
+              "node": {
+                "parameters": {
+                  "aiAgentStarterCallout": "",
+                  "preBuiltAgentsCallout": "",
+                  "promptType": "define",
+                  "text": "={{ $('Get idea').item.json.idea }}",
+                  "hasOutputParser": true,
+                  "notice": "",
+                  "needsFallback": false,
+                  "options": {
+                    "systemMessage": "={{ $json.prompt_text }}"
+                  }
+                },
+                "type": "@n8n/n8n-nodes-langchain.agent",
+                "typeVersion": 2.2,
+                "position": [
+                  984,
+                  48
+                ],
+                "id": "b66930b5-18ed-4821-a3a5-c1e7a24f3b2e",
+                "name": "Screen Writer"
+              },
+              "messages": [],
+              "message": "No prompt specified",
+              "stack": "NodeOperationError: No prompt specified\n    at getPromptInputByType (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_fc553bfe732254ec5207074cf9e2ceb7/node_modules/@n8n/n8n-nodes-langchain/utils/helpers.ts:93:9)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_fc553bfe732254ec5207074cf9e2ceb7/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:214:18\n    at Array.map (<anonymous>)\n    at ExecuteContext.toolsAgentExecute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_fc553bfe732254ec5207074cf9e2ceb7/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:211:31)\n    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_fc553bfe732254ec5207074cf9e2ceb7/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/V2/AgentV2.node.ts:131:10)\n    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1265:8)\n    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1446:11)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1847:27\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2461:11"
+            },
+            "lastNodeExecuted": "Screen Writer",
+            "mode": "integrated"
+          },
+          "workflow": {
+            "id": "qOgWNfGwMpWkPWjK",
+            "name": "Screen Writer"
+          }
+        }
+      }
+    ],
     "When Called": [
       {
         "json": {
-          "ideaId": "21d6436e-dda9-4b26-8e72-bff40abd41cf",
-          "runId": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          "ideaId": "99466407-0f51-44ad-afd2-d3d995371b64",
+          "runId": "e00b9e8b-fb0e-4641-92c0-f0064a847407"
         }
       }
     ]
