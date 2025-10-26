@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "jsCode": "const months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst videos = $input.all()\n  .filter(video => video?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12);\n\nconst duration = 10;\nconst items = videos.map((video, index) => ({\n  link: video.json.video_link,\n  title: video.json.idea || `Idea ${index + 1}`,\n  label: months[index % months.length],\n  start: index * duration\n}));\n\nconst edit = {\n  timeline: {\n    background: '#000000',\n    tracks: [\n      {\n        clips: items.map(item => ({\n          asset: { type: 'video', src: item.link },\n          start: item.start,\n          length: duration,\n          transition: { in: 'fade', out: 'fade' }\n        }))\n      },\n      {\n        clips: items.map(item => ({\n          asset: {\n            type: 'title',\n            text: item.label,\n            style: 'minimal',\n            size: 'large',\n            color: '#FFFFFF'\n          },\n          start: item.start,\n          length: duration,\n          position: 'top'\n        }))\n      }\n    ]\n  },\n  output: {\n    format: 'mp4',\n    resolution: 'hd',\n    aspectRatio: '9:16'\n  }\n};\n\nreturn [{ json: edit }];"
+        "jsCode": "// n8n Script node: build minimal Shotstack edit JSON (text asset minimal)\nconst months = [\n  'January','February','March','April','May','June',\n  'July','August','September','October','November','December'\n];\n\nconst duration = 10; // seconds per clip\n\n// grab input items (n8n provides $input)\nconst inputItems = $input.all();\n\n// build video list from input or fallback sample\nconst videos = (inputItems\n  .filter(v => v?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12)\n  .map((v, i) => ({ link: v.json.video_link, title: v.json.idea || (`Idea ${i+1}`) }))\n) .length ? (inputItems\n  .filter(v => v?.json?.video_link)\n  .sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at))\n  .slice(0, 12)\n  .map((v, i) => ({ link: v.json.video_link, label: v.json.idea || (`Idea ${i+1}`) }))\n) : [\n  // fallback/test videos — replace/remove in production\n  { link: 'https://tempfile.aiquickdraw.com/v/d62967ee64de5f4def1c7eeb98467c7a_1761485969.mp4', label: 'Sample idea 1' },\n  { link: 'https://tempfile.aiquickdraw.com/v/bc45d511685d85430ce100539d64653c_1761485995.mp4', label: 'Sample idea 2' }\n];\n\n// create items with start times and labels\nconst items = videos.map((v, idx) => ({\n  link: v.link,\n  title: months[idx % months.length],\n  label: v.label,\n  start: idx * duration\n}));\n\n// build top text clips (minimal fields exactly as requested)\nconst topClips = items.map(it => ({\n  asset: {\n    type: \"text\",\n    text: it.title,\n    width: 1000,\n    height: 200,\n    font: {\n      family: \"Open Sans\",\n      color: \"#ffffff\",\n      opacity: 0.8,\n      size: 48,\n      weight: 400,\n      lineHeight: 0.85\n    },\n    alignment: {\n      horizontal: \"center\",\n      vertical: \"top\"\n    }\n  },\n  start: it.start,\n  length: duration,\n  position: \"bottom\"\n}));\n\n// build bottom text clips (minimal fields)\nconst bottomClips = items.map(it => ({\n  asset: {\n    type: \"text\",\n    text: it.label,\n    width: 1000,\n    height: 100,\n    font: {\n      family: \"Open Sans\",\n      color: \"#ffffff\",\n      opacity: 0.8,\n      size: 24,\n      weight: 400,\n      lineHeight: 0.85\n    },\n    alignment: {\n      horizontal: \"center\",\n      vertical: \"top\"\n    }\n  },\n  start: it.start,\n  length: duration,\n  position: \"bottom\"\n}));\n\n// build video clips (hard cuts)\nconst videoClips = items.map(it => ({\n  asset: {\n    type: \"video\",\n    src: it.link\n  },\n  start: it.start,\n  length: duration\n}));\n\n// final edit JSON (minimal)\nconst edit = {\n  timeline: {\n    background: \"#000000\",\n    tracks: [\n      { clips: topClips },    // top overlay (first = topmost)\n      { clips: bottomClips }, // bottom overlay\n      { clips: videoClips }   // base video track\n    ]\n  },\n  output: {\n    format: \"mp4\",\n    resolution: \"hd\",\n    aspectRatio: \"9:16\"\n  }\n};\n\n// return for next node (HTTP Request)\nreturn [{ json: edit }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -85,7 +85,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "S31bXA351k9zXbHo",
-          "name": "Header Auth account"
+          "name": "shotstack"
         }
       }
     },
@@ -111,7 +111,7 @@
         },
         "httpHeaderAuth": {
           "id": "S31bXA351k9zXbHo",
-          "name": "Header Auth account"
+          "name": "shotstack"
         }
       }
     },
@@ -396,19 +396,7 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "runId": "3da09de0-5fb7-4a16-a327-e7cb894f73a2"
-        }
-      }
-    ],
-    "HTTP Request": [
-      {
-        "json": {
-          "success": true,
-          "message": "Created",
-          "response": {
-            "message": "Render Successfully Queued",
-            "id": "46242eba-40b3-409a-b9c7-b17e2d46015e"
-          }
+          "runId": "8b3c4420-4cd6-426f-b68b-19232dd49375"
         }
       }
     ]
