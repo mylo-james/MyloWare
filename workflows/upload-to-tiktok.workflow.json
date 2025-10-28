@@ -129,7 +129,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "runId": "={{ $('When Executed by Another Workflow').item.json.runId }}",
-            "personaId": "86fe8c64-7e99-4814-adce-1748944c5d35"
+            "personaId": "7a2c68b3-7c1c-47a2-a2a7-6fd5f17f7d2e"
           },
           "matchingColumns": [],
           "schema": [
@@ -353,21 +353,7 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "runId": "8b3c4420-4cd6-426f-b68b-19232dd49375"
-        }
-      }
-    ],
-    "Get a row": [
-      {
-        "json": {
-          "id": "8b3c4420-4cd6-426f-b68b-19232dd49375",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "chat_id": "6559268788",
-          "status": "complete",
-          "result": "https://shotstack-api-stage-output.s3-ap-southeast-2.amazonaws.com/hon85ahg2g/af4de0e9-f471-4acd-84b4-40fdabb92d2d.mp4",
-          "error_message": null,
-          "created_at": "2025-10-26T13:37:47.060834+00:00",
-          "updated_at": "2025-10-26T13:37:47.060834+00:00"
+          "runId": "26412ffa-393c-479c-9bfc-07bcaeda9d2c"
         }
       }
     ]

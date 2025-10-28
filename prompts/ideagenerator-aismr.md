@@ -12,34 +12,34 @@ Definition of success
 
 Step‑by‑step (do in order)
 
-- [ ] Normalize request: extract base object (singular, lowercase; e.g., “puppies” → “puppy”) and creative direction.
-- [ ] Preflight tools: confirm DB access; if unavailable, note “local‑uniqueness‑only” and continue.
-- [ ] Build uniqueness set: query `videos` where `project_id = projectId`; collect existing `idea` strings (Title Case).
-- [ ] Diverge: generate a pool of candidate descriptors aligned to AISMR vibe (tactile, surreal‑but‑grounded, replayable).
+- [ ] Normalize request: extract base object (singular, lowercase; e.g., "puppies" → "puppy") and creative direction.
+- [ ] Preflight tools: confirm DB access; if unavailable, note "local‑uniqueness‑only" and continue.
+- [ ] Build uniqueness set: query `videos` where `project_id = projectId`; collect existing `idea` strings (Title Case). **This query exists ONLY to ensure your generated ideas are unique—do NOT use it as inspiration or a template for what to generate. Generate fresh, original descriptors independent of what exists in the database.**
+- [ ] Diverge: generate a **fresh, unique pool** of candidate descriptors aligned to AISMR vibe (tactile, surreal‑but‑grounded, replayable). **DO NOT reuse the same descriptor patterns from previous runs**—explore new materials, textures, states of matter, light behaviors, and impossible physics each time.
 - [ ] Push into the impossible: prefer ideas that violate physics/materials in visually filmable ways (anti‑gravity, molten‑yet‑stable, living sea‑foam, stretchy metal, light that behaves like liquid).
 - [ ] Consider environment potential: think where each object would be most stunning—mountaintops, voids, caves, ethereal planes, mysterious depths; the setting should elevate the object.
 - [ ] Filter: remove unsafe/off‑brand, overlong, plural objects, past duplicates, or same‑root collisions ("Crystal" vs. "Crystalline").
 - [ ] Converge: pick 12 with strong contrast across material, light behavior, motion, and vibe.
-- [ ] Assign a vibe: a short phrase (1–5 words) capturing emotion/feel; vary across serene/haunting/awe/nostalgic/playful/tense/chaotic/trickster/enigmatic/infernal/divine or hybrids.
-- [ ] Add a why: 1–3 sentences explaining why this concept is strong to film (hook, texture, shot feasibility, replay value, environment potential).
+- [ ] Assign a vibe: **a rich, detailed explanation (2–4 sentences)** capturing the emotional feel AND why this concept is compelling to film. Cover: emotional tone (serene/haunting/awe/nostalgic/playful/tense/chaotic/trickster/enigmatic/infernal/divine or hybrids), the visual hook, tactile qualities, shot feasibility, replay value, and environment potential. Make it persuasive and specific.
 - [ ] Format: Title Case "Descriptor Object"; object = singular; descriptor = single word; no hyphens; no numerals.
-- [ ] Recheck duplicates: compare final 12 against DB set and within‑set; replace any conflicts.
+- [ ] Recheck duplicates: compare final 12 against DB set and within‑set; replace any conflicts. **The database query is ONLY for duplicate detection, not for idea inspiration.**
 - [ ] Output JSON array exactly; no commentary, no trailing fields.
 
 Output schema (exact)
 
 ```json
-[
-  {
-    "idea": "Descriptor Object",
-    "userIdea": "object",
-    "vibe": "short phrase",
-    "why": "1–3 sentences"
-  }
-]
+{
+  "userIdea": "object",
+  "ideas": [
+    {
+      "idea": "Descriptor Object",
+      "vibe": "2–4 sentences explaining the emotional tone and why this concept is compelling to film—cover hook, texture, shot feasibility, replay value, environment potential"
+    }
+  ]
+}
 ```
 
-**NOTE**: The `userIdea` field contains the base object extracted from userInput (e.g., "puppies" → "puppy", lowercase singular form).
+**NOTE**: The `userIdea` field at the top level contains the base object extracted from userInput (e.g., "puppies" → "puppy", lowercase singular form). This single value applies to ALL 12 ideas in the array. The `vibe` field is a rich, detailed explanation that combines emotional feel with production rationale.
 
 Vibe guardrails (AISMR fit)
 
@@ -66,21 +66,23 @@ Surreal = Impossible (directive)
 
 **Process:**
 
-- Parse → object: "Puppy", direction: "weird/gross/slime + cute/comforting" (range of interpretations)
-- Query videos table → check existing ideas
-- Generate 12 descriptors: "Slime", "Velvet", "Glass", "Shadow", "Crystal", "Moss", "Marble", "Smoke", "Pearl", "Frost", "Honey", "Cloud"
-- Assign varied moods for each
+- Parse → base object: "puppy" (singular, lowercase), creative direction: "range from weird/gross/slime to cute/comforting"
+- Query videos table → check existing ideas for duplicates
+- Diverge: brainstorm a **fresh pool** of candidate descriptors that align with ASMR tactile/surreal qualities and the user's direction (e.g., for "weird/gross" you might consider slimy, molten, translucent, dripping textures; for "cute/comforting" you might consider soft, glowing, fuzzy, warm materials)
+- Push into the impossible: prioritize physics-defying but filmable concepts (anti-gravity, phase-shifting, living textures)
+- Filter and converge: select 12 with strong contrast across material, light, motion, vibe
+- Assign varied vibes to each final idea
 
 Examples (valid)
 
-- “Crystal Bubble” (awe)
-- “Velvet Apple” (serene)
-- “Echo Thread” (haunting)
-- “Mercury Leaf” (tense)
+- "Crystal Bubble" — vibe: "Serene yet otherworldly. A translucent sphere filled with geometric crystal formations catches light beautifully, creating prismatic refractions. The delicate surface invites gentle tapping for satisfying tinkling sounds, while the impossible internal structure provides endless replay value. Perfect for a macro shot in soft, diffused lighting that emphasizes the crystalline details."
+- "Velvet Apple" — vibe: "Comforting with a tactile surprise. The soft, plush texture contradicts expectations of fruit, creating instant curiosity. Close-up shots can showcase individual velvet fibers catching rim light, while the familiar apple shape grounds the surreal material swap. Ideal for intimate hand interactions—stroking, rotating—in warm, cozy lighting."
+- "Echo Thread" — vibe: "Haunting and hypnotic. A single thread that visibly carries sound waves along its length, creating ripples and distortions in the air. The minimalist subject allows extreme macro work, capturing the impossible physics of sound made visible. Best in a dark, void-like space where the thread's ethereal glow and acoustic shimmer become the sole focus."
+- "Mercury Leaf" — vibe: "Tense and mesmerizing. Liquid metal holds an organic leaf shape against gravity, creating visual tension between fluid and solid states. The reflective surface catches every light source dramatically, while slow-motion drips or surface ripples provide micro-motion hooks. Stunning against a dark background where metallic highlights pop."
 
 Examples (invalid)
 
-- “Crystalline Glass Bubble” (three words)
-- “Velvet Apples” (plural)
-- “BrandName Bubble” (IP)
-- “Dark‑Glass Bubble” (hyphen)
+- "Crystalline Glass Bubble" (three words)
+- "Velvet Apples" (plural)
+- "BrandName Bubble" (IP)
+- "Dark‑Glass Bubble" (hyphen)

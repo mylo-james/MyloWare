@@ -127,7 +127,7 @@
       "typeVersion": 1,
       "position": [
         1392,
-        424
+        432
       ],
       "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
       "name": "Update a row",
@@ -271,7 +271,7 @@
       "typeVersion": 3.3,
       "position": [
         944,
-        472
+        480
       ],
       "id": "36a1e18a-990a-4708-a535-ae6e07484748",
       "name": "Switch"
@@ -295,7 +295,7 @@
       "typeVersion": 3.4,
       "position": [
         1168,
-        424
+        432
       ],
       "id": "8a19cb99-efcd-462c-b311-068e355b7df0",
       "name": "Edit Fields"
@@ -624,22 +624,11 @@
     }
   },
   "pinData": {
-    "Text to Video2": [
-      {
-        "json": {
-          "code": 200,
-          "msg": "success",
-          "data": {
-            "taskId": "4592d211c4e7aa67fce974b199981765"
-          }
-        }
-      }
-    ],
     "When Called": [
       {
         "json": {
-          "id": "91a62758-fca2-4e79-9122-2a89fc5fabdb",
-          "runId": "91a62758-fca2-4e79-9122-2a89fc5fabdb"
+          "id": "b5a4cdd1-0169-4587-8ec3-9b6f13d2ca03",
+          "runId": "b5a4cdd1-0169-4587-8ec3-9b6f13d2ca03"
         }
       }
     ]

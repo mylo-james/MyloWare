@@ -12,7 +12,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        1128,
+        1136,
         -32
       ],
       "id": "21858edb-2408-45bd-906b-e3133b27e126",
@@ -309,7 +309,7 @@
       "typeVersion": 1,
       "position": [
         112,
-        296
+        304
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
@@ -344,7 +344,7 @@
       "typeVersion": 1,
       "position": [
         336,
-        296
+        304
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
       "name": "Mark Run Failed (Ideas)",
@@ -568,8 +568,8 @@
     "When Called": [
       {
         "json": {
-          "userInput": "Let's create an aismr video about different baby birds. We should see hand interacting with the chicks",
-          "runId": "6c4e01b2-5446-40a7-8bdb-45131b98b0d4",
+          "userInput": "Create a viral ASMR video about powerful wizards. Focus on magical sounds, enchanting whispers, and mystical ambiance to captivate viewers.",
+          "runId": "5166f84d-6a55-440e-9570-4f01addcd07e",
           "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
         }
       }

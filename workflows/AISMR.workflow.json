@@ -465,7 +465,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1760,
+        2208,
         -432
       ],
       "id": "bc1c81f1-85c6-472b-b5de-da3bfb6c2e5b",
@@ -476,6 +476,96 @@
           "name": "Supabase account"
         }
       }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vmp9L5Bhin2jQCPC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vmp9L5Bhin2jQCPC",
+          "cachedResultName": "Upload to TikTok"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('Create Run').item.json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1984,
+        -432
+      ],
+      "id": "a2d9a0ea-46a8-4490-be47-1820c3a8df47",
+      "name": "Call 'Upload to TikTok'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "xXfy1EgFoH6EZU7v",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/xXfy1EgFoH6EZU7v",
+          "cachedResultName": "Upload file to Google Drive"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ideaId",
+              "displayName": "ideaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "projectName",
+              "displayName": "projectName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1760,
+        -432
+      ],
+      "id": "e91a1e02-8112-4624-84c3-b2aa40781df3",
+      "name": "Call 'Upload file to Google Drive'"
     }
   ],
   "connections": {
@@ -576,7 +666,29 @@
       "main": [
         [
           {
+            "node": "Call 'Upload file to Google Drive'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Upload to TikTok'": {
+      "main": [
+        [
+          {
             "node": "Mark Run Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Upload file to Google Drive'": {
+      "main": [
+        [
+          {
+            "node": "Call 'Upload to TikTok'",
             "type": "main",
             "index": 0
           }
@@ -589,697 +701,481 @@
       {
         "json": {
           "chatId": "6559268788",
-          "userInput": "Let's create an AISMR video about Handfulls. So handfuls of like.... rainbow sand... or gold feathers... jsut different textures to grab"
+          "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
         }
       }
     ],
     "Generate Ideas": [
       {
         "json": {
-          "id": "b1eb1684-09e3-40ad-ab33-7547ff8eff78",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "70da9be2-4b87-46ac-950a-fd318311616f",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Grain",
-          "user_idea": "handfull",
-          "vibe": "serene tactile calm",
+          "idea": "Ember Fox",
+          "user_idea": "fox",
+          "vibe": "Infernal yet inviting, the Ember Fox glows with a gentle fiery warmth that flickers like embers without burning. Covered in soft glowing fur that seems to pulse with silent heat, it invites intimate petting and tapping that conjure subtle crackling sounds. Set against a crystalline cave bathed in amber light, this familiar blends mystical power with tactile delight, inviting viewers into a cozy, otherworldly embrace that feels both dangerous and comforting.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.803+00:00",
+          "started_at": "2025-10-28T18:56:39.173+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "8aa3d8d1-22ff-40d0-ac94-3aadf4247a0f",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "ecc76113-c383-40d7-a07c-83883128a001",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Feather",
-          "user_idea": "handfull",
-          "vibe": "enigmatic ethereal grace",
+          "idea": "Celestial Hound",
+          "user_idea": "hound",
+          "vibe": "Radiating divine tranquility, the Celestial Hound is enveloped in a halo of shimmering light particles that dance softly around its sleek, marble-like coat. Perched atop a misty mountain at dawn, it evokes calm and majestic presence. Viewers can almost feel the smooth, cool surface as they gently stroke or tap, while a whispering breeze and faint glowing particles create an immersive and serene ASMR experience full of awe and reverence.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
+          "started_at": "2025-10-28T18:56:39.174+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "b4873431-6be6-4585-9036-bd06336e8e67",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Mercury Sand",
-          "user_idea": "handfull",
-          "vibe": "tense hypnotic flow",
+          "idea": "Crystal Owl",
+          "user_idea": "owl",
+          "vibe": "Serene and transcendent, the Crystal Owl’s feathers refract light like cut glass, sparkling with internal rainbows in a void-like ethereal space. Its delicate, tactile surface invites gentle tapping that produces clear, tinkling sounds echoing softly in stillness. This macro close-up offers a hypnotic, otherworldly encounter packed with replay value, where mystery and elegance meet the impossible beauty of crystalline texture.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
+          "started_at": "2025-10-28T18:56:39.176+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "bd058d16-47a7-4540-a07e-0c4ca2e3bcf9",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Dust",
-          "user_idea": "handfull",
-          "vibe": "haunting intimate softness",
+          "idea": "Molten Hare",
+          "user_idea": "hare",
+          "vibe": "Enigmatic yet playful, the Molten Hare’s form flows with slow-motion molten metal that tackily maintains its shape with a subtle glow. Set in a dark forest clearing speckled with bioluminescent flora, its tactile surface beckons gentle pokes that resonate with crackling warmth. The pairing of visual molten fluidity, rich foley, and intimate whispering crafts a captivating, dreamlike ASMR moment blending nature and magic seamlessly.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.805+00:00",
+          "started_at": "2025-10-28T18:56:39.177+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "1d76520f-6d13-4ad6-8a39-03f3bf1a3a79",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "26414827-d5f0-43fc-9eb6-8777546c76d7",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Thread",
-          "user_idea": "handfull",
-          "vibe": "awe fragile clarity",
+          "idea": "Living Serpent",
+          "user_idea": "serpent",
+          "vibe": "Dark and haunting, the Living Serpent’s iridescent mercury-like scales ripple fluidly in a star-dotted void. Its sinuous motion and reflective surface invite viewers to follow each shimmering scale with their fingertips, accompanied by the faint sliding sound that amplifies tactile immersion. The whisper timed exactly at 3 seconds seals the enigmatic, mesmerizing atmosphere, perfect for looping replay and deep engagement with this impossible creature.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.806+00:00",
+          "started_at": "2025-10-28T18:56:39.178+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "7e9b6f5e-acdf-4da4-a577-8763271065bf",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "282224a9-ca81-4776-9227-481a7f65e5cd",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Celestial Pebble",
-          "user_idea": "handfull",
-          "vibe": "divine tranquil power",
+          "idea": "Nimbus Cat",
+          "user_idea": "cat",
+          "vibe": "A whimsical, ephemeral companion, the Nimbus Cat materializes as a soft swirling cloud of mist and vapor. Its undulating form invites gentle strokes that barely disturb its vaporous body, accompanied by light ambient whispers and the soft sound of breezes. Set atop a high mist-shrouded cliff at dawn, this airy familiar melds tactile softness with visual poetry, enveloping the viewer in a soothing, fantastical ASMR experience marked by quiet delight and mystery.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.807+00:00",
+          "started_at": "2025-10-28T18:56:39.179+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "6f192374-0fd6-48a4-aad9-a8fddfa98576",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Lava Grain",
-          "user_idea": "handfull",
-          "vibe": "infernal warm intensity",
+          "idea": "Shadow Raven",
+          "user_idea": "raven",
+          "vibe": "Mysterious and enigmatic, the Shadow Raven’s feathers absorb surrounding light, creating a velvet black texture that seems almost tangible. Its slow wing fluttering and subtle wingtip taps generate rich, dark foley sounds that enhance the tactile allure. Placed within a moonlit crystalline cave, the raven’s presence teases the edge of the visible world, inviting viewers to intimately explore shadows with careful, rhythmic interaction framed by a haunting whisper.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.808+00:00",
+          "started_at": "2025-10-28T18:56:39.18+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "66178669-962f-4d80-87d1-e3a58143467c",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Fiber",
-          "user_idea": "handfull",
-          "vibe": "playful shimmering delight",
+          "idea": "Glowing Toad",
+          "user_idea": "toad",
+          "vibe": "Charming and otherworldly, the Glowing Toad’s smooth skin pulses with bioluminescent light in a rhythmic pattern. Set within a damp misty swamp alive with twinkling fireflies, its tactile surface invites gentle taps and strokes. The resulting mix of wet squelches and gentle light pulses forms a whimsical ASMR moment, balancing playfulness with the surreal, while the precisely timed whisper adds an intimate human touch that deepens the quiet magic.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.809+00:00",
+          "started_at": "2025-10-28T18:56:39.181+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "abc8a2f3-41f7-4f1d-928f-4dd108695376",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silk Sand",
-          "user_idea": "handfull",
-          "vibe": "nostalgic soft elegance",
+          "idea": "Ethereal Badger",
+          "user_idea": "badger",
+          "vibe": "Grounded in mystery, the Ethereal Badger’s fur glows softly with spectral luminescence, floating slightly above a solid form that shifts subtly with the twilight forest background. The rustling sounds of its movement and tactile fur taps combine with the precise whispering moment to evoke a hypnotic, mystical world. This familiar blends the comfort of natural textures with surreal, enchanted elements in a calming and immersive ASMR scene.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.811+00:00",
+          "started_at": "2025-10-28T18:56:39.181+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "2538b1f0-6b89-47d5-8b9e-13bf58178751",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Plasma Dust",
-          "user_idea": "handfull",
-          "vibe": "chaotic energetic spark",
+          "idea": "Frost Lynx",
+          "user_idea": "lynx",
+          "vibe": "Cool and serene, the Frost Lynx’s fur sparkles with frosted crystals catching alpine sunlight in a snowy mountain glade. Its tactile coat entices soft, deliberate strokes producing gentle crackling snow sounds. Enveloped in crisp, cold air with subtle ambient whispers, this magical creature combines the familiar with surreal icy magic. The scene’s clarity and texture invite prolonged engagement and a calm reverence for winter’s quiet power.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.813+00:00",
+          "started_at": "2025-10-28T18:56:39.182+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "e10bf643-79a5-4f0e-aefd-57ed808c68ec",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frozen Feather",
-          "user_idea": "handfull",
-          "vibe": "serene crisp stillness",
+          "idea": "Twilight Deer",
+          "user_idea": "deer",
+          "vibe": "Divine and enigmatic, the Twilight Deer’s coat shifts through hues of dusk—purples, blues, and starlight glimmers—set against an ethereal plain beneath a vast night sky filled with shooting stars. Its flowing fur feels liquid and soft to the touch, creating a mesmerizing tactile contrast with the vast, quiet wilderness. Accompanied by soft grass rustling and a perfectly timed whisper, this ASMR moment evokes serene awe and gentle mystery, inviting quiet contemplation.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
+          "started_at": "2025-10-28T18:56:39.183+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       },
       {
         "json": {
-          "id": "e8def710-7aa0-463a-a4c4-447a2bf4b785",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Nimbus Grain",
-          "user_idea": "handfull",
-          "vibe": "enigmatic airy mystery",
+          "idea": "Molten Stallion",
+          "user_idea": "stallion",
+          "vibe": "Dynamic and powerful, the Molten Stallion blends the chaos of flowing lava with the grace of a majestic horse. Its form moves slowly like thick molten taffy with glowing veins beneath a cracked crust. Situated in a volcanic cavern lit by flowing lava rivers, the tactile sensation is rich with crackling heat and fluid rhythm. The timed whisper at 3 seconds adds a grounding human presence, making this fiery beast both formidable and mesmerizing in texture and motion.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
+          "started_at": "2025-10-28T18:56:39.184+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00"
         }
       }
     ],
     "Write Screen": [
       {
         "json": {
-          "id": "b1eb1684-09e3-40ad-ab33-7547ff8eff78",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "70da9be2-4b87-46ac-950a-fd318311616f",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Grain",
-          "user_idea": "handfull",
-          "vibe": "serene tactile calm",
+          "idea": "Ember Fox",
+          "user_idea": "fox",
+          "vibe": "Infernal yet inviting, the Ember Fox glows with a gentle fiery warmth that flickers like embers without burning. Covered in soft glowing fur that seems to pulse with silent heat, it invites intimate petting and tapping that conjure subtle crackling sounds. Set against a crystalline cave bathed in amber light, this familiar blends mystical power with tactile delight, inviting viewers into a cozy, otherworldly embrace that feels both dangerous and comforting.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.803+00:00",
+          "started_at": "2025-10-28T18:56:39.173+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "b1eb1684-09e3-40ad-ab33-7547ff8eff78",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "70da9be2-4b87-46ac-950a-fd318311616f",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "8aa3d8d1-22ff-40d0-ac94-3aadf4247a0f",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "ecc76113-c383-40d7-a07c-83883128a001",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Feather",
-          "user_idea": "handfull",
-          "vibe": "enigmatic ethereal grace",
+          "idea": "Celestial Hound",
+          "user_idea": "hound",
+          "vibe": "Radiating divine tranquility, the Celestial Hound is enveloped in a halo of shimmering light particles that dance softly around its sleek, marble-like coat. Perched atop a misty mountain at dawn, it evokes calm and majestic presence. Viewers can almost feel the smooth, cool surface as they gently stroke or tap, while a whispering breeze and faint glowing particles create an immersive and serene ASMR experience full of awe and reverence.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
+          "started_at": "2025-10-28T18:56:39.174+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "8aa3d8d1-22ff-40d0-ac94-3aadf4247a0f",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "ecc76113-c383-40d7-a07c-83883128a001",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "b4873431-6be6-4585-9036-bd06336e8e67",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Mercury Sand",
-          "user_idea": "handfull",
-          "vibe": "tense hypnotic flow",
+          "idea": "Crystal Owl",
+          "user_idea": "owl",
+          "vibe": "Serene and transcendent, the Crystal Owl’s feathers refract light like cut glass, sparkling with internal rainbows in a void-like ethereal space. Its delicate, tactile surface invites gentle tapping that produces clear, tinkling sounds echoing softly in stillness. This macro close-up offers a hypnotic, otherworldly encounter packed with replay value, where mystery and elegance meet the impossible beauty of crystalline texture.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
+          "started_at": "2025-10-28T18:56:39.176+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "b4873431-6be6-4585-9036-bd06336e8e67",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "bd058d16-47a7-4540-a07e-0c4ca2e3bcf9",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Dust",
-          "user_idea": "handfull",
-          "vibe": "haunting intimate softness",
+          "idea": "Molten Hare",
+          "user_idea": "hare",
+          "vibe": "Enigmatic yet playful, the Molten Hare’s form flows with slow-motion molten metal that tackily maintains its shape with a subtle glow. Set in a dark forest clearing speckled with bioluminescent flora, its tactile surface beckons gentle pokes that resonate with crackling warmth. The pairing of visual molten fluidity, rich foley, and intimate whispering crafts a captivating, dreamlike ASMR moment blending nature and magic seamlessly.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.805+00:00",
+          "started_at": "2025-10-28T18:56:39.177+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "bd058d16-47a7-4540-a07e-0c4ca2e3bcf9",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "1d76520f-6d13-4ad6-8a39-03f3bf1a3a79",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "26414827-d5f0-43fc-9eb6-8777546c76d7",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Thread",
-          "user_idea": "handfull",
-          "vibe": "awe fragile clarity",
+          "idea": "Living Serpent",
+          "user_idea": "serpent",
+          "vibe": "Dark and haunting, the Living Serpent’s iridescent mercury-like scales ripple fluidly in a star-dotted void. Its sinuous motion and reflective surface invite viewers to follow each shimmering scale with their fingertips, accompanied by the faint sliding sound that amplifies tactile immersion. The whisper timed exactly at 3 seconds seals the enigmatic, mesmerizing atmosphere, perfect for looping replay and deep engagement with this impossible creature.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.806+00:00",
+          "started_at": "2025-10-28T18:56:39.178+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "1d76520f-6d13-4ad6-8a39-03f3bf1a3a79",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "26414827-d5f0-43fc-9eb6-8777546c76d7",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "7e9b6f5e-acdf-4da4-a577-8763271065bf",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "282224a9-ca81-4776-9227-481a7f65e5cd",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Celestial Pebble",
-          "user_idea": "handfull",
-          "vibe": "divine tranquil power",
+          "idea": "Nimbus Cat",
+          "user_idea": "cat",
+          "vibe": "A whimsical, ephemeral companion, the Nimbus Cat materializes as a soft swirling cloud of mist and vapor. Its undulating form invites gentle strokes that barely disturb its vaporous body, accompanied by light ambient whispers and the soft sound of breezes. Set atop a high mist-shrouded cliff at dawn, this airy familiar melds tactile softness with visual poetry, enveloping the viewer in a soothing, fantastical ASMR experience marked by quiet delight and mystery.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.807+00:00",
+          "started_at": "2025-10-28T18:56:39.179+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "7e9b6f5e-acdf-4da4-a577-8763271065bf",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "282224a9-ca81-4776-9227-481a7f65e5cd",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "6f192374-0fd6-48a4-aad9-a8fddfa98576",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Lava Grain",
-          "user_idea": "handfull",
-          "vibe": "infernal warm intensity",
+          "idea": "Shadow Raven",
+          "user_idea": "raven",
+          "vibe": "Mysterious and enigmatic, the Shadow Raven’s feathers absorb surrounding light, creating a velvet black texture that seems almost tangible. Its slow wing fluttering and subtle wingtip taps generate rich, dark foley sounds that enhance the tactile allure. Placed within a moonlit crystalline cave, the raven’s presence teases the edge of the visible world, inviting viewers to intimately explore shadows with careful, rhythmic interaction framed by a haunting whisper.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.808+00:00",
+          "started_at": "2025-10-28T18:56:39.18+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "6f192374-0fd6-48a4-aad9-a8fddfa98576",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "66178669-962f-4d80-87d1-e3a58143467c",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Fiber",
-          "user_idea": "handfull",
-          "vibe": "playful shimmering delight",
+          "idea": "Glowing Toad",
+          "user_idea": "toad",
+          "vibe": "Charming and otherworldly, the Glowing Toad’s smooth skin pulses with bioluminescent light in a rhythmic pattern. Set within a damp misty swamp alive with twinkling fireflies, its tactile surface invites gentle taps and strokes. The resulting mix of wet squelches and gentle light pulses forms a whimsical ASMR moment, balancing playfulness with the surreal, while the precisely timed whisper adds an intimate human touch that deepens the quiet magic.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.809+00:00",
+          "started_at": "2025-10-28T18:56:39.181+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "66178669-962f-4d80-87d1-e3a58143467c",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "abc8a2f3-41f7-4f1d-928f-4dd108695376",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silk Sand",
-          "user_idea": "handfull",
-          "vibe": "nostalgic soft elegance",
+          "idea": "Ethereal Badger",
+          "user_idea": "badger",
+          "vibe": "Grounded in mystery, the Ethereal Badger’s fur glows softly with spectral luminescence, floating slightly above a solid form that shifts subtly with the twilight forest background. The rustling sounds of its movement and tactile fur taps combine with the precise whispering moment to evoke a hypnotic, mystical world. This familiar blends the comfort of natural textures with surreal, enchanted elements in a calming and immersive ASMR scene.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.811+00:00",
+          "started_at": "2025-10-28T18:56:39.181+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "abc8a2f3-41f7-4f1d-928f-4dd108695376",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "2538b1f0-6b89-47d5-8b9e-13bf58178751",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Plasma Dust",
-          "user_idea": "handfull",
-          "vibe": "chaotic energetic spark",
+          "idea": "Frost Lynx",
+          "user_idea": "lynx",
+          "vibe": "Cool and serene, the Frost Lynx’s fur sparkles with frosted crystals catching alpine sunlight in a snowy mountain glade. Its tactile coat entices soft, deliberate strokes producing gentle crackling snow sounds. Enveloped in crisp, cold air with subtle ambient whispers, this magical creature combines the familiar with surreal icy magic. The scene’s clarity and texture invite prolonged engagement and a calm reverence for winter’s quiet power.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.813+00:00",
+          "started_at": "2025-10-28T18:56:39.182+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "2538b1f0-6b89-47d5-8b9e-13bf58178751",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "e10bf643-79a5-4f0e-aefd-57ed808c68ec",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frozen Feather",
-          "user_idea": "handfull",
-          "vibe": "serene crisp stillness",
+          "idea": "Twilight Deer",
+          "user_idea": "deer",
+          "vibe": "Divine and enigmatic, the Twilight Deer’s coat shifts through hues of dusk—purples, blues, and starlight glimmers—set against an ethereal plain beneath a vast night sky filled with shooting stars. Its flowing fur feels liquid and soft to the touch, creating a mesmerizing tactile contrast with the vast, quiet wilderness. Accompanied by soft grass rustling and a perfectly timed whisper, this ASMR moment evokes serene awe and gentle mystery, inviting quiet contemplation.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
+          "started_at": "2025-10-28T18:56:39.183+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "e10bf643-79a5-4f0e-aefd-57ed808c68ec",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       },
       {
         "json": {
-          "id": "e8def710-7aa0-463a-a4c4-447a2bf4b785",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
+          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Nimbus Grain",
-          "user_idea": "handfull",
-          "vibe": "enigmatic airy mystery",
+          "idea": "Molten Stallion",
+          "user_idea": "stallion",
+          "vibe": "Dynamic and powerful, the Molten Stallion blends the chaos of flowing lava with the grace of a majestic horse. Its form moves slowly like thick molten taffy with glowing veins beneath a cracked crust. Situated in a volcanic cavern lit by flowing lava rivers, the tactile sensation is rich with crackling heat and fluid rhythm. The timed whisper at 3 seconds adds a grounding human presence, making this fiery beast both formidable and mesmerizing in texture and motion.",
           "prompt": null,
           "video_link": null,
           "status": "idea_gen",
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
+          "started_at": "2025-10-28T18:56:39.184+00:00",
           "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "ideaId": "e8def710-7aa0-463a-a4c4-447a2bf4b785",
-          "runId": "24344c82-c734-4b38-9fb0-66616f287bed"
+          "created_at": "2025-10-28T18:56:39.308827+00:00",
+          "updated_at": "2025-10-28T18:56:39.308827+00:00",
+          "ideaId": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       }
     ],
-    "Call 'Generate Video'": [
+    "Create Run": [
       {
         "json": {
-          "id": "b1eb1684-09e3-40ad-ab33-7547ff8eff78",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
+          "id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
           "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Grain",
-          "user_idea": "handfull",
-          "vibe": "serene tactile calm",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, serene, physically impossible but filmed with gentle realism.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand scoops a handfull of Crystal Grain atop a luminous, faceted pedestal in an expansive, tranquil ethereal cavern. Each \"grain\" is a glinting micro-crystal, translucent and prismatic; as fingers sift and tap the pile, grains scatter light into gentle rainbows and emit soft glimmers that ripple across skin and stone. Some grains impossibly hover above the hand, twirling delicately in midair before settling softly back. The cavern is suffused with calm blue and lilac light, haze drifting, refracting through crystals. The tactile interaction is dreamlike: grains cascade and spark brief flashes, yet feel cool and perfectly safe to touch. No on-screen text; only the vivid interplay of light, touch, and impossible matter.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); 80mm lens, shallow DOF isolates hand and Crystal Grain; 180° shutter; slow, continuous POV dolly-in with subtle orbital drift; light bounces, parallax shifts; absolute motion from 0.0s to 10.0s—no fade-in or fade-out.\n\n5. ACTIONS & TIMING — 0.0s: Camera enters, already moving, hand sifting grains. 0–3.0s: Establish luminous pedestal, serene setting, rainbow flicker as grains pass between parted fingers. 3.0–7.0s: Fingertips tap, stir, and lift grains; some rise, swirling in gentle anti-gravity. 5.0s: Whisper—\"Crystal Grain\"—spoken intimately and clearly at center mic. 7.0–10.0s: Macro on grains cascading and hovering in close motion, prism light dancing; shot tightens as movement flows through final frame.\n\n6. AUDIO / ASMR — Ambient bed of cool cavern resonance at ~-28 dBFS; hyper-detailed foley: crisp nail tapping on crystal surfaces, soft shimmering clashes, minute showers as grains tumble. Whisper at 5.0s: \"Crystal Grain\"—dry, ultra-intimate, no other dialogue.\n\n7. MUSIC / SCORE — Airy, soft drone ambient in A minor; 0–3s gentle crystalline rise, 3–7s luminous, serene harmonic bloom, 7–10s slow fade into hush; ~-12 LUFS; meditative i–iv or i–v progression, focus on calm.\n\n8. COLOR / GRADE — Prismatic blue, lilac haze, translucent aquamarine, alabaster white, hints of pastel rainbow. Elevated, clean, ethereal, and serene—not cartoony.\n\n9. NOTES / CONSTRAINTS — 10 seconds, single vertical shot; absolutely no scene cuts; motion present from the first to last frame; whisper at 5.0s, dry and mic-intimate. Cross-dissolve/flow-through only. Nail tapping strongly featured (hard-crystal grain surfaces); particle shimmer at grain edges. Impossible but safe interaction always. Only visuals and the single whisper; no text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Crystal Grain — hands tap, swirl, and lift prismatic crystal grains that scatter light and float impossibly in a serene, luminous cavern.",
-          "video_link": null,
-          "status": "script_gen",
+          "chat_id": "6559268788",
+          "status": "pending",
+          "result": null,
           "error_message": null,
-          "started_at": "2025-10-26T18:36:22.803+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "b1eb1684-09e3-40ad-ab33-7547ff8eff78"
-        }
-      },
-      {
-        "json": {
-          "id": "8aa3d8d1-22ff-40d0-ac94-3aadf4247a0f",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Feather",
-          "user_idea": "handfull",
-          "vibe": "enigmatic ethereal grace",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, enigmatic, physically impossible yet filmed with ethereal grace.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand cradles a handfull of Molten Feather, resting atop a moonlit crystalline altar at the heart of a silent, sky-borne sanctuary. Each feather is impossibly fluid—its vanes ripple and flex in slow, graceful arcs, glowing with shifting inner embers. The \"Molten\" descriptor transforms the feathers: gold and iridescent plumage pulsing in liquid slow-motion, drips forming and rejoining the main vein without ever falling. When fingers delicately tap and swirl, the surface ripples, refracts the moonlight, and the impossible heat radiates only a cool sense of awe. Some feathers ascend as if drawn by unseen winds, never burning the hand, then softly cascade down. Environment and object fuse—the sanctuary a maze of luminous crystal, clouds drifting below, sky is deep indigo and silver mist. Ethereal, enigmatic, never cartoony.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920), 80mm lens, shallow DOF for dreamy isolation of hand and feather, 180° shutter. Slow, fluid POV dolly and micro-orbit; continuous movement with camera inertia, parallax through crystal, feathers, and drifting hands; no fade-in or fade-out—motion from 0.0s to 10.0s.\n\n5. ACTIONS & TIMING — 0.0s: Enter in motion, feathers already shimmering and flowing in hand. 0–3.0s: Establish moonlit sanctuary, crystal textures, rippling molten feathers. 3.0–7.0s: Fingers tap, swirl, and gently part feathers; molten liquid feathers shimmer, droplets ascend and merge, light refracted with every touch. 5.0s: Whisper—“Molten Feather”—intimately, mic-quality. 7.0–10.0s: Macro close, focus on feathers’ fluid motion, final delicate tap as feathers drift upward; camera ends in smooth orbit.\n\n6. AUDIO / ASMR — Ambient crystalline hush at ~-28 dBFS, punctuated by hyper-detailed foley: soft nail tapping on fluid metal-like feathers, faint molten drips, gentle feather flex. Whisper at 5.0s: \"Molten Feather\"—ultra-intimate, dry, center-mic.\n\n7. MUSIC / SCORE — Ambient soft drone in A minor; 0–3s gentle rise, 3–7s mysterious swell with subtle harmonic echoes, 7–10s ethereal fade; ~-12 LUFS; meditative i–v progression, enigmatic, never leading.\n\n8. COLOR / GRADE — Deep indigo, molten gold, iridescent violet, soft silver, moonlit white. Palette glows subtly, surreal and enigmatic; powerful, never cartoonish.\n\n9. NOTES / CONSTRAINTS — 10s, single vertical shot; whisper at 5.0s, mic-intimate. Cross-dissolve or flow transitions only, no dead stops. Nail tapping on molten feathers emphasized; particle shimmer at drip boundaries. Safe, impossible interaction (feathers feel cool, never burn). No on-screen text. Descriptor mechanics (liquid/solid, flow, refract) all clearly visible.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Molten Feather — hands swirl and tap impossibly fluid, glowing feathers atop a crystalline altar, with enigmatic grace and an intimate whisper above a silent, moonlit sky.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "8aa3d8d1-22ff-40d0-ac94-3aadf4247a0f"
-        }
-      },
-      {
-        "json": {
-          "id": "b4873431-6be6-4585-9036-bd06336e8e67",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Mercury Sand",
-          "user_idea": "handfull",
-          "vibe": "tense hypnotic flow",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tense, hypnotic, tactile, physically impossible but filmed to feel surgically real.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand scoops a handfull of Mercury Sand atop a slab of black stone in a cavern flooded with cold silver light. Each grain is tiny, metallic, silvery, and liquid—impossibly both granular and continuous. Touching Mercury Sand triggers micro-waves that ripple and coalesce, reflecting fractured light and cascading back with hypnotic flow. Fingertips tap and swirl the sand; droplets split and merge, defying gravity by holding shape and rejoining. Grains slither with eerie inertia, sometimes floating upward before snapping back; tension builds as the substance pulses, but motion remains elegantly restrained. The whole environment gleams with polished obsidian, wet reflections, and kinetic undercurrents. Every interaction is impossibly safe and controlled, inviting fascination without harm.\n\n4. CINEMATOGRAPHY — Vertical 9:16 (1080×1920); 78mm lens, shallow DOF on hand and sand; 180° shutter; slow, deliberate POV dolly/orbit with macro focus; parallax shimmer across reflective surfaces. Motion is present from 0.0s (start in smooth movement) to 10.0s (end in motion), strictly no fade in/out.\n\n5. ACTIONS & TIMING — 0.0s: Already moving, hand sifting through Mercury Sand. 0–3.0s: Fingers pour silvery grains over stone, micro-waves flicker hypnotically. 3.0–7.0s: Tapping and swirling, droplets rise, merge, split, and slither under touch. 5.0s: Whisper—\"Mercury Sand\"—delivered with hypnotic tension, dry and close. 7.0–10.0s: Macro-close on merging droplets and tense shimmer, final moment still in fluid motion.\n\n6. AUDIO / ASMR — Ambient metallic drip and low tension bed at ~-28 dBFS; hyper-detailed foley: precise nail tapping on liquid-metal grains, sinewy slithers, micro-plunks, and rippling flows; kinetic energy audible. Whisper at 5.0s: \"Mercury Sand\"—centered, intimate, voice vibrating with restrained urgency.\n\n7. MUSIC / SCORE — Sparse drone ambient in A minor; 0–3s tense, rising undertone; 3–7s magnetic, hypnotic swells; 7–10s subtle pullback, ambiguity lingering; ~-12 LUFS; meditative i–v progression, bass drones for tension, shimmering upper tones for flow.\n\n8. COLOR / GRADE — Polished silver, gunmetal gray, icy white highlight, deep obsidian black, blue undertone. Palette is tense, hypnotic, and metallic, with kinetic sheen and spectral reflection; never garish or cartoonish—always high-gloss and mysterious.\n\n9. NOTES / CONSTRAINTS — 10.0s, single vertical shot; continuous flow; whisper mandatory and mic-intimate at 5.0s; nail tapping emphasized on sand and stone. Particle shimmer at every motion edge; all actions safe and dreamlike. Cross-dissolve/flow-through only—no hard cuts or dead stops. No on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Mercury Sand — hypnotically tense hands tap and swirl metallic mercury grains, droplets merge and pulse in a silvery, dreamlike cavern.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.804+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "b4873431-6be6-4585-9036-bd06336e8e67"
-        }
-      },
-      {
-        "json": {
-          "id": "bd058d16-47a7-4540-a07e-0c4ca2e3bcf9",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Velvet Dust",
-          "user_idea": "handfull",
-          "vibe": "haunting intimate softness",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, dreamy-yet-grounded, impossible made filmable.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand lifts a handfull of Velvet Dust above a rippling, onyx-marble altar in a shadowed, infinite chamber. Each dust particle is impossibly soft, matte, and plush—microfibers flicker and billow across the skin, scattering faint afterimages like phantom clouds. When tapped, the dust compresses and rebounds in ripples of ghostly pale rose and lavender, shivering gently beneath the fingers before drifting apart and gathering anew. The haunting softness feels both inviting and otherworldly, a gentle mystery. The altar glistens with spectral light and dust motes swirl in the dim, deep-space gloom, giving a sense of floating in a strange dream. Hands can safely swirl, tap, and compress the dust without harm—the impossible texture is tangible yet untouchable.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); simulated 83mm lens, shallow DOF isolates hand and dust; 180° shutter speed; slow, drifting POV dolly/orbit and subtle vertical parallax as dust moves and hand glides; continuous, unbroken motion from 0.0s to 10.0s, no fade in or out.\n\n5. ACTIONS & TIMING — 0.0s: Already in motion, hand sifting and stirring dust. 0–3.0s: Camera glides closer, dust moves in slow, almost spectral ripples. 3.0–7.0s: Fingertips compress and tap the dust, triggering gentle plumes and trembling, tactile shivers. 5.0s: A whisper—\"Velvet Dust\"—is delivered, soft and haunting, into the mic. 7.0–10.0s: Macro focus as dust swirls in miniature, ghostly clouds; camera ends still gliding, motion alive.\n\n6. AUDIO / ASMR — Ambient bed: subtle, hollow resonance at ~-28 dBFS, layered with hyper-detailed foley: soft finger brush, pillowy tapping, gentle compressions, and micro-fibre swishes; nail tapping emphasized as fingers meet altar and dust. Whisper at 5.0s: \"Velvet Dust\"—ultra-close, dry, center-mic.\n\n7. MUSIC / SCORE — Soft haunting drone in A minor; 0–3s spectral rise, 3–7s tense but gentle swell, 7–10s dissolves into a drifting hush; dynamic at ~-12 LUFS; simple i–iv progression, chilling and meditative for haunting intimacy.\n\n8. COLOR / GRADE — Palette: spectral pale rose, shadowed lavender, smoky gray, soft onyx, ghost white. Hues glow softly in darkness, tactile and ethereal for a haunting, intimate softness; never cartoony or harsh.\n\n9. NOTES / CONSTRAINTS — 10.0 seconds, single vertical shot; continuous physical motion; whisper at 5.0s, mic-intimate and mandatory; cross-dissolve/flow-through only, no hard stops; nail tapping pronounced on altar/dust; particle shimmer at dust edges encouraged. Velvet softness and spectral quality must be tangible. Safe, impossible interaction—no harm. No on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Velvet Dust — hands sift and compress impossibly plush, spectral dust atop an onyx altar, haunting softness and whispered intimacy billow through every tactile frame.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.805+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "bd058d16-47a7-4540-a07e-0c4ca2e3bcf9"
-        }
-      },
-      {
-        "json": {
-          "id": "1d76520f-6d13-4ad6-8a39-03f3bf1a3a79",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glass Thread",
-          "user_idea": "handfull",
-          "vibe": "awe fragile clarity",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, awe-inspiring, impossible yet physically filmed realism.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand holds a handfull of Glass Thread, each filament impossibly fine and shimmering with crystalline clarity. The threads glint and refract morning light in dazzling rainbows, shifting and shivering at the slightest movement, sometimes ringing audibly with a soft, fragile pitch. As our fingers gently tap and part the bundle, threads scatter and reform in wave-like patterns midair, appearing both strong and impossibly delicate. Every tap triggers tiny showers of rainbow light. The scene unfolds atop a sunwashed crystal outcropping rising through cloud, surrounded by endless sky—each shift of the hand and thread is magnified in the ethereal, awe-filled space. The environment elevates the object's impossible clarity and fragility, never cartoony, always transcendent.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); 80mm lens, shallow DOF isolates hand and threads; 180° shutter; slow, gliding POV dolly-in/orbit; parallax enhanced by prism-like refracted beams and cloud movement; continuous motion throughout, no fade in or out.\n\n5. ACTIONS & TIMING — 0.0s: Camera in gentle orbit, already in motion; filaments gleam as hand shifts. 0–3.0s: Fingers turn, separating and lifting filaments, light dances through threads. 3.0–7.0s: Fingertips tap, pluck, and sift through the glass bundle; rainbow sparks shimmer and reform. 5.0s: Whisper—\"Glass Thread\"—delivered intimately to mic, audible glimmer. 7.0–10.0s: Macro as threads shimmer and resettle, motion soft but ever-present; camera tightens slightly as dawn light flickers through until final frame.\n\n6. AUDIO / ASMR — Ambient high-altitude hush ~-28 dBFS; hyper-detailed foley: delicate nail tapping and glassy plucks, faint airy tinkles, threads brushing with micro-glass chimes that never pierce; 5.0s whisper “Glass Thread,” mic-intimate, center-mic, crystalline presence.\n\n7. MUSIC / SCORE — Ethereal drone ambient in A minor; 0–3s airy rise, 3–7s crystalline swell, 7–10s gentle dissolve into pure silence; ~-12 LUFS; meditative i–v progression with shimmering overtone pads to convey awe and fragility.\n\n8. COLOR / GRADE — Prism white, glacial blue, soft rainbow, golden dawn, translucent silver. Palette is luminous, fragile, and awe-filled; clarity and elevation are key—never cartoonish or flat.\n\n9. NOTES / CONSTRAINTS — 10.0s, single vertical shot, continuous motion; whisper at 5.0s (mic-intimate, required); nail tapping on glass threads must be present; refracted light/particle shimmer on thread motion; safe, impossible tactile interaction (no harm from glass); only cross-dissolve/flow transitions; no on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Glass Thread — our hand lifts, taps, and parts shimmering glass filaments atop a crystal summit, each movement dazzling in its fragile clarity while a single whisper breathes awe into the serene dawn.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.806+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "1d76520f-6d13-4ad6-8a39-03f3bf1a3a79"
-        }
-      },
-      {
-        "json": {
-          "id": "7e9b6f5e-acdf-4da4-a577-8763271065bf",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Celestial Pebble",
-          "user_idea": "handfull",
-          "vibe": "divine tranquil power",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, divinely tranquil and powerfully elevated, grounded in replayable dream-logic.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand offers a handfull of Celestial Pebble, each pebble a smooth miniature sphere radiating faint celestial light; their surfaces shimmer with shifting constellations, and each one hovers gently above the palm as if gravity is merely a suggestion. The hand is perched atop a crystalline outcrop at the edge of a vast, star-lit void—space stretches infinitely, dusted with nebulae and cosmic haze. As fingers tap the pebbles, they sing with inner light and tiny cosmic ripples undulate across each surface, constellations reshaping in silent waves. Pebbles float, drift, and regroup on invisible currents, yet remain always touchable by gentle, impossible motion. The world is silenced save for whispers of celestial wind and the tactile contact, environment and object amplifying divine tranquility and latent cosmic power.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920), 80mm lens, shallow DOF focuses on hand and pebbles; 180° shutter; slow, continuous dolly-in/orbit POV with natural physical inertia and parallax as pebbles float, hand moves, and cosmic background glimmers. Motion present from 0.0s through 10.0s, with no fade-in/out.\n\n5. ACTIONS & TIMING — 0.0s: Camera is already moving gently in orbit, hand holding pebbles with soft cosmic glow. 0–3.0s: Establish the celestial void, crystalline perch, and palm as pebbles subtly drift, lightly rotating. 3.0–7.0s: Fingers gently tap and circle pebbles, which respond with pulsing light and ripple—micro-movements as some pebbles float up and settle back. 5.0s: Whisper—\"Celestial Pebble\"—spoken intimately, mic-close. 7.0–10.0s: Macro-close focus on pebble surface as constellations swirl and merge, ending in continuous orbital movement.\n\n6. AUDIO / ASMR — Celestial breeze ambient at ~-28 dBFS; hyper-detailed foley: soft, dry nail tapping on smooth pebbles, distant star-chime accents, cosmic wind hush; 5.0s whisper \"Celestial Pebble\" directly into mic, ultra-intimate.\n\n7. MUSIC / SCORE — Lush ambient drone in A minor; 0–3s rising gentle cosmic shimmer, 3–7s tranquil but powerful swell, 7–10s soften and float out; ~-12 LUFS; i–v meditative progression with luminous overtones, enhancing the sense of tranquil power.\n\n8. COLOR / GRADE — Palette: cosmic blue-black, radiant starlight gold, nebula violet, crystal silver, traces of halo white. Mood is divine and tranquil with power, never cartoonish, all surfaces luminous and elevated.\n\n9. NOTES / CONSTRAINTS — 10 second, single shot, vertical 9:16; motion runs all 10s, no scene cuts or fade-in/out; whisper required at 5.0s (mic-intimate); nail tapping on pebbles is signature; cross-dissolve/flow-through transitions; visible particle shimmer and cosmic ripple at pebble edges; safe, impossible interaction (pebbles hover and respond to touch); no on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Celestial Pebble — a hand cradles luminous, floating pebbles above a starlit void, each touch radiating tranquil, divine power in impossible cosmic motion.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.807+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "7e9b6f5e-acdf-4da4-a577-8763271065bf"
-        }
-      },
-      {
-        "json": {
-          "id": "6f192374-0fd6-48a4-aad9-a8fddfa98576",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Lava Grain",
-          "user_idea": "handfull",
-          "vibe": "infernal warm intensity",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, divine-infernal, impossible yet rendered with physical realism.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand cradles a handfull of Lava Grain above a basalt altar at the heart of a glowing volcanic cavern. Each \"grain\" pulses as a miniature, semi-liquid ember—molten, volcanic flecks that flow and coalesce while radiating a fierce, infernal warmth. Fingertips tap, swirl, and cascade the grains; they slide like syrupy fire, leaving thin light trails, recombining instantly when separated. Occasionally, a grain floats upward against gravity as if possessed by hidden heat. The scene is wrapped in swirling ash, ember haze, and pulsing orange-red glows. The gesture is impossibly safe—molten grains can be touched, split, and tapped, heat never burning the skin. The environment, a cathedral of magma-lit stone, amplifies the subject’s otherworldly intensity, embodying warmth, danger, and awe.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); simulated 80mm lens with shallow DOF isolating hand and grains; 180° shutter; slow, continuous POV dolly/orbit and subtle hand parallax. Motion always present from 0.0s (already in motion) through 10.0s (still moving at final frame); no fade in/out.\n\n5. ACTIONS & TIMING — 0.0s: Enter in motion, hand gently sifting grains; heat shimmer visible. 0–3.0s: Establish glowing cavern, ember haze; grains slide and recombine between fingers. 3.0–7.0s: Fingertips tap, swirl, and lift grains that merge, split, and levitate with streams of light. 5.0s: Whisper—\"Lava Grain\"—spoken intimately, mic-close. 7.0–10.0s: Macro detail, molten grains cascading in slow motion, camera orbit tightens, embers shimmering; end in continual motion.\n\n6. AUDIO / ASMR — Deep volcanic ambience at ~-28 dBFS; hyper-detailed foley of dry nail tapping on molten grains (crisp glassy-pyroclastic texture), subtle sizzle and ember crackle, shifting lava flows mirroring interaction. At 5.0s, intimate center-mic whisper: \"Lava Grain.\"\n\n7. MUSIC / SCORE — Soft, tense ambient drone in A minor; 0–3s slow, churning rise; 3–7s swelling, glowing harmonics; 7–10s slow recede to subdued heat; ~-12 LUFS; meditative i–v–i progression; underlying current of infernal warmth and intensity.\n\n8. COLOR / GRADE — Infernal orange, ember red, obsidian black, molten yellow, volcanic glow. Palette evokes intense heat, danger, transcendence—otherworldly, fiery, never cartoonish or garish.\n\n9. NOTES / CONSTRAINTS — 10.0 seconds, continuous single shot, vertical 9:16 aspect; whisper at 5.0s, mic-intimate and mandatory. Cross-dissolve/flow-through transitions only; never dead stops. Nail tapping always on grains, ember shimmer encouraged. Touch is impossibly safe. No text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Lava Grain — hands swirl, tap, and lift molten, infernal grains above a volcanic altar, every motion radiating safe, awe-inspiring heat and ember shimmer.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.808+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "6f192374-0fd6-48a4-aad9-a8fddfa98576"
-        }
-      },
-      {
-        "json": {
-          "id": "66178669-962f-4d80-87d1-e3a58143467c",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Iridescent Fiber",
-          "user_idea": "handfull",
-          "vibe": "playful shimmering delight",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; playful, tactile, cinematic; physically impossible yet palpably real.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand gently scoops a handfull of Iridescent Fiber atop a crystalline platform floating above a dreamy, endless pastel sky. The fibers are slender, semi-transparent threads that constantly shimmer and shift colors—iridescence blooms with each touch. As fingers tap, swirl, and part the fibers, waves of light ripple across them, refracting rainbows and creating miniature auroras under the skin. Some fibers float up lightly, curling around the hand before settling. The crystalline surface amplifies the light play below. Impossible, safe, and warmly playful—touch transforms each fiber's motion and palette. The setting is ethereal and elevates the fibers’ vivid magic, never cartoonish.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920), 78mm lens, shallow DOF isolating hand and fibers, 180° shutter; smooth, continuous POV dolly/orbit with delicate parallax: camera glides and circles the hand, never stopping, motion alive from 0.0s through 10.0s, strictly no fade in or out.\n\n5. ACTIONS & TIMING — 0.0s: Enter in gentle motion, hand already cradling and shifting fibers. 0–3.0s: Camera draws closer as light dances across fibers, establishing playful shimmer. 3.0–7.0s: Fingers tap and run through fibers, sending ripples of rainbows and floating curls in microgravity. 5.0s: Whisper—\"Iridescent Fiber\"—spoken intimately, dry and center-mic. 7.0–10.0s: Macro-tight focus on fibers undulating and blooming with shifting color; camera tightens, ends still in fluid motion.\n\n6. AUDIO / ASMR — Dreamy ambient bed at ~-28 dBFS; hyper-detailed foley: light nail tapping and gentle brushing sounds as fibers shift, faint airy twinkles with each movement, soft crystalline resonance from the surface. 5.0s: Whisper—\"Iridescent Fiber\", dry, intimate, center-mic.\n\n7. MUSIC / SCORE — Soft drone ambient in A minor, with playful, shimmering textures; 0–3s twinkling rise, 3–7s gentle, colorful swell, 7–10s receding to delicate warmth; ~-12 LUFS; i–v progression with subtle, radiant movement for a sense of delight.\n\n8. COLOR / GRADE — Pastel rainbow, pearl white, shimmering opal, gentle sunlit gold, soft sky blue. Palette is playful, airy, and luminous—rich iridescence, never harsh or cartoonish, a transcendent visual delight.\n\n9. NOTES / CONSTRAINTS — 10 seconds, single vertical shot; continuous movement from first to final frame; whisper mandatory at 5.0s, mic-intimate; nail tapping emphasized on fibers and crystal; only cross-dissolve/flow-through transitions; particle shimmer encouraged and clear in motion. Iridescent effect is always visible and responsive to touch; safe, impossibly tactile interaction. No on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Iridescent Fiber — hands tap and swirl shimmering, shifting fibers on a crystal stage high above a pastel sky, blooming with playful, magical light and a single whispered delight.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.809+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "66178669-962f-4d80-87d1-e3a58143467c"
-        }
-      },
-      {
-        "json": {
-          "id": "abc8a2f3-41f7-4f1d-928f-4dd108695376",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Silk Sand",
-          "user_idea": "handfull",
-          "vibe": "nostalgic soft elegance",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, impossible yet physically rendered, made for calm replay.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand plunges into a handfull of Silk Sand shimmering atop a smooth, timeworn marble table set on a misty sunrise balcony. Each \"sand\" grain is impossibly soft, shimmering with silky micro-fibers; when parted and tapped, grains flow in gentle waves and cascade like ribbons, leaving trails of pearlescent glow. As fingers swirl, the sand forms memory-like ripple patterns that fade and reform. The environment—rose gold light streaming through haze, antique balustrade, distant fog—infuses nostalgia into every surface. Fingertips interact freely, petting, swirling and tapping the Silk Sand, grains parting and regrouping silently, defying gravity in silken wisps; every action is safe, tactile, and otherworldly.\n\n4. CINEMATOGRAPHY — Vertical 9:16 (1080×1920); 80mm lens, shallow DOF isolates hand and sand; 180° shutter; slow orbiting POV dolly, subtle parallax as sand is moved; real physical inertia, motion in play from 0.0s through 10.0s, no fades.\n\n5. ACTIONS & TIMING — 0.0s: Camera already slowly dollying, hand ruffling sand. 0–3.0s: Fingers swirl and sift, sand flowing in silky rivulets, backdrop softly revealed. 3.0–7.0s: Fingertips tap, patterning soft waves; grains ripple and part, then reunite, nostalgia embodied in every caress. 5.0s: Whisper—“Silk Sand”—spoken intimately into mic. 7.0–10.0s: Macro detail, grains drape and shimmer, camera eases tighter, motion always smooth and alive.\n\n6. AUDIO / ASMR — Gentle dawn ambience at ~-28 dBFS; foley: soft ribbon brushing, muted sand trickle, dry nail tapping on marble and grains; tactile, close-patterned foley effects. 5.0s: Whisper, “Silk Sand,” center-mic, dry, no other words.\n\n7. MUSIC / SCORE — Subtle nostalgic drone in A minor; 0–3s soft ascension, 3–7s warmth swelling with gentle memory, 7–10s recedes to hush; ~-12 LUFS; meditative i–iv progression with soft layered harmonics for timeless elegance.\n\n8. COLOR / GRADE — Palettes of rose gold, champagne, sun-bleached ivory, soft sepia, faded blush. All hues are luminous and quietly aged; silk and sand shimmer without garishness. Elevates a sense of soft, elegant nostalgia.\n\n9. NOTES / CONSTRAINTS — 10 seconds, single vertical shot, whisper mandatory at 5.0s, mic-intimate; nail tapping especially on marble and sand; particle shimmer and memory patterning in sand; impossible but touchable interaction, no on-screen text, no cartoon. All visuals and sound must embody nostalgic soft elegance; cross-dissolve or flow-through transition if needed, continuous motion.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Silk Sand — hands sift and tap impossibly soft, shimmering sand atop marble at daybreak, each touch a ripple of nostalgic elegance and gentle wonder.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.811+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "abc8a2f3-41f7-4f1d-928f-4dd108695376"
-        }
-      },
-      {
-        "json": {
-          "id": "2538b1f0-6b89-47d5-8b9e-13bf58178751",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Plasma Dust",
-          "user_idea": "handfull",
-          "vibe": "chaotic energetic spark",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, energetic, cinematic, physically impossible but film-real, built for replay.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand hovers above a handfull of Plasma Dust, grains swirling in a writhing, miniature electro-storm atop a jagged obsidian boulder suspended over a deep void. Each dust mote pulses and arcs with jagged flashes of blue-violet and white, never settling—constantly breaking apart, reforming, sending sparks leaping between fingers. As fingertips tap, the dust bursts with tendrils of light—tiny chaotic whirls, electric filaments, and microbolts escape, then collapse into the mass. Touch is impossibly safe; sparks never burn, instead they tickle, skitter, and spiral. The environment—deep void, shifting storm clouds, and rim-lit boulder—amplifies the object's wild, transcendent energy. Scene feels infernal and enigmatic: awe and chaos tamed, but not diminished.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); simulated 68mm lens, shallow DOF isolates hand and Plasma Dust; 180° shutter for realism; aggressive, swirling POV dolly with energetic parallax through sparks and dust, always in motion from 0.0s to 10.0s, no fades.\n\n5. ACTIONS & TIMING — 0.0s: Enter in motion—dust already swirling, sparks leaping. 0–3.0s: Camera closes on hand, shows dust storm, electrical arcs. 3.0–7.0s: Fingertips rapidly tap, stir, spread dust; each contact triggers crackling filaments, dust recoils and swarms. 5.0s: Whisper—\"Plasma Dust\"—spoken urgently, intimately. 7.0–10.0s: Macro focus—plasma arcs illuminate grains up close, motion frantic; camera finishes with dust still sparkling wildly.\n\n6. AUDIO / ASMR — Aggressive storm-ambient bed ~-28 dBFS; hyper-detailed foley: rapid, crisp nail taps on boulder and crackling dust, electrostatic pops, fizzing, and charging tones; sparks and micro-arcs scatter in stereo. 5.0s: Whisper, \"Plasma Dust\"—dry, center-mic, energetic and intimate.\n\n7. MUSIC / SCORE — Pulsing, high-energy drone in A minor; 0–3s: kinetic swell, 3–7s: chaotic staccato pulses and surges, 7–10s: dissolve into a tense drone. ~-12 LUFS; i–v–i progression with sharp modulations for energy.\n\n8. COLOR / GRADE — Electric blue, plasma violet, obsidian black, white-hot spark, glint of infernal fuchsia. Wild, energetic, transcendent; color and light flicker in chaotic, impossible ways—never cartoony or cheap.\n\n9. NOTES / CONSTRAINTS — 10s, vertical 9:16, single continuous shot; whisper at 5.0s, mic-intimate and energetic; nail tapping especially on obsidian and dust emphasized; aggressive, spark-particle shimmer throughout; cross-dissolve for transitions, no dead stops; chaotic, energetic but always tactile and physically plausible; no on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Plasma Dust — hands tap and stir a handfull of writhing, sparking plasma dust atop obsidian, unleashing waves of electric chaos safely in a void, with an urgent whisper at the core.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.813+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "2538b1f0-6b89-47d5-8b9e-13bf58178751"
-        }
-      },
-      {
-        "json": {
-          "id": "e10bf643-79a5-4f0e-aefd-57ed808c68ec",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frozen Feather",
-          "user_idea": "handfull",
-          "vibe": "serene crisp stillness",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, dream-logic, impossible but physically plausible.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand gently lifts a handfull of Frozen Feather, each feather impossibly delicate: ice-crystal barbs shimmer and release pale, frosty vapor with every movement. The \"Frozen\" descriptor is visible in how the feathers fracture soft rays of morning light, shimmer with a spectral iridescence, and emit silent, crisp frost. As fingers tap and part the feathers, plumes of snow swirl and coalesce, never melting or breaking. The feathers drift light as air, buoyed in slow, surreal defiance of gravity. The entire scene is set atop a silent, crystalline lake, surrounded by ancient, frost-laden pines beneath a pale blue dawn. Surfaces glisten under the gentle haze. The environment amplifies the surreal stillness: tranquil, breath-held, otherworldly yet serene—never cartoonish.\n\n4. CINEMATOGRAPHY — Vertical 9:16 (1080×1920); 80mm lens, shallow DOF isolating hand and feather clusters; 180° shutter. Continuous, smooth POV dolly-in and slow orbit; subtle parallax from feathers, hand, and icy reflections. Motion continuous from 0.0s to 10.0s, no fades.\n\n5. ACTIONS & TIMING — 0.0s: Camera enters in motion, hand already moving. 0–3.0s: Feather-lifting, icy vapor curling off barbs, frost glinting. 3.0–7.0s: Fingers tap and swirl, feathers sift and momentarily drift upward, delicate frost blossoms from each impact. 5.0s: An intimate whisper, \"Frozen Feather,\" spoken toward the mic. 7.0–10.0s: Macro close-up, ice fractals crackle as fingers gently part feathers, vapor trails illuminated; motion continues to last frame.\n\n6. AUDIO / ASMR — Ambient lake hush at ~–28 dBFS, faint icy wind shimmer; hyper-detailed foley: crisp nail tapping on frozen feather spines, miniature crackles as frost moves, soft friction as feathers touch skin; at 5.0s, dry, center-mic whisper \"Frozen Feather.\" No additional dialogue.\n\n7. MUSIC / SCORE — Frosted drone ambient in A minor; 0–3s: crystalline tones gently ascend, 3–7s: airy, glassy harmonies, 7–10s: fade to sparse, serene resonance; ~–12 LUFS; meditative i–iv progression, tones evoke chill yet still comfort.\n\n8. COLOR / GRADE — Icy blue, opaline white, crystalline silver, faint pale lavender, dawn mist. Palette is clean, serene, luminous, each hue cool yet quietly radiant; never cartoonish.\n\n9. NOTES / CONSTRAINTS — 10.0s, single continuous vertical shot; no scene cuts or dead stops; whisper at 5.0s is mandatory, mic-intimate; nail tapping on hard feather surfaces featured; flow-through motion (cross-dissolve transitions if needed); safe, impossible touch is core—no melting, all is serene and tactile; particle shimmer and frosted edges encouraged; strictly no on-screen text.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Frozen Feather — hands lift, tap, and part crystalline ice-feathers above a silent, frosted lake, every motion shimmering with serene, impossible stillness.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "e10bf643-79a5-4f0e-aefd-57ed808c68ec"
-        }
-      },
-      {
-        "json": {
-          "id": "e8def710-7aa0-463a-a4c4-447a2bf4b785",
-          "run_id": "24344c82-c734-4b38-9fb0-66616f287bed",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Nimbus Grain",
-          "user_idea": "handfull",
-          "vibe": "enigmatic airy mystery",
-          "prompt": "1. STYLE / GENRE — Surreal ASMR micro-film; tactile, cinematic, enigmatic, airy, dreamlike yet filmed with sensory realism.\n\n2. REFERENCE IMAGE INSTRUCTION — (No reference image provided.)\n\n3. SCENE DESCRIPTION — POV: Our hand gently cradles a handfull of Nimbus Grain—a pile of microbeads so impossibly light, each orb floats just above the skin, drifting and clustering in slow, airy waves. Every motion sends threads of vapor unfurling from the grains, which shimmer with spectral opalescence and occasionally twist upward as if pulled by ethereal wind. Fingers tap and swirl through the grains; each touch causes microbursts that echo like silent thunder, swirling vapor and scattering grains before they drift gently back together. The setting is atop a sacred, windblown mesa surrounded by endless cloudbanks and pale sunbeams; the mysterious floating grains are inseparable from this weightless, enigmatic environment. Impossible, but every surface and movement feels physically real—never cartoony, always elevated and enigmatic.\n\n4. CINEMATOGRAPHY — 9:16 vertical (1080×1920); simulated 77mm lens, shallow depth of field for hand and grains; 180° shutter; feather-light, continuous POV dolly/orbit with gentle parallax between foreground grains and distant cloudbanks; motion flows seamlessly from 0.0s through 10.0s with no fade in/out.\n\n5. ACTIONS & TIMING — 0.0s: Enter in motion—camera already circling as grains drift above the hand. 0–3.0s: Establish airy setting and reveal impossibly floating grains interacting with skin. 3.0–7.0s: Fingers gently tap, swirl, and disturb the grains, micro-vapor bursts shimmer and swirl. 5.0s: Whisper—\"Nimbus Grain\"—delivered mouth-close, dry, and intimate. 7.0–10.0s: Macro close-up of grains clustering, shimmering and rearranging over drifting palm, ending in undisturbed motion.\n\n6. AUDIO / ASMR — Ambient bed of airy wind and distant ethereal hum at ~-28 dBFS; hyper-detailed foley: gentle nail tapping and soft brushing through grains, faint vapor swirls and particle shimmer. 5.0s: Whisper, \"Nimbus Grain\"—delivered center-mic, dry, and close, nothing additional.\n\n7. MUSIC / SCORE — Airy, enigmatic ambient drone in A minor; 0–3s soft ethereal rise, 3–7s mysterious, swelling harmonic shifts, 7–10s release to luminous hush; ~-12 LUFS; simple meditative i–v progression; subtle, with shimmering overlays to suit mystery and airiness.\n\n8. COLOR / GRADE — Opalescent white, pale silver, cloud blue, mist grey, faint lavender. The palette is luminous, subtly iridescent, enigmatic—each hue airy and elevated; transcendent and mysterious, no harsh cartoon notes.\n\n9. NOTES / CONSTRAINTS — 10-second, single shot, vertical 9:16. Whisper at exactly 5.0s is mic-intimate and mandatory. Cross-dissolve/flow-through transitions preserve motion. Particle shimmer and airy vapor effects encouraged. Impossible interaction: grains float and part effortlessly, no harm to skin. No on-screen text, only visuals + whisper.\n\n10. SINGLE-LINE SUMMARY — A 10-second surreal ASMR micro-film for October: Nimbus Grain — a hand stirs weightless, vapor-threaded grains on a celestial mesa, their enigmatic shimmer and airy motion revealed with a single whispered name.",
-          "video_link": null,
-          "status": "script_gen",
-          "error_message": null,
-          "started_at": "2025-10-26T18:36:22.814+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-26T18:36:22.940369+00:00",
-          "updated_at": "2025-10-26T18:36:22.940369+00:00",
-          "runId": "e8def710-7aa0-463a-a4c4-447a2bf4b785"
+          "created_at": "2025-10-28T19:12:06.228904+00:00",
+          "updated_at": "2025-10-28T19:12:06.228904+00:00"
         }
       }
     ]

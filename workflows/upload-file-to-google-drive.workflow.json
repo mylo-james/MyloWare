@@ -5,10 +5,7 @@
         "workflowInputs": {
           "values": [
             {
-              "name": "ideaId"
-            },
-            {
-              "name": "projectName"
+              "name": "runId"
             }
           ]
         }
@@ -17,7 +14,7 @@
       "typeVersion": 1.1,
       "position": [
         592,
-        64
+        48
       ],
       "id": "f04e16d3-8cf3-4346-9d8e-2223bada4f03",
       "name": "When Called by Generate Video",
@@ -26,7 +23,7 @@
     {
       "parameters": {
         "resource": "fileFolder",
-        "queryString": "={{ $('When Called by Generate Video').item.json.projectName }}_{{ $now.format('yyyy-MM-dd') }}",
+        "queryString": "={{ $json.created_at }}",
         "returnAll": true,
         "filter": {
           "folderId": {
@@ -42,8 +39,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1264,
-        144
+        1040,
+        48
       ],
       "id": "dfce21ff-6e6b-4788-8b6a-22fbed73af8c",
       "name": "Search for Project Folder",
@@ -116,8 +113,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1488,
-        144
+        1264,
+        48
       ],
       "id": "e9a67af8-e807-42a0-925c-d2c966dcef60",
       "name": "Check Folder Exists"
@@ -143,8 +140,8 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1712,
-        208
+        1488,
+        120
       ],
       "id": "d044f2e2-5dbd-40fa-af2a-6f4ccc0a7ea4",
       "name": "Create Project Folder",
@@ -157,7 +154,7 @@
     },
     {
       "parameters": {
-        "name": "={{ $('Get Idea').item.json.idea }}_{{ $now.format('yyyy-MM-dd-hh-mm') }}.mp4",
+        "name": "={{ $('Get a row').item.json.result }}",
         "driveId": {
           "__rl": true,
           "mode": "list",
@@ -176,8 +173,8 @@
       "name": "Upload Video to Drive",
       "type": "n8n-nodes-base.googleDrive",
       "position": [
-        2384,
-        64
+        1936,
+        48
       ],
       "typeVersion": 3,
       "credentials": {
@@ -190,20 +187,20 @@
     {
       "parameters": {
         "operation": "update",
-        "tableId": "videos",
+        "tableId": "runs",
         "filters": {
           "conditions": [
             {
               "keyName": "id",
               "condition": "eq",
-              "keyValue": "={{ $('When Called by Generate Video').item.json.ideaId }}"
+              "keyValue": "={{ $('When Called by Generate Video').item.json.runId }}"
             }
           ]
         },
         "fieldsUi": {
           "fieldValues": [
             {
-              "fieldId": "video_link",
+              "fieldId": "result",
               "fieldValue": "={{ $json.webViewLink }}"
             }
           ]
@@ -212,8 +209,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2608,
-        64
+        2160,
+        48
       ],
       "id": "4073ed37-f232-4846-9a3b-bae1666746f1",
       "name": "Update Row with Drive Link",
@@ -226,52 +223,9 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "videos",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.ideaId }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        816,
-        144
-      ],
-      "id": "7c40ac71-3d3b-4ae1-b4ff-c66cf537bc92",
-      "name": "Get Idea",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        1936,
-        64
-      ],
-      "id": "0834aadf-9af0-4e7e-9640-7f1ec4767f1e",
-      "name": "Merge Binary with Folder Info"
-    },
-    {
-      "parameters": {
-        "url": "=https://api.openai.com/v1/videos/{{ $('Get Idea').item.json.video_id }}/content",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
+        "url": "={{ $('Get a row').item.json.result }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -284,26 +238,30 @@
       "name": "Download Video",
       "type": "n8n-nodes-base.httpRequest",
       "position": [
-        2160,
-        64
+        1712,
+        48
       ],
       "typeVersion": 4.2,
       "credentials": {
         "openAiApi": {
           "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
+        },
+        "httpHeaderAuth": {
+          "id": "S31bXA351k9zXbHo",
+          "name": "shotstack"
         }
       }
     },
     {
       "parameters": {
         "operation": "get",
-        "tableId": "projects",
+        "tableId": "runs",
         "filters": {
           "conditions": [
             {
               "keyName": "id",
-              "keyValue": "={{ $json.project_id }}"
+              "keyValue": "={{ $('When Called by Generate Video').item.json.runId }}"
             }
           ]
         }
@@ -311,11 +269,11 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1040,
-        144
+        816,
+        48
       ],
-      "id": "3a209915-d668-4295-9181-0861ea858224",
-      "name": "Get Idea1",
+      "id": "d715b06d-d062-4618-881e-c7fa4d779a39",
+      "name": "Get a row",
       "credentials": {
         "supabaseApi": {
           "id": "Dt66cXjjQayuOdrT",
@@ -329,12 +287,7 @@
       "main": [
         [
           {
-            "node": "Get Idea",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Merge Binary with Folder Info",
+            "node": "Get a row",
             "type": "main",
             "index": 0
           }
@@ -356,9 +309,9 @@
       "main": [
         [
           {
-            "node": "Merge Binary with Folder Info",
+            "node": "Download Video",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ],
         [
@@ -374,9 +327,9 @@
       "main": [
         [
           {
-            "node": "Merge Binary with Folder Info",
+            "node": "Download Video",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -386,28 +339,6 @@
         [
           {
             "node": "Update Row with Drive Link",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Idea": {
-      "main": [
-        [
-          {
-            "node": "Get Idea1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge Binary with Folder Info": {
-      "main": [
-        [
-          {
-            "node": "Download Video",
             "type": "main",
             "index": 0
           }
@@ -425,7 +356,7 @@
         ]
       ]
     },
-    "Get Idea1": {
+    "Get a row": {
       "main": [
         [
           {
@@ -441,11 +372,12 @@
     "When Called by Generate Video": [
       {
         "json": {
-          "ideaId": "b9d17547-b997-4a44-b88d-77128fa36f92",
-          "projectName": "AISMR"
+          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
         }
       }
     ]
   },
-  "meta": {}
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
 }
