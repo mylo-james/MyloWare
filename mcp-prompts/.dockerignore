@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+dist
+coverage
+build
+.env
+.env.*
+cloudflared/credentials/*.json
+cloudflared/cert.pem

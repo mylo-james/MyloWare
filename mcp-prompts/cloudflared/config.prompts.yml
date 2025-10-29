@@ -1,0 +1,14 @@
+# Cloudflare Tunnel configuration for MCP Prompts server.
+# Mirrors the local Fastify MCP endpoint on port 3456.
+# Requires credentials at cloudflared/credentials/mcp-vector.json (git-ignored).
+tunnel: mcp-vector
+credentials-file: /etc/cloudflared/credentials/mcp-vector.json
+origincert: /etc/cloudflared/cert.pem
+
+ingress:
+- hostname: mcp-vector.mjames.dev
+  service: http://server-dev:3456
+  originRequest:
+    connectTimeout: 10s
+    tcpKeepAlive: 30s
+- service: http_status:404
