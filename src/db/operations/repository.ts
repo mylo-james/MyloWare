@@ -2,7 +2,14 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { getOperationsDb } from './client';
 import * as schema from './schema';
-import type { Run, RunStatus, Video, VideoStatus } from './schema';
+import type {
+  NewRun,
+  NewVideo,
+  Run,
+  RunStatus,
+  Video,
+  VideoStatus,
+} from './schema';
 
 export interface ListVideosOptions {
   status?: VideoStatus[];
@@ -19,8 +26,82 @@ type RunUpdateData = Partial<
   }
 >;
 
+type CreateRunData = {
+  id?: string;
+  projectId: string;
+  personaId?: string | null;
+  chatId?: string | null;
+  status?: RunStatus;
+  result?: string | null;
+  input?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+type UpdateRunData = Partial<
+  Pick<
+    Run,
+    'status' | 'result' | 'input' | 'metadata' | 'startedAt' | 'completedAt' | 'personaId' | 'chatId'
+  >
+>;
+
+type CreateVideoData = {
+  id?: string;
+  runId: string;
+  projectId: string;
+  idea: string;
+  userIdea?: string | null;
+  vibe?: string | null;
+  prompt?: string | null;
+  videoLink?: string | null;
+  status?: VideoStatus;
+  errorMessage?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+type UpdateVideoData = Partial<
+  Pick<
+    Video,
+    | 'idea'
+    | 'userIdea'
+    | 'vibe'
+    | 'prompt'
+    | 'videoLink'
+    | 'status'
+    | 'errorMessage'
+    | 'startedAt'
+    | 'completedAt'
+    | 'metadata'
+  >
+>;
+
 export class OperationsRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema> = getOperationsDb()) {}
+
+  async createRun(data: CreateRunData): Promise<Run> {
+    const timestamp = new Date().toISOString();
+
+    const values: NewRun = {
+      id: data.id,
+      projectId: data.projectId,
+      personaId: data.personaId ?? null,
+      chatId: data.chatId ?? null,
+      status: data.status ?? 'pending',
+      result: data.result ?? null,
+      input: data.input ?? {},
+      metadata: data.metadata ?? {},
+      startedAt: data.startedAt ?? null,
+      completedAt: data.completedAt ?? null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const [row] = await this.db.insert(schema.runs).values(values).returning();
+    return row;
+  }
 
   async getRunById(runId: string): Promise<Run | null> {
     const [row] = await this.db
@@ -33,14 +114,143 @@ export class OperationsRepository {
   }
 
   async updateRun(runId: string, data: RunUpdateData): Promise<Run | null> {
-    if (Object.keys(data).length === 0) {
+    const updatePayload: Partial<NewRun> & { updatedAt?: string } = {};
+
+    if ('status' in data) {
+      updatePayload.status = data.status;
+    }
+
+    if ('result' in data) {
+      updatePayload.result = data.result ?? null;
+    }
+
+    if ('input' in data) {
+      updatePayload.input = data.input ?? {};
+    }
+
+    if ('metadata' in data) {
+      updatePayload.metadata = data.metadata ?? {};
+    }
+
+    if ('startedAt' in data) {
+      updatePayload.startedAt = data.startedAt ?? null;
+    }
+
+    if ('completedAt' in data) {
+      updatePayload.completedAt = data.completedAt ?? null;
+    }
+
+    if ('personaId' in data) {
+      updatePayload.personaId = data.personaId ?? null;
+    }
+
+    if ('chatId' in data) {
+      updatePayload.chatId = data.chatId ?? null;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
       return this.getRunById(runId);
     }
 
+    updatePayload.updatedAt = new Date().toISOString();
+
     const [row] = await this.db
       .update(schema.runs)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set(updatePayload)
       .where(eq(schema.runs.id, runId))
+      .returning();
+
+    return row ?? null;
+  }
+
+  async getVideoById(videoId: string): Promise<Video | null> {
+    const [row] = await this.db
+      .select()
+      .from(schema.videos)
+      .where(eq(schema.videos.id, videoId))
+      .limit(1);
+
+    return row ?? null;
+  }
+
+  async createVideo(data: CreateVideoData): Promise<Video> {
+    const timestamp = new Date().toISOString();
+
+    const values: NewVideo = {
+      id: data.id,
+      runId: data.runId,
+      projectId: data.projectId,
+      idea: data.idea,
+      userIdea: data.userIdea ?? null,
+      vibe: data.vibe ?? null,
+      prompt: data.prompt ?? null,
+      videoLink: data.videoLink ?? null,
+      status: data.status ?? 'idea_gen',
+      errorMessage: data.errorMessage ?? null,
+      startedAt: data.startedAt ?? null,
+      completedAt: data.completedAt ?? null,
+      metadata: data.metadata ?? {},
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const [row] = await this.db.insert(schema.videos).values(values).returning();
+    return row;
+  }
+
+  async updateVideo(videoId: string, data: UpdateVideoData): Promise<Video | null> {
+    const updatePayload: Partial<NewVideo> & { updatedAt?: string } = {};
+
+    if ('idea' in data) {
+      updatePayload.idea = data.idea ?? null;
+    }
+
+    if ('userIdea' in data) {
+      updatePayload.userIdea = data.userIdea ?? null;
+    }
+
+    if ('vibe' in data) {
+      updatePayload.vibe = data.vibe ?? null;
+    }
+
+    if ('prompt' in data) {
+      updatePayload.prompt = data.prompt ?? null;
+    }
+
+    if ('videoLink' in data) {
+      updatePayload.videoLink = data.videoLink ?? null;
+    }
+
+    if ('status' in data) {
+      updatePayload.status = data.status;
+    }
+
+    if ('errorMessage' in data) {
+      updatePayload.errorMessage = data.errorMessage ?? null;
+    }
+
+    if ('startedAt' in data) {
+      updatePayload.startedAt = data.startedAt ?? null;
+    }
+
+    if ('completedAt' in data) {
+      updatePayload.completedAt = data.completedAt ?? null;
+    }
+
+    if ('metadata' in data) {
+      updatePayload.metadata = data.metadata ?? {};
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return this.getVideoById(videoId);
+    }
+
+    updatePayload.updatedAt = new Date().toISOString();
+
+    const [row] = await this.db
+      .update(schema.videos)
+      .set(updatePayload)
+      .where(eq(schema.videos.id, videoId))
       .returning();
 
     return row ?? null;

@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-26T14:21:00.710Z",
+  "updatedAt": "2025-10-29T19:14:16.188Z",
+  "id": "vmp9L5Bhin2jQCPC",
+  "name": "Upload to TikTok",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -349,6 +355,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "When Executed by Another Workflow": [
       {
@@ -358,7 +371,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "ae05d0c2-66a4-4594-927e-3e6f71005683",
+  "triggerCount": 0
 }

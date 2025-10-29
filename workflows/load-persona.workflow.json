@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T02:38:40.205Z",
+  "updatedAt": "2025-10-29T19:14:14.838Z",
+  "id": "4eaPRf4DiHKOvOrc",
+  "name": "Load Persona",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -501,6 +507,11 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
   "pinData": {
     "When Called": [
       {
@@ -511,5 +522,6 @@
       }
     ]
   },
-  "meta": {}
+  "versionId": "b98dcc15-d639-4d14-a876-9f73935f6e1a",
+  "triggerCount": 0
 }

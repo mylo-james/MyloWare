@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T02:50:22.545Z",
+  "updatedAt": "2025-10-29T19:14:13.095Z",
+  "id": "DPQUPd5e4Uxkp5Bd",
+  "name": "AISMR",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -696,6 +702,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "When Executed by Another Workflow": [
       {
@@ -1180,7 +1193,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "56efb66b-231f-4641-be29-b52c22987b9b",
+  "triggerCount": 0
 }

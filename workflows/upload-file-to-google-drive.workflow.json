@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T21:21:59.756Z",
+  "updatedAt": "2025-10-29T19:14:15.959Z",
+  "id": "xXfy1EgFoH6EZU7v",
+  "name": "Upload file to Google Drive",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -368,6 +374,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "When Called by Generate Video": [
       {
@@ -377,7 +390,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "12212ea7-4023-4428-8ec3-d4d9f05dffe4",
+  "triggerCount": 0
 }

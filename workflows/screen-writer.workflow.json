@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T20:03:31.615Z",
+  "updatedAt": "2025-10-29T19:14:15.705Z",
+  "id": "qOgWNfGwMpWkPWjK",
+  "name": "Screen Writer",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -524,6 +530,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "On Error": [
       {
@@ -584,7 +597,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "3cac4680-12e8-4275-9e22-1cc65a00583a",
+  "triggerCount": 0
 }

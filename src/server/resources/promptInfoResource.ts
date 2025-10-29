@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { config } from '../../config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import packageJson from '../../../package.json';
@@ -6,14 +5,12 @@ import {
   PromptEmbeddingsRepository,
   type PromptStatistics,
 } from '../../db/repository';
-import { buildJsonResourceResponse, getDirectoryUsage } from './utils';
+import { buildJsonResourceResponse } from './utils';
 
-const DEFAULT_PROMPTS_DIR = path.resolve(process.cwd(), 'prompts');
 const VECTOR_DIMENSIONS = 1536;
 
 export interface PromptInfoResourceDependencies {
   repository?: PromptEmbeddingsRepository;
-  promptsDir?: string;
   now?: () => Date;
 }
 
@@ -22,7 +19,6 @@ export function registerPromptInfoResource(
   dependencies: PromptInfoResourceDependencies = {},
 ): void {
   const repository = dependencies.repository ?? new PromptEmbeddingsRepository();
-  const promptsDir = dependencies.promptsDir ?? DEFAULT_PROMPTS_DIR;
   const now = dependencies.now ?? (() => new Date());
 
   server.registerResource(
@@ -34,12 +30,8 @@ export function registerPromptInfoResource(
       mimeType: 'application/json',
     },
     async (uri) => {
-      const [stats, usage] = await Promise.all([
-        repository.getPromptStatistics(),
-        getDirectoryUsage(promptsDir),
-      ]);
-
-      const payload = buildPayload(stats, usage, promptsDir, now());
+      const stats = await repository.getPromptStatistics();
+      const payload = buildPayload(stats, now());
       return buildJsonResourceResponse(uri, payload);
     },
   );
@@ -47,12 +39,7 @@ export function registerPromptInfoResource(
   console.info('[MCP] Resource registered: prompt://info');
 }
 
-function buildPayload(
-  stats: PromptStatistics,
-  usage: Awaited<ReturnType<typeof getDirectoryUsage>>,
-  promptsDir: string,
-  generatedAt: Date,
-) {
+function buildPayload(stats: PromptStatistics, generatedAt: Date) {
   const averageChunksPerPrompt =
     stats.promptCount > 0 ? Number((stats.chunkCount / stats.promptCount).toFixed(2)) : 0;
 
@@ -74,15 +61,11 @@ function buildPayload(
       provider: 'openai',
       vectorDimensions: VECTOR_DIMENSIONS,
     },
-    storage: {
-      directory: promptsDir,
-      exists: usage.exists,
-      fileCount: usage.fileCount,
-      directoryCount: usage.directoryCount,
-      totalBytes: usage.totalBytes,
-      totalMegabytes: Number((usage.totalBytes / (1024 * 1024)).toFixed(3)),
+    dataset: {
+      source: 'database',
+      table: 'prompt_embeddings',
+      metadataKeys: ['project', 'persona', 'type'],
     },
-    tools: ['prompts_search', 'prompts_get', 'prompts_list', 'prompts_filter'],
     database: {
       table: 'prompt_embeddings',
       vectorDimensions: VECTOR_DIMENSIONS,

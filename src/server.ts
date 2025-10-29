@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { config } from './config';
 import { registerMcpRoutes } from './server/httpTransport';
+import { registerApiRoutes } from './server/routes/api';
 
 export async function createServer(): Promise<FastifyInstance> {
   const app = fastify({
@@ -43,6 +44,7 @@ export async function createServer(): Promise<FastifyInstance> {
   });
 
   await registerMcpRoutes(app);
+  await registerApiRoutes(app);
 
   app.get('/health', async () => ({ status: 'ok' }));
 

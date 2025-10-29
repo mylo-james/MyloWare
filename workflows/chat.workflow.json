@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T02:29:50.738Z",
+  "updatedAt": "2025-10-29T19:14:13.412Z",
+  "id": "iGydAd7mC3NocD9X",
+  "name": "Chat",
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -538,6 +544,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "Telegram Message Trigger": [
       {
@@ -565,7 +578,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "02b672d5-9e86-4913-a8f2-6ef29eddaabb",
+  "triggerCount": 2
 }

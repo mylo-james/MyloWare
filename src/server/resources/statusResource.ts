@@ -1,4 +1,3 @@
-import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import packageJson from '../../../package.json';
 import { config } from '../../config';
@@ -11,14 +10,11 @@ import {
   OperationsRepository,
   type DatabaseCheckResult as OperationsDatabaseCheckResult,
 } from '../../db/operations';
-import { buildJsonResourceResponse, getDirectoryUsage } from './utils';
-
-const DEFAULT_PROMPTS_DIR = path.resolve(process.cwd(), 'prompts');
+import { buildJsonResourceResponse } from './utils';
 
 export interface StatusResourceDependencies {
   repository?: PromptEmbeddingsRepository;
   operationsRepository?: OperationsRepository | null;
-  promptsDir?: string;
   now?: () => Date;
 }
 
@@ -30,7 +26,6 @@ export function registerStatusResource(
   const operationsRepository =
     dependencies.operationsRepository ??
     (config.operationsDatabaseUrl ? new OperationsRepository() : null);
-  const promptsDir = dependencies.promptsDir ?? DEFAULT_PROMPTS_DIR;
   const now = dependencies.now ?? (() => new Date());
 
   server.registerResource(
@@ -42,18 +37,15 @@ export function registerStatusResource(
       mimeType: 'application/json',
     },
     async (uri) => {
-      const [dbStatus, statsResult, usage, operationsStatus] = await Promise.all([
+      const [dbStatus, statsResult, operationsStatus] = await Promise.all([
         repository.checkConnection(),
         safeGetPromptStatistics(repository),
-        getDirectoryUsage(promptsDir),
         safeCheckOperationsConnection(operationsRepository),
       ]);
 
       const payload = buildStatusPayload(
         dbStatus,
         statsResult,
-        usage,
-        promptsDir,
         now(),
         operationsStatus,
       );
@@ -81,8 +73,6 @@ function buildStatusPayload(
   statsResult:
     | { status: 'ok'; stats: PromptStatistics }
     | { status: 'error'; error: string },
-  usage: Awaited<ReturnType<typeof getDirectoryUsage>>,
-  promptsDir: string,
   generatedAt: Date,
   operationsStatus: OperationsDatabaseCheckResult | { status: 'disabled'; reason: string },
 ) {
@@ -121,13 +111,6 @@ function buildStatusPayload(
     checks: {
       database: dbStatus,
       embeddings: embeddingStatus,
-      promptsDirectory: {
-        status: usage.exists ? 'ok' : 'missing',
-        directory: promptsDir,
-        fileCount: usage.fileCount,
-        totalBytes: usage.totalBytes,
-        totalMegabytes: Number((usage.totalBytes / (1024 * 1024)).toFixed(3)),
-      },
       operationsDatabase: operationsStatus,
     },
     prompts: promptsSummary,

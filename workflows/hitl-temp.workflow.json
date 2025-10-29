@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-26T00:09:51.842Z",
+  "updatedAt": "2025-10-29T19:14:14.361Z",
+  "id": "npVoihZwWs7hAxeF",
+  "name": "HITL TEMP",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -822,6 +828,12 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
   "pinData": {},
-  "meta": {}
+  "versionId": "50ac4830-62d2-4c8e-ab25-d28d5848e5f8",
+  "triggerCount": 0
 }

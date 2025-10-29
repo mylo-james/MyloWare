@@ -1,0 +1,182 @@
+{
+  "createdAt": "2025-10-28T23:40:45.212Z",
+  "updatedAt": "2025-10-29T19:14:15.089Z",
+  "id": "Cz7h4stqCFJ4qZ9I",
+  "name": "Mylo_MCP_Bot",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You orchestrate MCP prompt workflows using canonical JSON stored in a vector database.\n\nInput identifiers:\n- personaRaw = {{$json.persona}}\n- projectRaw = {{$json.project}}\n- personaSlug = {{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\n- projectSlug = {{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\n\n1. Validate inputs.\n   - If personaRaw or projectRaw is missing or slug normalisation yields an empty string, halt and request the missing identifier.\n\n2. Locate every required prompt via semantic search (never assume file names):\n   a. Persona prompt search\n      prompts_search({\n        \"query\": \"{{$json.persona}} persona configuration\",\n        \"persona\": \"{{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.35\"\n      })\n   b. Project prompt search\n      prompts_search({\n        \"query\": \"{{$json.project}} project orientation\",\n        \"project\": \"{{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.35\"\n      })\n   c. Persona × Project prompt search\n      prompts_search({\n        \"query\": \"{{$json.persona}} {{$json.project}} combined workflow\",\n        \"persona\": \"{{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"project\": \"{{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.30\"\n      })\n\n   - For each search, pick the highest-similarity hit whose metadata.type matches the target (“persona”, “project”, “combination”) and whose metadata persona/project arrays include the corresponding slug. If none clear the threshold, report the specific prompt that is missing and stop.\n\n3. Hydrate all selected prompts:\n   For each chosen filePath:\n   prompts_get({\n     \"filePath\": \"<filePath from search>\",\n     \"includeMetadata\": true\n   })\n\n4. Treat the returned JSON documents as your single source of truth for agent settings, persona guidance, workflows, guardrails, schemas, and examples. Do not rely on memory; re-search or re-fetch if anything becomes unclear.\n\n5. Execute the documented workflows exactly:\n   - Translate every step into explicit actions.\n   - Honor all guardrails, timing rules, and formatting requirements.\n   - Produce outputs that match the schema defined in the prompts.\n\n6. Surface problems immediately:\n   - Missing identifiers, failed searches, prompt load errors, or schema conflicts must be reported so the caller can resolve them before you proceed.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        -64
+      ],
+      "id": "f852932f-a756-4e3b-8395-50d8b42f782e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        160
+      ],
+      "id": "7e99e3a7-94de-4bd1-8604-82facd4e54ff",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        160
+      ],
+      "id": "5822e6a6-7be6-4611-9bfb-da5f76a73ffb",
+      "name": "MCP Client",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "projectId"
+            },
+            {
+              "name": "personaId"
+            },
+            {
+              "name": "chatInput"
+            },
+            {
+              "name": "outputSchema"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        -64
+      ],
+      "id": "f6a1e72e-51b7-4403-8792-cbba19b212b6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"userIdea\": {\n      \"type\": \"string\",\n      \"description\": \"Normalized base object (lowercase singular) applied to every idea.\"\n    },\n    \"ideas\": {\n      \"type\": \"array\",\n      \"description\": \"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"idea\": {\n            \"type\": \"string\",\n            \"description\": \"Title Case descriptor + singular object (two words, descriptor is one word).\"\n          },\n          \"vibe\": {\n            \"type\": \"string\",\n            \"description\": \"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\"\n          }\n        },\n        \"required\": [\n          \"idea\",\n          \"vibe\"\n        ],\n        \"additionalProperties\": false\n      },\n      \"minItems\": 12,\n      \"maxItems\": 12\n    }\n  },\n  \"required\": [\n    \"userIdea\",\n    \"ideas\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        160
+      ],
+      "id": "32af173b-9fc1-4281-85b5-3a5158e9f189",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "persona": "ideagenerator",
+          "project": "aismr",
+          "chatInput": "generate ideas for aismr videos about hamsters",
+          "outputSchema": "{\"type\":\"object\",\"properties\":{\"userIdea\":{\"type\":\"string\",\"description\":\"Normalized base object (lowercase singular) applied to every idea.\"},\"ideas\":{\"type\":\"array\",\"description\":\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\",\"items\":{\"type\":\"object\",\"properties\":{\"idea\":{\"type\":\"string\",\"description\":\"Title Case descriptor + singular object (two words, descriptor is one word).\"},\"vibe\":{\"type\":\"string\",\"description\":\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\"}},\"required\":[\"idea\",\"vibe\"],\"additionalProperties\":false},\"minItems\":12,\"maxItems\":12}},\"required\":[\"userIdea\",\"ideas\"],\"additionalProperties\":false}"
+        }
+      }
+    ]
+  },
+  "versionId": "f4f53b98-a11e-4a7c-a580-f19cff60c97e",
+  "triggerCount": 0
+}

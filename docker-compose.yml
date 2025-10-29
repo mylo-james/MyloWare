@@ -55,16 +55,13 @@ services:
       DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3456
-      PROMPTS_DIR: /prompts
     volumes:
     - ./src:/app/src
-    - ./prompts:/app/prompts
     - ./scripts:/app/scripts
     - ./tsconfig.json:/app/tsconfig.json
     - ./package.json:/app/package.json
     - ./package-lock.json:/app/package-lock.json
     - ./vitest.config.ts:/app/vitest.config.ts
-    - ../prompts:/prompts:ro
     - ..:/workspace:ro
     depends_on:
       postgres:

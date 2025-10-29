@@ -1,6 +1,6 @@
-import { SQL, count, eq, sql } from 'drizzle-orm';
-import { toSql as vectorToSql } from 'pgvector/pg';
+import { SQL, eq, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { toSql as vectorToSql } from 'pgvector/pg';
 import { getDb } from './client';
 import * as schema from './schema';
 import type { NewPromptEmbedding, PromptEmbedding } from './schema';
@@ -8,37 +8,16 @@ import type { NewPromptEmbedding, PromptEmbedding } from './schema';
 export class PromptEmbeddingsRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema> = getDb()) {}
 
-  async count(): Promise<number> {
-    const [result] = await this.db.select({ value: count() }).from(schema.promptEmbeddings);
-    return Number(result?.value ?? 0);
-  }
-
-  async getByFilePath(filePath: string): Promise<PromptEmbedding[]> {
-    return this.db
-      .select()
-      .from(schema.promptEmbeddings)
-      .where(eq(schema.promptEmbeddings.filePath, filePath));
-  }
-
-  async removeEmbeddingsByFilePath(filePath: string): Promise<number> {
-    const result = await this.db
-      .delete(schema.promptEmbeddings)
-      .where(eq(schema.promptEmbeddings.filePath, filePath))
-      .returning({ id: schema.promptEmbeddings.id });
-
-    return result.length;
-  }
-
   async upsertEmbeddings(records: EmbeddingRecord[]): Promise<number> {
-    if (!records.length) {
+    if (records.length === 0) {
       return 0;
     }
 
     const rows: NewPromptEmbedding[] = records.map((record) => ({
       chunkId: record.chunkId,
-      filePath: record.filePath,
+      filePath: record.promptKey,
       chunkText: record.chunkText,
-      rawMarkdown: record.rawMarkdown,
+      rawMarkdown: record.rawSource,
       granularity: record.granularity,
       embedding: record.embedding,
       metadata: record.metadata ?? {},
@@ -66,50 +45,43 @@ export class PromptEmbeddingsRepository {
     return result.length;
   }
 
-  async listAllFilePaths(): Promise<string[]> {
-    const rows = await this.db
-      .select({ filePath: schema.promptEmbeddings.filePath })
-      .from(schema.promptEmbeddings);
+  async deleteByPromptKey(promptKey: string): Promise<number> {
+    const result = await this.db
+      .delete(schema.promptEmbeddings)
+      .where(eq(schema.promptEmbeddings.filePath, promptKey))
+      .returning({ id: schema.promptEmbeddings.id });
 
-    return [...new Set(rows.map((row) => row.filePath))];
+    return result.length;
   }
 
-  async listPrompts(params: ListPromptsParameters = {}): Promise<PromptSummary[]> {
-    const conditions: SQL[] = [];
+  async getChunksByPromptKey(promptKey: string): Promise<PromptChunk[]> {
+    return this.db
+      .select({
+        chunkId: schema.promptEmbeddings.chunkId,
+        promptKey: schema.promptEmbeddings.filePath,
+        chunkText: schema.promptEmbeddings.chunkText,
+        rawSource: schema.promptEmbeddings.rawMarkdown,
+        granularity: schema.promptEmbeddings.granularity,
+        metadata: schema.promptEmbeddings.metadata,
+        checksum: schema.promptEmbeddings.checksum,
+        updatedAt: schema.promptEmbeddings.updatedAt,
+      })
+      .from(schema.promptEmbeddings)
+      .where(eq(schema.promptEmbeddings.filePath, promptKey))
+      .orderBy(schema.promptEmbeddings.chunkId);
+  }
 
-    if (params.type) {
-      const typeValue = params.type.toLowerCase();
-      conditions.push(
-        sql`${schema.promptEmbeddings.metadata} ->> 'type' = ${typeValue}`,
-      );
-    }
-
-    if (params.persona) {
-      const personaValue = params.persona.toLowerCase();
-      conditions.push(
-        sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
-          persona: [personaValue],
-        })}::jsonb`,
-      );
-    }
-
-    if (params.project) {
-      const projectValue = params.project.toLowerCase();
-      conditions.push(
-        sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
-          project: [projectValue],
-        })}::jsonb`,
-      );
-    }
-
+  async listPrompts(filters: PromptLookupFilters = {}): Promise<PromptSummary[]> {
+    const conditions = this.buildMetadataConditions(filters);
     const whereClause =
       conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
 
     const query = sql<ListPromptRow>`
       SELECT
-        ${schema.promptEmbeddings.filePath} AS "filePath",
+        ${schema.promptEmbeddings.filePath} AS "promptKey",
         ${schema.promptEmbeddings.metadata} AS "metadata",
-        COUNT(*) AS "chunkCount"
+        COUNT(*) AS "chunkCount",
+        MAX(${schema.promptEmbeddings.updatedAt}) AS "updatedAt"
       FROM ${schema.promptEmbeddings}
       ${whereClause}
       GROUP BY ${schema.promptEmbeddings.filePath}, ${schema.promptEmbeddings.metadata}
@@ -119,22 +91,31 @@ export class PromptEmbeddingsRepository {
     const { rows } = await this.db.execute(query);
 
     return rows.map((row) => ({
-      filePath: row.filePath,
+      promptKey: row.promptKey,
       metadata: row.metadata ?? {},
       chunkCount: Number(row.chunkCount ?? 0),
+      updatedAt: row.updatedAt ?? null,
     }));
   }
 
-  async filterChunks(params: FilterChunksParameters = {}): Promise<FilterChunksResult> {
-    const conditions: SQL[] = [];
+  async search(params: SearchParameters): Promise<SearchResult[]> {
+    const { embedding, persona, project, limit, minSimilarity } = params;
 
-    if (params.type) {
-      const typeValue = params.type.toLowerCase();
-      conditions.push(sql`${schema.promptEmbeddings.metadata} ->> 'type' = ${typeValue}`);
+    if (embedding.length === 0) {
+      return [];
     }
 
-    if (params.persona) {
-      const personaValue = params.persona.toLowerCase();
+    const normalizedLimit = Math.max(1, Math.min(limit, 50));
+    const similarityThreshold = Math.min(Math.max(minSimilarity, 0), 1);
+
+    const embeddingLiteral = sql.raw(`'${vectorToSql(embedding)}'::vector`);
+
+    const conditions: SQL[] = [
+      sql`1 - (${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral}) >= ${similarityThreshold}`,
+    ];
+
+    if (persona) {
+      const personaValue = persona.toLowerCase();
       conditions.push(
         sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
           persona: [personaValue],
@@ -142,8 +123,8 @@ export class PromptEmbeddingsRepository {
       );
     }
 
-    if (params.project) {
-      const projectValue = params.project.toLowerCase();
+    if (project) {
+      const projectValue = project.toLowerCase();
       conditions.push(
         sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
           project: [projectValue],
@@ -151,51 +132,32 @@ export class PromptEmbeddingsRepository {
       );
     }
 
-    if (params.granularity) {
-      const granularityValue = params.granularity.toLowerCase();
-      conditions.push(sql`${schema.promptEmbeddings.granularity} = ${granularityValue}`);
-    }
+    const whereClause = sql.join(conditions, sql` AND `);
 
-    const whereClause =
-      conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
-
-    const limit = Math.max(1, Math.min(params.limit ?? 50, 200));
-    const offset = Math.max(0, params.offset ?? 0);
-
-    const query = sql<FilterRow>`
+    const query = sql<SearchRow>`
       SELECT
         ${schema.promptEmbeddings.chunkId} AS "chunkId",
-        ${schema.promptEmbeddings.filePath} AS "filePath",
+        ${schema.promptEmbeddings.filePath} AS "promptKey",
         ${schema.promptEmbeddings.chunkText} AS "chunkText",
-        ${schema.promptEmbeddings.rawMarkdown} AS "rawMarkdown",
+        ${schema.promptEmbeddings.rawMarkdown} AS "rawSource",
         ${schema.promptEmbeddings.metadata} AS "metadata",
-        ${schema.promptEmbeddings.granularity} AS "granularity",
-        ${schema.promptEmbeddings.checksum} AS "checksum",
-        COUNT(*) OVER() AS "total"
+        1 - (${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral}) AS "similarity"
       FROM ${schema.promptEmbeddings}
-      ${whereClause}
-      ORDER BY ${schema.promptEmbeddings.filePath} ASC, ${schema.promptEmbeddings.chunkId} ASC
-      LIMIT ${limit}
-      OFFSET ${offset}
+      WHERE ${whereClause}
+      ORDER BY ${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral} ASC
+      LIMIT ${normalizedLimit}
     `;
 
     const { rows } = await this.db.execute(query);
 
-    const total = rows.length > 0 ? Number(rows[0].total ?? 0) : 0;
-    const chunks: FilteredChunk[] = rows.map((row) => ({
+    return rows.map((row) => ({
       chunkId: row.chunkId,
-      filePath: row.filePath,
+      promptKey: row.promptKey,
       chunkText: row.chunkText,
-      rawMarkdown: row.rawMarkdown,
+      rawSource: row.rawSource,
       metadata: row.metadata ?? {},
-      granularity: row.granularity,
-      checksum: row.checksum,
+      similarity: Number(row.similarity),
     }));
-
-    return {
-      total,
-      chunks,
-    };
   }
 
   async getPromptStatistics(): Promise<PromptStatistics> {
@@ -241,88 +203,75 @@ export class PromptEmbeddingsRepository {
     return this.db.transaction(fn);
   }
 
-  async insertMany(records: NewPromptEmbedding[]): Promise<void> {
-    if (!records.length) {
-      return;
+  private buildMetadataConditions(filters: PromptLookupFilters): SQL[] {
+    const conditions: SQL[] = [];
+
+    if (filters.type) {
+      conditions.push(
+        sql`${schema.promptEmbeddings.metadata} ->> 'type' = ${filters.type.toLowerCase()}`,
+      );
     }
 
-    await this.db.insert(schema.promptEmbeddings).values(records).onConflictDoNothing({
-      target: schema.promptEmbeddings.chunkId,
-    });
-  }
-
-  async search(params: SearchParameters): Promise<SearchResult[]> {
-    const { embedding, persona, project, limit, minSimilarity } = params;
-
-    if (!embedding.length) {
-      return [];
-    }
-
-    const normalizedLimit = Math.max(1, Math.min(limit, 50));
-    const similarityThreshold = Math.min(Math.max(minSimilarity, 0), 1);
-
-    const embeddingLiteral = sql.raw(`'${vectorToSql(embedding)}'::vector`);
-
-    const conditions: SQL[] = [
-      sql`1 - (${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral}) >= ${similarityThreshold}`,
-    ];
-
-    if (persona) {
-      const personaValue = persona.toLowerCase();
+    if (filters.persona) {
       conditions.push(
         sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
-          persona: [personaValue],
+          persona: [filters.persona.toLowerCase()],
         })}::jsonb`,
       );
     }
 
-    if (project) {
-      const projectValue = project.toLowerCase();
+    if (filters.project) {
       conditions.push(
         sql`${schema.promptEmbeddings.metadata} @> ${JSON.stringify({
-          project: [projectValue],
+          project: [filters.project.toLowerCase()],
         })}::jsonb`,
       );
     }
 
-    const whereClause = sql.join(conditions, sql` AND `);
-
-    const query = sql<SearchRow>`
-      SELECT
-        ${schema.promptEmbeddings.chunkId} AS "chunkId",
-        ${schema.promptEmbeddings.filePath} AS "filePath",
-        ${schema.promptEmbeddings.chunkText} AS "chunkText",
-        ${schema.promptEmbeddings.rawMarkdown} AS "rawMarkdown",
-        ${schema.promptEmbeddings.metadata} AS "metadata",
-        1 - (${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral}) AS "similarity"
-      FROM ${schema.promptEmbeddings}
-      WHERE ${whereClause}
-      ORDER BY ${schema.promptEmbeddings.embedding} <=> ${embeddingLiteral} ASC
-      LIMIT ${normalizedLimit}
-    `;
-
-    const { rows } = await this.db.execute(query);
-
-    return rows.map((row) => ({
-      chunkId: row.chunkId,
-      filePath: row.filePath,
-      chunkText: row.chunkText,
-      rawMarkdown: row.rawMarkdown,
-      metadata: row.metadata,
-      similarity: Number(row.similarity),
-    }));
+    return conditions;
   }
 }
 
 export interface EmbeddingRecord {
   chunkId: string;
-  filePath: string;
+  promptKey: string;
   chunkText: string;
-  rawMarkdown: string;
+  rawSource: string;
   granularity: PromptEmbedding['granularity'];
   embedding: number[];
   metadata?: PromptEmbedding['metadata'];
   checksum: string;
+}
+
+export interface PromptLookupFilters {
+  type?: string;
+  persona?: string;
+  project?: string;
+}
+
+interface ListPromptRow {
+  promptKey: string;
+  metadata: PromptEmbedding['metadata'];
+  chunkCount: number;
+  updatedAt: string | null;
+}
+
+export interface PromptSummary {
+  promptKey: string;
+  metadata: PromptEmbedding['metadata'];
+  chunkCount: number;
+  updatedAt: string | null;
+}
+
+export interface PromptChunk {
+  chunkId: string;
+  promptKey: string;
+  chunkText: string;
+  rawSource: string;
+  granularity: PromptEmbedding['granularity'];
+  metadata: PromptEmbedding['metadata'];
+  checksum: string;
+  updatedAt: PromptEmbedding['updatedAt'];
 }
 
 export interface SearchParameters {
@@ -335,79 +284,26 @@ export interface SearchParameters {
 
 interface SearchRow {
   chunkId: string;
-  filePath: string;
+  promptKey: string;
   chunkText: string;
-  rawMarkdown: string;
+  rawSource: string;
   metadata: PromptEmbedding['metadata'];
   similarity: number;
 }
 
 export interface SearchResult {
   chunkId: string;
-  filePath: string;
+  promptKey: string;
   chunkText: string;
-  rawMarkdown: string;
+  rawSource: string;
   metadata: PromptEmbedding['metadata'];
   similarity: number;
 }
 
-export interface ListPromptsParameters {
-  type?: string;
-  persona?: string;
-  project?: string;
-}
-
-interface ListPromptRow {
-  filePath: string;
-  metadata: PromptEmbedding['metadata'];
-  chunkCount: number;
-}
-
-export interface PromptSummary {
-  filePath: string;
-  metadata: PromptEmbedding['metadata'];
-  chunkCount: number;
-}
-
-export interface FilterChunksParameters {
-  type?: string;
-  persona?: string;
-  project?: string;
-  granularity?: string;
-  limit?: number;
-  offset?: number;
-}
-
-interface FilterRow {
-  chunkId: string;
-  filePath: string;
-  chunkText: string;
-  rawMarkdown: string;
-  metadata: PromptEmbedding['metadata'];
-  granularity: string;
-  checksum: string;
-  total: number;
-}
-
-export interface FilteredChunk {
-  chunkId: string;
-  filePath: string;
-  chunkText: string;
-  rawMarkdown: string;
-  metadata: PromptEmbedding['metadata'];
-  granularity: string;
-  checksum: string;
-}
-
-export interface FilterChunksResult {
-  total: number;
-  chunks: FilteredChunk[];
-}
-
 interface PromptStatsRow {
-  chunkCount: number;
-  promptCount: number;
-  lastUpdatedAt: string | Date | null;
+  chunkCount: number | string | null;
+  promptCount: number | string | null;
+  lastUpdatedAt: string | null;
 }
 
 export interface PromptStatistics {

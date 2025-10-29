@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-24T19:54:05.937Z",
+  "updatedAt": "2025-10-29T19:14:15.371Z",
+  "id": "mtQuVF88e3mo20Mo",
+  "name": "poll-db",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -181,6 +187,13 @@
         ]
       ]
     }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
   },
   "pinData": {
     "When Executed by Another Workflow": [
@@ -488,7 +501,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "fea6d3bb-bb9e-4820-a811-87062e4672c4",
+  "triggerCount": 0
 }

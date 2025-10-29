@@ -1,4 +1,10 @@
 {
+  "createdAt": "2025-10-16T21:02:41.228Z",
+  "updatedAt": "2025-10-29T19:14:14.106Z",
+  "id": "ZBScJvTKGpbLGN8K",
+  "name": "Generate Video",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -623,6 +629,13 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "When Called": [
       {
@@ -633,7 +646,6 @@
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  }
+  "versionId": "fff1c173-1582-433b-a0fd-0ada4a84f5d4",
+  "triggerCount": 0
 }
