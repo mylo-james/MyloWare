@@ -1,13 +1,39 @@
-# Environment variables
-.env
-
-# Dependencies
+## Dependencies
 node_modules/
 
-# Logs
+## Build artifacts
+dist/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+## Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# OS files
+## Environment files
+.env
+.env.*
+!.env.example
+
+## Editor and OS files
 .DS_Store
-Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+## Project data
+.tmp*
+cloudflared/credentials/*
+!cloudflared/credentials/.gitkeep
+!cloudflared/credentials/README.md
+cloudflared/cert.pem
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

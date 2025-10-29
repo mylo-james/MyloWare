@@ -241,6 +241,48 @@ ORDER BY p.level ASC, p.created_at ASC;
 
 ---
 
+### `runs`
+
+Tracks orchestration state for long-running workflows.
+
+```sql
+CREATE TYPE run_status AS ENUM ('pending', 'idea_gen_pending', 'idea_gen_complete', 'ideas', 'scripts', 'videos', 'complete', 'failed');
+
+CREATE TABLE runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  persona_id UUID,
+  chat_id TEXT,
+  status run_status NOT NULL DEFAULT 'pending',
+  result TEXT,
+  input JSONB NOT NULL DEFAULT '{}',
+  metadata JSONB NOT NULL DEFAULT '{}',
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_runs_project ON runs(project_id);
+CREATE INDEX idx_runs_status ON runs(status);
+CREATE INDEX idx_runs_created ON runs(created_at DESC);
+```
+
+| Column        | Type        | Description                                                                 |
+| ------------- | ----------- | --------------------------------------------------------------------------- |
+| `id`          | UUID        | Primary key                                                                 |
+| `project_id`  | UUID        | Owning project (e.g., AISMR)                                                |
+| `persona_id`  | UUID        | Optional persona driving the run                                            |
+| `chat_id`     | TEXT        | Conversation/thread identifier                                              |
+| `status`      | run_status  | Lifecycle stage (`pending`, `idea_gen_pending`, `idea_gen_complete`, `ideas`, `scripts`, `videos`, `complete`, `failed`) |
+| `result`      | TEXT        | Outcome summary or terminal payload (e.g., video URL, error code)          |
+| `input`       | JSONB       | Structured input payload captured at kickoff                               |
+| `metadata`    | JSONB       | Additional context (provider choices, retries, etc.)                       |
+| `started_at`  | TIMESTAMPTZ | When the run began processing                                               |
+| `completed_at`| TIMESTAMPTZ | When the run finished (success or failure)                                  |
+| `created_at`  | TIMESTAMPTZ | Creation timestamp                                                          |
+| `updated_at`  | TIMESTAMPTZ | Last mutation timestamp                                                     |
+
 ### `videos`
 
 Generic table storing video generation data for all projects.

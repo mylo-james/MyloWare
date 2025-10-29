@@ -54,6 +54,7 @@ sudo apt-get install postgresql-client
 
 ```bash
 npm run dev-reset
+npm run db:operations:migrate
 ```
 
 ### Option 3: Manual via Supabase Dashboard
@@ -78,10 +79,11 @@ psql "$DATABASE_URL" -f sql/dev-reset.sql
 
 Check in **Supabase Dashboard → Table Editor**:
 
-- ✅ `projects`, `personas`, `prompts`, `videos`, `workflow_logs`
+- ✅ `projects`, `personas`, `prompts`, `runs`, `videos`, `workflow_logs`
 
 ## Next Steps
 
 1. Reset the database
-2. Verify tables in Supabase
-3. Test workflows
+2. Run `npm run db:operations:migrate` to seed the `runs` and `videos` tables
+3. Verify tables in Supabase
+4. Test workflows
