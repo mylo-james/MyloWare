@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:50.012Z",
   "createdAt": "2025-10-26T14:21:00.710Z",
-  "updatedAt": "2025-10-29T19:14:16.188Z",
   "id": "vmp9L5Bhin2jQCPC",
   "name": "Upload to TikTok",
   "active": false,
@@ -135,31 +135,11 @@
           "mappingMode": "defineBelow",
           "value": {
             "runId": "={{ $('When Executed by Another Workflow').item.json.runId }}",
-            "personaId": "7a2c68b3-7c1c-47a2-a2a7-6fd5f17f7d2e"
+            "personaSlug": "captionhashtag",
+            "projectSlug": "aismr"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "personaId",
-              "displayName": "personaId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
@@ -189,61 +169,33 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         704,
         0
       ],
       "id": "9a7def8f-7bde-4c14-bc7e-53755f9cea04",
-      "name": "Get a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get Run (API)"
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "tableId": "videos",
-        "limit": 1,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "run_id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Executed by Another Workflow').item.json.runId }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1152,
         0
       ],
       "id": "1d3887a5-65fb-4995-8f2f-e06b271d70e0",
-      "name": "Get many rows",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get many rows (API)"
     },
     {
       "parameters": {
@@ -258,6 +210,32 @@
       ],
       "id": "6133a461-89f9-48f2-b56f-6deee1ae1718",
       "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "0f9073df-29ad-4203-98e0-d17cde0bb0bc",
+      "name": "Get a row"
+    },
+    {
+      "parameters": {
+        "jsCode": "const videos = $json?.data?.videos;\nif (!Array.isArray(videos)) {\n  throw new Error('Video list missing from API response.');\n}\nreturn videos.map((video) => ({\n  json: {\n    ...video,\n    run_id: video.runId ?? null,\n    project_id: video.projectId ?? null,\n    user_idea: video.userIdea ?? null,\n    vibe: video.vibe ?? null,\n    prompt: video.prompt ?? null,\n    video_link: video.videoLink ?? null,\n    error_message: video.errorMessage ?? null,\n    started_at: video.startedAt ?? null,\n    completed_at: video.completedAt ?? null,\n    created_at: video.createdAt ?? null,\n    updated_at: video.updatedAt ?? null,\n    metadata: video.metadata ?? {},\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "35896ce0-42ce-4e34-a22a-fe85e8d03295",
+      "name": "Get many rows"
     }
   ],
   "connections": {
@@ -265,7 +243,7 @@
       "main": [
         [
           {
-            "node": "Get a row",
+            "node": "Get Run (API)",
             "type": "main",
             "index": 0
           }
@@ -298,7 +276,7 @@
       "main": [
         [
           {
-            "node": "Get many rows",
+            "node": "Get many rows (API)",
             "type": "main",
             "index": 0
           }
@@ -316,6 +294,33 @@
         ]
       ]
     },
+    "Upload Video and Description to Tiktok": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Upload Video and Description to Tiktok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Run (API)": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get a row": {
       "main": [
         [
@@ -327,27 +332,22 @@
         ]
       ]
     },
-    "Get many rows": {
+    "Get many rows (API)": {
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Get many rows",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Upload Video and Description to Tiktok": {
-      "main": [
-        []
-      ]
-    },
-    "HTTP Request": {
+    "Get many rows": {
       "main": [
         [
           {
-            "node": "Upload Video and Description to Tiktok",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -371,6 +371,58 @@
       }
     ]
   },
-  "versionId": "ae05d0c2-66a4-4594-927e-3e6f71005683",
-  "triggerCount": 0
+  "versionId": "fe919964-bffc-4b20-900c-caa8717b1d3e",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-26T14:21:00.712Z",
+      "createdAt": "2025-10-26T14:21:00.712Z",
+      "role": "workflow:owner",
+      "workflowId": "vmp9L5Bhin2jQCPC",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

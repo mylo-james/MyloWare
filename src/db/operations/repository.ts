@@ -16,12 +16,17 @@ export interface ListVideosOptions {
   limit?: number;
 }
 
+export interface ListVideosByRunOptions {
+  status?: VideoStatus[];
+  limit?: number;
+}
+
 export interface DatabaseCheckResult {
   status: 'ok' | 'error';
   error?: string;
 }
 type RunUpdateData = Partial<
-  Pick<Run, 'result' | 'startedAt' | 'completedAt' | 'metadata'> & {
+  Pick<Run, 'result' | 'startedAt' | 'completedAt' | 'metadata' | 'input' | 'personaId' | 'chatId'> & {
     status?: RunStatus;
   }
 >;
@@ -91,10 +96,10 @@ export class OperationsRepository {
       chatId: data.chatId ?? null,
       status: data.status ?? 'pending',
       result: data.result ?? null,
-      input: data.input ?? {},
-      metadata: data.metadata ?? {},
-      startedAt: data.startedAt ?? null,
-      completedAt: data.completedAt ?? null,
+      input: (data.input ?? {}) as NewRun['input'],
+      metadata: (data.metadata ?? {}) as NewRun['metadata'],
+      startedAt: (data.startedAt ?? null) as NewVideo['startedAt'],
+      completedAt: (data.completedAt ?? null) as NewVideo['completedAt'],
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -117,7 +122,7 @@ export class OperationsRepository {
     const updatePayload: Partial<NewRun> & { updatedAt?: string } = {};
 
     if ('status' in data) {
-      updatePayload.status = data.status;
+      updatePayload.status = data.status as RunStatus | undefined;
     }
 
     if ('result' in data) {
@@ -125,27 +130,27 @@ export class OperationsRepository {
     }
 
     if ('input' in data) {
-      updatePayload.input = data.input ?? {};
+      updatePayload.input = (data.input ?? {}) as Record<string, unknown>;
     }
 
     if ('metadata' in data) {
-      updatePayload.metadata = data.metadata ?? {};
+      updatePayload.metadata = (data.metadata ?? {}) as Record<string, unknown>;
     }
 
     if ('startedAt' in data) {
-      updatePayload.startedAt = data.startedAt ?? null;
+      updatePayload.startedAt = (data.startedAt ?? null) as NewVideo['startedAt'];
     }
 
     if ('completedAt' in data) {
-      updatePayload.completedAt = data.completedAt ?? null;
+      updatePayload.completedAt = (data.completedAt ?? null) as NewVideo['completedAt'];
     }
 
     if ('personaId' in data) {
-      updatePayload.personaId = data.personaId ?? null;
+      updatePayload.personaId = (data.personaId ?? null) as NewRun['personaId'];
     }
 
     if ('chatId' in data) {
-      updatePayload.chatId = data.chatId ?? null;
+      updatePayload.chatId = (data.chatId ?? null) as NewRun['chatId'];
     }
 
     if (Object.keys(updatePayload).length === 0) {
@@ -181,15 +186,15 @@ export class OperationsRepository {
       runId: data.runId,
       projectId: data.projectId,
       idea: data.idea,
-      userIdea: data.userIdea ?? null,
-      vibe: data.vibe ?? null,
-      prompt: data.prompt ?? null,
-      videoLink: data.videoLink ?? null,
+      userIdea: (data.userIdea ?? null) as NewVideo['userIdea'],
+      vibe: (data.vibe ?? null) as NewVideo['vibe'],
+      prompt: (data.prompt ?? null) as NewVideo['prompt'],
+      videoLink: (data.videoLink ?? undefined) as NewVideo['videoLink'],
       status: data.status ?? 'idea_gen',
-      errorMessage: data.errorMessage ?? null,
-      startedAt: data.startedAt ?? null,
-      completedAt: data.completedAt ?? null,
-      metadata: data.metadata ?? {},
+      errorMessage: (data.errorMessage ?? undefined) as NewVideo['errorMessage'],
+      startedAt: (data.startedAt ?? null) as NewVideo['startedAt'],
+      completedAt: (data.completedAt ?? null) as NewVideo['completedAt'],
+      metadata: (data.metadata ?? {}) as NewVideo['metadata'],
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -202,43 +207,43 @@ export class OperationsRepository {
     const updatePayload: Partial<NewVideo> & { updatedAt?: string } = {};
 
     if ('idea' in data) {
-      updatePayload.idea = data.idea ?? null;
+      updatePayload.idea = (data.idea ?? null) as NewVideo['idea'];
     }
 
     if ('userIdea' in data) {
-      updatePayload.userIdea = data.userIdea ?? null;
+      updatePayload.userIdea = (data.userIdea ?? null) as NewVideo['userIdea'];
     }
 
     if ('vibe' in data) {
-      updatePayload.vibe = data.vibe ?? null;
+      updatePayload.vibe = (data.vibe ?? null) as NewVideo['vibe'];
     }
 
     if ('prompt' in data) {
-      updatePayload.prompt = data.prompt ?? null;
+      updatePayload.prompt = (data.prompt ?? null) as NewVideo['prompt'];
     }
 
     if ('videoLink' in data) {
-      updatePayload.videoLink = data.videoLink ?? null;
+      updatePayload.videoLink = (data.videoLink ?? undefined) as NewVideo['videoLink'];
     }
 
     if ('status' in data) {
-      updatePayload.status = data.status;
+      updatePayload.status = data.status as VideoStatus | undefined;
     }
 
     if ('errorMessage' in data) {
-      updatePayload.errorMessage = data.errorMessage ?? null;
+      updatePayload.errorMessage = (data.errorMessage ?? undefined) as NewVideo['errorMessage'];
     }
 
     if ('startedAt' in data) {
-      updatePayload.startedAt = data.startedAt ?? null;
+      updatePayload.startedAt = (data.startedAt ?? null) as NewVideo['startedAt'];
     }
 
     if ('completedAt' in data) {
-      updatePayload.completedAt = data.completedAt ?? null;
+      updatePayload.completedAt = (data.completedAt ?? null) as NewVideo['completedAt'];
     }
 
     if ('metadata' in data) {
-      updatePayload.metadata = data.metadata ?? {};
+      updatePayload.metadata = (data.metadata ?? {}) as NewVideo['metadata'];
     }
 
     if (Object.keys(updatePayload).length === 0) {
@@ -279,12 +284,29 @@ export class OperationsRepository {
     return baseQuery;
   }
 
-  async listVideosByRun(runId: string): Promise<Video[]> {
-    return this.db
+  async listVideosByRun(
+    runId: string,
+    options: ListVideosByRunOptions = {},
+  ): Promise<Video[]> {
+    const conditions = [eq(schema.videos.runId, runId)];
+
+    if (options.status && options.status.length > 0) {
+      conditions.push(inArray(schema.videos.status, options.status));
+    }
+
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+    const baseQuery = this.db
       .select()
       .from(schema.videos)
-      .where(eq(schema.videos.runId, runId))
+      .where(whereClause)
       .orderBy(desc(schema.videos.createdAt));
+
+    if (options.limit && options.limit > 0) {
+      return baseQuery.limit(Math.min(options.limit, 200));
+    }
+
+    return baseQuery;
   }
 
   async checkConnection(): Promise<DatabaseCheckResult> {

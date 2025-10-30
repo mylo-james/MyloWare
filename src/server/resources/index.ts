@@ -1,4 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with {
+  'resolution-mode': 'import',
+};
 import { registerPromptInfoResource } from './promptInfoResource';
 import { registerStatusResource } from './statusResource';
 

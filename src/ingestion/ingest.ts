@@ -7,6 +7,7 @@ import {
   type EmbeddingRecord,
 } from '../db/repository';
 import { embedTexts } from '../vector/embedTexts';
+import { normaliseSlug } from '../utils/slug';
 
 export type PromptType = 'persona' | 'project' | 'combination';
 
@@ -195,6 +196,7 @@ function derivePromptIdentity(
   promptKey: string,
   sourceName: string,
 ): PromptIdentity {
+  const promptKeySlug = ensureSlug(promptKey);
   const title = document.title?.trim() ?? promptKey;
   const lowerTitle = title.toLowerCase();
   const inferredFromTitle: PromptType | null = lowerTitle.includes('×')
@@ -208,8 +210,8 @@ function derivePromptIdentity(
   const keyParts = promptKey.split('-').filter(Boolean);
 
   if (inferredFromTitle === 'combination' || keyParts.length >= 2) {
-    const personaSlug = keyParts[0] ?? null;
-    const projectSlug = keyParts[keyParts.length - 1] ?? null;
+    const personaSlug = ensureSlug(keyParts[0]);
+    const projectSlug = ensureSlug(keyParts[keyParts.length - 1]);
     return {
       promptTitle: title,
       personaSlug,
@@ -222,7 +224,7 @@ function derivePromptIdentity(
     return {
       promptTitle: title,
       personaSlug: null,
-      projectSlug: promptKey,
+      projectSlug: promptKeySlug,
       type: 'project',
     };
   }
@@ -230,7 +232,7 @@ function derivePromptIdentity(
   if (inferredFromTitle === 'persona') {
     return {
       promptTitle: title,
-      personaSlug: promptKey,
+      personaSlug: promptKeySlug,
       projectSlug: null,
       type: 'persona',
     };
@@ -243,14 +245,14 @@ function derivePromptIdentity(
     return {
       promptTitle: title,
       personaSlug: null,
-      projectSlug: promptKey,
+      projectSlug: promptKeySlug,
       type: 'project',
     };
   }
 
   return {
     promptTitle: title,
-    personaSlug: promptKey,
+    personaSlug: promptKeySlug,
     projectSlug: null,
     type: 'persona',
   };
@@ -414,7 +416,10 @@ function appendWorkflowSection(lines: string[], value: unknown): void {
 
   if (workflow.definition_of_success) {
     lines.push(`### Definition of Success`);
-    lines.push(formatValue(workflow.definition_of_success));
+    const definition = formatValue(workflow.definition_of_success);
+    if (definition) {
+      lines.push(definition);
+    }
   }
 
   if (Array.isArray(workflow.inputs)) {
@@ -424,7 +429,10 @@ function appendWorkflowSection(lines: string[], value: unknown): void {
 
   if (workflow.tooling) {
     lines.push(`### Tooling`);
-    lines.push(formatValue(workflow.tooling));
+    const tooling = formatValue(workflow.tooling);
+    if (tooling) {
+      lines.push(tooling);
+    }
   }
 
   if (Array.isArray(workflow.steps)) {
@@ -646,4 +654,18 @@ async function buildEmbeddingRecords(
     metadata: prompt.metadata,
     checksum: prompt.checksum,
   }));
+}
+
+function ensureSlug(value?: string | null): string | null {
+  const slug = normaliseSlug(value);
+  if (slug) {
+    return slug;
+  }
+
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  const fallback = value.trim().toLowerCase();
+  return fallback.length > 0 ? fallback : null;
 }

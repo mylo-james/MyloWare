@@ -1,29 +1,30 @@
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import { embedTexts } from '../../vector/embedTexts';
 import {
   PromptEmbeddingsRepository,
   type SearchParameters,
   type SearchResult,
 } from '../../db/repository';
+import { normaliseSlugOptional } from '../../utils/slug';
 
-const inputSchema = z
-  .object({
-    query: z.string().trim().min(1, 'query must not be empty'),
-    persona: z.string().trim().optional(),
-    project: z.string().trim().optional(),
-    limit: z.number().int().positive().max(50).optional(),
-    minSimilarity: z.number().min(0).max(1).optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.query) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'query is required',
-        fatal: true,
-      });
-    }
-  });
+const promptSearchArgsSchema = z.object({
+  query: z.string().trim().min(1, 'query must not be empty'),
+  persona: z.string().trim().optional(),
+  project: z.string().trim().optional(),
+  limit: z.number().int().positive().max(50).optional(),
+  minSimilarity: z.number().min(0).max(1).optional(),
+});
+
+const inputSchema = promptSearchArgsSchema.superRefine((value, ctx) => {
+  if (!value.query) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'query is required',
+      fatal: true,
+    });
+  }
+});
 
 const outputSchema = z.object({
   matches: z.array(
@@ -90,13 +91,13 @@ export function registerPromptSearchTool(
       title: 'Search prompt corpus semantically',
       description:
         'Performs semantic search across prompts with optional persona/project filters. Returns ranked chunks with similarity scores.',
-      inputSchema: inputSchema.shape,
+      inputSchema: promptSearchArgsSchema.shape,
       outputSchema: outputSchema.shape,
       annotations: {
         category: 'prompts',
       },
     },
-    async (rawArgs) => {
+    async (rawArgs: unknown) => {
       let args: PromptSearchInput;
 
       try {
@@ -125,11 +126,15 @@ export function registerPromptSearchTool(
         const responseText =
           result.matches.length === 0
             ? `No matches found for "${args.query}".`
-            : `Found ${result.matches.length} match${
-                result.matches.length === 1 ? '' : 'es'
-              } for "${args.query}". Top hit: ${result.matches[0].promptKey} (${result.matches[0].similarity.toFixed(
-                3,
-              )}).`;
+            : [
+                `Found ${result.matches.length} match${result.matches.length === 1 ? '' : 'es'} for "${args.query}"`,
+                `Top hit: ${result.matches[0].promptKey} (similarity: ${result.matches[0].similarity.toFixed(3)})`,
+                '',
+                'To get full prompt content, use:',
+                `prompt_get({"persona_name": "${result.matches[0].metadata.persona || ''}", "project_name": "${result.matches[0].metadata.project || ''}"})`,
+                '',
+                'All matches available in structured response under matches[]',
+              ].join('\n');
 
         return {
           content: [
@@ -167,8 +172,8 @@ function buildSearchParameters(args: PromptSearchInput): Omit<SearchParameters, 
   return {
     limit,
     minSimilarity,
-    persona: normalise(args.persona),
-    project: normalise(args.project),
+    persona: normaliseSlugOptional(args.persona),
+    project: normaliseSlugOptional(args.project),
   };
 }
 
@@ -177,7 +182,7 @@ function serializeMatch(match: SearchResult) {
     chunkId: match.chunkId,
     promptKey: match.promptKey,
     similarity: Number(match.similarity),
-    metadata: match.metadata ?? {},
+    metadata: (match.metadata ?? {}) as Record<string, unknown>,
     preview: buildPreview(match.chunkText),
   };
 }
@@ -189,15 +194,6 @@ function buildPreview(text: string): string {
   }
 
   return `${normalized.slice(0, 177)}...`;
-}
-
-function normalise(value?: string | null): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed.toLowerCase() : undefined;
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -84,28 +84,47 @@ const videoUpdateSchema = videoCreateSchema.partial().extend({
   idea: z.string().trim().optional(),
 });
 
-const videoListQuerySchema = z.object({
-  project: z.string().trim().min(1, 'project query parameter is required'),
-  status: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .transform((value) => {
-      if (!value) {
-        return [] as string[];
-      }
+const videoListQuerySchema = z
+  .object({
+    project: z.string().trim().min(1, 'project query parameter is required').optional(),
+    run: z.string().trim().min(1, 'run query parameter is required').optional(),
+    status: z
+      .union([z.string(), z.array(z.string())])
+      .optional()
+      .transform((value) => {
+        if (!value) {
+          return [] as string[];
+        }
 
-      return Array.isArray(value) ? value : value.split(',');
-    })
-    .refine((values) => values.every((value) => videoStatusValues.has(value.trim() as VideoStatus)), {
-      message: `status must be one of: ${Array.from(videoStatusValues).join(', ')}`,
-    })
-    .transform((values) =>
-      values
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0) as VideoStatus[],
-    ),
-  limit: z.coerce.number().int().positive().max(200).optional(),
-});
+        return Array.isArray(value) ? value : value.split(',');
+      })
+      .refine((values) => values.every((value) => videoStatusValues.has(value.trim() as VideoStatus)), {
+        message: `status must be one of: ${Array.from(videoStatusValues).join(', ')}`,
+      })
+      .transform((values) =>
+        values
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0) as VideoStatus[],
+      ),
+    limit: z.coerce.number().int().positive().max(200).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.project && !value.run) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Provide project or run query parameter.',
+        fatal: true,
+      });
+    }
+
+    if (value.project && value.run) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Specify only one of project or run.',
+        fatal: true,
+      });
+    }
+  });
 
 export interface ApiRouteDependencies {
   promptRepository?: PromptEmbeddingsRepository;
@@ -224,7 +243,12 @@ export async function registerApiRoutes(
     }
 
     try {
-      const run = await operationsRepository!.createRun(parsed.data);
+      const run = await operationsRepository!.createRun({
+        ...parsed.data,
+        status: parsed.data.status as RunStatus | undefined,
+        input: (parsed.data.input ?? {}) as Record<string, unknown>,
+        metadata: (parsed.data.metadata ?? {}) as Record<string, unknown>,
+      });
       return reply.status(201).send({ data: { run } });
     } catch (error) {
       request.log.error({ err: error }, 'create run failed');
@@ -250,7 +274,12 @@ export async function registerApiRoutes(
     }
 
     try {
-      const run = await operationsRepository!.updateRun(runId, parsed.data);
+      const run = await operationsRepository!.updateRun(runId, {
+        ...parsed.data,
+        status: parsed.data.status as RunStatus | undefined,
+        input: parsed.data.input as Record<string, unknown> | undefined,
+        metadata: parsed.data.metadata as Record<string, unknown> | undefined,
+      });
       if (!run) {
         return sendError(reply, 404, 'RUN_NOT_FOUND', `No run found with id "${runId}".`);
       }
@@ -300,10 +329,18 @@ export async function registerApiRoutes(
     }
 
     try {
-      const videos = await operationsRepository!.listVideosByProject(parsed.data.project, {
-        status: parsed.data.status,
-        limit: parsed.data.limit,
-      });
+      const statusFilter =
+        parsed.data.status.length > 0 ? (parsed.data.status as VideoStatus[]) : undefined;
+
+      const videos = parsed.data.run
+        ? await operationsRepository!.listVideosByRun(parsed.data.run, {
+            status: statusFilter,
+            limit: parsed.data.limit,
+          })
+        : await operationsRepository!.listVideosByProject(parsed.data.project!, {
+            status: statusFilter,
+            limit: parsed.data.limit,
+          });
 
       return reply.status(200).send({ data: { videos } });
     } catch (error) {
@@ -325,7 +362,11 @@ export async function registerApiRoutes(
     }
 
     try {
-      const video = await operationsRepository!.createVideo(parsed.data);
+      const video = await operationsRepository!.createVideo({
+        ...parsed.data,
+        status: parsed.data.status as VideoStatus | undefined,
+        metadata: (parsed.data.metadata ?? {}) as Record<string, unknown>,
+      });
       return reply.status(201).send({ data: { video } });
     } catch (error) {
       request.log.error({ err: error }, 'create video failed');
@@ -351,7 +392,11 @@ export async function registerApiRoutes(
     }
 
     try {
-      const video = await operationsRepository!.updateVideo(videoId, parsed.data);
+      const video = await operationsRepository!.updateVideo(videoId, {
+        ...parsed.data,
+        status: parsed.data.status as VideoStatus | undefined,
+        metadata: parsed.data.metadata as Record<string, unknown> | undefined,
+      });
       if (!video) {
         return sendError(reply, 404, 'VIDEO_NOT_FOUND', `No video found with id "${videoId}".`);
       }

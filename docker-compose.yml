@@ -31,6 +31,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
+      OPERATIONS_DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3456
     depends_on:
@@ -53,6 +54,7 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
+      OPERATIONS_DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3456
     volumes:

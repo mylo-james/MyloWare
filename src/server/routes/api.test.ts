@@ -6,6 +6,7 @@ import type {
   PromptEmbeddingsRepository,
   PromptChunk,
   PromptSummary,
+  PromptLookupFilters,
   SearchResult,
 } from '../../db/repository';
 import type { OperationsRepository } from '../../db/operations';
@@ -215,15 +216,16 @@ function createPromptRepositoryMock(): PromptEmbeddingsRepositoryMock {
     updatedAt: '2025-01-01T00:00:00.000Z',
   };
 
-  const listPrompts = vi.fn(async (filters = {}) => {
+  const listPrompts = vi.fn(async (filters: PromptLookupFilters = {}) => {
     return summaries.filter((summary) => {
-      if (filters.persona && !summary.metadata.persona?.includes(filters.persona)) {
+      const metadata = summary.metadata as { persona?: string[]; project?: string[]; type?: string };
+      if (filters.persona && !(metadata.persona ?? []).includes(filters.persona)) {
         return false;
       }
-      if (filters.project && !summary.metadata.project?.includes(filters.project)) {
+      if (filters.project && !(metadata.project ?? []).includes(filters.project)) {
         return false;
       }
-      if (filters.type && summary.metadata.type !== filters.type) {
+      if (filters.type && metadata.type !== filters.type) {
         return false;
       }
       return true;

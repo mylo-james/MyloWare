@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:47.499Z",
   "createdAt": "2025-10-16T02:29:50.738Z",
-  "updatedAt": "2025-10-29T19:14:13.412Z",
   "id": "iGydAd7mC3NocD9X",
   "name": "Chat",
   "active": true,
@@ -115,33 +115,10 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "personaId": "5b522eeb-32d8-4523-9d99-e2fe9df345c1"
+            "personaSlug": "chat"
           },
-          "matchingColumns": [
-            "persona_name"
-          ],
-          "schema": [
-            {
-              "id": "personaId",
-              "displayName": "personaId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": true
-            }
-          ],
+          "matchingColumns": [],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
@@ -578,6 +555,58 @@
       }
     ]
   },
-  "versionId": "02b672d5-9e86-4913-a8f2-6ef29eddaabb",
-  "triggerCount": 2
+  "versionId": "00ff4e17-6c86-4296-8b51-f286c94878df",
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T02:29:50.741Z",
+      "createdAt": "2025-10-16T02:29:50.741Z",
+      "role": "workflow:owner",
+      "workflowId": "iGydAd7mC3NocD9X",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

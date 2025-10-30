@@ -13,7 +13,7 @@ describe('searchPrompts', () => {
 
     const embed = vi.fn().mockResolvedValue([[0.1, 0.2, 0.3]]);
 
-    const result = await searchPrompts(repository as PromptEmbeddingsRepository, embed, {
+    const result = await searchPrompts(repository as unknown as PromptEmbeddingsRepository, embed, {
       query: 'demo persona',
       persona: 'persona',
       minSimilarity: 0.3,
@@ -43,7 +43,7 @@ describe('searchPrompts', () => {
 
     const embed = vi.fn().mockResolvedValue([[0.1]]);
 
-    const result = await searchPrompts(repository as PromptEmbeddingsRepository, embed, {
+    const result = await searchPrompts(repository as unknown as PromptEmbeddingsRepository, embed, {
       query: 'demo',
     });
 

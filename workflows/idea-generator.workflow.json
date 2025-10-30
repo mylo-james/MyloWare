@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:37:57.000Z",
   "createdAt": "2025-10-16T05:23:17.280Z",
-  "updatedAt": "2025-10-29T19:14:14.603Z",
   "id": "ljH4wBxJn069C282",
   "name": "Idea Generator",
   "active": false,
@@ -15,9 +15,6 @@
             },
             {
               "name": "runId"
-            },
-            {
-              "name": "projectId"
             }
           ]
         }
@@ -26,41 +23,39 @@
       "typeVersion": 1.1,
       "position": [
         112,
-        -32
+        -128
       ],
       "id": "4fec7160-d643-4754-b2fe-902bd69ccb67",
       "name": "When Called"
     },
     {
       "parameters": {
-        "tableId": "videos",
-        "dataToSend": "autoMapInputData"
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/videos",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  runId: $json.run_id,\n  projectId: $json.project_id,\n  idea: $json.idea,\n  userIdea: $json.user_idea ?? null,\n  vibe: $json.vibe ?? null,\n  status: $json.status ?? 'idea_gen',\n  prompt: $json.prompt ?? null,\n  startedAt: $json.started_at ?? null,\n  metadata: { source: 'idea-generator' }\n}) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1456,
-        -32
+        -128
       ],
       "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
-      "name": "Create a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Create a row"
     },
     {
       "parameters": {
-        "fieldToSplitOut": "output",
+        "fieldToSplitOut": "output.ideas",
         "options": {}
       },
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
         1008,
-        -32
+        -128
       ],
       "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
       "name": "Split Out"
@@ -119,38 +114,24 @@
       "typeVersion": 3.4,
       "position": [
         1232,
-        -32
+        -128
       ],
       "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
       "name": "Edit Fields1"
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        }
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         336,
         -128
       ],
       "id": "2fe33b20-dde7-41a6-8cf1-e5f9a85080b3",
-      "name": "Get Run",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get Run (API)"
     },
     {
       "parameters": {},
@@ -158,99 +139,28 @@
       "typeVersion": 1,
       "position": [
         112,
-        288
+        96
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Called').item.json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "failed"
-            },
-            {
-              "fieldId": "result",
-              "fieldValue": "ideas_error"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Called').item.json.runId) || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'failed', result: 'ideas_error' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         336,
-        288
+        96
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
-      "name": "Mark Run Failed (Ideas)",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "ideas"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        336,
-        64
-      ],
-      "id": "c0afe2f7-d3af-4b9f-bca7-c6a5749e414d",
-      "name": "Mark Run Ideas",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        560,
-        -32
-      ],
-      "id": "f174f750-5d1a-4308-ab94-cbb0ee6949f3",
-      "name": "Merge"
+      "name": "Mark Run Failed (Ideas)"
     },
     {
       "parameters": {
@@ -264,7 +174,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "projectId": "aismr",
+            "projectId": "={{ $json.metadata.projectSlug }}",
             "personaId": "ideagenerator",
             "chatInput": "={{ $('When Called').item.json.userInput }}",
             "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"userIdea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Normalized base object (lowercase singular) applied to every idea.\\\"},\\\"ideas\\\":{\\\"type\\\":\\\"array\\\",\\\"description\\\":\\\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\\\",\\\"items\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"idea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Title Case descriptor + singular object (two words, descriptor is one word).\\\"},\\\"vibe\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\\\"}},\\\"required\\\":[\\\"idea\\\",\\\"vibe\\\"],\\\"additionalProperties\\\":false},\\\"minItems\\\":12,\\\"maxItems\\\":12}},\\\"required\\\":[\\\"userIdea\\\",\\\"ideas\\\"],\\\"additionalProperties\\\":false}\""
@@ -321,10 +231,23 @@
       "typeVersion": 1.3,
       "position": [
         784,
-        -32
+        -128
       ],
       "id": "02614dfe-21eb-448e-bf19-c356030d31b1",
       "name": "Call 'Mylo_MCP_Bot'"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -128
+      ],
+      "id": "0ba93b9e-d12c-43f4-939f-634f7755c448",
+      "name": "Get Run"
     }
   ],
   "connections": {
@@ -332,12 +255,7 @@
       "main": [
         [
           {
-            "node": "Get Run",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Mark Run Ideas",
+            "node": "Get Run (API)",
             "type": "main",
             "index": 0
           }
@@ -371,17 +289,6 @@
         ]
       ]
     },
-    "Get Run": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "On Error": {
       "main": [
         [
@@ -398,33 +305,33 @@
         []
       ]
     },
-    "Mark Run Ideas": {
+    "Call 'Mylo_MCP_Bot'": {
       "main": [
         [
           {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge": {
-      "main": [
-        [
-          {
-            "node": "Call 'Mylo_MCP_Bot'",
+            "node": "Split Out",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call 'Mylo_MCP_Bot'": {
+    "Get Run (API)": {
       "main": [
         [
           {
-            "node": "Split Out",
+            "node": "Get Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Run": {
+      "main": [
+        [
+          {
+            "node": "Call 'Mylo_MCP_Bot'",
             "type": "main",
             "index": 0
           }
@@ -443,13 +350,65 @@
     "When Called": [
       {
         "json": {
-          "userInput": "Create a viral ASMR video about powerful wizards. Focus on magical sounds, enchanting whispers, and mystical ambiance to captivate viewers.",
-          "runId": "5166f84d-6a55-440e-9570-4f01addcd07e",
+          "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them",
+          "runId": "140b9873-9155-4019-8878-fec00981f660",
           "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
         }
       }
     ]
   },
-  "versionId": "d05585ab-10b7-48bf-9e2c-5110f567d6ea",
-  "triggerCount": 0
+  "versionId": "6fbaf98f-ab18-4dfe-8b7f-7685ef33461b",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T05:23:17.282Z",
+      "createdAt": "2025-10-16T05:23:17.282Z",
+      "role": "workflow:owner",
+      "workflowId": "ljH4wBxJn069C282",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:21:59.000Z",
   "createdAt": "2025-10-28T23:40:45.212Z",
-  "updatedAt": "2025-10-29T19:14:15.089Z",
   "id": "Cz7h4stqCFJ4qZ9I",
   "name": "Mylo_MCP_Bot",
   "active": false,
@@ -10,7 +10,7 @@
       "parameters": {
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You orchestrate MCP prompt workflows using canonical JSON stored in a vector database.\n\nInput identifiers:\n- personaRaw = {{$json.persona}}\n- projectRaw = {{$json.project}}\n- personaSlug = {{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\n- projectSlug = {{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\n\n1. Validate inputs.\n   - If personaRaw or projectRaw is missing or slug normalisation yields an empty string, halt and request the missing identifier.\n\n2. Locate every required prompt via semantic search (never assume file names):\n   a. Persona prompt search\n      prompts_search({\n        \"query\": \"{{$json.persona}} persona configuration\",\n        \"persona\": \"{{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.35\"\n      })\n   b. Project prompt search\n      prompts_search({\n        \"query\": \"{{$json.project}} project orientation\",\n        \"project\": \"{{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.35\"\n      })\n   c. Persona × Project prompt search\n      prompts_search({\n        \"query\": \"{{$json.persona}} {{$json.project}} combined workflow\",\n        \"persona\": \"{{ $json.persona ? $json.persona.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"project\": \"{{ $json.project ? $json.project.toLowerCase().replace(/[^a-z0-9]/g, '') : '' }}\",\n        \"limit\": \"5\",\n        \"minSimilarity\": \"0.30\"\n      })\n\n   - For each search, pick the highest-similarity hit whose metadata.type matches the target (“persona”, “project”, “combination”) and whose metadata persona/project arrays include the corresponding slug. If none clear the threshold, report the specific prompt that is missing and stop.\n\n3. Hydrate all selected prompts:\n   For each chosen filePath:\n   prompts_get({\n     \"filePath\": \"<filePath from search>\",\n     \"includeMetadata\": true\n   })\n\n4. Treat the returned JSON documents as your single source of truth for agent settings, persona guidance, workflows, guardrails, schemas, and examples. Do not rely on memory; re-search or re-fetch if anything becomes unclear.\n\n5. Execute the documented workflows exactly:\n   - Translate every step into explicit actions.\n   - Honor all guardrails, timing rules, and formatting requirements.\n   - Produce outputs that match the schema defined in the prompts.\n\n6. Surface problems immediately:\n   - Missing identifiers, failed searches, prompt load errors, or schema conflicts must be reported so the caller can resolve them before you proceed.\n"
+          "systemMessage": "=You are an AI orchestrator that loads persona and project prompts from a vector database, then executes tasks according to their specifications.\n\n## Workflow Inputs\nYou receive:\n- **personaId**: {{$json.personaId}} (e.g., \"ideagenerator\", \"chat\", \"screenwriter\")\n- **projectId**: {{$json.projectId}} (e.g., \"aismr\")\n- **chatInput**: {{$json.chatInput}} (the user's request)\n- **outputSchema**: {{$json.outputSchema}} (JSON schema for structured output)\n\n## Step 1: Load Required Prompts\nUse the MCP tools to retrieve configuration. **IMPORTANT**: The tools return both text summaries AND structured content - you need the structured content for the actual prompt data.\n\n1. **Get the combination prompt first** (persona × project):\n   ```\n   prompt_get({\n     \"persona_name\": \"{{$json.personaId}}\",\n     \"project_name\": \"{{$json.projectId}}\"\n   })\n   ```\n\n2. **If no combination exists, get individual prompts**:\n   - Persona prompt: `prompt_get({\"persona_name\": \"{{$json.personaId}}\"})`\n   - Project prompt: `prompt_get({\"project_name\": \"{{$json.projectId}}\"})`\n\n3. **If prompts are missing**, search for alternatives:\n   ```\n   prompt_search({\n     \"query\": \"{{$json.personaId}} persona configuration\",\n     \"persona\": \"{{$json.personaId}}\",\n     \"limit\": 3\n   })\n   ```\n\n## Step 2: Extract the Actual Prompt Content\n**CRITICAL**: The MCP tools return structured data with the actual prompt content. Access it like this:\n- From `prompt_get`: Look for the `prompt.content` field in the tool response - this contains the full JSON prompt\n- From `prompt_search`: Use the `promptKey` from search results, then call `prompt_get` to get the full content\n- **Parse the JSON content** - it contains the complete agent configuration, not just metadata\n\n## Step 3: Process the Loaded Prompts\nOnce you have the actual prompt content (JSON):\n- **Parse the JSON structure** completely - especially `agent`, `persona`, `workflow`, and `session_posture` sections\n- **Extract the role, style, principles, and workflow steps**\n- **Note any specific formatting requirements, schemas, or guardrails**\n- **Identify any examples or templates provided**\n\n## Step 4: Execute the Task\n- **Adopt the persona** described in the loaded prompts\n- **Follow the workflow steps** exactly as documented in the prompt content\n- **Apply all guardrails and constraints** specified in the prompts\n- **Honor the output schema** provided in the workflow inputs\n- **Match the tone and style** defined in the persona configuration\n\n## Step 5: Format and Validate Output\n- **Structure your response** according to the provided JSON schema\n- **Ensure all required fields** are present and correctly formatted\n- **Follow any specific formatting rules** from the prompt configuration\n- **Validate against constraints** like count requirements, content types, etc.\n\n## Error Handling\nIf prompts fail to load or are incomplete:\n1. Report the specific missing component (persona/project/combination)\n2. List what was found vs. what was expected\n3. Show the actual tool responses you received\n4. Do not proceed with generic behavior - request clarification\n\n## Key Principles\n- **Access Full Content**: Don't rely on tool summaries - extract the actual prompt.content JSON\n- **Prompt Fidelity**: Execute exactly what the loaded prompts specify\n- **Schema Compliance**: Always match the required output format\n- **No Assumptions**: Only use information from loaded prompts, never from memory\n- **Explicit Workflow**: Follow documented steps in the prompt configurations\n- **Tool Mastery**: Use MCP tools correctly and access their structured responses"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -169,14 +169,66 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "persona": "ideagenerator",
-          "project": "aismr",
-          "chatInput": "generate ideas for aismr videos about hamsters",
-          "outputSchema": "{\"type\":\"object\",\"properties\":{\"userIdea\":{\"type\":\"string\",\"description\":\"Normalized base object (lowercase singular) applied to every idea.\"},\"ideas\":{\"type\":\"array\",\"description\":\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\",\"items\":{\"type\":\"object\",\"properties\":{\"idea\":{\"type\":\"string\",\"description\":\"Title Case descriptor + singular object (two words, descriptor is one word).\"},\"vibe\":{\"type\":\"string\",\"description\":\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\"}},\"required\":[\"idea\",\"vibe\"],\"additionalProperties\":false},\"minItems\":12,\"maxItems\":12}},\"required\":[\"userIdea\",\"ideas\"],\"additionalProperties\":false}"
+          "projectId": "aismr",
+          "personaId": "ideagenerator",
+          "chatInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them",
+          "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"userIdea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Normalized base object (lowercase singular) applied to every idea.\\\"},\\\"ideas\\\":{\\\"type\\\":\\\"array\\\",\\\"description\\\":\\\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\\\",\\\"items\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"idea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Title Case descriptor + singular object (two words, descriptor is one word).\\\"},\\\"vibe\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\\\"}},\\\"required\\\":[\\\"idea\\\",\\\"vibe\\\"],\\\"additionalProperties\\\":false},\\\"minItems\\\":12,\\\"maxItems\\\":12}},\\\"required\\\":[\\\"userIdea\\\",\\\"ideas\\\"],\\\"additionalProperties\\\":false}\""
         }
       }
     ]
   },
-  "versionId": "f4f53b98-a11e-4a7c-a580-f19cff60c97e",
-  "triggerCount": 0
+  "versionId": "394800c0-e7af-43b4-84da-8b73b323e84f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-28T23:40:45.214Z",
+      "createdAt": "2025-10-28T23:40:45.214Z",
+      "role": "workflow:owner",
+      "workflowId": "Cz7h4stqCFJ4qZ9I",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

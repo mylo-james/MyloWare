@@ -1,911 +1,1452 @@
-# MCP System V1 Implementation Plan
+# RAG Modernization Plan: From Static to Adaptive Agentic Memory
 
-**Date:** 2025-10-29  
-**Status:** V1 Development - Clean Slate Implementation  
-**Author:** GitHub Copilot
-
-> **Development Philosophy:** This is V1 development. No production system exists. Remove all legacy code and build the dream architecture cleanly. No fallbacks, no backward compatibility, no migration concerns.
-
----
-
-## Vision: The Dream Architecture
-
-Build a **clean, slim MCP-based system** with these core requirements:
-
-1. **MCP Server** with `/mcp` endpoint providing `prompt.get(project_name, persona_name)` that queries vector metadata
-2. **Vector database** as the single source of truth for prompts with semantic + metadata search
-3. **SQL database** containing only `runs` and `videos` tables
-4. **REST endpoints** for standard HTTP requests (`/api/runs/:id`, `/api/videos/:id`) replacing all Supabase
-5. **n8n workflows** calling our server only, with `n8n:push`/`n8n:pull` sync scripts
+**Date:** October 30, 2025  
+**Based On:** REVIEW.md + REVIEW-CODEX.md analysis  
+**Goal:** Transform current static RAG into adaptive agentic memory system  
+**Timeline:** 12 weeks (3 phases)
 
 ---
 
-## Current State: What to Keep vs Delete
+## Executive Summary
 
-### ✅ **Keep - Core Infrastructure**
+This plan transforms our B+ static RAG implementation into a production-grade adaptive agentic memory system aligned with 2024-2025 research standards. We'll build incrementally on our solid foundation (pgvector, OpenAI embeddings, MCP architecture) without requiring a complete rewrite.
 
-- PostgreSQL 16 + pgvector setup
-- Node.js/TypeScript MCP server foundation
-- Drizzle ORM with migrations
-- OpenAI embeddings integration
-- HTTP transport layer
-
-### 🗑️ **Delete - Legacy/Bloated Code**
-
-- All current MCP tools (rebuild focused versions)
-- File-based prompt loading (move to DB-only)
-- Backward compatibility in `prompt.get`
-- Complex metadata parsing (simplify)
-- Operations tools that duplicate REST functionality
-- Any Supabase references or fallback code
-
-### ⚠️ **Transform - Specific Gaps to Address**
-
-1. **`prompt.get` tool**: Delete current implementation, rebuild to accept `project_name + persona_name` only
-2. **No REST endpoints**: Build clean API alongside MCP
-3. **Bloated prompt metadata**: Simplify to essential project/persona fields only
-4. **n8n dependency on Supabase**: Replace with our server calls
-5. **No workflow sync**: Add n8n SDK integration
+**Current State:** Static vector search with metadata filtering  
+**Target State:** Multi-component adaptive memory with hybrid search, episodic storage, and runtime learning
 
 ---
 
-## Implementation Plan: V1 Clean Build
+## Phase 1: Foundation Enhancements (Weeks 1-4)
 
-## Phase 1: Core System Rebuild (Week 1)
+### Milestone 1.1: Hybrid Search Implementation
 
-### Step 1.1: Delete Legacy, Keep Infrastructure ⏱️ 0.5 days
+**Goal:** Add keyword search alongside vector similarity for better precision on technical terms and exact matches.
 
-**Objective**: Clean house - remove all legacy code that doesn't fit the dream architecture
+#### Step 1.1.1: Add Full-Text Search Capabilities
 
-**Delete Tasks:**
+- [ ] **Add tsvector column to schema**
+  - [ ] Create migration `0002_add_fulltext_search.sql`
+  - [ ] Add `textsearch tsvector` column to `prompt_embeddings` table
+  - [ ] Add GIN index for full-text search: `CREATE INDEX idx_textsearch ON prompt_embeddings USING gin(textsearch)`
+  - [ ] Add trigger to auto-update tsvector on insert/update:
+    ```sql
+    CREATE TRIGGER tsvector_update BEFORE INSERT OR UPDATE
+    ON prompt_embeddings FOR EACH ROW EXECUTE FUNCTION
+    tsvector_update_trigger(textsearch, 'pg_catalog.english', chunk_text, raw_markdown);
+    ```
 
-- [x] **Remove Current MCP Tools**
-  - Delete `src/server/tools/getPromptTool.ts` (rebuild from scratch)
-  - Delete `src/server/tools/searchPromptsTool.ts` (rebuild simpler)
-  - Delete `src/server/tools/listPromptsTool.ts` (rebuild simpler)
-  - Delete `src/server/tools/filterPromptsTool.ts` (not needed)
-- [x] **Remove File Dependencies**
-  - Delete `/prompts/` directory mounting from Docker
-  - Remove file-walking ingestion code
-  - Remove file-based metadata parsing
-  - Update Dockerfile to not copy prompt files
-- [x] **Clean Repository Layer**
-  - Simplify `PromptEmbeddingsRepository` to essential methods only
-  - Remove complex metadata parsing
-  - Remove file path dependencies
+- [ ] **Update schema types**
+  - [ ] Add `textsearch` field to `PromptEmbedding` interface in `src/db/schema.ts`
+  - [ ] Update Drizzle schema definition
+  - [ ] Run migration and verify index creation
 
-**Keep Tasks:**
+- [ ] **Test full-text search**
+  - [ ] Write test query: `SELECT * FROM prompt_embeddings WHERE textsearch @@ to_tsquery('screenwriter & aismr')`
+  - [ ] Verify results match expected prompts
+  - [ ] Test ranking with `ts_rank(textsearch, query)`
 
-- [x] Keep database schemas and migrations
-- [x] Keep basic HTTP server setup
-- [x] Keep operations database (runs/videos)
-- [x] Keep OpenAI embedding integration
+**Files to modify:**
 
-### Step 1.2: Rebuild `prompt.get` Tool (Clean) ⏱️ 1 day
+- `drizzle/0002_add_fulltext_search.sql` (new)
+- `src/db/schema.ts`
+- `drizzle.config.ts` (verify migration path)
 
-**Objective**: Build the dream `prompt.get` tool from scratch
-
-**New Tool Specification:**
-
-```typescript
-// NEW: Clean interface - no file paths
-interface PromptGetInput {
-  project_name?: string; // e.g., "aismr"
-  persona_name?: string; // e.g., "ideagenerator"
-}
-
-// Resolution logic (simple):
-// 1. Both provided: find exact combination
-// 2. Only persona: find persona-only prompt
-// 3. Only project: find project-only prompt
-// 4. Neither: error
-// 5. Multiple matches: error with list
-```
-
-**Implementation Tasks:**
-
-- [x] **Create New Tool File**
-  - Build `src/server/tools/promptGetTool.ts` from scratch
-  - Simple input schema (project_name, persona_name only)
-  - No backward compatibility with filePath
-- [x] **Metadata-Based Resolution**
-  - Query vector DB by metadata filters only
-  - Implement deterministic selection logic
-  - Return full prompt content + metadata
-- [x] **Error Handling**
-  - Clear error messages for no matches
-  - List available options for multiple matches
-  - Validation for required fields
-
-### Step 1.3: Rebuild Essential MCP Tools ⏱️ 1 day
-
-**Objective**: Create minimal, focused MCP tools
-
-**Tools to Rebuild (Simple Versions):**
-
-- [x] **`prompts.search`** - Semantic search with project/persona filters only
-- [x] **`prompts.list`** - Simple list of available prompts by metadata
-- [x] **Remove operations tools** - These become REST endpoints instead
-
-**Design Principles:**
-
-- Single responsibility per tool
-- No complex options or backward compatibility
-- Focus on the core use cases only
-- Clean, simple schemas
-
-### Step 1.4: Build Clean Prompt Ingestion ⏱️ 1 day
-
-**Objective**: Simplified prompt loading that works with existing JSON files
-
-**Tasks:**
-
-- [x] **Simplify Metadata Extraction**
-  - Extract only: project_name, persona_name, content
-  - Remove complex parsing of file names
-  - Standardize metadata schema
-- [x] **Database-First Approach**
-  - Load prompts directly to vector DB
-  - Remove file dependencies after initial load
-  - Simple update mechanism via re-ingestion
-- [x] **Test with Current Prompts**
-  - Verify all 7 JSON prompts load correctly
-  - Ensure metadata supports project/persona queries
-  - Test new `prompt.get` tool resolves correctly
-
-**Exit Criteria**: Clean MCP tools working, prompts in vector DB with simple metadata
+**Exit Criteria:** Full-text search returns relevant results for keyword queries
 
 ---
 
-## Phase 2: REST API Implementation (Week 1-2)
+#### Step 1.1.2: Implement BM25 Keyword Search Repository Method
 
-### Step 2.1: Build Clean REST Endpoints ⏱️ 1.5 days
+- [ ] **Add keyword search method to repository**
+  - [ ] Create `keywordSearch(query: string, filters: MetadataFilters): Promise<SearchResult[]>` in `PromptEmbeddingsRepository`
+  - [ ] Implement ts_query parsing from natural language query
+  - [ ] Use `ts_rank_cd` for relevance scoring
+  - [ ] Apply persona/project metadata filters
+  - [ ] Return normalized results matching `SearchResult` interface
 
-**Objective**: Create focused REST API for operations data
+- [ ] **Add configuration options**
+  - [ ] Add `FULLTEXT_SEARCH_WEIGHTS` to config (A: 1.0, B: 0.4, C: 0.2, D: 0.1)
+  - [ ] Add `FULLTEXT_MIN_SCORE` threshold (default: 0.1)
+  - [ ] Make language configurable (default: 'english')
 
-**API Design (Minimal):**
+- [ ] **Write unit tests**
+  - [ ] Test exact phrase matching
+  - [ ] Test multi-word queries
+  - [ ] Test stop word handling
+  - [ ] Test with metadata filters
+  - [ ] Test empty results handling
 
-```typescript
-// Operations API - replace ALL Supabase calls
-GET    /api/runs/:id           // Get run by ID
-POST   /api/runs               // Create run
-PUT    /api/runs/:id           // Update run
-GET    /api/videos/:id         // Get video by ID
-POST   /api/videos             // Create video
-PUT    /api/videos/:id         // Update video
-GET    /api/videos?project=X   // List videos by project
+**Files to modify:**
 
-// Prompts API - HTTP version of MCP tools
-GET    /api/prompts/resolve?project=X&persona=Y  // HTTP version of prompt.get
-GET    /api/prompts/search?q=X&project=Y         // HTTP version of prompts.search
-```
+- `src/db/repository.ts`
+- `src/config/index.ts`
+- `src/db/repository.test.ts` (new tests)
 
-**Implementation Tasks:**
-
-- [x] **Create Router Structure**
-  - Build `src/server/routes/api.ts` - single router for all endpoints
-  - Use existing `OperationsRepository`
-  - Reuse MCP tool logic for prompt endpoints
-- [x] **Extend Operations Repository**
-  - Add missing CRUD methods: `createRun`, `updateRun`, `createVideo`, `updateVideo`
-  - Keep methods simple and focused
-  - No complex querying - delegate to dedicated endpoints
-- [x] **Standard Response Format**
-  - Consistent JSON response schema
-  - Standard error format
-  - Simple success/error status codes
-
-### Step 2.2: Remove MCP Operations Tools ⏱️ 0.5 days
-
-**Objective**: Delete redundant MCP tools that duplicate REST functionality
-
-**Delete Tasks:**
-
-- [x] Remove `src/server/tools/getRunTool.ts` (becomes `GET /api/runs/:id`)
-- [x] Remove `src/server/tools/listVideosTool.ts` (becomes `GET /api/videos`)
-- [x] Update MCP server registration to only include prompt tools
-
-**Result**: Clean separation - MCP for AI tools, REST for automation
+**Exit Criteria:** Keyword search method passes all tests and returns ranked results
 
 ---
 
-## Phase 3: n8n Integration (Week 2)
+#### Step 1.1.3: Implement Reciprocal Rank Fusion (RRF)
 
-### Step 3.1: n8n SDK Setup ⏱️ 0.5 days
+- [ ] **Create RRF utility function**
+  - [ ] Create `src/vector/hybridSearch.ts`
+  - [ ] Implement RRF algorithm:
+    ```typescript
+    function reciprocalRankFusion(results: SearchResult[][], k: number = 60): SearchResult[];
+    ```
+  - [ ] Formula: `score = sum(1 / (k + rank_i))` across all result lists
+  - [ ] Handle duplicate results (merge by chunk_id)
+  - [ ] Preserve metadata from highest-scoring source
 
-**Objective**: Add n8n workflow sync capability
+- [ ] **Add configuration**
+  - [ ] Add `HYBRID_RRF_K` parameter (default: 60)
+  - [ ] Add `HYBRID_VECTOR_WEIGHT` (default: 0.6)
+  - [ ] Add `HYBRID_KEYWORD_WEIGHT` (default: 0.4)
 
-**Tasks:**
+- [ ] **Write comprehensive tests**
+  - [ ] Test with identical result sets (should equal input)
+  - [ ] Test with disjoint result sets (should merge)
+  - [ ] Test with overlapping results (should favor consensus)
+  - [ ] Test empty input handling
+  - [ ] Test single-source input
 
-- [x] **Install n8n SDK**
-  - Add appropriate n8n package to dependencies
-  - Create `scripts/n8nSync.ts` (single script for push/pull)
-  - Add `n8n:push` and `n8n:pull` npm scripts
-- [x] **Environment Setup**
-  - Add `N8N_BASE_URL` and `N8N_API_KEY` to `.env.example` (Mylo Added these)
-  - Test connection to n8n cloud
+**Files to create:**
 
-### Step 3.2: Aggressive Workflow Migration ⏱️ 2 days
+- `src/vector/hybridSearch.ts`
+- `src/vector/hybridSearch.test.ts`
 
-**Objective**: Replace ALL Supabase calls with our server endpoints
-
-**Migration Strategy:**
-
-- [ ] **Inventory Supabase Calls**
-  - Map every `supabase.*` node across all 11 workflows
-  - Create direct replacement mapping to our REST endpoints
-- [ ] **Mass Replace Operations**
-  - `supabase.get(runs)` → `GET /api/runs/:id`
-  - `supabase.getAll(videos)` → `GET /api/videos?project=X`
-  - `supabase.update(runs)` → `PUT /api/runs/:id`
-  - `supabase.create(videos)` → `POST /api/videos`
-- [ ] **Replace Prompt Loading**
-  - All prompt queries → MCP `prompt.get` with project/persona
-  - Remove any file path references
-  - Standardize on project/persona resolution only
-
-**Aggressive Timeline**: Transform all workflows in 2 days, test rapidly, fix issues immediately
-
-### Step 3.3: Validate Clean System ⏱️ 0.5 days
-
-**Objective**: Ensure no legacy dependencies remain
-
-**Validation Tasks:**
-
-- [ ] **Dependency Audit**
-  - Grep codebase for "supabase" - should find zero results
-  - Grep workflows for "supabase" - should find zero results
-  - Verify all n8n workflows use our server only
-- [ ] **End-to-End Test**
-  - Run complete AISMR workflow
-  - Verify data flows only through our MCP/REST server
-  - Test prompt resolution with project/persona parameters
-
-**Exit Criteria**: Zero external dependencies, clean system working end-to-end
+**Exit Criteria:** RRF correctly merges vector and keyword results with proper scoring
 
 ---
 
-## Phase 4: Polish & Documentation (Week 3)
+#### Step 1.1.4: Update Search Tool with Hybrid Mode
 
-### Step 4.1: Code Cleanup ⏱️ 1 day
+- [ ] **Add hybrid search mode to promptSearchTool**
+  - [ ] Add `searchMode: 'vector' | 'keyword' | 'hybrid'` parameter (default: 'hybrid')
+  - [ ] Update input schema validation
+  - [ ] Implement mode switching logic:
+    - Vector: existing cosine similarity search
+    - Keyword: new BM25 search
+    - Hybrid: both + RRF fusion
 
-**Objective**: Remove any remaining legacy code and optimize
+- [ ] **Update search execution**
+  - [ ] For hybrid mode, run vector and keyword searches in parallel
+  - [ ] Apply RRF to merge results
+  - [ ] Filter by combined score threshold
+  - [ ] Return top-k after fusion
 
-**Tasks:**
+- [ ] **Update tool documentation**
+  - [ ] Document searchMode parameter
+  - [ ] Add usage examples for each mode
+  - [ ] Document when to use each mode
 
-- [ ] **Delete Unused Files**
-  - Remove any leftover legacy tool files
-  - Delete unused utility functions
-  - Clean up imports and dependencies
-- [ ] **Optimize Performance**
-  - Review database queries for efficiency
-  - Simplify any overcomplicated logic
-  - Ensure clean error handling throughout
+- [ ] **Write integration tests**
+  - [ ] Test all three modes with same query
+  - [ ] Verify hybrid returns better results than either alone
+  - [ ] Test with technical terms (should favor keyword)
+  - [ ] Test with semantic queries (should favor vector)
 
-### Step 4.2: Essential Documentation ⏱️ 1 day
+**Files to modify:**
 
-**Objective**: Document the clean V1 system
+- `src/server/tools/promptSearchTool.ts`
+- `src/server/tools/promptSearchTool.test.ts`
 
-**Documents to Create:**
-
-- [ ] **`README.md`** - How to run the V1 system
-- [ ] **`docs/API.md`** - REST endpoint documentation
-- [ ] **`docs/MCP_TOOLS.md`** - MCP tool specifications
-- [ ] **`docs/WORKFLOWS.md`** - n8n integration guide
-
-**Documentation Principles:**
-
-- Keep it short and practical
-- Focus on the current V1 implementation only
-- No legacy references or migration notes
-- Clear examples for each endpoint/tool
-
----
-
-## Success Criteria: V1 Complete
-
-### ✅ **Technical Goals**
-
-1. **Clean Codebase** - No legacy code, no backward compatibility, no dead files
-2. **`prompt.get` Works** - Resolves prompts by `project_name + persona_name` only
-3. **REST API Complete** - All operations via `/api/*` endpoints
-4. **Zero Supabase** - No external database dependencies in any workflows
-5. **n8n Sync** - `n8n:push` and `n8n:pull` work correctly
-
-### ✅ **Operational Goals**
-
-1. **Single Command Startup** - `npm run dev` starts everything needed
-2. **Fast Development** - Clean, focused codebase easy to modify
-3. **Clear Documentation** - New developers can understand system quickly
-4. **Working Workflows** - All n8n workflows use our server exclusively
+**Exit Criteria:** Hybrid search demonstrably improves precision over vector-only
 
 ---
 
-## Timeline: Aggressive V1 Schedule
+### Milestone 1.2: Query Intent Classification
 
-| Phase                        | Duration | Key Deliverables                       |
-| ---------------------------- | -------- | -------------------------------------- |
-| **Phase 1: Core Rebuild**    | Week 1   | Clean MCP tools, vector DB only        |
-| **Phase 2: REST API**        | Week 1-2 | Complete operations API, remove legacy |
-| **Phase 3: n8n Integration** | Week 2   | All workflows migrated, no Supabase    |
-| **Phase 4: Polish**          | Week 3   | Clean codebase, essential docs         |
+**Goal:** Automatically route queries to appropriate search modes and filters without manual specification.
 
-**Total Time: 3 weeks maximum**
+#### Step 1.2.1: Create Query Intent Classifier
 
----
+- [ ] **Design intent taxonomy**
+  - [ ] Define intents: `persona_lookup`, `project_lookup`, `combination_lookup`, `general_knowledge`, `workflow_step`, `example_request`
+  - [ ] Map intents to filter strategies
+  - [ ] Document intent → filter rules
 
-## V1 Development Principles
+- [ ] **Implement LLM-based classifier**
+  - [ ] Create `src/vector/queryClassifier.ts`
+  - [ ] Implement classifier function:
+    ```typescript
+    async function classifyQueryIntent(query: string): Promise<{
+      intent: QueryIntent;
+      extractedPersona?: string;
+      extractedProject?: string;
+      confidence: number;
+    }>;
+    ```
+  - [ ] Use GPT-4o-mini for cost efficiency
+  - [ ] Design classification prompt with few-shot examples
+  - [ ] Parse structured output (JSON mode)
 
-1. **Delete First** - Remove old code before building new
-2. **No Backward Compatibility** - Build for the future, not the past
-3. **Single Responsibility** - Each component does one thing well
-4. **Fail Fast** - Catch issues early with aggressive testing
-5. **Clean Interfaces** - Simple, predictable APIs and tools
-6. **Documentation Last** - Document what we built, not what we planned
+- [ ] **Add caching layer**
+  - [ ] Implement in-memory LRU cache (max 1000 entries)
+  - [ ] Cache key: hash of query string
+  - [ ] TTL: 1 hour
+  - [ ] Add cache hit metrics
 
-**Tasks:**
+- [ ] **Write tests**
+  - [ ] Test persona intent: "What is the screenwriter persona?"
+  - [ ] Test project intent: "Tell me about the AISMR project"
+  - [ ] Test combination: "How does screenwriter work with AISMR?"
+  - [ ] Test general: "What are the best practices for video generation?"
+  - [ ] Test edge cases (empty query, very long query)
 
-- [ ] **Validate JSON Structure**
-  - Audit existing JSON files for consistent metadata schema
-  - Ensure all files have `agent`, `persona`, `project` metadata fields
-  - Standardize field names and structure across all prompts
-- [ ] **Enhance Metadata Extraction**
-  - Update `src/ingestion/metadata.ts` to parse enhanced JSON structure
-  - Extract project/persona identifiers into searchable metadata fields
-  - Ensure metadata includes normalized project_name and persona_name
-- [ ] **Re-ingest Prompts**
-  - Run full ingestion: `npm run ingest`
-  - Verify metadata JSONB contains project/persona fields
-  - Test semantic search with metadata filters
+**Files to create:**
 
-**Exit Criteria**: All prompts in vector DB with searchable project/persona metadata
+- `src/vector/queryClassifier.ts`
+- `src/vector/queryClassifier.test.ts`
 
-### Step 1.3: Implement Enhanced `prompt.get` Tool ⏱️ 1 day
-
-**Objective**: Enable `prompt.get` to accept `project_name` + `persona_name` instead of just `filePath`
-
-**Current Tool Limitation:**
-
-```typescript
-// Current: requires filePath
-{ filePath: "persona-chat.json", includeMetadata?: boolean }
-
-// Target: should support project/persona resolution
-{ project_name?: string, persona_name?: string, filePath?: string }
-```
-
-**Tasks:**
-
-- [ ] **Extend Tool Interface**
-  - Update `src/server/tools/getPromptTool.ts` input schema
-  - Add `project_name` and `persona_name` optional parameters
-  - Maintain backward compatibility with `filePath` parameter
-- [ ] **Implement Resolution Logic**
-  - Add metadata-based lookup in `PromptEmbeddingsRepository`
-  - Implement deterministic prompt selection for project+persona combinations
-  - Handle fallback scenarios (persona-only, project-only, exact filePath)
-  - Return error for ambiguous matches with candidate list
-- [ ] **Add Comprehensive Tests**
-  - Test persona-only queries (`persona_name: "chat"`)
-  - Test project-only queries (`project_name: "aismr"`)
-  - Test combination queries (`persona_name: "ideagenerator", project_name: "aismr"`)
-  - Test backward compatibility with `filePath`
-  - Test error scenarios (no matches, multiple matches)
-
-**Resolution Logic:**
-
-```typescript
-// Priority order:
-1. filePath (if provided) - exact match
-2. persona + project combination - specific prompt
-3. persona-only - general persona prompt
-4. project-only - general project prompt
-5. Error if multiple candidates or no matches
-```
-
-**Exit Criteria**: `prompt.get` tool accepts project/persona parameters and resolves correctly
+**Exit Criteria:** Classifier achieves >90% accuracy on test set of 50 queries
 
 ---
 
-## Phase 2: REST API & Operations Integration (Week 1-2)
+#### Step 1.2.2: Implement Automatic Filter Application
 
-### Step 2.1: Design REST API Specification ⏱️ 0.5 days
+- [ ] **Create query enhancer**
+  - [ ] Create `src/vector/queryEnhancer.ts`
+  - [ ] Implement `enhanceQuery(query: string): Promise<EnhancedQuery>`
+  - [ ] Extract persona/project from natural language:
+    - "screenwriter" → persona filter
+    - "aismr" → project filter
+  - [ ] Normalize extracted terms to slugs
+  - [ ] Validate against known personas/projects
 
-**Objective**: Define comprehensive REST API for operations data access
+- [ ] **Update search tool to use classifier**
+  - [ ] Add `autoFilter: boolean` parameter (default: true)
+  - [ ] If autoFilter=true and no explicit filters:
+    - Call queryClassifier
+    - Apply extracted filters
+    - Log auto-applied filters in response
+  - [ ] If explicit filters provided, skip classification
+  - [ ] Add `appliedFilters.auto: boolean` to output
 
-**Tasks:**
+- [ ] **Add fallback logic**
+  - [ ] If classifier fails (error/timeout), proceed without filters
+  - [ ] Log classification failures for monitoring
+  - [ ] Add retry logic (max 1 retry with exponential backoff)
 
-- [ ] **Create API Specification**
-  - Document `docs/api/REST_ENDPOINTS.md` with full API contract
-  - Define request/response schemas for all endpoints
-  - Specify authentication, rate limiting, error handling
+- [ ] **Write integration tests**
+  - [ ] Test auto-filtering on persona query
+  - [ ] Test auto-filtering on project query
+  - [ ] Test override behavior (explicit filters take precedence)
+  - [ ] Test fallback on classifier failure
 
-**Target Endpoints:**
+**Files to modify:**
 
-```typescript
-// Operations endpoints (replace Supabase)
-GET /api/runs/:id              - Get run by ID
-GET /api/runs                  - List runs with filters
-POST /api/runs                 - Create new run
-PUT /api/runs/:id              - Update run
-GET /api/videos/:id            - Get video by ID
-GET /api/videos                - List videos with filters
-POST /api/videos               - Create new video
-PUT /api/videos/:id            - Update video
+- `src/vector/queryEnhancer.ts` (new)
+- `src/server/tools/promptSearchTool.ts`
+- `src/server/tools/promptSearchTool.test.ts`
 
-// Prompt endpoints (complement MCP)
-GET /api/prompts/search        - Semantic search (HTTP version of MCP tool)
-GET /api/prompts/:identifier   - Get prompt by project/persona or filePath
-```
-
-### Step 2.2: Implement REST Endpoints ⏱️ 2 days
-
-**Objective**: Create HTTP API layer for operations database access
-
-**Tasks:**
-
-- [ ] **Create Router Structure**
-  - Create `src/server/routes/` directory
-  - Implement `operationsRouter.ts` for runs/videos endpoints
-  - Implement `promptsRouter.ts` for prompt endpoints
-  - Add router registration in `src/server.ts`
-- [ ] **Operations Endpoints Implementation**
-  - Leverage existing `OperationsRepository` methods
-  - Add missing repository methods: `createRun`, `updateRun`, `createVideo`, `updateVideo`
-  - Implement proper HTTP status codes and error handling
-  - Add request validation using Zod schemas
-- [ ] **Authentication & Security**
-  - Extend existing API key authentication to REST routes
-  - Apply same rate limiting as MCP endpoints
-  - Add CORS configuration for REST endpoints
-- [ ] **Response Formatting**
-  - Standardize JSON response format
-  - Convert timestamps to ISO 8601 strings
-  - Include pagination metadata where applicable
-  - Ensure consistent error response format
-
-**Repository Extensions Needed:**
-
-```typescript
-// Add to OperationsRepository
-async createRun(data: NewRun): Promise<Run>
-async updateRun(id: string, data: Partial<Run>): Promise<Run | null>
-async listRuns(filters: ListRunsOptions): Promise<Run[]>
-async createVideo(data: NewVideo): Promise<Video>
-async updateVideo(id: string, data: Partial<Video>): Promise<Video | null>
-```
-
-### Step 2.3: Integration Testing ⏱️ 1 day
-
-**Objective**: Ensure REST endpoints work correctly and provide same data as MCP tools
-
-**Tasks:**
-
-- [ ] **Create Integration Test Suite**
-  - Set up test database with sample data
-  - Test all REST endpoints with supertest
-  - Verify response schemas match specifications
-  - Test authentication and authorization
-- [ ] **Parity Testing**
-  - Ensure `GET /api/runs/:id` returns same data as `runs_get` MCP tool
-  - Ensure `GET /api/videos` returns same data as `videos_list` MCP tool
-  - Test error scenarios and edge cases
-- [ ] **Performance Testing**
-  - Benchmark response times for typical queries
-  - Test with realistic data volumes
-  - Verify rate limiting works correctly
-
-**Exit Criteria**: All REST endpoints functional, tested, and documented
+**Exit Criteria:** Search tool automatically applies correct filters 85%+ of the time
 
 ---
 
-## Phase 3: n8n Integration & Migration (Week 2)
+#### Step 1.2.3: Implement Search Mode Auto-Selection
 
-### Step 3.1: n8n SDK Setup & Workflow Analysis ⏱️ 1 day
+- [ ] **Create mode selector**
+  - [ ] Add `selectSearchMode(query: string, intent: QueryIntent): SearchMode`
+  - [ ] Rules:
+    - Technical terms / IDs → keyword mode
+    - Semantic concepts → vector mode
+    - Default → hybrid mode
+  - [ ] Use simple heuristics (presence of quotes, technical patterns)
 
-**Objective**: Prepare tooling for n8n workflow synchronization and analysis
+- [ ] **Update search tool**
+  - [ ] If `searchMode` not specified and `autoFilter=true`:
+    - Detect best mode from query
+    - Apply automatically
+    - Log selected mode in response
+  - [ ] Add `appliedFilters.searchMode: 'auto' | 'manual'`
 
-**Tasks:**
+- [ ] **Add configuration**
+  - [ ] `AUTO_MODE_ENABLED` (default: true)
+  - [ ] `TECHNICAL_PATTERN_REGEX` (configurable patterns)
+  - [ ] Mode selection weights/thresholds
 
-- [ ] **SDK Installation & Configuration**
-  - Research n8n SDK options (@n8n/api, n8n REST API client)
-  - Add appropriate dependency to package.json
-  - Create `scripts/n8nPull.ts` and `scripts/n8nPush.ts` skeleton
-  - Add npm scripts: `n8n:pull`, `n8n:push`
-- [ ] **Environment Setup**
-  - Add `N8N_BASE_URL` and `N8N_API_KEY` to `.env.example`
-  - Document n8n connection requirements
-  - Test connection to n8n cloud instance
-- [ ] **Workflow Inventory**
-  - Create `docs/N8N_MIGRATION_ANALYSIS.md`
-  - Catalog all Supabase nodes across 11 workflow files
-  - Map each Supabase operation to equivalent REST endpoint
-  - Identify transformation requirements (response format changes)
+- [ ] **Write tests**
+  - [ ] Test keyword selection for technical queries
+  - [ ] Test vector selection for conceptual queries
+  - [ ] Test hybrid as default
+  - [ ] Test manual override
 
-**Current Workflows to Analyze:**
+**Files to modify:**
 
-```
-✅ 11 workflow files identified:
-- aismr.workflow.json
-- chat.workflow.json
-- edit-aismr.workflow.json
-- generate-video.workflow.json
-- hitl-temp.workflow.json
-- idea-generator-v2.workflow.json
-- idea-generator.workflow.json
-- load-persona.workflow.json
-- poll-db.workflow.json
-- screen-writer.workflow.json
-- upload-file-to-google-drive.workflow.json
-- upload-to-tiktok.workflow.json
-```
+- `src/vector/queryEnhancer.ts`
+- `src/server/tools/promptSearchTool.ts`
+- `src/config/index.ts`
 
-### Step 3.2: Workflow Migration Strategy ⏱️ 1 day
-
-**Objective**: Plan systematic migration of workflows from Supabase to MCP/REST
-
-**Migration Pattern Analysis:**
-
-```typescript
-// Current Supabase patterns:
-"supabase.get" -> "GET /api/runs/:id"
-"supabase.getAll" -> "GET /api/videos?projectId=x"
-"supabase.update" -> "PUT /api/runs/:id"
-"supabase.create" -> "POST /api/videos"
-
-// Prompt loading patterns:
-Supabase prompt queries -> MCP "prompt.get" tool calls
-```
-
-**Tasks:**
-
-- [ ] **Create Migration Templates**
-  - Design HTTP Request node templates for each operation type
-  - Create data transformation Set nodes for response format changes
-  - Prepare authentication configuration templates
-- [ ] **Priority Workflow Selection**
-  - Identify 2-3 critical workflows for initial migration
-  - Choose workflows with simple Supabase dependencies first
-  - Plan migration order to minimize disruption
-- [ ] **Testing Strategy**
-  - Plan how to test migrated workflows with pinned data
-  - Set up parallel testing (old vs new endpoints)
-  - Prepare rollback procedures
-
-### Step 3.3: Critical Workflow Migration ⏱️ 2 days
-
-**Objective**: Migrate priority workflows to use MCP server instead of Supabase
-
-**High-Priority Workflows for Migration:**
-
-1. `load-persona.workflow.json` - Core prompt loading
-2. `idea-generator-v2.workflow.json` - Uses runs/videos operations
-3. `poll-db.workflow.json` - Simple operations testing
-
-**Tasks:**
-
-- [ ] **Migrate `load-persona` Workflow**
-  - Replace Supabase prompt queries with MCP `prompt.get` calls
-  - Update to use `project_name` and `persona_name` parameters
-  - Test prompt resolution works correctly
-- [ ] **Migrate `idea-generator-v2` Workflow**
-  - Replace `supabase.get` (runs) with `GET /api/runs/:id`
-  - Replace `supabase.update` (runs) with `PUT /api/runs/:id`
-  - Update data transformation for new response format
-- [ ] **Migrate `poll-db` Workflow**
-  - Replace `supabase.get` (videos) with `GET /api/videos/:id`
-  - Test polling functionality with new endpoint
-- [ ] **Environment Configuration**
-  - Set up centralized MCP server base URL configuration
-  - Configure API key authentication for workflows
-  - Test connectivity from n8n cloud to MCP server
-- [ ] **Validation Testing**
-  - Test each migrated workflow with real data
-  - Compare outputs with original Supabase versions
-  - Document any behavioral differences
-
-**Exit Criteria**: 3 priority workflows successfully migrated and tested
+**Exit Criteria:** Auto-selected mode matches optimal mode in 80%+ of test cases
 
 ---
 
-## Phase 4: Full System Integration (Week 3)
+### Milestone 1.3: Temporal Weighting
 
-### Step 4.1: Complete Workflow Migration ⏱️ 2 days
+**Goal:** Boost recent content in search results to prioritize up-to-date information.
 
-**Objective**: Migrate all remaining workflows to use MCP/REST architecture
+#### Step 1.3.1: Add Temporal Decay Function
 
-**Remaining Workflows:**
+- [ ] **Implement decay algorithms**
+  - [ ] Create `src/vector/temporalScoring.ts`
+  - [ ] Implement exponential decay: `score * exp(-lambda * age_days)`
+  - [ ] Implement linear decay: `score * max(0, 1 - age_days / max_age)`
+  - [ ] Make decay function configurable
 
-- `aismr.workflow.json`
-- `chat.workflow.json`
-- `edit-aismr.workflow.json`
-- `generate-video.workflow.json`
-- `hitl-temp.workflow.json`
-- `idea-generator.workflow.json`
-- `screen-writer.workflow.json`
-- `upload-file-to-google-drive.workflow.json`
-- `upload-to-tiktok.workflow.json`
+- [ ] **Add configuration**
+  - [ ] `TEMPORAL_DECAY_ENABLED` (default: false for now)
+  - [ ] `TEMPORAL_DECAY_FUNCTION` ('exponential' | 'linear' | 'none')
+  - [ ] `TEMPORAL_DECAY_HALFLIFE_DAYS` (default: 90)
+  - [ ] `TEMPORAL_DECAY_MAX_AGE_DAYS` (default: 365)
 
-**Tasks:**
+- [ ] **Write tests**
+  - [ ] Test exponential decay formula
+  - [ ] Test linear decay formula
+  - [ ] Test edge cases (age = 0, age > max)
+  - [ ] Test score preservation when disabled
 
-- [ ] **Systematic Migration**
-  - Migrate 2-3 workflows per batch
-  - Test each batch before proceeding
-  - Update `docs/N8N_MIGRATION_ANALYSIS.md` with progress
-- [ ] **Complex Workflow Handling**
-  - Handle workflows with multiple Supabase operations
-  - Ensure proper error handling and fallback logic
-  - Test workflow chains and dependencies
-- [ ] **Prompt Loading Standardization**
-  - Ensure all workflows use `prompt.get` with project/persona parameters
-  - Remove any direct file path references
-  - Standardize prompt composition patterns
+**Files to create:**
 
-### Step 4.2: n8n Synchronization Implementation ⏱️ 1 day
-
-**Objective**: Complete n8n SDK integration for bidirectional sync
-
-**Tasks:**
-
-- [ ] **Complete SDK Scripts**
-  - Implement `scripts/n8nPull.ts` to download workflows from n8n cloud
-  - Implement `scripts/n8nPush.ts` to upload local workflows to n8n cloud
-  - Add conflict resolution and --force flag support
-- [ ] **Sync Validation**
-  - Test round-trip sync: `npm run n8n:pull && npm run n8n:push`
-  - Ensure idempotent operation (no changes after round-trip)
-  - Verify all workflow metadata preserved
-- [ ] **Documentation**
-  - Create `docs/N8N_SYNC_GUIDE.md` with usage instructions
-  - Document conflict resolution procedures
-  - Add troubleshooting section
-
-### Step 4.3: System Validation & Testing ⏱️ 1 day
-
-**Objective**: End-to-end system testing to ensure alignment works
-
-**Test Scenarios:**
-
-1. **Prompt Resolution Flow**
-   - n8n calls `prompt.get` with project/persona
-   - MCP server resolves correct prompt from vector DB
-   - Response includes full prompt content and metadata
-2. **Operations Data Flow**
-   - n8n calls REST endpoints for runs/videos operations
-   - Data consistency between MCP tools and REST endpoints
-   - Error handling and recovery scenarios
-3. **Full Workflow Execution**
-   - Execute complete aismr workflow end-to-end
-   - Verify all data flows through MCP/REST architecture
-   - Confirm no Supabase dependencies remain
-
-**Tasks:**
-
-- [ ] **Integration Test Suite**
-  - Create comprehensive test scenarios
-  - Test with realistic data volumes
-  - Verify performance meets requirements
-- [ ] **Monitoring Setup**
-  - Configure structured logging for MCP server
-  - Set up metrics collection for REST endpoints
-  - Create dashboards for system health monitoring
-- [ ] **Rollback Testing**
-  - Verify rollback procedures work correctly
-  - Test system recovery from various failure modes
-  - Document incident response procedures
-
-**Exit Criteria**: Full system integration working, all tests passing, monitoring active
+- `src/vector/temporalScoring.ts`
+- `src/vector/temporalScoring.test.ts`
 
 ---
 
-## Phase 5: Documentation & Production Readiness (Week 3-4)
+#### Step 1.3.2: Update Repository Search to Apply Temporal Boost
 
-### Step 5.1: Comprehensive Documentation ⏱️ 1 day
+- [ ] **Modify search query**
+  - [ ] Calculate age in days: `EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400`
+  - [ ] Apply decay formula in SQL:
+    ```sql
+    (1 - (embedding <=> embedding_literal)) *
+    EXP(-0.007 * EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400) AS similarity
+    ```
+  - [ ] Make decay factor configurable
+  - [ ] Only apply when `TEMPORAL_DECAY_ENABLED=true`
 
-**Objective**: Complete system documentation for operators and developers
+- [ ] **Add temporal parameters**
+  - [ ] Add `applyTemporalDecay: boolean` to `SearchParameters`
+  - [ ] Add `temporalDecayConfig` optional parameter
+  - [ ] Default to config values if not specified
 
-**Tasks:**
+- [ ] **Test with real data**
+  - [ ] Create test prompts with different ages
+  - [ ] Verify newer prompts rank higher with same semantic similarity
+  - [ ] Verify old prompts can still win with much higher similarity
+  - [ ] Test disable mode (should behave as before)
 
-- [ ] **System Architecture Documentation**
-  - Update `README.md` with new architecture overview
-  - Document MCP + REST dual interface design
-  - Create system diagrams showing data flows
-- [ ] **API Documentation**
-  - Complete `docs/api/MCP_TOOLS.md` with all tool specifications
-  - Complete `docs/api/REST_ENDPOINTS.md` with full API reference
-  - Include authentication, rate limiting, error handling details
-- [ ] **Operational Guides**
-  - Create `docs/OPERATIONS_GUIDE.md` for system administrators
-  - Document deployment procedures and environment setup
-  - Include monitoring, backup, and recovery procedures
-- [ ] **Developer Guide**
-  - Create `docs/DEVELOPER_GUIDE.md` for contributors
-  - Document development workflow and testing procedures
-  - Include troubleshooting and debugging guides
+**Files to modify:**
 
-### Step 5.2: Production Deployment Preparation ⏱️ 1 day
+- `src/db/repository.ts`
+- `src/db/repository.test.ts`
 
-**Objective**: Prepare system for production deployment
-
-**Tasks:**
-
-- [ ] **Production Configuration**
-  - Review and harden security settings
-  - Configure production database settings
-  - Set up production monitoring and alerting
-- [ ] **Performance Optimization**
-  - Optimize database queries and indexes
-  - Configure connection pooling for production load
-  - Set appropriate rate limits and timeouts
-- [ ] **Backup and Recovery**
-  - Set up automated database backups
-  - Test backup restoration procedures
-  - Document disaster recovery procedures
-- [ ] **CI/CD Pipeline**
-  - Set up automated testing and deployment
-  - Configure environment promotion procedures
-  - Test rollback and rollforward procedures
-
-### Step 5.3: Final Validation & Handoff ⏱️ 0.5 days
-
-**Objective**: Final system validation and knowledge transfer
-
-**Tasks:**
-
-- [ ] **Production Readiness Checklist**
-  - Complete security audit
-  - Verify all documentation is current
-  - Test all monitoring and alerting systems
-- [ ] **Knowledge Transfer**
-  - Conduct system walkthrough with operators
-  - Provide training on new architecture and tools
-  - Establish support procedures and escalation paths
-- [ ] **Go-Live Preparation**
-  - Schedule production deployment
-  - Prepare communication plan for users
-  - Set up post-deployment monitoring and support
-
-**Exit Criteria**: System ready for production deployment with full documentation and support
+**Exit Criteria:** Temporal decay correctly boosts recent content without eliminating relevant old content
 
 ---
 
-## Success Metrics & Validation
+#### Step 1.3.3: Expose Temporal Control in Search Tool
 
-### Technical Success Criteria
+- [ ] **Add temporal parameters to search tool**
+  - [ ] Add optional `temporalBoost: boolean` parameter
+  - [ ] Add optional `temporalConfig` parameter
+  - [ ] Pass through to repository search
 
-1. **✅ MCP Server Functionality**
-   - `/mcp` endpoint responds with 6+ functional tools
-   - `prompt.get` resolves prompts by project_name + persona_name
-   - All tools return consistent, documented responses
-   - Response times < 500ms for 95% of requests
+- [ ] **Update documentation**
+  - [ ] Document temporal boosting behavior
+  - [ ] Provide examples of when to enable/disable
+  - [ ] Document configuration options
 
-2. **✅ Vector Database Integration**
-   - All prompts stored with searchable project/persona metadata
-   - Semantic search works with metadata filters
-   - Incremental updates work correctly
-   - Database queries optimized for performance
+- [ ] **Add to output metadata**
+  - [ ] Include `temporalDecayApplied: boolean` in response
+  - [ ] Include decay config used
+  - [ ] Add age_days to each result (optional)
 
-3. **✅ REST API Functionality**
-   - All operations endpoints functional and documented
-   - Authentication and rate limiting working
-   - Response schemas consistent and validated
-   - Error handling comprehensive and helpful
+**Files to modify:**
 
-4. **✅ n8n Integration**
-   - All workflows migrated from Supabase to MCP/REST
-   - `n8n:pull` and `n8n:push` scripts working
-   - Workflow synchronization is idempotent
-   - No Supabase dependencies remain
+- `src/server/tools/promptSearchTool.ts`
 
-5. **✅ System Alignment**
-   - Single source of truth: Vector DB for prompts, SQL DB for runs/videos
-   - Consistent data access patterns across all interfaces
-   - Monitoring and alerting functional
-   - Documentation complete and current
-
-### Operational Success Criteria
-
-1. **✅ Reliability**
-   - System uptime > 99.5%
-   - Error rates < 1% for normal operations
-   - Recovery time < 5 minutes for common failures
-   - All failure modes documented with recovery procedures
-
-2. **✅ Performance**
-   - MCP tool responses < 500ms p95
-   - REST API responses < 200ms p95
-   - Vector search results < 1 second p95
-   - System handles 100+ concurrent requests
-
-3. **✅ Maintainability**
-   - All components have comprehensive tests
-   - Documentation kept current with system changes
-   - Development workflow clearly defined
-   - Rollback procedures tested and documented
+**Exit Criteria:** Temporal boosting available and controllable via MCP tool
 
 ---
 
-## Risk Mitigation
+## Phase 2: Memory Architecture Evolution (Weeks 5-8)
 
-### High-Risk Areas
+### Milestone 2.1: Multi-Component Memory System
 
-1. **Data Migration Integrity**
-   - **Risk**: Loss of prompt data or metadata during migration
-   - **Mitigation**: Comprehensive backups, incremental testing, validation scripts
-   - **Rollback**: Maintain original prompt files and database backups
+**Goal:** Separate memory into distinct components (persona, project, episodic, semantic) with dedicated storage and routing.
 
-2. **n8n Workflow Breaking Changes**
-   - **Risk**: Migrated workflows fail in production
-   - **Mitigation**: Parallel testing, gradual rollout, extensive validation
-   - **Rollback**: Quick revert to Supabase endpoints if needed
+#### Step 2.1.1: Design Memory Component Architecture
 
-3. **Performance Degradation**
-   - **Risk**: New architecture slower than current system
-   - **Mitigation**: Performance testing, optimization, monitoring
-   - **Rollback**: Performance budgets and automatic rollback triggers
+- [ ] **Document memory taxonomy**
+  - [ ] Create `docs/MEMORY_ARCHITECTURE.md`
+  - [ ] Define memory types:
+    - **Persona Memory**: Identity, role, style, capabilities
+    - **Project Memory**: Project context, goals, specifications
+    - **Semantic Memory**: General knowledge, workflows, best practices
+    - **Episodic Memory**: Conversation history, user interactions (new)
+    - **Procedural Memory**: Workflow steps, action sequences (new)
+  - [ ] Define routing rules for each type
+  - [ ] Document cross-component relationships
 
-4. **API Compatibility Issues**
-   - **Risk**: n8n integration breaks due to API changes
-   - **Mitigation**: Comprehensive testing, API versioning, error handling
-   - **Rollback**: Maintain compatibility layer for transition period
+- [ ] **Design database schema**
+  - [ ] Option A: Separate tables per memory type
+  - [ ] Option B: Single table with memory_type column + filtered indices
+  - [ ] Option C: Separate databases (over-engineering)
+  - [ ] **Decision:** Go with Option B for simplicity with dedicated indices
 
-### Contingency Plans
+- [ ] **Create migration plan**
+  - [ ] Map existing prompts to new memory types
+  - [ ] Define data transformation logic
+  - [ ] Plan zero-downtime migration strategy
 
-1. **Hybrid Operation Mode**: Run both old and new systems in parallel during transition
-2. **Staged Rollout**: Migrate workflows in batches with validation checkpoints
-3. **Quick Rollback**: Maintain ability to quickly revert to Supabase-based workflows
-4. **Monitoring Alerts**: Automated detection of system issues with escalation procedures
+**Files to create:**
+
+- `docs/MEMORY_ARCHITECTURE.md`
+
+**Exit Criteria:** Memory architecture documented and reviewed
+
+---
+
+#### Step 2.1.2: Create Memory Component Tables/Indices
+
+- [ ] **Add memory_type to schema**
+  - [ ] Create migration `0003_add_memory_components.sql`
+  - [ ] Add `memory_type` enum: `persona | project | semantic | episodic | procedural`
+  - [ ] Add `memory_type` column with default 'semantic'
+  - [ ] Create partial indices per memory type:
+    ```sql
+    CREATE INDEX idx_persona_memory ON prompt_embeddings(updated_at)
+    WHERE memory_type = 'persona';
+    ```
+  - [ ] Add GIN index on metadata per type for faster filtering
+
+- [ ] **Update existing data**
+  - [ ] Write data migration script
+  - [ ] Classify existing prompts:
+    - `metadata.type = 'persona'` → memory_type = 'persona'
+    - `metadata.type = 'project'` → memory_type = 'project'
+    - `metadata.type = 'combination'` → memory_type = 'semantic'
+  - [ ] Run migration in transaction with rollback
+
+- [ ] **Update schema types**
+  - [ ] Add `memoryType` field to schema.ts
+  - [ ] Update repository types
+  - [ ] Update ingestion types
+
+**Files to modify:**
+
+- `drizzle/0003_add_memory_components.sql` (new)
+- `src/db/schema.ts`
+- `scripts/migrateMemoryTypes.ts` (new)
+
+**Exit Criteria:** All prompts classified into memory types with proper indices
+
+---
+
+#### Step 2.1.3: Implement Memory Component Repository
+
+- [ ] **Create component-specific search methods**
+  - [ ] `searchPersonaMemory(query, filters): Promise<SearchResult[]>`
+  - [ ] `searchProjectMemory(query, filters): Promise<SearchResult[]>`
+  - [ ] `searchSemanticMemory(query, filters): Promise<SearchResult[]>`
+  - [ ] `searchEpisodicMemory(query, filters, timeRange?): Promise<SearchResult[]>`
+  - [ ] Each method filters by memory_type automatically
+
+- [ ] **Implement cross-component search**
+  - [ ] `searchAllMemory(query, types: MemoryType[]): Promise<MemorySearchResult[]>`
+  - [ ] Return results grouped by memory type
+  - [ ] Apply type-specific ranking weights
+  - [ ] Merge results with component attribution
+
+- [ ] **Add memory type to search parameters**
+  - [ ] Add `memoryTypes?: MemoryType[]` to SearchParameters
+  - [ ] Filter query by memory types if specified
+  - [ ] Default to all types if not specified
+
+**Files to modify:**
+
+- `src/db/repository.ts`
+- `src/db/repository.test.ts`
+
+**Exit Criteria:** Can search specific memory components independently
+
+---
+
+#### Step 2.1.4: Create Memory Router
+
+- [ ] **Implement routing logic**
+  - [ ] Create `src/vector/memoryRouter.ts`
+  - [ ] Implement `routeQuery(query: string, intent: QueryIntent): MemoryType[]`
+  - [ ] Routing rules:
+    - "Who am I?" / "What's my role?" → persona
+    - "What is project X?" → project
+    - "How do I..." / "Best practices for..." → semantic
+    - "What did we discuss?" / "Yesterday I said..." → episodic
+    - "What are the steps for..." → procedural
+  - [ ] Return ordered list of memory types to search
+
+- [ ] **Implement multi-component query orchestration**
+  - [ ] Create `orchestrateMemorySearch(query: string): Promise<MultiComponentResult>`
+  - [ ] Classify query intent
+  - [ ] Route to appropriate memory components
+  - [ ] Execute searches in parallel
+  - [ ] Merge and rank results
+  - [ ] Return with component attribution
+
+- [ ] **Add routing metrics**
+  - [ ] Log routing decisions
+  - [ ] Track search count per memory type
+  - [ ] Measure cross-component query latency
+
+- [ ] **Write tests**
+  - [ ] Test persona query routing
+  - [ ] Test project query routing
+  - [ ] Test multi-component queries
+  - [ ] Test fallback to all components
+
+**Files to create:**
+
+- `src/vector/memoryRouter.ts`
+- `src/vector/memoryRouter.test.ts`
+
+**Exit Criteria:** Router correctly identifies target memory components for 90%+ of queries
+
+---
+
+#### Step 2.1.5: Update Search Tool with Memory Routing
+
+- [ ] **Add memory-aware search mode**
+  - [ ] Add `useMemoryRouting: boolean` parameter (default: false initially)
+  - [ ] When enabled, use memoryRouter instead of single search
+  - [ ] Return component-attributed results
+  - [ ] Include routing decision in response metadata
+
+- [ ] **Update output schema**
+  - [ ] Add `memoryComponent: MemoryType` to each result
+  - [ ] Add `routingDecision` to metadata
+  - [ ] Add `componentsSearched: MemoryType[]`
+
+- [ ] **Add gradual rollout control**
+  - [ ] Feature flag: `MEMORY_ROUTING_ENABLED`
+  - [ ] Percentage rollout: `MEMORY_ROUTING_ROLLOUT_PCT`
+  - [ ] Allow per-request override
+
+- [ ] **Write integration tests**
+  - [ ] Test routing with persona queries
+  - [ ] Test routing with project queries
+  - [ ] Test multi-component result merging
+  - [ ] Test fallback when routing disabled
+
+**Files to modify:**
+
+- `src/server/tools/promptSearchTool.ts`
+- `src/config/index.ts`
+
+**Exit Criteria:** Memory routing available behind feature flag, testable in production
+
+---
+
+### Milestone 2.2: Episodic Memory System
+
+**Goal:** Store and retrieve conversation history to enable long-term dialogue coherence.
+
+#### Step 2.2.1: Design Episodic Memory Schema
+
+- [ ] **Define conversation data model**
+  - [ ] Create `docs/EPISODIC_MEMORY_DESIGN.md`
+  - [ ] Design schema:
+    ```typescript
+    interface ConversationTurn {
+      id: uuid;
+      session_id: uuid;
+      user_id?: string;
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: timestamptz;
+      metadata: jsonb;
+    }
+    ```
+  - [ ] Design indexing strategy (timestamp, session, user)
+  - [ ] Plan embedding strategy (full turn vs. summary)
+
+- [ ] **Create database migration**
+  - [ ] Create `0004_add_episodic_memory.sql`
+  - [ ] Create `conversation_turns` table
+  - [ ] Add to `prompt_embeddings` or separate? **Decision: Add to prompt_embeddings with memory_type='episodic'**
+  - [ ] Add session index, user index, timestamp index
+  - [ ] Add vector index for conversation embeddings
+
+- [ ] **Design retention policy**
+  - [ ] Define TTL: keep 90 days, summarize and archive older
+  - [ ] Plan summarization strategy
+  - [ ] Define storage limits per user/session
+
+**Files to create:**
+
+- `docs/EPISODIC_MEMORY_DESIGN.md`
+- `drizzle/0004_add_episodic_memory.sql` (new)
+
+**Exit Criteria:** Episodic memory schema designed and migration created
+
+---
+
+#### Step 2.2.2: Implement Conversation Storage
+
+- [ ] **Create episodic memory repository**
+  - [ ] Create `src/db/episodicRepository.ts`
+  - [ ] Implement `storeConversationTurn(turn: ConversationTurn): Promise<void>`
+  - [ ] Implement `getSessionHistory(sessionId: uuid): Promise<ConversationTurn[]>`
+  - [ ] Implement `searchConversationHistory(query: string, filters): Promise<ConversationTurn[]>`
+  - [ ] Use same vector search but filtered to memory_type='episodic'
+
+- [ ] **Implement auto-embedding**
+  - [ ] Embed conversation turn content on store
+  - [ ] Generate contextual summary for metadata
+  - [ ] Extract keywords/entities from conversation
+  - [ ] Store with session context
+
+- [ ] **Add session management**
+  - [ ] Create session on first interaction
+  - [ ] Track session start/end times
+  - [ ] Associate turns with sessions
+  - [ ] Support session retrieval by ID or time range
+
+- [ ] **Write tests**
+  - [ ] Test single turn storage
+  - [ ] Test multi-turn conversation storage
+  - [ ] Test session history retrieval
+  - [ ] Test conversation search
+  - [ ] Test embedding generation
+
+**Files to create:**
+
+- `src/db/episodicRepository.ts`
+- `src/db/episodicRepository.test.ts`
+
+**Exit Criteria:** Can store and retrieve conversation history with embeddings
+
+---
+
+#### Step 2.2.3: Create Conversation Memory MCP Tool
+
+- [ ] **Design tool interface**
+  - [ ] Tool name: `conversation.remember`
+  - [ ] Inputs:
+    - `query: string` - what to search for in history
+    - `sessionId?: uuid` - limit to specific session
+    - `timeRange?: { start, end }` - time window
+    - `limit?: number` - max results
+  - [ ] Outputs:
+    - `turns: ConversationTurn[]` - matching conversation history
+    - `context: string` - summarized context
+    - `appliedFilters: object`
+
+- [ ] **Implement tool**
+  - [ ] Create `src/server/tools/conversationMemoryTool.ts`
+  - [ ] Implement search logic using episodicRepository
+  - [ ] Add relevance filtering
+  - [ ] Generate context summary from results
+  - [ ] Register with MCP server
+
+- [ ] **Add context injection helper**
+  - [ ] Create utility to format conversation history for prompts
+  - [ ] Support different formats (chat, narrative, bullets)
+  - [ ] Add token counting to avoid context overflow
+  - [ ] Implement smart truncation (keep most relevant)
+
+- [ ] **Write integration tests**
+  - [ ] Test retrieval of specific conversation
+  - [ ] Test semantic search over history
+  - [ ] Test time range filtering
+  - [ ] Test session isolation
+
+**Files to create:**
+
+- `src/server/tools/conversationMemoryTool.ts`
+- `src/server/tools/conversationMemoryTool.test.ts`
+
+**Exit Criteria:** Agents can search and retrieve conversation history via MCP
+
+---
+
+#### Step 2.2.4: Add Conversation Logging to Agent Workflows
+
+- [ ] **Create logging middleware**
+  - [ ] Add conversation logging to MCP transport layer
+  - [ ] Capture user messages and assistant responses
+  - [ ] Extract session ID from request context
+  - [ ] Log asynchronously (don't block requests)
+
+- [ ] **Update n8n workflows**
+  - [ ] Add conversation.store call after agent responses
+  - [ ] Pass session ID through workflow context
+  - [ ] Handle logging failures gracefully
+
+- [ ] **Add opt-out mechanism**
+  - [ ] Environment variable: `EPISODIC_MEMORY_ENABLED`
+  - [ ] Per-user opt-out flag
+  - [ ] Privacy controls
+
+- [ ] **Implement summarization cron**
+  - [ ] Create scheduled job to summarize old conversations
+  - [ ] Run weekly, process conversations >30 days old
+  - [ ] Replace detailed turns with summary embeddings
+  - [ ] Archive original data
+
+**Files to modify:**
+
+- `src/server/httpTransport.ts`
+- `workflows/mylo-mcp-agent.workflow.json`
+- `scripts/summarizeEpisodicMemory.ts` (new)
+
+**Exit Criteria:** Conversations automatically logged and retrievable
+
+---
+
+### Milestone 2.3: Memory Graph Implementation
+
+**Goal:** Create semantic links between related memories for graph traversal and cluster retrieval.
+
+#### Step 2.3.1: Design Memory Graph Schema
+
+- [ ] **Define graph data model**
+  - [ ] Create `docs/MEMORY_GRAPH_DESIGN.md`
+  - [ ] Design node: existing prompt_embeddings rows
+  - [ ] Design edges:
+    ```sql
+    CREATE TABLE memory_links (
+      id uuid PRIMARY KEY,
+      source_chunk_id text REFERENCES prompt_embeddings(chunk_id),
+      target_chunk_id text REFERENCES prompt_embeddings(chunk_id),
+      link_type text, -- 'similar', 'prerequisite', 'related', 'followup'
+      strength float,  -- 0-1 similarity score
+      created_at timestamptz
+    );
+    ```
+  - [ ] Define link types and semantics
+  - [ ] Plan automatic vs. manual link creation
+
+- [ ] **Create migration**
+  - [ ] Create `0005_add_memory_graph.sql`
+  - [ ] Create `memory_links` table
+  - [ ] Add indices on source and target
+  - [ ] Add index on link_type for filtering
+
+**Files to create:**
+
+- `docs/MEMORY_GRAPH_DESIGN.md`
+- `drizzle/0005_add_memory_graph.sql`
+
+**Exit Criteria:** Memory graph schema defined and created
+
+---
+
+#### Step 2.3.2: Implement Automatic Link Generation
+
+- [ ] **Create link detector**
+  - [ ] Create `src/vector/linkDetector.ts`
+  - [ ] Implement `generateLinks(chunkId: string): Promise<MemoryLink[]>`
+  - [ ] Find similar chunks via cosine similarity
+  - [ ] Threshold: similarity > 0.75 for 'similar' link
+  - [ ] Threshold: similarity 0.5-0.75 for 'related' link
+  - [ ] Filter out self-links
+
+- [ ] **Add to ingestion pipeline**
+  - [ ] After embedding new chunks, generate links
+  - [ ] Run link generation asynchronously
+  - [ ] Batch process to avoid N² complexity
+  - [ ] Update existing chunks' links when new content added
+
+- [ ] **Implement link repository**
+  - [ ] Create `src/db/linkRepository.ts`
+  - [ ] `createLink(source, target, type, strength): Promise<void>`
+  - [ ] `getLinkedChunks(chunkId): Promise<LinkedChunk[]>`
+  - [ ] `findCluster(chunkId, depth): Promise<ChunkCluster>`
+
+- [ ] **Write tests**
+  - [ ] Test link generation for similar prompts
+  - [ ] Test link filtering by threshold
+  - [ ] Test bidirectional linking
+  - [ ] Test cluster discovery
+
+**Files to create:**
+
+- `src/vector/linkDetector.ts`
+- `src/db/linkRepository.ts`
+- `src/db/linkRepository.test.ts`
+
+**Exit Criteria:** Links automatically generated between similar memories
+
+---
+
+#### Step 2.3.3: Implement Graph Traversal Search
+
+- [ ] **Create graph search algorithm**
+  - [ ] Create `src/vector/graphSearch.ts`
+  - [ ] Implement BFS graph traversal from seed chunk
+  - [ ] Implement weighted graph walk (prioritize strong links)
+  - [ ] Implement cluster expansion (get all chunks within N hops)
+  - [ ] Add cycle detection
+
+- [ ] **Add to search repository**
+  - [ ] `searchWithGraphExpansion(query, maxHops): Promise<GraphSearchResult[]>`
+  - [ ] Initial semantic search for seed nodes
+  - [ ] Expand via graph links
+  - [ ] Score by: (initial_similarity _ 0.7) + (link_strength _ 0.3 / hop_distance)
+  - [ ] Return ranked results with graph path
+
+- [ ] **Add graph search parameters**
+  - [ ] `expandGraph: boolean` - enable graph expansion
+  - [ ] `maxHops: number` - traversal depth (default: 2)
+  - [ ] `minLinkStrength: float` - filter weak links (default: 0.5)
+
+- [ ] **Write tests**
+  - [ ] Test single-hop expansion
+  - [ ] Test multi-hop expansion
+  - [ ] Test cycle handling
+  - [ ] Test weak link filtering
+
+**Files to create:**
+
+- `src/vector/graphSearch.ts`
+- `src/vector/graphSearch.test.ts`
+
+**Files to modify:**
+
+- `src/db/repository.ts`
+
+**Exit Criteria:** Graph traversal returns related memories through link relationships
+
+---
+
+#### Step 2.3.4: Update Search Tool with Graph Expansion
+
+- [ ] **Add graph expansion to search tool**
+  - [ ] Add `expandGraph: boolean` parameter
+  - [ ] Add `graphDepth: number` parameter (default: 2)
+  - [ ] Pass to repository search
+  - [ ] Include graph path in results
+
+- [ ] **Update output schema**
+  - [ ] Add `relatedChunks: ChunkReference[]` to each result
+  - [ ] Add `linkPath: LinkEdge[]` showing graph traversal
+  - [ ] Add `graphExpanded: boolean` to metadata
+
+- [ ] **Add visualization support**
+  - [ ] Return graph structure as JSON for visualization
+  - [ ] Include nodes (chunks) and edges (links)
+  - [ ] Add link types and strengths
+
+**Files to modify:**
+
+- `src/server/tools/promptSearchTool.ts`
+
+**Exit Criteria:** Search can discover related prompts via graph links
+
+---
+
+## Phase 3: Adaptive RAG Implementation (Weeks 9-12)
+
+### Milestone 3.1: Adaptive Retrieval Controller
+
+**Goal:** Enable agents to decide when and how to retrieve information dynamically.
+
+#### Step 3.1.1: Design Adaptive Retrieval Framework
+
+- [ ] **Create architecture document**
+  - [ ] Create `docs/ADAPTIVE_RETRIEVAL.md`
+  - [ ] Define retrieval decision workflow:
+    1. Agent receives query
+    2. Self-assess: "Do I need more information?"
+    3. If yes, formulate retrieval query
+    4. Execute search
+    5. Evaluate result utility
+    6. Decide: iterate, refine, or stop
+  - [ ] Design confidence scoring
+  - [ ] Plan iteration limits and termination conditions
+
+- [ ] **Define retrieval strategies**
+  - [ ] **Single-shot**: Traditional one-time search
+  - [ ] **Iterative**: Multi-round with query refinement
+  - [ ] **Hypothesis-driven**: Generate hypothetical query, search, validate
+  - [ ] **Multi-hop**: Follow references across searches
+  - [ ] **Fallback**: Try different search modes if initial fails
+
+**Files to create:**
+
+- `docs/ADAPTIVE_RETRIEVAL.md`
+
+**Exit Criteria:** Adaptive retrieval framework documented
+
+---
+
+#### Step 3.1.2: Implement Retrieval Decision Agent
+
+- [ ] **Create retrieval decision module**
+  - [ ] Create `src/vector/retrievalDecisionAgent.ts`
+  - [ ] Implement `shouldRetrieve(context: AgentContext): Promise<RetrievalDecision>`
+  - [ ] Use LLM to assess information need:
+    ```
+    Given query: {query}
+    Current knowledge: {summary}
+    Do you need external information? (yes/no/maybe)
+    If yes, what specific information would help?
+    ```
+  - [ ] Return structured decision with confidence score
+
+- [ ] **Implement query formulation**
+  - [ ] `formulateRetrievalQuery(query: string, context: string): Promise<string>`
+  - [ ] Generate search query from agent's information need
+  - [ ] Optimize for vector search (descriptive, semantic)
+  - [ ] Generate multiple query variations if confidence low
+
+- [ ] **Add utility evaluation**
+  - [ ] `evaluateResultUtility(results: SearchResult[], query: string): number`
+  - [ ] Score 0-1 based on relevance
+  - [ ] Use LLM or heuristics (similarity threshold, result count)
+  - [ ] Decide if refinement needed
+
+- [ ] **Write tests**
+  - [ ] Test decision on query with missing context
+  - [ ] Test decision on query with sufficient context
+  - [ ] Test query formulation quality
+  - [ ] Test utility evaluation
+
+**Files to create:**
+
+- `src/vector/retrievalDecisionAgent.ts`
+- `src/vector/retrievalDecisionAgent.test.ts`
+
+**Exit Criteria:** Decision agent correctly identifies when retrieval needed
+
+---
+
+#### Step 3.1.3: Implement Iterative Retrieval Loop
+
+- [ ] **Create retrieval orchestrator**
+  - [ ] Create `src/vector/retrievalOrchestrator.ts`
+  - [ ] Implement `adaptiveSearch(query: string, context: Context): Promise<RetrievalResult>`
+  - [ ] Workflow:
+    1. Assess retrieval need
+    2. If needed, formulate query
+    3. Execute search
+    4. Evaluate utility
+    5. If utility low, refine and iterate (max 3 iterations)
+    6. Return aggregated results
+
+- [ ] **Implement query refinement**
+  - [ ] `refineQuery(originalQuery: string, results: SearchResult[]): string`
+  - [ ] Analyze gaps in results
+  - [ ] Generate improved query
+  - [ ] Try different search modes or filters
+
+- [ ] **Add iteration tracking**
+  - [ ] Track iteration count
+  - [ ] Log refinement decisions
+  - [ ] Measure cumulative latency
+  - [ ] Limit max iterations (default: 3)
+
+- [ ] **Implement result aggregation**
+  - [ ] Merge results across iterations
+  - [ ] Deduplicate by chunk_id
+  - [ ] Rank by combined relevance
+  - [ ] Track provenance (which iteration found each result)
+
+- [ ] **Write tests**
+  - [ ] Test single iteration (high utility)
+  - [ ] Test multiple iterations (refinement)
+  - [ ] Test iteration limit
+  - [ ] Test result deduplication
+
+**Files to create:**
+
+- `src/vector/retrievalOrchestrator.ts`
+- `src/vector/retrievalOrchestrator.test.ts`
+
+**Exit Criteria:** Iterative retrieval successfully refines queries until utility threshold met
+
+---
+
+#### Step 3.1.4: Create Adaptive Search MCP Tool
+
+- [ ] **Design tool interface**
+  - [ ] Tool name: `prompts.search_adaptive`
+  - [ ] Inputs:
+    - `query: string`
+    - `context?: string` - current agent knowledge
+    - `maxIterations?: number` - iteration limit
+    - `utilityThreshold?: number` - stop if exceeded
+  - [ ] Outputs:
+    - `results: SearchResult[]`
+    - `iterations: IterationLog[]` - decision history
+    - `totalDuration: number`
+    - `finalUtility: number`
+
+- [ ] **Implement tool**
+  - [ ] Create `src/server/tools/adaptiveSearchTool.ts`
+  - [ ] Use retrievalOrchestrator
+  - [ ] Add timeout protection (max 30s)
+  - [ ] Include detailed logging for debugging
+  - [ ] Register with MCP server
+
+- [ ] **Add monitoring**
+  - [ ] Track adaptive search usage
+  - [ ] Measure iteration distribution
+  - [ ] Monitor latency P50/P95/P99
+  - [ ] Alert on excessive iterations
+
+- [ ] **Write integration tests**
+  - [ ] Test simple query (should not iterate)
+  - [ ] Test complex query (should iterate)
+  - [ ] Test timeout handling
+  - [ ] Test error recovery
+
+**Files to create:**
+
+- `src/server/tools/adaptiveSearchTool.ts`
+- `src/server/tools/adaptiveSearchTool.test.ts`
+
+**Exit Criteria:** Adaptive search tool available via MCP with iteration control
+
+---
+
+### Milestone 3.2: Multi-Hop Search
+
+**Goal:** Enable following references and relationships across multiple search steps.
+
+#### Step 3.2.1: Implement Reference Extraction
+
+- [ ] **Create reference detector**
+  - [ ] Create `src/vector/referenceExtractor.ts`
+  - [ ] Extract references from search results:
+    - Persona names
+    - Project names
+    - Workflow step references
+    - External documentation links
+  - [ ] Use regex + NLP (entity recognition)
+  - [ ] Return structured reference list
+
+- [ ] **Add reference resolution**
+  - [ ] `resolveReference(ref: Reference): Promise<SearchResult[]>`
+  - [ ] Look up referenced entity in appropriate memory component
+  - [ ] Return full context for reference
+
+- [ ] **Write tests**
+  - [ ] Test persona reference extraction
+  - [ ] Test project reference extraction
+  - [ ] Test reference resolution
+
+**Files to create:**
+
+- `src/vector/referenceExtractor.ts`
+- `src/vector/referenceExtractor.test.ts`
+
+**Exit Criteria:** Can extract and resolve references from search results
+
+---
+
+#### Step 3.2.2: Implement Multi-Hop Search Algorithm
+
+- [ ] **Create multi-hop searcher**
+  - [ ] Create `src/vector/multiHopSearch.ts`
+  - [ ] Implement `multiHopSearch(query: string, maxHops: number): Promise<MultiHopResult>`
+  - [ ] Algorithm:
+    1. Initial search (hop 0)
+    2. Extract references from results
+    3. Search for each reference (hop 1)
+    4. Repeat up to maxHops
+    5. Aggregate all results with hop provenance
+
+- [ ] **Add hop scoring**
+  - [ ] Score decay per hop: `score / (hop + 1)`
+  - [ ] Prioritize direct results over transitive
+  - [ ] Track hop path for each result
+
+- [ ] **Implement pruning**
+  - [ ] Limit results per hop (e.g., top 5)
+  - [ ] Skip low-relevance hops
+  - [ ] Deduplicate across hops
+
+- [ ] **Write tests**
+  - [ ] Test single-hop search
+  - [ ] Test two-hop search with references
+  - [ ] Test hop limit enforcement
+  - [ ] Test result deduplication
+
+**Files to create:**
+
+- `src/vector/multiHopSearch.ts`
+- `src/vector/multiHopSearch.test.ts`
+
+**Exit Criteria:** Multi-hop search follows references across prompts
+
+---
+
+#### Step 3.2.3: Add Multi-Hop to Adaptive Search
+
+- [ ] **Integrate multi-hop with adaptive search**
+  - [ ] Add `enableMultiHop: boolean` to adaptive search
+  - [ ] If enabled, apply multi-hop expansion after initial retrieval
+  - [ ] Include hop information in results
+  - [ ] Count hops toward iteration limit
+
+- [ ] **Update adaptive search tool**
+  - [ ] Add `maxHops: number` parameter
+  - [ ] Add hop path to output
+  - [ ] Document multi-hop behavior
+
+**Files to modify:**
+
+- `src/vector/retrievalOrchestrator.ts`
+- `src/server/tools/adaptiveSearchTool.ts`
+
+**Exit Criteria:** Adaptive search can follow multi-hop references
+
+---
+
+### Milestone 3.3: Runtime Memory Addition
+
+**Goal:** Allow agents to store new knowledge during conversations.
+
+#### Step 3.3.1: Design Runtime Memory API
+
+- [ ] **Define memory write permissions**
+  - [ ] Create `docs/RUNTIME_MEMORY_PERMISSIONS.md`
+  - [ ] Define who can write to memory:
+    - System (always allowed)
+    - Agents (with restrictions)
+    - Users (with restrictions)
+  - [ ] Define moderation requirements
+  - [ ] Plan abuse prevention
+
+- [ ] **Design memory addition API**
+  - [ ] MCP tool: `memory.add`
+  - [ ] Inputs:
+    - `content: string` - what to remember
+    - `memoryType: MemoryType` - where to store
+    - `metadata: object` - context
+    - `tags?: string[]` - categorization
+  - [ ] Validation rules
+  - [ ] Embedding generation
+
+**Files to create:**
+
+- `docs/RUNTIME_MEMORY_PERMISSIONS.md`
+
+**Exit Criteria:** Runtime memory API designed with security controls
+
+---
+
+#### Step 3.3.2: Implement Memory Addition Tool
+
+- [ ] **Create memory writer**
+  - [ ] Create `src/server/tools/memoryAddTool.ts`
+  - [ ] Implement `addMemory(params: AddMemoryParams): Promise<MemoryId>`
+  - [ ] Validate inputs
+  - [ ] Generate embeddings
+  - [ ] Store in appropriate memory component
+  - [ ] Generate links to related memories
+  - [ ] Return memory ID
+
+- [ ] **Add moderation layer**
+  - [ ] Check content for harmful/inappropriate content
+  - [ ] Use OpenAI moderation API
+  - [ ] Reject or flag problematic content
+  - [ ] Log moderation decisions
+
+- [ ] **Implement memory update**
+  - [ ] Tool: `memory.update`
+  - [ ] Allow modifying existing memories
+  - [ ] Preserve version history
+  - [ ] Re-generate embeddings if content changed
+  - [ ] Update links
+
+- [ ] **Add memory deletion**
+  - [ ] Tool: `memory.delete`
+  - [ ] Soft delete (mark inactive)
+  - [ ] Preserve for audit trail
+  - [ ] Remove from search results
+  - [ ] Cascade to links (mark orphaned)
+
+- [ ] **Write tests**
+  - [ ] Test valid memory addition
+  - [ ] Test validation rejection
+  - [ ] Test moderation filtering
+  - [ ] Test memory update
+  - [ ] Test memory deletion
+
+**Files to create:**
+
+- `src/server/tools/memoryAddTool.ts`
+- `src/server/tools/memoryAddTool.test.ts`
+
+**Exit Criteria:** Agents can add, update, and delete memories at runtime
+
+---
+
+#### Step 3.3.3: Add Memory Addition to Agent Workflows
+
+- [ ] **Update workflow to use memory.add**
+  - [ ] Modify `mylo-mcp-agent.workflow.json`
+  - [ ] Add memory.add call after learning new facts
+  - [ ] Store project decisions as project memory
+  - [ ] Store user preferences as episodic memory
+
+- [ ] **Implement memory synthesis**
+  - [ ] After conversation, synthesize key learnings
+  - [ ] Use LLM to extract important facts
+  - [ ] Store as semantic memory
+  - [ ] Link to conversation (episodic memory)
+
+- [ ] **Add memory review process**
+  - [ ] Periodic review of agent-added memories
+  - [ ] Human-in-the-loop approval for sensitive data
+  - [ ] Dashboard for memory management
+
+**Files to modify:**
+
+- `workflows/mylo-mcp-agent.workflow.json`
+
+**Exit Criteria:** Agents automatically store new learnings during conversations
+
+---
+
+### Milestone 3.4: Integration and Testing
+
+**Goal:** Integrate all adaptive features and validate end-to-end.
+
+#### Step 3.4.1: Feature Flag Management
+
+- [ ] **Implement feature flag system**
+  - [ ] Add configuration for all new features:
+    - `HYBRID_SEARCH_ENABLED`
+    - `MEMORY_ROUTING_ENABLED`
+    - `EPISODIC_MEMORY_ENABLED`
+    - `MEMORY_GRAPH_ENABLED`
+    - `ADAPTIVE_RETRIEVAL_ENABLED`
+    - `RUNTIME_MEMORY_ENABLED`
+  - [ ] Support environment variables
+  - [ ] Support runtime configuration
+  - [ ] Add admin API to toggle flags
+
+- [ ] **Create gradual rollout plan**
+  - [ ] Phase 1: Enable hybrid search (50% traffic)
+  - [ ] Phase 2: Enable memory routing (25% traffic)
+  - [ ] Phase 3: Enable adaptive retrieval (10% traffic)
+  - [ ] Phase 4: Enable runtime memory (off by default, manual enable)
+  - [ ] Monitor each phase for issues
+
+**Files to modify:**
+
+- `src/config/index.ts`
+
+---
+
+#### Step 3.4.2: Comprehensive Integration Testing
+
+- [ ] **Create end-to-end test suite**
+  - [ ] Test full adaptive search workflow
+  - [ ] Test memory component routing
+  - [ ] Test episodic memory with conversations
+  - [ ] Test graph traversal across components
+  - [ ] Test runtime memory addition
+
+- [ ] **Performance testing**
+  - [ ] Benchmark search latency with all features enabled
+  - [ ] Load test: 100 concurrent searches
+  - [ ] Measure memory usage under load
+  - [ ] Test database connection pooling
+
+- [ ] **Failure testing**
+  - [ ] Test graceful degradation when features fail
+  - [ ] Test timeout handling
+  - [ ] Test partial result handling
+  - [ ] Test fallback to simpler search modes
+
+**Files to create:**
+
+- `src/test/integration/adaptiveRag.test.ts`
+- `src/test/performance/searchBenchmark.test.ts`
+
+---
+
+#### Step 3.4.3: Documentation and Training
+
+- [ ] **Update documentation**
+  - [ ] Update README.md with new features
+  - [ ] Create `docs/ADAPTIVE_RAG_GUIDE.md` - user guide
+  - [ ] Create `docs/MEMORY_COMPONENTS.md` - architecture guide
+  - [ ] Create `docs/API_REFERENCE.md` - complete API docs
+  - [ ] Add migration guide from old to new search tools
+
+- [ ] **Create examples**
+  - [ ] Example: Basic hybrid search
+  - [ ] Example: Memory-routed search
+  - [ ] Example: Adaptive multi-hop search
+  - [ ] Example: Adding runtime memories
+  - [ ] Example: Conversation memory retrieval
+
+- [ ] **Update n8n workflow templates**
+  - [ ] Add adaptive search node examples
+  - [ ] Add memory addition workflows
+  - [ ] Add conversation logging templates
+
+**Files to create:**
+
+- `docs/ADAPTIVE_RAG_GUIDE.md`
+- `docs/MEMORY_COMPONENTS.md`
+- `docs/API_REFERENCE.md`
+- `examples/adaptive-search.ts`
+- `examples/memory-addition.ts`
+
+---
+
+#### Step 3.4.4: Monitoring and Observability
+
+- [ ] **Add metrics collection**
+  - [ ] Search latency per mode (vector, keyword, hybrid, adaptive)
+  - [ ] Retrieval decision outcomes (retrieve/skip)
+  - [ ] Iteration count distribution
+  - [ ] Memory component usage
+  - [ ] Cache hit rates
+  - [ ] Error rates
+
+- [ ] **Create dashboards**
+  - [ ] Grafana dashboard: Search performance
+  - [ ] Grafana dashboard: Memory usage by component
+  - [ ] Grafana dashboard: Adaptive retrieval behavior
+  - [ ] Alert on high latency or error rates
+
+- [ ] **Add structured logging**
+  - [ ] Log adaptive search decisions
+  - [ ] Log memory routing decisions
+  - [ ] Log graph traversal paths
+  - [ ] Log runtime memory additions
+
+**Files to create:**
+
+- `src/monitoring/metrics.ts`
+- `dashboards/search-performance.json`
+
+---
+
+## Phase 4: Optimization and Production Readiness (Weeks 13-14)
+
+### Final Polish
+
+- [ ] **Performance optimization**
+  - [ ] Optimize vector search queries (consider HNSW if ivfflat is slow)
+  - [ ] Add query result caching (Redis or in-memory)
+  - [ ] Implement connection pooling optimization
+  - [ ] Add database query profiling
+
+- [ ] **Security hardening**
+  - [ ] Rate limiting on memory addition
+  - [ ] Input validation and sanitization
+  - [ ] SQL injection protection audit
+  - [ ] Access control for memory deletion
+
+- [ ] **Production deployment**
+  - [ ] Update Docker configurations
+  - [ ] Update environment variable documentation
+  - [ ] Create deployment runbook
+  - [ ] Set up monitoring alerts
+  - [ ] Plan zero-downtime migration
+
+- [ ] **Final testing**
+  - [ ] User acceptance testing
+  - [ ] Load testing at production scale
+  - [ ] Disaster recovery testing
+  - [ ] Rollback procedure testing
+
+---
+
+## Success Metrics
+
+### Technical Metrics
+
+- [ ] Search latency P95 < 500ms (adaptive search < 2s)
+- [ ] Hybrid search precision > vector-only by 15%
+- [ ] Memory routing accuracy > 90%
+- [ ] Adaptive retrieval reduces unnecessary searches by 30%
+- [ ] Graph expansion finds 20% more relevant content
+
+### Quality Metrics
+
+- [ ] Query intent classification accuracy > 90%
+- [ ] Episodic memory retrieval relevance > 0.8
+- [ ] Runtime memory approval rate > 95%
+- [ ] Zero data loss incidents
+- [ ] 99.9% uptime
+
+### User Experience
+
+- [ ] Agent response quality improvement (measured by user ratings)
+- [ ] Reduced need for query reformulation
+- [ ] Improved multi-turn conversation coherence
+- [ ] Better handling of complex, multi-part queries
+
+---
+
+## Risk Management
+
+### High Risk Items
+
+1. **Adaptive retrieval latency** - Could slow down all queries
+   - Mitigation: Aggressive timeouts, feature flags, caching
+2. **Memory component complexity** - Could confuse users
+   - Mitigation: Good defaults, clear documentation, gradual rollout
+3. **Runtime memory abuse** - Could pollute knowledge base
+   - Mitigation: Moderation, rate limits, approval workflows
+
+### Rollback Plan
+
+- [ ] Keep old search tools available during transition
+- [ ] Feature flags allow instant disable of new features
+- [ ] Database migrations reversible (tested rollback)
+- [ ] Monitoring alerts trigger automatic rollback if error rate spikes
 
 ---
 
 ## Timeline Summary
 
-| Phase                      | Duration | Key Deliverables                                             |
-| -------------------------- | -------- | ------------------------------------------------------------ |
-| **Phase 1: Foundation**    | Week 1   | Enhanced prompt.get, structured prompts, metadata extraction |
-| **Phase 2: REST API**      | Week 1-2 | Complete REST endpoints, operations integration              |
-| **Phase 3: n8n Migration** | Week 2   | SDK setup, priority workflow migration                       |
-| **Phase 4: Integration**   | Week 3   | Full workflow migration, system validation                   |
-| **Phase 5: Production**    | Week 3-4 | Documentation, deployment preparation                        |
+| Phase                 | Duration    | Key Deliverables                                  |
+| --------------------- | ----------- | ------------------------------------------------- |
+| Phase 1: Foundation   | Weeks 1-4   | Hybrid search, query intent, temporal weighting   |
+| Phase 2: Architecture | Weeks 5-8   | Memory components, episodic memory, memory graphs |
+| Phase 3: Adaptive RAG | Weeks 9-12  | Adaptive retrieval, multi-hop, runtime memory     |
+| Phase 4: Polish       | Weeks 13-14 | Optimization, security, production deployment     |
 
-**Total Estimated Time: 3-4 weeks**
+**Total Duration:** 14 weeks  
+**Team Size:** 2-3 developers  
+**Effort:** ~400-600 engineering hours
 
 ---
 
-## Dependencies & Prerequisites
+## Getting Started
 
-### External Dependencies
+### Week 1 Sprint
 
-- [ ] n8n cloud instance access and API credentials
-- [ ] OpenAI API access for embeddings
-- [ ] PostgreSQL instances (vector and operations databases)
-- [ ] Cloudflare tunnel configuration
+**Priority Tasks:**
 
-### Internal Prerequisites
+1. ✅ Review and approve this plan
+2. ⬜ Create Phase 1 branch
+3. ⬜ Set up feature flag infrastructure
+4. ⬜ Implement Step 1.1.1: Add full-text search schema
+5. ⬜ Implement Step 1.1.2: Add keyword search method
+6. ⬜ Daily standups to track progress
 
-- [ ] Current system baseline established and documented
-- [ ] All existing tests passing
-- [ ] Development environment properly configured
-- [ ] Team trained on new architecture concepts
+**Success Criteria:**
+
+- Full-text search working in dev environment
+- First integration test passing
+- Team aligned on architecture
 
 ---
 
 ## Conclusion
 
-This plan provides a comprehensive roadmap to achieve full system alignment with the MCP-based architecture. The sequential approach ensures minimal risk while systematically addressing all gaps identified in the current implementation.
+This plan transforms our static RAG system into a modern adaptive agentic memory system while maintaining backward compatibility and production stability. We build incrementally, test thoroughly, and deploy gradually behind feature flags.
 
-The key transformation is moving from a Supabase-dependent system to a unified MCP+REST architecture where:
-
-- **Vector database** serves as the source of truth for prompts with semantic search capabilities
-- **SQL database** handles operational data (runs/videos) only
-- **MCP server** provides AI-friendly tool interfaces
-- **REST API** provides standard HTTP interfaces for automation
-- **n8n workflows** use the unified server instead of direct database access
-
-Upon completion, we will have a robust, aligned system that supports both AI agent interactions through MCP and standard automation through REST APIs, with comprehensive tooling for maintaining workflow synchronization.
-
----
-
-**Document Version:** 1.0  
-**Last Updated:** 2025-10-29  
-**Status:** Ready for Implementation
+**The journey from B+ to A+ starts with Week 1, Step 1.1.1. Let's ship it! 🚀**

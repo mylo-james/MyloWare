@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:49.306Z",
   "createdAt": "2025-10-24T19:54:05.937Z",
-  "updatedAt": "2025-10-29T19:14:15.371Z",
   "id": "mtQuVF88e3mo20Mo",
   "name": "poll-db",
   "active": false,
@@ -33,31 +33,18 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "videos",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.id }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($json.id || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -928,
         128
       ],
       "id": "6bec188f-b611-40dd-ac6b-fa2f6d82124a",
-      "name": "Get a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Fetch Video"
     },
     {
       "parameters": {
@@ -139,6 +126,19 @@
       ],
       "webhookId": "d6b5d4ee-dce9-4053-97c0-75b49c1158a4",
       "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.video;\nif (!payload) {\n  throw new Error('Video payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  run_id: payload.runId ?? null,\n  project_id: payload.projectId ?? null,\n  user_idea: payload.userIdea ?? null,\n  video_link: payload.videoLink ?? null,\n  error_message: payload.errorMessage ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n};\nnormalized.ideaId = payload.id;\nnormalized.runId = payload.runId;\nnormalized.projectId = payload.projectId;\nnormalized.metadata = payload.metadata ?? {};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        128
+      ],
+      "id": "f5a7b5e9-4c5e-4778-8e47-4a87f85b0ecf",
+      "name": "Normalize Video"
     }
   ],
   "connections": {
@@ -146,18 +146,7 @@
       "main": [
         [
           {
-            "node": "Get a row",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get a row": {
-      "main": [
-        [
-          {
-            "node": "Status Switch2",
+            "node": "Fetch Video",
             "type": "main",
             "index": 0
           }
@@ -180,7 +169,29 @@
       "main": [
         [
           {
-            "node": "Get a row",
+            "node": "Fetch Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Video": {
+      "main": [
+        [
+          {
+            "node": "Normalize Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Video": {
+      "main": [
+        [
+          {
+            "node": "Status Switch2",
             "type": "main",
             "index": 0
           }
@@ -501,6 +512,58 @@
       }
     ]
   },
-  "versionId": "fea6d3bb-bb9e-4820-a811-87062e4672c4",
-  "triggerCount": 0
+  "versionId": "556d6d62-5743-4121-b7da-d8d27c36e4ac",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-24T19:54:05.941Z",
+      "createdAt": "2025-10-24T19:54:05.941Z",
+      "role": "workflow:owner",
+      "workflowId": "mtQuVF88e3mo20Mo",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

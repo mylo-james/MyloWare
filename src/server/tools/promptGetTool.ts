@@ -1,34 +1,27 @@
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import {
   PromptEmbeddingsRepository,
   type PromptChunk,
   type PromptLookupFilters,
   type PromptSummary,
 } from '../../db/repository';
+import { normaliseSlug } from '../../utils/slug';
 
-const inputSchema = z
-  .object({
-    project_name: z
-      .string()
-      .trim()
-      .min(1, 'project_name must not be empty')
-      .optional(),
-    persona_name: z
-      .string()
-      .trim()
-      .min(1, 'persona_name must not be empty')
-      .optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.project_name && !value.persona_name) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Provide at least project_name or persona_name.',
-        fatal: true,
-      });
-    }
-  });
+const promptGetArgsSchema = z.object({
+  project_name: z.string().trim().min(1, 'project_name must not be empty').optional(),
+  persona_name: z.string().trim().min(1, 'persona_name must not be empty').optional(),
+});
+
+const inputSchema = promptGetArgsSchema.superRefine((value, ctx) => {
+  if (!value.project_name && !value.persona_name) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Provide at least project_name or persona_name.',
+      fatal: true,
+    });
+  }
+});
 
 const promptPayloadSchema = z.object({
   promptKey: z.string(),
@@ -74,13 +67,13 @@ export function registerPromptGetTool(
       title: 'Resolve prompt by project/persona metadata',
       description:
         'Retrieves a prompt using project/persona metadata. Requires at least one of project_name or persona_name.',
-      inputSchema: inputSchema.shape,
+      inputSchema: promptGetArgsSchema.shape,
       outputSchema: outputSchema.shape,
       annotations: {
         category: 'prompts',
       },
     },
-    async (rawArgs) => {
+    async (rawArgs: unknown) => {
       let args: PromptGetInput;
 
       try {
@@ -125,15 +118,13 @@ export function registerPromptGetTool(
 
         const responseText = [
           `Prompt resolved: ${result.prompt.promptKey}`,
-          result.prompt.metadata.project
-            ? `project=${formatMetadataArray(result.prompt.metadata.project)}`
-            : null,
-          result.prompt.metadata.persona
-            ? `persona=${formatMetadataArray(result.prompt.metadata.persona)}`
-            : null,
+          formatMetadataEntry(result.prompt.metadata, 'project'),
+          formatMetadataEntry(result.prompt.metadata, 'persona'),
+          '',
+          result.prompt.content,
         ]
           .filter(Boolean)
-          .join(' | ');
+          .join('\n');
 
         return {
           content: [
@@ -186,8 +177,8 @@ async function resolvePrompt(
   repository: PromptEmbeddingsRepository,
   args: PromptGetInput,
 ): Promise<ResolutionSuccess | ResolutionFailure> {
-  const project = normalise(args.project_name);
-  const persona = normalise(args.persona_name);
+  const project = normaliseSlug(args.project_name);
+  const persona = normaliseSlug(args.persona_name);
 
   const filters: PromptLookupFilters = {};
   if (project) {
@@ -244,8 +235,7 @@ async function resolvePrompt(
 
   if (persona) {
     const personaOnly = candidates.filter(
-      (candidate) =>
-        matchesPersona(candidate, persona) && !hasProjectMetadata(candidate.metadata),
+      (candidate) => matchesPersona(candidate, persona) && !hasProjectMetadata(candidate.metadata),
     );
 
     if (personaOnly.length === 0) {
@@ -289,8 +279,7 @@ async function resolvePrompt(
 
   if (project) {
     const projectOnly = candidates.filter(
-      (candidate) =>
-        matchesProject(candidate, project) && !hasPersonaMetadata(candidate.metadata),
+      (candidate) => matchesProject(candidate, project) && !hasPersonaMetadata(candidate.metadata),
     );
 
     if (projectOnly.length === 0) {
@@ -342,10 +331,7 @@ async function resolvePrompt(
   );
 }
 
-async function buildPromptPayload(
-  repository: PromptEmbeddingsRepository,
-  summary: PromptSummary,
-) {
+async function buildPromptPayload(repository: PromptEmbeddingsRepository, summary: PromptSummary) {
   const chunks = await repository.getChunksByPromptKey(summary.promptKey);
   const documentChunk = selectDocumentChunk(chunks);
   const content = documentChunk?.rawSource ?? joinChunkTexts(chunks);
@@ -357,7 +343,7 @@ async function buildPromptPayload(
   return {
     promptKey: summary.promptKey,
     content,
-    metadata: summary.metadata ?? {},
+    metadata: (summary.metadata ?? {}) as Record<string, unknown>,
     updatedAt: summary.updatedAt,
   };
 }
@@ -384,22 +370,43 @@ function matchesProjectAndPersona(candidate: PromptSummary, project: string, per
 }
 
 function matchesProject(candidate: PromptSummary, project: string) {
-  return getMetadataArray(candidate.metadata?.project).includes(project);
+  return getMetadataArray(candidate.metadata, 'project').includes(project);
 }
 
 function matchesPersona(candidate: PromptSummary, persona: string) {
-  return getMetadataArray(candidate.metadata?.persona).includes(persona);
+  return getMetadataArray(candidate.metadata, 'persona').includes(persona);
 }
 
 function hasProjectMetadata(metadata: PromptSummary['metadata']) {
-  return getMetadataArray(metadata?.project).length > 0;
+  return getMetadataArray(metadata, 'project').length > 0;
 }
 
 function hasPersonaMetadata(metadata: PromptSummary['metadata']) {
-  return getMetadataArray(metadata?.persona).length > 0;
+  return getMetadataArray(metadata, 'persona').length > 0;
 }
 
-function getMetadataArray(value: unknown): string[] {
+function formatMetadataEntry(
+  metadata: Record<string, unknown>,
+  key: 'project' | 'persona',
+): string | null {
+  const values = getMetadataArray(metadata, key);
+  if (values.length === 0) {
+    return null;
+  }
+
+  return `${key}=${values.join(',')}`;
+}
+
+function getMetadataArray(
+  metadata: Record<string, unknown> | undefined,
+  key: 'project' | 'persona',
+): string[] {
+  if (!metadata) {
+    return [];
+  }
+
+  const value = metadata[key];
+
   if (Array.isArray(value)) {
     return value
       .map((item) => (typeof item === 'string' ? item.toLowerCase() : null))
@@ -411,24 +418,6 @@ function getMetadataArray(value: unknown): string[] {
   }
 
   return [];
-}
-
-function formatMetadataArray(value: unknown): string {
-  const arr = getMetadataArray(value);
-  if (arr.length === 0) {
-    return '∅';
-  }
-
-  return arr.join(',');
-}
-
-function normalise(value?: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed.toLowerCase();
 }
 
 function buildFailure(
@@ -463,7 +452,7 @@ function buildResolution(
 function toCandidateSummaries(candidates: PromptSummary[]): PromptGetOutput['candidates'] {
   return candidates.map((candidate) => ({
     promptKey: candidate.promptKey,
-    metadata: candidate.metadata ?? {},
+    metadata: (candidate.metadata ?? {}) as Record<string, unknown>,
     updatedAt: candidate.updatedAt,
   }));
 }

@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:48.136Z",
   "createdAt": "2025-10-16T21:02:41.228Z",
-  "updatedAt": "2025-10-29T19:14:14.106Z",
   "id": "ZBScJvTKGpbLGN8K",
   "name": "Generate Video",
   "active": false,
@@ -8,31 +8,18 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "=videos",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('When Called').item.json.id }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('When Called').item.json.id || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -400,
         544
       ],
       "id": "284d395e-f99f-402c-9b42-f0c89b9b6ce1",
-      "name": "Get Idea",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get Idea (API)"
     },
     {
       "parameters": {
@@ -105,44 +92,21 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "=videos",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Called').item.json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "={{ $json.status }}"
-            },
-            {
-              "fieldId": "video_link",
-              "fieldValue": "={{ $json.data.response.resultUrls[0] || \"failed\" }}"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + (($('When Called').item.json.id) || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: $json.status, videoLink: $json.data?.response?.resultUrls?.[0] ?? 'failed' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1392,
         432
       ],
       "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
-      "name": "Update a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Update a row"
     },
     {
       "parameters": {
@@ -308,31 +272,18 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -400,
         352
       ],
       "id": "7afa8ae6-ead1-4479-90c2-11a37decf0d6",
-      "name": "Get a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get Run (API)"
     },
     {
       "parameters": {},
@@ -347,81 +298,39 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Called').item.json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "failed"
-            },
-            {
-              "fieldId": "result",
-              "fieldValue": "videos_error"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Called').item.json.runId) || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'failed', result: 'videos_error' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -400,
         128
       ],
       "id": "23ace120-e8d8-4789-8726-f4470e311afb",
-      "name": "Mark Run Failed (Videos)",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Mark Run Failed (Videos)"
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "videos"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($json.runId) || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'videos' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         -400,
         736
       ],
       "id": "832e7b6c-4d94-4725-a0aa-89ac13a813de",
-      "name": "Mark Run Videos",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Mark Run Videos"
     },
     {
       "parameters": {
@@ -455,20 +364,35 @@
       ],
       "id": "efe81140-2103-486f-b680-3df46de17ded",
       "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.video;\nif (!payload) {\n  throw new Error('Video payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  run_id: payload.runId ?? null,\n  project_id: payload.projectId ?? null,\n  user_idea: payload.userIdea ?? null,\n  vibe: payload.vibe ?? null,\n  prompt: payload.prompt ?? null,\n  video_link: payload.videoLink ?? null,\n  error_message: payload.errorMessage ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  metadata: payload.metadata ?? {},\n};\nnormalized.ideaId = payload.id;\nnormalized.runId = payload.runId;\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        544
+      ],
+      "id": "6fd41c41-1e3e-4e62-931a-80673376f1c3",
+      "name": "Get Idea"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        352
+      ],
+      "id": "a0d11920-431a-4c44-bbc9-9d0d2a233c44",
+      "name": "Get a row"
     }
   ],
   "connections": {
-    "Get Idea": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
     "Prepare Video Settings": {
       "main": [
         [
@@ -484,12 +408,12 @@
       "main": [
         [
           {
-            "node": "Get a row",
+            "node": "Get Run (API)",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Get Idea",
+            "node": "Get Idea (API)",
             "type": "main",
             "index": 0
           },
@@ -568,17 +492,6 @@
         ]
       ]
     },
-    "Get a row": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "On Error": {
       "main": [
         [
@@ -627,6 +540,50 @@
           }
         ]
       ]
+    },
+    "Get Idea (API)": {
+      "main": [
+        [
+          {
+            "node": "Get Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Idea": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Run (API)": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -646,6 +603,58 @@
       }
     ]
   },
-  "versionId": "fff1c173-1582-433b-a0fd-0ada4a84f5d4",
-  "triggerCount": 0
+  "versionId": "c1d661bf-0fa4-4a2c-982c-f147d290ef48",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T21:02:41.230Z",
+      "createdAt": "2025-10-16T21:02:41.230Z",
+      "role": "workflow:owner",
+      "workflowId": "ZBScJvTKGpbLGN8K",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

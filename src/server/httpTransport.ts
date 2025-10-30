@@ -1,8 +1,9 @@
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { timingSafeEqual } from 'node:crypto';
 import { config } from '../config';
 import { createMcpServer } from './createMcpServer';
+
+type StreamableHttpModule = typeof import('@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js');
 
 interface RateLimitState {
   count: number;
@@ -17,8 +18,9 @@ interface RateLimitResult {
 const rateLimitStore = new Map<string, RateLimitState>();
 
 export async function registerMcpRoutes(app: FastifyInstance): Promise<void> {
+  const streamableModule = ((await import('@modelcontextprotocol/sdk/server/streamableHttp.js')) as unknown as StreamableHttpModule);
   const mcpServer = await createMcpServer();
-  const transport = new StreamableHTTPServerTransport({
+  const transport = new streamableModule.StreamableHTTPServerTransport({
     enableJsonResponse: true,
     sessionIdGenerator: undefined,
     allowedHosts: config.http.allowedHosts.length ? config.http.allowedHosts : undefined,

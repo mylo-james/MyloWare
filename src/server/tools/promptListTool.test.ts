@@ -11,7 +11,7 @@ describe('listPrompts', () => {
       ]),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
-    const result = await listPrompts(repository as PromptEmbeddingsRepository, {
+    const result = await listPrompts(repository as unknown as PromptEmbeddingsRepository, {
       persona: ' Reviewer ',
       project: 'Demo',
       type: 'Persona',
@@ -38,7 +38,7 @@ describe('listPrompts', () => {
       listPrompts: vi.fn().mockResolvedValue([]),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
-    const result = await listPrompts(repository as PromptEmbeddingsRepository, {});
+    const result = await listPrompts(repository as unknown as PromptEmbeddingsRepository, {});
 
     expect(result.prompts).toHaveLength(0);
     expect(result.appliedFilters).toEqual({

@@ -1,5 +1,7 @@
 import { config } from '../../config';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with {
+  'resolution-mode': 'import',
+};
 import packageJson from '../../../package.json';
 import {
   PromptEmbeddingsRepository,

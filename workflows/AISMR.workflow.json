@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:43:33.000Z",
   "createdAt": "2025-10-16T02:50:22.545Z",
-  "updatedAt": "2025-10-29T19:14:13.095Z",
   "id": "DPQUPd5e4Uxkp5Bd",
   "name": "AISMR",
   "active": false,
@@ -8,39 +8,38 @@
   "nodes": [
     {
       "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "projects",
-        "filters": {
-          "conditions": [
+        "assignments": {
+          "assignments": [
             {
-              "keyName": "name",
-              "condition": "eq",
-              "keyValue": "AISMR"
+              "id": "project-id",
+              "name": "id",
+              "value": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+              "type": "string"
             },
             {
-              "keyName": "is_active",
-              "condition": "eq",
-              "keyValue": true
+              "id": "project-slug",
+              "name": "slug",
+              "value": "aismr",
+              "type": "string"
+            },
+            {
+              "id": "project-name",
+              "name": "name",
+              "value": "AISMR",
+              "type": "string"
             }
           ]
-        }
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         -32,
-        -432
+        -544
       ],
       "id": "974dec2a-917d-4f4c-80c2-f0aea3546e93",
-      "name": "Get Project Config1",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      },
-      "notes": "Fetch AISMR project configuration from database"
+      "name": "Project Config"
     },
     {
       "parameters": {
@@ -54,9 +53,8 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "userInput": "={{ $('When Executed by Another Workflow').item.json.userInput }}",
-            "runId": "={{ $json.id }}",
-            "projectId": "={{ $json.project_id }}"
+            "userInput": "={{ $json.input.userInput }}",
+            "runId": "={{ $json.id }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -79,16 +77,6 @@
               "canBeUsedToMatch": true,
               "type": "string",
               "removed": false
-            },
-            {
-              "id": "projectId",
-              "displayName": "projectId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -101,8 +89,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        416,
-        -432
+        640,
+        -544
       ],
       "id": "dda7f671-2950-450f-b487-8c5d65aee8ca",
       "name": "Generate Ideas",
@@ -125,7 +113,7 @@
       "typeVersion": 1.1,
       "position": [
         -256,
-        -432
+        -544
       ],
       "id": "5b0e8131-c9bb-48f8-bb4c-92da03f80ae6",
       "name": "When Executed by Another Workflow"
@@ -181,8 +169,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1088,
-        -432
+        1312,
+        -544
       ],
       "id": "44b5eef2-eff2-42a6-98d1-98d1eae152fb",
       "name": "Call 'Generate Video'"
@@ -199,14 +187,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "ideaId": "={{ $json.id }}",
-            "runId": "={{ $('Create Run').item.json.id }}"
+            "runId": "={{ $('Create Run').item.json.id }}",
+            "userInput": "={{ $('When Executed by Another Workflow').item.json.userInput }}"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "ideaId",
-              "displayName": "ideaId",
+              "id": "userInput",
+              "displayName": "userInput",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -236,8 +224,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        640,
-        -432
+        864,
+        -544
       ],
       "id": "14df8a30-d73c-409b-a24c-145251041c3b",
       "name": "Write Screen"
@@ -299,8 +287,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        864,
-        -432
+        1088,
+        -544
       ],
       "id": "be7270bc-23f7-480c-ac53-f526359dad0b",
       "name": "Poll 'prompt'"
@@ -362,8 +350,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1312,
-        -432
+        1536,
+        -544
       ],
       "id": "c573e0cb-0604-4e25-980c-8539d596a177",
       "name": "Poll 'video_link'"
@@ -405,83 +393,55 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1536,
-        -432
+        1760,
+        -544
       ],
       "id": "68f25316-3fe8-438f-86c0-212adbcc13c0",
       "name": "Edit"
     },
     {
       "parameters": {
-        "tableId": "runs",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "project_id",
-              "fieldValue": "={{ $json.id }}"
-            },
-            {
-              "fieldId": "chat_id",
-              "fieldValue": "={{ $('When Executed by Another Workflow').item.json.chatId }}"
-            }
-          ]
-        }
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  projectId: $json.id,\n  chatId: $('When Executed by Another Workflow').item.json.chatId ?? null,\n  metadata: {\n    projectSlug: $json.slug,\n    projectName: $json.name\n  },\n  input: {\n    userInput: $('When Executed by Another Workflow').item.json.userInput ?? ''\n  }\n}) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
       "position": [
         192,
-        -432
+        -544
       ],
       "id": "d2326f15-605a-41e5-a1cc-8751134625ca",
-      "name": "Create Run",
+      "name": "Create Run (API)",
+      "typeVersion": 4.2,
       "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('Create Run').item.json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "complete"
-            },
-            {
-              "fieldId": "result",
-              "fieldValue": "success"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($('Create Run').item.json.id || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'complete', result: 'success' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        2208,
-        -432
+        2432,
+        -544
       ],
       "id": "bc1c81f1-85c6-472b-b5de-da3bfb6c2e5b",
-      "name": "Mark Run Complete",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Mark Run Complete"
     },
     {
       "parameters": {
@@ -518,8 +478,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1984,
-        -432
+        2208,
+        -544
       ],
       "id": "a2d9a0ea-46a8-4490-be47-1820c3a8df47",
       "name": "Call 'Upload to TikTok'"
@@ -567,25 +527,27 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1760,
-        -432
+        1984,
+        -544
       ],
       "id": "e91a1e02-8112-4624-84c3-b2aa40781df3",
       "name": "Call 'Upload file to Google Drive'"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -544
+      ],
+      "id": "a31f0c58-78d5-4d0b-82ce-10aa6756bc53",
+      "name": "Create Run"
     }
   ],
   "connections": {
-    "Get Project Config1": {
-      "main": [
-        [
-          {
-            "node": "Create Run",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Generate Ideas": {
       "main": [
         [
@@ -601,7 +563,7 @@
       "main": [
         [
           {
-            "node": "Get Project Config1",
+            "node": "Project Config",
             "type": "main",
             "index": 0
           }
@@ -652,17 +614,6 @@
         ]
       ]
     },
-    "Create Run": {
-      "main": [
-        [
-          {
-            "node": "Generate Ideas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Mark Run Complete": {
       "main": [
         []
@@ -700,6 +651,39 @@
           }
         ]
       ]
+    },
+    "Project Config": {
+      "main": [
+        [
+          {
+            "node": "Create Run (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Run (API)": {
+      "main": [
+        [
+          {
+            "node": "Create Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Run": {
+      "main": [
+        [
+          {
+            "node": "Generate Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -718,481 +702,125 @@
         }
       }
     ],
-    "Generate Ideas": [
+    "Project Config": [
       {
         "json": {
-          "id": "70da9be2-4b87-46ac-950a-fd318311616f",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Ember Fox",
-          "user_idea": "fox",
-          "vibe": "Infernal yet inviting, the Ember Fox glows with a gentle fiery warmth that flickers like embers without burning. Covered in soft glowing fur that seems to pulse with silent heat, it invites intimate petting and tapping that conjure subtle crackling sounds. Set against a crystalline cave bathed in amber light, this familiar blends mystical power with tactile delight, inviting viewers into a cozy, otherworldly embrace that feels both dangerous and comforting.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.173+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "ecc76113-c383-40d7-a07c-83883128a001",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Celestial Hound",
-          "user_idea": "hound",
-          "vibe": "Radiating divine tranquility, the Celestial Hound is enveloped in a halo of shimmering light particles that dance softly around its sleek, marble-like coat. Perched atop a misty mountain at dawn, it evokes calm and majestic presence. Viewers can almost feel the smooth, cool surface as they gently stroke or tap, while a whispering breeze and faint glowing particles create an immersive and serene ASMR experience full of awe and reverence.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.174+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Owl",
-          "user_idea": "owl",
-          "vibe": "Serene and transcendent, the Crystal Owl’s feathers refract light like cut glass, sparkling with internal rainbows in a void-like ethereal space. Its delicate, tactile surface invites gentle tapping that produces clear, tinkling sounds echoing softly in stillness. This macro close-up offers a hypnotic, otherworldly encounter packed with replay value, where mystery and elegance meet the impossible beauty of crystalline texture.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.176+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Hare",
-          "user_idea": "hare",
-          "vibe": "Enigmatic yet playful, the Molten Hare’s form flows with slow-motion molten metal that tackily maintains its shape with a subtle glow. Set in a dark forest clearing speckled with bioluminescent flora, its tactile surface beckons gentle pokes that resonate with crackling warmth. The pairing of visual molten fluidity, rich foley, and intimate whispering crafts a captivating, dreamlike ASMR moment blending nature and magic seamlessly.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.177+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "26414827-d5f0-43fc-9eb6-8777546c76d7",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Living Serpent",
-          "user_idea": "serpent",
-          "vibe": "Dark and haunting, the Living Serpent’s iridescent mercury-like scales ripple fluidly in a star-dotted void. Its sinuous motion and reflective surface invite viewers to follow each shimmering scale with their fingertips, accompanied by the faint sliding sound that amplifies tactile immersion. The whisper timed exactly at 3 seconds seals the enigmatic, mesmerizing atmosphere, perfect for looping replay and deep engagement with this impossible creature.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.178+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "282224a9-ca81-4776-9227-481a7f65e5cd",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Nimbus Cat",
-          "user_idea": "cat",
-          "vibe": "A whimsical, ephemeral companion, the Nimbus Cat materializes as a soft swirling cloud of mist and vapor. Its undulating form invites gentle strokes that barely disturb its vaporous body, accompanied by light ambient whispers and the soft sound of breezes. Set atop a high mist-shrouded cliff at dawn, this airy familiar melds tactile softness with visual poetry, enveloping the viewer in a soothing, fantastical ASMR experience marked by quiet delight and mystery.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.179+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Shadow Raven",
-          "user_idea": "raven",
-          "vibe": "Mysterious and enigmatic, the Shadow Raven’s feathers absorb surrounding light, creating a velvet black texture that seems almost tangible. Its slow wing fluttering and subtle wingtip taps generate rich, dark foley sounds that enhance the tactile allure. Placed within a moonlit crystalline cave, the raven’s presence teases the edge of the visible world, inviting viewers to intimately explore shadows with careful, rhythmic interaction framed by a haunting whisper.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.18+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glowing Toad",
-          "user_idea": "toad",
-          "vibe": "Charming and otherworldly, the Glowing Toad’s smooth skin pulses with bioluminescent light in a rhythmic pattern. Set within a damp misty swamp alive with twinkling fireflies, its tactile surface invites gentle taps and strokes. The resulting mix of wet squelches and gentle light pulses forms a whimsical ASMR moment, balancing playfulness with the surreal, while the precisely timed whisper adds an intimate human touch that deepens the quiet magic.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.181+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Ethereal Badger",
-          "user_idea": "badger",
-          "vibe": "Grounded in mystery, the Ethereal Badger’s fur glows softly with spectral luminescence, floating slightly above a solid form that shifts subtly with the twilight forest background. The rustling sounds of its movement and tactile fur taps combine with the precise whispering moment to evoke a hypnotic, mystical world. This familiar blends the comfort of natural textures with surreal, enchanted elements in a calming and immersive ASMR scene.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.181+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frost Lynx",
-          "user_idea": "lynx",
-          "vibe": "Cool and serene, the Frost Lynx’s fur sparkles with frosted crystals catching alpine sunlight in a snowy mountain glade. Its tactile coat entices soft, deliberate strokes producing gentle crackling snow sounds. Enveloped in crisp, cold air with subtle ambient whispers, this magical creature combines the familiar with surreal icy magic. The scene’s clarity and texture invite prolonged engagement and a calm reverence for winter’s quiet power.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.182+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Twilight Deer",
-          "user_idea": "deer",
-          "vibe": "Divine and enigmatic, the Twilight Deer’s coat shifts through hues of dusk—purples, blues, and starlight glimmers—set against an ethereal plain beneath a vast night sky filled with shooting stars. Its flowing fur feels liquid and soft to the touch, creating a mesmerizing tactile contrast with the vast, quiet wilderness. Accompanied by soft grass rustling and a perfectly timed whisper, this ASMR moment evokes serene awe and gentle mystery, inviting quiet contemplation.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.183+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
-        }
-      },
-      {
-        "json": {
-          "id": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Stallion",
-          "user_idea": "stallion",
-          "vibe": "Dynamic and powerful, the Molten Stallion blends the chaos of flowing lava with the grace of a majestic horse. Its form moves slowly like thick molten taffy with glowing veins beneath a cracked crust. Situated in a volcanic cavern lit by flowing lava rivers, the tactile sensation is rich with crackling heat and fluid rhythm. The timed whisper at 3 seconds adds a grounding human presence, making this fiery beast both formidable and mesmerizing in texture and motion.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.184+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00"
+          "id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+          "slug": "aismr",
+          "name": "AISMR"
         }
       }
     ],
-    "Write Screen": [
+    "Create Run (API)": [
       {
         "json": {
-          "id": "70da9be2-4b87-46ac-950a-fd318311616f",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Ember Fox",
-          "user_idea": "fox",
-          "vibe": "Infernal yet inviting, the Ember Fox glows with a gentle fiery warmth that flickers like embers without burning. Covered in soft glowing fur that seems to pulse with silent heat, it invites intimate petting and tapping that conjure subtle crackling sounds. Set against a crystalline cave bathed in amber light, this familiar blends mystical power with tactile delight, inviting viewers into a cozy, otherworldly embrace that feels both dangerous and comforting.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.173+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "70da9be2-4b87-46ac-950a-fd318311616f",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "ecc76113-c383-40d7-a07c-83883128a001",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Celestial Hound",
-          "user_idea": "hound",
-          "vibe": "Radiating divine tranquility, the Celestial Hound is enveloped in a halo of shimmering light particles that dance softly around its sleek, marble-like coat. Perched atop a misty mountain at dawn, it evokes calm and majestic presence. Viewers can almost feel the smooth, cool surface as they gently stroke or tap, while a whispering breeze and faint glowing particles create an immersive and serene ASMR experience full of awe and reverence.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.174+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "ecc76113-c383-40d7-a07c-83883128a001",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Crystal Owl",
-          "user_idea": "owl",
-          "vibe": "Serene and transcendent, the Crystal Owl’s feathers refract light like cut glass, sparkling with internal rainbows in a void-like ethereal space. Its delicate, tactile surface invites gentle tapping that produces clear, tinkling sounds echoing softly in stillness. This macro close-up offers a hypnotic, otherworldly encounter packed with replay value, where mystery and elegance meet the impossible beauty of crystalline texture.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.176+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "8cb0b39e-6f09-4e6a-8fe1-026189ef34d3",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Hare",
-          "user_idea": "hare",
-          "vibe": "Enigmatic yet playful, the Molten Hare’s form flows with slow-motion molten metal that tackily maintains its shape with a subtle glow. Set in a dark forest clearing speckled with bioluminescent flora, its tactile surface beckons gentle pokes that resonate with crackling warmth. The pairing of visual molten fluidity, rich foley, and intimate whispering crafts a captivating, dreamlike ASMR moment blending nature and magic seamlessly.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.177+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "4dc94497-3112-41d0-81ed-c8a84f6741d1",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "26414827-d5f0-43fc-9eb6-8777546c76d7",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Living Serpent",
-          "user_idea": "serpent",
-          "vibe": "Dark and haunting, the Living Serpent’s iridescent mercury-like scales ripple fluidly in a star-dotted void. Its sinuous motion and reflective surface invite viewers to follow each shimmering scale with their fingertips, accompanied by the faint sliding sound that amplifies tactile immersion. The whisper timed exactly at 3 seconds seals the enigmatic, mesmerizing atmosphere, perfect for looping replay and deep engagement with this impossible creature.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.178+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "26414827-d5f0-43fc-9eb6-8777546c76d7",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "282224a9-ca81-4776-9227-481a7f65e5cd",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Nimbus Cat",
-          "user_idea": "cat",
-          "vibe": "A whimsical, ephemeral companion, the Nimbus Cat materializes as a soft swirling cloud of mist and vapor. Its undulating form invites gentle strokes that barely disturb its vaporous body, accompanied by light ambient whispers and the soft sound of breezes. Set atop a high mist-shrouded cliff at dawn, this airy familiar melds tactile softness with visual poetry, enveloping the viewer in a soothing, fantastical ASMR experience marked by quiet delight and mystery.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.179+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "282224a9-ca81-4776-9227-481a7f65e5cd",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Shadow Raven",
-          "user_idea": "raven",
-          "vibe": "Mysterious and enigmatic, the Shadow Raven’s feathers absorb surrounding light, creating a velvet black texture that seems almost tangible. Its slow wing fluttering and subtle wingtip taps generate rich, dark foley sounds that enhance the tactile allure. Placed within a moonlit crystalline cave, the raven’s presence teases the edge of the visible world, inviting viewers to intimately explore shadows with careful, rhythmic interaction framed by a haunting whisper.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.18+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "2b2b4d0b-8122-4f7a-97ce-0811e4059332",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Glowing Toad",
-          "user_idea": "toad",
-          "vibe": "Charming and otherworldly, the Glowing Toad’s smooth skin pulses with bioluminescent light in a rhythmic pattern. Set within a damp misty swamp alive with twinkling fireflies, its tactile surface invites gentle taps and strokes. The resulting mix of wet squelches and gentle light pulses forms a whimsical ASMR moment, balancing playfulness with the surreal, while the precisely timed whisper adds an intimate human touch that deepens the quiet magic.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.181+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "8bf88d8e-0005-4ad3-96c2-4bbf1431ead1",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Ethereal Badger",
-          "user_idea": "badger",
-          "vibe": "Grounded in mystery, the Ethereal Badger’s fur glows softly with spectral luminescence, floating slightly above a solid form that shifts subtly with the twilight forest background. The rustling sounds of its movement and tactile fur taps combine with the precise whispering moment to evoke a hypnotic, mystical world. This familiar blends the comfort of natural textures with surreal, enchanted elements in a calming and immersive ASMR scene.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.181+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "93a169e0-76e3-456c-96cd-9ae9f4950fc7",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Frost Lynx",
-          "user_idea": "lynx",
-          "vibe": "Cool and serene, the Frost Lynx’s fur sparkles with frosted crystals catching alpine sunlight in a snowy mountain glade. Its tactile coat entices soft, deliberate strokes producing gentle crackling snow sounds. Enveloped in crisp, cold air with subtle ambient whispers, this magical creature combines the familiar with surreal icy magic. The scene’s clarity and texture invite prolonged engagement and a calm reverence for winter’s quiet power.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.182+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "cd756a8a-0c15-453e-b60a-2d2e02e06103",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Twilight Deer",
-          "user_idea": "deer",
-          "vibe": "Divine and enigmatic, the Twilight Deer’s coat shifts through hues of dusk—purples, blues, and starlight glimmers—set against an ethereal plain beneath a vast night sky filled with shooting stars. Its flowing fur feels liquid and soft to the touch, creating a mesmerizing tactile contrast with the vast, quiet wilderness. Accompanied by soft grass rustling and a perfectly timed whisper, this ASMR moment evokes serene awe and gentle mystery, inviting quiet contemplation.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.183+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "5fd0ea0d-709c-4237-ae91-ecbe508d6c90",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
-      },
-      {
-        "json": {
-          "id": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
-          "run_id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "idea": "Molten Stallion",
-          "user_idea": "stallion",
-          "vibe": "Dynamic and powerful, the Molten Stallion blends the chaos of flowing lava with the grace of a majestic horse. Its form moves slowly like thick molten taffy with glowing veins beneath a cracked crust. Situated in a volcanic cavern lit by flowing lava rivers, the tactile sensation is rich with crackling heat and fluid rhythm. The timed whisper at 3 seconds adds a grounding human presence, making this fiery beast both formidable and mesmerizing in texture and motion.",
-          "prompt": null,
-          "video_link": null,
-          "status": "idea_gen",
-          "error_message": null,
-          "started_at": "2025-10-28T18:56:39.184+00:00",
-          "completed_at": null,
-          "created_at": "2025-10-28T18:56:39.308827+00:00",
-          "updated_at": "2025-10-28T18:56:39.308827+00:00",
-          "ideaId": "cbd88147-cae3-4491-b802-a0ec87cbd32d",
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
+          "data": {
+            "run": {
+              "id": "4c303dfd-cea0-477b-9390-865c39837d23",
+              "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+              "personaId": null,
+              "chatId": "6559268788",
+              "status": "pending",
+              "result": null,
+              "input": {
+                "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
+              },
+              "metadata": {
+                "projectName": "AISMR",
+                "projectSlug": "aismr"
+              },
+              "startedAt": null,
+              "completedAt": null,
+              "createdAt": "2025-10-29 21:41:51.84+00",
+              "updatedAt": "2025-10-29 21:41:51.84+00"
+            }
+          }
         }
       }
     ],
     "Create Run": [
       {
         "json": {
-          "id": "71bcb4df-cdc5-4633-9722-3e249d569bca",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "chat_id": "6559268788",
+          "id": "4c303dfd-cea0-477b-9390-865c39837d23",
+          "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+          "personaId": null,
+          "chatId": "6559268788",
           "status": "pending",
           "result": null,
-          "error_message": null,
-          "created_at": "2025-10-28T19:12:06.228904+00:00",
-          "updated_at": "2025-10-28T19:12:06.228904+00:00"
+          "input": {
+            "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
+          },
+          "metadata": {
+            "projectName": "AISMR",
+            "projectSlug": "aismr"
+          },
+          "startedAt": null,
+          "completedAt": null,
+          "createdAt": "2025-10-29 21:41:51.84+00",
+          "updatedAt": "2025-10-29 21:41:51.84+00",
+          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+          "persona_id": null,
+          "chat_id": "6559268788",
+          "started_at": null,
+          "completed_at": null,
+          "created_at": "2025-10-29 21:41:51.84+00",
+          "updated_at": "2025-10-29 21:41:51.84+00"
         }
       }
     ]
   },
-  "versionId": "56efb66b-231f-4641-be29-b52c22987b9b",
-  "triggerCount": 0
+  "versionId": "392f709f-7b6a-4231-b7a3-575d126ab768",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T02:50:22.546Z",
+      "createdAt": "2025-10-16T02:50:22.546Z",
+      "role": "workflow:owner",
+      "workflowId": "DPQUPd5e4Uxkp5Bd",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

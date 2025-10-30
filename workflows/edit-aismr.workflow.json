@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:47.889Z",
   "createdAt": "2025-10-24T19:18:58.192Z",
-  "updatedAt": "2025-10-29T19:14:13.852Z",
   "id": "CiFjhZbMj5L9blcH",
   "name": "Edit_AISMR",
   "active": false,
@@ -21,34 +21,18 @@
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "tableId": "videos",
-        "returnAll": true,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "run_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         192,
         384
       ],
       "id": "9fd8087d-0070-4442-bb17-a55effeade3c",
-      "name": "Get many rows",
-      "executeOnce": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get many rows (API)"
     },
     {
       "parameters": {
@@ -215,85 +199,52 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Executed by Another Workflow').item.json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "failed"
-            },
-            {
-              "fieldId": "result",
-              "fieldValue": "edit_error"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Executed by Another Workflow').item.json.runId) || '') }",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'failed', result: 'edit_error' }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         192,
         80
       ],
       "id": "d0f105bf-554f-4e60-8754-a59b7245a978",
-      "name": "Mark Run Failed (Edit)",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Mark Run Failed (Edit)"
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Executed by Another Workflow').first().json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "status",
-              "fieldValue": "complete"
-            },
-            {
-              "fieldId": "result",
-              "fieldValue": "={{ $json.response.url }}"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Executed by Another Workflow').first().json.runId) || '') }",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'complete', result: $json.response?.url ?? null }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1312,
         224
       ],
       "id": "e5dfd393-2996-4c9a-a3f6-f35696501914",
-      "name": "Mark Run Complete",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Mark Run Complete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const videos = $json?.data?.videos;\nif (!Array.isArray(videos)) {\n  throw new Error('Video list missing from API response.');\n}\nreturn videos.map((video) => ({\n  json: {\n    ...video,\n    run_id: video.runId ?? null,\n    project_id: video.projectId ?? null,\n    user_idea: video.userIdea ?? null,\n    video_link: video.videoLink ?? null,\n    status: video.status ?? null,\n    error_message: video.errorMessage ?? null,\n    started_at: video.startedAt ?? null,\n    completed_at: video.completedAt ?? null,\n    created_at: video.createdAt ?? null,\n    updated_at: video.updatedAt ?? null,\n    metadata: video.metadata ?? {},\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        384
+      ],
+      "id": "5d22ba08-3661-4c79-94d3-6b24057f972b",
+      "name": "Get many rows"
     }
   ],
   "connections": {
@@ -308,22 +259,11 @@
         ]
       ]
     },
-    "Get many rows": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "When Executed by Another Workflow": {
       "main": [
         [
           {
-            "node": "Get many rows",
+            "node": "Get many rows (API)",
             "type": "main",
             "index": 0
           }
@@ -396,6 +336,28 @@
       "main": [
         []
       ]
+    },
+    "Get many rows (API)": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -414,6 +376,58 @@
       }
     ]
   },
-  "versionId": "c1b47c4e-6d13-43f9-8392-4492e8cf467c",
-  "triggerCount": 0
+  "versionId": "f09d6d05-1ba3-44cc-a637-45061f8d3359",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-24T19:18:58.195Z",
+      "createdAt": "2025-10-24T19:18:58.195Z",
+      "role": "workflow:owner",
+      "workflowId": "CiFjhZbMj5L9blcH",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

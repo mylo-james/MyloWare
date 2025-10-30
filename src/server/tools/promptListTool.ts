@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with {
+  'resolution-mode': 'import',
+};
 import {
   PromptEmbeddingsRepository,
   type PromptLookupFilters,
   type PromptSummary,
 } from '../../db/repository';
+import { normaliseSlugOptional } from '../../utils/slug';
 
-const inputSchema = z.object({
+const promptListArgsSchema = z.object({
   persona: z.string().trim().optional(),
   project: z.string().trim().optional(),
   type: z
@@ -20,6 +23,8 @@ const inputSchema = z.object({
       },
     ),
 });
+
+const inputSchema = promptListArgsSchema;
 
 const outputSchema = z.object({
   prompts: z.array(
@@ -56,13 +61,13 @@ export function registerPromptListTool(
     {
       title: 'List available prompts',
       description: 'Returns prompt metadata filtered by persona, project, or type.',
-      inputSchema: inputSchema.shape,
+      inputSchema: promptListArgsSchema.shape,
       outputSchema: outputSchema.shape,
       annotations: {
         category: 'prompts',
       },
     },
-    async (rawArgs) => {
+    async (rawArgs: unknown) => {
       let args: PromptListInput;
 
       try {
@@ -143,17 +148,17 @@ export async function listPrompts(
 function buildFilters(args: PromptListInput): PromptLookupFilters {
   const filters: PromptLookupFilters = {};
 
-  const persona = normalise(args.persona);
+  const persona = normaliseSlugOptional(args.persona);
   if (persona) {
     filters.persona = persona;
   }
 
-  const project = normalise(args.project);
+  const project = normaliseSlugOptional(args.project);
   if (project) {
     filters.project = project;
   }
 
-  const type = normalise(args.type);
+  const type = normaliseSlugOptional(args.type);
   if (type) {
     filters.type = type;
   }
@@ -164,17 +169,8 @@ function buildFilters(args: PromptListInput): PromptLookupFilters {
 function serializeSummary(summary: PromptSummary) {
   return {
     promptKey: summary.promptKey,
-    metadata: summary.metadata ?? {},
+    metadata: (summary.metadata ?? {}) as Record<string, unknown>,
     chunkCount: summary.chunkCount,
     updatedAt: summary.updatedAt,
   };
-}
-
-function normalise(value?: string | null): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed.toLowerCase() : undefined;
 }

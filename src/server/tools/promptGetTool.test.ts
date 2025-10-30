@@ -46,7 +46,7 @@ describe('resolvePrompt', () => {
       getChunksByPromptKey: vi.fn().mockResolvedValue([createChunk()]),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
-    const result = await resolvePrompt(repository as PromptEmbeddingsRepository, {
+    const result = await resolvePrompt(repository as unknown as PromptEmbeddingsRepository, {
       project_name: 'Demo',
       persona_name: 'Reviewer',
     });
@@ -72,7 +72,7 @@ describe('resolvePrompt', () => {
       getChunksByPromptKey: vi.fn(),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
-    const result = await resolvePrompt(repository as PromptEmbeddingsRepository, {
+    const result = await resolvePrompt(repository as unknown as PromptEmbeddingsRepository, {
       persona_name: 'Reviewer',
     });
 
@@ -98,7 +98,7 @@ describe('resolvePrompt', () => {
       ]),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
-    const result = await resolvePrompt(repository as PromptEmbeddingsRepository, {
+    const result = await resolvePrompt(repository as unknown as PromptEmbeddingsRepository, {
       persona_name: 'reviewer',
     });
 

@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:49.784Z",
   "createdAt": "2025-10-16T21:21:59.756Z",
-  "updatedAt": "2025-10-29T19:14:15.959Z",
   "id": "xXfy1EgFoH6EZU7v",
   "name": "Upload file to Google Drive",
   "active": false,
@@ -192,40 +192,21 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Called by Generate Video').item.json.runId }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "result",
-              "fieldValue": "={{ $json.webViewLink }}"
-            }
-          ]
-        }
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($json.id) || '') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ status: 'upload', metadata: { driveFileId: $json.response?.id ?? null, driveFileUrl: $json.response?.webViewLink ?? null } }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2160,
         48
       ],
       "id": "4073ed37-f232-4846-9a3b-bae1666746f1",
-      "name": "Update Row with Drive Link",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Update Row with Drive Link"
     },
     {
       "parameters": {
@@ -261,31 +242,31 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $('When Called by Generate Video').item.json.runId }}"
-            }
-          ]
-        }
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         816,
         48
       ],
       "id": "d715b06d-d062-4618-881e-c7fa4d779a39",
-      "name": "Get a row",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
+      "name": "Get Run (API)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        48
+      ],
+      "id": "17e7fc2a-0c92-4bf8-a9d7-1caabbc82dca",
+      "name": "Get a row"
     }
   ],
   "connections": {
@@ -293,7 +274,7 @@
       "main": [
         [
           {
-            "node": "Get a row",
+            "node": "Get Run (API)",
             "type": "main",
             "index": 0
           }
@@ -362,6 +343,17 @@
         ]
       ]
     },
+    "Get Run (API)": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get a row": {
       "main": [
         [
@@ -390,6 +382,58 @@
       }
     ]
   },
-  "versionId": "12212ea7-4023-4428-8ec3-d4d9f05dffe4",
-  "triggerCount": 0
+  "versionId": "0bd7f5e0-ca0f-48e5-96c0-3f5ac59d0a3e",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T21:21:59.759Z",
+      "createdAt": "2025-10-16T21:21:59.759Z",
+      "role": "workflow:owner",
+      "workflowId": "xXfy1EgFoH6EZU7v",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

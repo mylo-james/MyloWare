@@ -1,6 +1,6 @@
 {
+  "updatedAt": "2025-10-29T21:19:48.873Z",
   "createdAt": "2025-10-16T02:38:40.205Z",
-  "updatedAt": "2025-10-29T19:14:14.838Z",
   "id": "4eaPRf4DiHKOvOrc",
   "name": "Load Persona",
   "active": false,
@@ -11,12 +11,19 @@
         "workflowInputs": {
           "values": [
             {
-              "name": "personaId"
+              "name": "personaSlug"
+            },
+            {
+              "name": "projectSlug"
             },
             {
               "name": "runId"
             }
-          ]
+          ],
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "type": "n8n-nodes-base.executeWorkflowTrigger",
@@ -30,331 +37,44 @@
     },
     {
       "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "personas",
-        "limit": 1,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $('When Called').item.json.personaId }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -1152,
-        -208
-      ],
-      "id": "310abe35-b5cc-4307-9288-b23fbbe73633",
-      "name": "Get Persona",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "projects",
-        "limit": 1,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.project_id }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -1152,
-        80
-      ],
-      "id": "351e8cfb-67aa-4976-814b-e8f48f3ec965",
-      "name": "Get Project",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "prompts",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "persona_id",
-              "condition": "eq",
-              "keyValue": "={{ $('Get Persona').first().json.id }}"
-            },
-            {
-              "keyName": "project_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.id }}"
-            },
-            {
-              "keyName": "is_active",
-              "condition": "eq",
-              "keyValue": "true"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -704,
-        -64
-      ],
-      "id": "172859d4-6575-41f0-aa51-1a354d6d5747",
-      "name": "Get Persona-Project Prompts",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst cleanedItems = items.map((item) => {\n  // Ensure prompt_text exists and is a string\n  const prompt = item.json.prompt_text !== undefined && item.json.prompt_text !== null \n    ? String(item.json.prompt_text)\n    : '';\n  item.json.prompt_text = prompt\n    .replace(/\"/g, \"\")\n    .replace(/\\r?\\n|\\r/g, \" \");\n  return item;\n});\nreturn cleanedItems;"
+        "jsCode": "const slugify = (value) => {\n  if (value === undefined || value === null) {\n    return null;\n  }\n  const text = String(value).trim().toLowerCase();\n  if (!text) {\n    return null;\n  }\n  const hyphenated = text.replace(/\\s+/g, '-');\n  const cleaned = hyphenated.replace(/[^a-z0-9-]/g, '');\n  const collapsed = cleaned.replace(/-+/g, '-').replace(/^-+|-+$/g, '');\n  return collapsed.length > 0 ? collapsed : null;\n};\n\nconst personaSlug = slugify($json.personaSlug ?? $json.personaId ?? $json.persona);\nconst projectSlug = slugify($json.projectSlug ?? $json.project);\nconst runId = $json.runId ?? null;\n\nif (!personaSlug) {\n  throw new Error('personaSlug is required for Load Persona.');\n}\n\nreturn [{ json: { personaSlug, projectSlug, runId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        -64
-      ],
-      "id": "a33c3582-a4f4-466d-ab48-1100459b5cf7",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "fieldsToAggregate": {
-          "fieldToAggregate": [
-            {
-              "fieldToAggregate": "prompt_text"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        -32,
-        -64
-      ],
-      "id": "eba855a1-a420-48fe-b62d-7108c25d4578",
-      "name": "Aggregate"
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -928,
-        -64
-      ],
-      "id": "e5ba18b1-71bb-4f8d-aeeb-91f65b07e6d6",
-      "name": "Merge"
-    },
-    {
-      "parameters": {
-        "numberInputs": 3
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -480,
-        -80
-      ],
-      "id": "2eab0147-0af1-4e01-96a9-7b2a7fe7e45c",
-      "name": "Merge1"
-    },
-    {
-      "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "prompts",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "persona_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.id }}"
-            },
-            {
-              "keyName": "project_id",
-              "condition": "is",
-              "keyValue": "=null"
-            },
-            {
-              "keyName": "is_active",
-              "condition": "eq",
-              "keyValue": "true"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -704,
-        -256
-      ],
-      "id": "875f2471-1a54-4935-8390-6041d6b7f5f8",
-      "name": "Get Persona Prompts",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "useCustomSchema": true,
-        "operation": "getAll",
-        "tableId": "prompts",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "persona_id",
-              "condition": "is",
-              "keyValue": "=null"
-            },
-            {
-              "keyName": "project_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.id }}"
-            },
-            {
-              "keyName": "is_active",
-              "condition": "eq",
-              "keyValue": "true"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        -704,
-        128
-      ],
-      "id": "6ee182aa-11c1-49e3-8d36-3c7777bcff3e",
-      "name": "Get Project Prompts",
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "sortFieldsUi": {
-          "sortField": [
-            {
-              "fieldName": "level"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.sort",
-      "typeVersion": 1,
-      "position": [
-        -256,
-        -64
-      ],
-      "id": "c43f5ebc-485a-4822-bbe9-a8ff3a500d8e",
-      "name": "Sort"
-    },
-    {
-      "parameters": {
-        "useCustomSchema": true,
-        "operation": "get",
-        "tableId": "runs",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "keyValue": "={{ $json.runId }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
         -1376,
-        80
+        -64
       ],
-      "id": "69d0437b-0ad4-4443-9cb7-959a0a76d8d4",
-      "name": "Get Run",
-      "alwaysOutputData": true,
-      "credentials": {
-        "supabaseApi": {
-          "id": "Dt66cXjjQayuOdrT",
-          "name": "Supabase account"
-        }
-      },
-      "onError": "continueRegularOutput"
+      "id": "f9e23d4d-6b2e-41f6-a989-5b9307dc0d7a",
+      "name": "Normalize Inputs"
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "1db29745-4dc8-418d-844d-e812fa16005f",
-              "leftValue": "={{ $json.runId }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notExists",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
+        "method": "GET",
+        "url": "={{ (function() { const params = []; if ($json.projectSlug) { params.push('project=' + encodeURIComponent($json.projectSlug)); } if ($json.personaSlug) { params.push('persona=' + encodeURIComponent($json.personaSlug)); } return 'https://mcp-vector.mjames.dev/api/prompts/resolve?' + params.join('&'); })() }}",
         "options": {}
       },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        -1632,
-        32
+        -960,
+        -64
       ],
-      "id": "f82debc5-a16f-47c4-8a0e-a3ce9cb8275a",
-      "name": "If"
+      "id": "5f7b2cf6-62b3-4f37-8c94-7df76e3ebb8e",
+      "name": "Resolve Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json ?? {};\nconst data = response.data ?? {};\nconst prompt = data.prompt;\nconst resolution = data.resolution ?? null;\nconst candidates = data.candidates ?? [];\nif (!prompt || !prompt.content) {\n  const message = response.error?.message ?? 'Prompt could not be resolved.';\n  throw new Error(message);\n}\nconst context = $('Normalize Inputs').first().json;\nreturn [{\n  json: {\n    prompt_text: prompt.content,\n    system_prompt: prompt.content,\n    prompt_key: prompt.promptKey ?? null,\n    prompt_metadata: prompt.metadata ?? {},\n    resolution,\n    candidates,\n    persona_slug: context.personaSlug,\n    project_slug: context.projectSlug ?? null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        -64
+      ],
+      "id": "8c545a6a-0ed1-4a66-b7e7-52f4322aa46c",
+      "name": "Build Response"
     }
   ],
   "connections": {
@@ -362,144 +82,29 @@
       "main": [
         [
           {
-            "node": "If",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Get Persona",
+            "node": "Normalize Inputs",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Persona": {
+    "Normalize Inputs": {
       "main": [
         [
           {
-            "node": "Merge",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Get Persona Prompts",
+            "node": "Resolve Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Project": {
+    "Resolve Prompt": {
       "main": [
         [
           {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          },
-          {
-            "node": "Get Project Prompts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Persona-Project Prompts": {
-      "main": [
-        [
-          {
-            "node": "Merge1",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Aggregate": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge": {
-      "main": [
-        [
-          {
-            "node": "Get Persona-Project Prompts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge1": {
-      "main": [
-        [
-          {
-            "node": "Sort",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Persona Prompts": {
-      "main": [
-        [
-          {
-            "node": "Merge1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Project Prompts": {
-      "main": [
-        [
-          {
-            "node": "Merge1",
-            "type": "main",
-            "index": 2
-          }
-        ]
-      ]
-    },
-    "Sort": {
-      "main": [
-        [
-          {
-            "node": "Aggregate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Run": {
-      "main": [
-        [
-          {
-            "node": "Get Project",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "If": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Get Run",
+            "node": "Build Response",
             "type": "main",
             "index": 0
           }
@@ -522,6 +127,58 @@
       }
     ]
   },
-  "versionId": "b98dcc15-d639-4d14-a876-9f73935f6e1a",
-  "triggerCount": 0
+  "versionId": "07dbb5cc-daaf-4a19-8575-119f060b1f99",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-10-16T02:38:40.207Z",
+      "createdAt": "2025-10-16T02:38:40.207Z",
+      "role": "workflow:owner",
+      "workflowId": "4eaPRf4DiHKOvOrc",
+      "projectId": "LTPeNZWlXtWGs8Sc",
+      "project": {
+        "updatedAt": "2025-10-02T21:38:07.889Z",
+        "createdAt": "2025-10-02T21:38:04.742Z",
+        "id": "LTPeNZWlXtWGs8Sc",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-10-02T21:38:04.742Z",
+            "createdAt": "2025-10-02T21:38:04.742Z",
+            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+            "projectId": "LTPeNZWlXtWGs8Sc",
+            "user": {
+              "updatedAt": "2025-10-29T19:19:26.000Z",
+              "createdAt": "2025-10-02T21:38:03.169Z",
+              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": null,
+              "settings": {
+                "userActivated": true,
+                "userClaimedAiCredits": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
+                "userActivatedAt": 1760430470031,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 0,
+                  "lastShownAt": 1761216291825
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

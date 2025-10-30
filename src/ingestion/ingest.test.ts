@@ -87,7 +87,7 @@ describe('ingestPrompts', () => {
 
     const result = await ingestPrompts({
       directory: pathFixtureDirectory(),
-      repository: repository as PromptEmbeddingsRepository,
+      repository: repository as unknown as PromptEmbeddingsRepository,
       embed,
     });
 
@@ -108,7 +108,7 @@ describe('ingestPrompts', () => {
 
     const result = await ingestPrompts({
       directory: pathFixtureDirectory(),
-      repository: repository as PromptEmbeddingsRepository,
+      repository: repository as unknown as PromptEmbeddingsRepository,
       embed,
       dryRun: true,
     });

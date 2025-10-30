@@ -5,6 +5,8 @@ import { getDb } from './client';
 import * as schema from './schema';
 import type { NewPromptEmbedding, PromptEmbedding } from './schema';
 
+type PromptMetadata = Record<string, unknown>;
+
 export class PromptEmbeddingsRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema> = getDb()) {}
 
@@ -20,7 +22,7 @@ export class PromptEmbeddingsRepository {
       rawMarkdown: record.rawSource,
       granularity: record.granularity,
       embedding: record.embedding,
-      metadata: record.metadata ?? {},
+      metadata: (record.metadata ?? {}) as PromptMetadata,
       checksum: record.checksum,
     }));
 
@@ -55,7 +57,7 @@ export class PromptEmbeddingsRepository {
   }
 
   async getChunksByPromptKey(promptKey: string): Promise<PromptChunk[]> {
-    return this.db
+    const rows = await this.db
       .select({
         chunkId: schema.promptEmbeddings.chunkId,
         promptKey: schema.promptEmbeddings.filePath,
@@ -69,6 +71,17 @@ export class PromptEmbeddingsRepository {
       .from(schema.promptEmbeddings)
       .where(eq(schema.promptEmbeddings.filePath, promptKey))
       .orderBy(schema.promptEmbeddings.chunkId);
+
+    return rows.map((row) => ({
+      chunkId: typeof row.chunkId === 'string' ? row.chunkId : String(row.chunkId),
+      promptKey: typeof row.promptKey === 'string' ? row.promptKey : String(row.promptKey),
+      chunkText: typeof row.chunkText === 'string' ? row.chunkText : String(row.chunkText ?? ''),
+      rawSource: typeof row.rawSource === 'string' ? row.rawSource : String(row.rawSource ?? ''),
+      granularity: row.granularity,
+      metadata: (row.metadata ?? {}) as PromptMetadata,
+      checksum: row.checksum,
+      updatedAt: row.updatedAt ?? null,
+    }));
   }
 
   async listPrompts(filters: PromptLookupFilters = {}): Promise<PromptSummary[]> {
@@ -90,12 +103,15 @@ export class PromptEmbeddingsRepository {
 
     const { rows } = await this.db.execute(query);
 
-    return rows.map((row) => ({
-      promptKey: row.promptKey,
-      metadata: row.metadata ?? {},
-      chunkCount: Number(row.chunkCount ?? 0),
-      updatedAt: row.updatedAt ?? null,
-    }));
+    return rows.map((row) => {
+      const promptKey = typeof row.promptKey === 'string' ? row.promptKey : String(row.promptKey);
+      return {
+        promptKey,
+        metadata: (row.metadata ?? {}) as PromptMetadata,
+        chunkCount: Number(row.chunkCount ?? 0),
+        updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : null,
+      };
+    });
   }
 
   async search(params: SearchParameters): Promise<SearchResult[]> {
@@ -151,11 +167,11 @@ export class PromptEmbeddingsRepository {
     const { rows } = await this.db.execute(query);
 
     return rows.map((row) => ({
-      chunkId: row.chunkId,
-      promptKey: row.promptKey,
-      chunkText: row.chunkText,
-      rawSource: row.rawSource,
-      metadata: row.metadata ?? {},
+      chunkId: typeof row.chunkId === 'string' ? row.chunkId : String(row.chunkId),
+      promptKey: typeof row.promptKey === 'string' ? row.promptKey : String(row.promptKey),
+      chunkText: typeof row.chunkText === 'string' ? row.chunkText : String(row.chunkText ?? ''),
+      rawSource: typeof row.rawSource === 'string' ? row.rawSource : String(row.rawSource ?? ''),
+      metadata: (row.metadata ?? {}) as PromptMetadata,
       similarity: Number(row.similarity),
     }));
   }
@@ -174,9 +190,9 @@ export class PromptEmbeddingsRepository {
 
     const chunkCount = Number(row?.chunkCount ?? 0);
     const promptCount = Number(row?.promptCount ?? 0);
-    const lastUpdatedAtValue = row?.lastUpdatedAt ?? null;
+    const lastUpdatedAtValue = row?.lastUpdatedAt;
     const lastUpdatedAt =
-      lastUpdatedAtValue !== null && lastUpdatedAtValue !== undefined
+      typeof lastUpdatedAtValue === 'string' && lastUpdatedAtValue.length > 0
         ? new Date(lastUpdatedAtValue)
         : null;
 
@@ -251,14 +267,14 @@ export interface PromptLookupFilters {
 
 interface ListPromptRow {
   promptKey: string;
-  metadata: PromptEmbedding['metadata'];
+  metadata: PromptMetadata;
   chunkCount: number;
   updatedAt: string | null;
 }
 
 export interface PromptSummary {
   promptKey: string;
-  metadata: PromptEmbedding['metadata'];
+  metadata: PromptMetadata;
   chunkCount: number;
   updatedAt: string | null;
 }
@@ -269,7 +285,7 @@ export interface PromptChunk {
   chunkText: string;
   rawSource: string;
   granularity: PromptEmbedding['granularity'];
-  metadata: PromptEmbedding['metadata'];
+  metadata: PromptMetadata;
   checksum: string;
   updatedAt: PromptEmbedding['updatedAt'];
 }
@@ -287,7 +303,7 @@ interface SearchRow {
   promptKey: string;
   chunkText: string;
   rawSource: string;
-  metadata: PromptEmbedding['metadata'];
+  metadata: PromptMetadata;
   similarity: number;
 }
 
