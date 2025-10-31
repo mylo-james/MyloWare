@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-29T21:19:49.784Z",
+  "updatedAt": "2025-10-31T18:29:57.035Z",
   "createdAt": "2025-10-16T21:21:59.756Z",
   "id": "xXfy1EgFoH6EZU7v",
   "name": "Upload file to Google Drive",
@@ -45,7 +45,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1040,
+        1264,
         48
       ],
       "id": "dfce21ff-6e6b-4788-8b6a-22fbed73af8c",
@@ -119,7 +119,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1264,
+        1488,
         48
       ],
       "id": "e9a67af8-e807-42a0-925c-d2c966dcef60",
@@ -146,7 +146,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        1488,
+        1712,
         120
       ],
       "id": "d044f2e2-5dbd-40fa-af2a-6f4ccc0a7ea4",
@@ -179,7 +179,7 @@
       "name": "Upload Video to Drive",
       "type": "n8n-nodes-base.googleDrive",
       "position": [
-        1936,
+        2160,
         48
       ],
       "typeVersion": 3,
@@ -202,7 +202,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2160,
+        2384,
         48
       ],
       "id": "4073ed37-f232-4846-9a3b-bae1666746f1",
@@ -225,7 +225,7 @@
       "name": "Download Video",
       "type": "n8n-nodes-base.httpRequest",
       "position": [
-        1712,
+        1936,
         48
       ],
       "typeVersion": 4.2,
@@ -242,7 +242,6 @@
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
         "options": {}
       },
@@ -262,7 +261,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        816,
+        1040,
         48
       ],
       "id": "17e7fc2a-0c92-4bf8-a9d7-1caabbc82dca",
@@ -382,58 +381,6 @@
       }
     ]
   },
-  "versionId": "0bd7f5e0-ca0f-48e5-96c0-3f5ac59d0a3e",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-16T21:21:59.759Z",
-      "createdAt": "2025-10-16T21:21:59.759Z",
-      "role": "workflow:owner",
-      "workflowId": "xXfy1EgFoH6EZU7v",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "290a639d-61f5-4a75-9f2c-ce5e763496b7",
+  "triggerCount": 0
 }

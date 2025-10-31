@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2025-10-29T21:19:47.499Z",
+  "updatedAt": "2025-10-31T18:29:54.678Z",
   "createdAt": "2025-10-16T02:29:50.738Z",
   "id": "iGydAd7mC3NocD9X",
   "name": "Chat",
-  "active": true,
+  "active": false,
   "isArchived": false,
   "nodes": [
     {
@@ -15,14 +15,14 @@
           "download": false
         }
       },
-      "id": "2812bb4a-0f77-4dcb-ba24-d547a489f29d",
-      "name": "Telegram Message Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
       "position": [
-        -1520,
-        32
+        -816,
+        304
       ],
+      "id": "78813335-d5e7-4ca2-8b73-e3563c750d46",
+      "name": "Telegram Message Trigger",
       "webhookId": "55acc711-c248-4ac9-b6cd-e295c2d33f4b",
       "credentials": {
         "telegramApi": {
@@ -33,6 +33,73 @@
     },
     {
       "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "e036177d-d4f5-44f3-9ef7-7c8cc9f19ba2"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notExists",
+                      "singleValue": true
+                    },
+                    "id": "6c65ff11-4dce-4d0a-91ba-6a9f5c778b87"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -592,
+        304
+      ],
+      "id": "63099e11-950f-4651-9aef-915f58b41244",
+      "name": "Detect Voice Message"
+    },
+    {
+      "parameters": {
         "resource": "file",
         "fileId": "={{ $json.message.voice.file_id }}",
         "additionalFields": {}
@@ -40,10 +107,10 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -960,
-        -176
+        -368,
+        208
       ],
-      "id": "74ceec8d-3c5f-4357-849d-faa41f1b730c",
+      "id": "a7506752-da08-468f-8c7d-2bdbcaf1a01e",
       "name": "Get Voice File",
       "webhookId": "e0769871-efe3-49da-81a5-2f88a6fdd33f",
       "credentials": {
@@ -62,10 +129,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        -736,
-        -176
+        -144,
+        208
       ],
-      "id": "d288e5a6-3318-4cd3-b2db-2f6217238941",
+      "id": "545bb71f-4c4b-40a4-8a02-e077610cd9ca",
       "name": "Transcribe Audio",
       "credentials": {
         "openAiApi": {
@@ -79,15 +146,98 @@
         "assignments": {
           "assignments": [
             {
-              "id": "text-field",
+              "id": "voice-text",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "voice-chat",
+              "name": "chatId",
+              "value": "={{ $('Telegram Message Trigger').first().json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "voice-message-id",
+              "name": "telegramMessageId",
+              "value": "={{ $('Telegram Message Trigger').first().json.message.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "voice-file-id",
+              "name": "voiceFileId",
+              "value": "={{ $('Telegram Message Trigger').first().json.message.voice.file_id }}",
+              "type": "string"
+            },
+            {
+              "id": "voice-duration",
+              "name": "voiceDurationSeconds",
+              "value": "={{ $('Telegram Message Trigger').first().json.message.voice.duration || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "voice-type",
+              "name": "messageType",
+              "value": "voice",
+              "type": "string"
+            },
+            {
+              "id": "voice-platform",
+              "name": "platform",
+              "value": "telegram",
+              "type": "string"
+            },
+            {
+              "id": "voice-flag",
+              "name": "voiceTranscription",
+              "value": "true",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        208
+      ],
+      "id": "c6da2531-0e8a-4f31-b68a-52621c4a93d7",
+      "name": "Set Voice Message"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text-message",
               "name": "text",
               "value": "={{ $json.message.text }}",
               "type": "string"
             },
             {
-              "id": "chat-field",
+              "id": "text-chat",
               "name": "chatId",
               "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "text-message-id",
+              "name": "telegramMessageId",
+              "value": "={{ $json.message.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "text-platform",
+              "name": "platform",
+              "value": "telegram",
+              "type": "string"
+            },
+            {
+              "id": "text-type",
+              "name": "messageType",
+              "value": "text",
               "type": "string"
             }
           ]
@@ -97,89 +247,95 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -736,
-        32
+        80,
+        400
       ],
-      "id": "abc0ea3c-7c0c-489f-83b0-af44d33ac081",
+      "id": "e2ef3699-4381-4a16-8ef1-40d03b28e712",
       "name": "Set Text Message"
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "4eaPRf4DiHKOvOrc",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/4eaPRf4DiHKOvOrc",
-          "cachedResultName": "Load Persona"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "personaSlug": "chat"
-          },
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        -288,
-        -80
-      ],
-      "id": "99627989-f19b-45dc-be58-3d49da876392",
-      "name": "Load Chatbot Persona"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Get the system prompt from the Load Persona workflow\nconst personaData = $('Load Chatbot Persona').first().json;\nconst systemPrompt = personaData.system_prompt || 'You are a helpful AI assistant.';\n\n// Get the user input from previous nodes - handle both text and voice paths\nlet userText = 'Hello';\nlet chatId = null;\n\n// Try to get from Set Text Message node (text path)\ntry {\n  const setTextData = $('Set Text Message').first();\n  if (setTextData?.json?.text) {\n    userText = setTextData.json.text;\n    chatId = setTextData.json.chatId;\n  }\n} catch (e) {\n  // Node didn't execute, will try transcribe path\n}\n\n// If not from text path, try Transcribe Audio (voice path)\nif (userText === 'Hello') {\n  try {\n    const transcribeData = $('Transcribe Audio').first();\n    if (transcribeData?.json?.text) {\n      userText = transcribeData.json.text;\n    }\n  } catch (e) {\n    // Node didn't execute either\n  }\n}\n\n// Get chat ID from telegram trigger if not already set\nif (!chatId) {\n  try {\n    const telegramData = $('Telegram Message Trigger').first();\n    if (telegramData?.json?.message?.chat?.id) {\n      chatId = telegramData.json.message.chat.id;\n    }\n  } catch (e) {\n    chatId = 'default';\n  }\n}\n\n// Add timestamp context\nconst now = new Date();\nconst dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });\n\nconst contextualSystemPrompt = systemPrompt + \n  `\\n\\n## Context\\n- Today is ${dateStr}\\n- Current time is ${timeStr}`;\n\nreturn {\n  json: {\n    systemPrompt: contextualSystemPrompt,\n    text: userText,\n    chatId\n  }\n};"
+        "jsCode": "const { createHash, randomUUID } = require('crypto');\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction uuidFromString(input) {\n  const hash = createHash('sha1').update(String(input)).digest();\n  hash[6] = (hash[6] & 0x0f) | 0x50;\n  hash[8] = (hash[8] & 0x3f) | 0x80;\n  const hex = hash.toString('hex');\n  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;\n}\n\nfunction ensureUuid(candidate, fallbackSeed) {\n  if (typeof candidate === 'string') {\n    const normalized = candidate.trim();\n    if (UUID_PATTERN.test(normalized)) {\n      return normalized.toLowerCase();\n    }\n    if (normalized.length > 0) {\n      return uuidFromString(normalized);\n    }\n  }\n  const seed = fallbackSeed ?? randomUUID();\n  return uuidFromString(seed);\n}\n\nfunction safeNodeData(name) {\n  try {\n    const handle = $(name);\n    if (!handle) {\n      return null;\n    }\n    if (typeof handle.first === 'function') {\n      const firstItem = handle.first();\n      return firstItem?.json ?? null;\n    }\n    return handle.item?.json ?? null;\n  } catch (error) {\n    return null;\n  }\n}\n\nfunction firstNonEmpty(...values) {\n  for (const value of values) {\n    if (typeof value === 'string' && value.trim().length > 0) {\n      return value.trim();\n    }\n  }\n  return '';\n}\n\nconst telegramMessage = safeNodeData('Telegram Message Trigger')?.message ?? null;\nconst chatEvent = safeNodeData('When chat message received') ?? null;\nconst input = $json ?? {};\n\nlet text = firstNonEmpty(input.text, input.messageText, input.message);\nlet platform = input.platform ?? null;\nlet messageType = input.messageType ?? null;\nlet chatId = input.chatId ?? null;\nlet messageId = input.telegramMessageId ?? null;\nlet userId = input.userId ?? null;\n\nif (!platform && telegramMessage) {\n  platform = 'telegram';\n}\n\nif (!chatId && telegramMessage?.chat?.id != null) {\n  chatId = String(telegramMessage.chat.id);\n}\n\nif (!messageId && telegramMessage?.message_id != null) {\n  messageId = String(telegramMessage.message_id);\n}\n\nif (!text) {\n  text = firstNonEmpty(\n    telegramMessage?.text,\n    telegramMessage?.caption,\n    chatEvent?.text,\n    chatEvent?.message,\n    chatEvent?.query,\n    input.rawText,\n  );\n}\n\nif (!messageType) {\n  messageType = telegramMessage?.voice || input.voiceTranscription === true ? 'voice' : 'text';\n}\n\nif (!platform) {\n  platform = chatEvent ? 'n8n.chat' : 'unknown';\n}\n\nif (!userId) {\n  if (platform === 'telegram' && telegramMessage?.from?.id != null) {\n    userId = `telegram:${telegramMessage.from.id}`;\n  } else if (chatEvent?.userId) {\n    userId = String(chatEvent.userId);\n  } else if (chatEvent?.sessionId) {\n    userId = `n8n:${chatEvent.sessionId}`;\n  } else if (chatId) {\n    userId = `${platform}:${chatId}`;\n  } else {\n    userId = 'anonymous';\n  }\n}\n\nconst attachments = [];\nif (telegramMessage?.voice) {\n  attachments.push({\n    type: 'telegram_voice',\n    fileId: telegramMessage.voice.file_id,\n    duration: telegramMessage.voice.duration ?? null,\n  });\n}\n\nconst timestamp = new Date().toISOString();\nconst personaId = 'chat';\nconst projectId = 'aismr';\nconst personaSlug = 'chat';\nconst projectSlug = 'aismr';\n\nlet sessionId = input.sessionId ?? null;\nif (!sessionId && chatEvent?.sessionId) {\n  sessionId = String(chatEvent.sessionId);\n}\nif (!sessionId) {\n  if (platform === 'telegram' && chatId) {\n    sessionId = `telegram:${chatId}`;\n  } else if (chatId) {\n    sessionId = `${platform}:${chatId}`;\n  } else if (messageId) {\n    sessionId = `${platform}:${messageId}`;\n  }\n}\n\nsessionId = ensureUuid(sessionId, `${platform ?? 'unknown'}:${chatId ?? messageId ?? timestamp}`);\n\nconst messageText = text.trim();\nconst contentForStore = messageText.length > 0 ? messageText : '(empty message)';\nconst memoryQuery = messageText.length > 0\n  ? messageText\n  : messageType === 'voice'\n    ? 'recent voice message transcription'\n    : 'recent chat context';\n\nconst metadata = {\n  platform,\n  messageType,\n  chatId: chatId ?? null,\n  messageId,\n  personaId,\n  projectId,\n  workflow: 'chat',\n  timestamp,\n};\n\nif (attachments.length > 0) {\n  metadata.attachments = attachments;\n}\n\nconst conversationStorePayload = {\n  sessionId,\n  role: 'user',\n  content: contentForStore,\n  userId,\n  metadata,\n};\n\nif (messageText.length > 0) {\n  conversationStorePayload.embeddingText = messageText;\n}\n\nreturn {\n  json: {\n    platform,\n    messageType,\n    messageText,\n    memoryQuery,\n    chatId: chatId ? String(chatId) : null,\n    messageId,\n    userId,\n    sessionId,\n    timestamp,\n    personaId,\n    personaSlug,\n    projectId,\n    projectSlug,\n    attachments,\n    telegram: telegramMessage,\n    rawInput: input,\n    conversationStorePayload,\n  },\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -64,
-        -80
+        304,
+        304
       ],
-      "id": "6c8ac93a-a75d-4da8-a807-9e3d424de891",
-      "name": "Prepare Agent Input"
+      "id": "010e7783-300d-4162-9fe5-e0dea0a0ab68",
+      "name": "Normalize Chat Event"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/conversation/store",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.conversationStorePayload }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        304
+      ],
+      "id": "4ae6754d-ab67-4a03-acb5-7c900dbf0ab0",
+      "name": "Store User Turn",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simplified Assemble Agent Context - trust the AI to use MCP tools\n// No pre-fetching - just give clear instructions\n\nconst base = $('Normalize Chat Event').item?.json ?? {};\nconst storeResponse = $('Store User Turn').item?.json ?? {};\nconst searchResponse = $('Search Memory').item?.json ?? {};\nconst recallResponse = $('Recall Conversation').item?.json ?? {};\n\nconst storedTurn = storeResponse.data?.turn ?? null;\nconst matches = Array.isArray(searchResponse.data?.matches) ? searchResponse.data.matches : [];\nconst recallTurns = Array.isArray(recallResponse.data?.turns) ? recallResponse.data.turns : [];\n\n// Sort and prepare conversation context\nconst sortedTurns = [...recallTurns].sort((a, b) => (a.turnIndex ?? 0) - (b.turnIndex ?? 0));\nconst recentSlice = sortedTurns.slice(-10);\nconst recentContext = recentSlice\n  .map((turn) => {\n    const role = (turn.role ?? 'unknown').toUpperCase();\n    const preview = String(turn.content ?? '')\n      .replace(/\\s+/g, ' ')\n      .slice(0, 280);\n    return `${role}: ${preview}`;\n  })\n  .join('\\n');\n\n// Summarize matches by type\nfunction summarizeMatches(targetType) {\n  return matches\n    .filter((match) => {\n      const types = match.metadata?.type ? [match.metadata.type] : [];\n      const persona = match.metadata?.persona ?? [];\n      const project = match.metadata?.project ?? [];\n      if (targetType === 'persona') {\n        return persona.length > 0;\n      }\n      if (targetType === 'project') {\n        return project.length > 0;\n      }\n      return types.includes(targetType);\n    })\n    .slice(0, 3)\n    .map((match, index) => {\n      const title = match.metadata?.title ?? match.promptKey ?? `Match ${index + 1}`;\n      const similarity =\n        typeof match.similarity === 'number' ? `${(match.similarity * 100).toFixed(1)}%` : 'n/a';\n      const preview = String(match.chunkText ?? '')\n        .replace(/\\s+/g, ' ')\n        .trim()\n        .slice(0, 320);\n      return `#${index + 1} (${similarity}) ${title}: ${preview}`;\n    })\n    .join('\\n');\n}\n\nconst personaSummary = summarizeMatches('persona');\n\nconst proceduralSummary = matches\n  .filter((match) => match.metadata?.type === 'workflow' || match.metadata?.type === 'instructions')\n  .slice(0, 3)\n  .map((match, index) => {\n    const title = match.metadata?.title ?? match.promptKey ?? `Procedure ${index + 1}`;\n    const preview = String(match.chunkText ?? '')\n      .replace(/\\s+/g, ' ')\n      .trim()\n      .slice(0, 320);\n    return `• ${title}: ${preview}`;\n  })\n  .join('\\n');\n\n// Build system prompt with clear tool instructions\nconst systemSections = [];\n\nsystemSections.push(\n  'You are Casey, an AI collaborator for Mylo. Answer succinctly, stay warm, and surface relevant tools or workflows.',\n);\n\nsystemSections.push(\n  '## IMPORTANT: Run These Tools FIRST (Before Responding)\\n' +\n    'Before working on any user request, you MUST run these MCP tools to gather context:\\n' +\n    '1. **prompt_search** with query \"project\" and memoryType=\"project\" and limit=100\\n' +\n    '   - This loads ALL available projects in the system\\n' +\n    '   - You need to know what projects exist before answering questions about them\\n' +\n    '2. **GET /api/runs** with params: limit=20, status=\"complete,running,failed\"\\n' +\n    '   - This loads recent workflow runs across all projects\\n' +\n    '   - You need this context to answer \"what did we do\" or \"status of X\" questions\\n' +\n    \"3. Only AFTER running these tools should you address the user's actual request\\n\" +\n    '\\n' +\n    'Why this matters: Users expect you to know about all projects and recent activity without having to ask.',\n);\n\nsystemSections.push(\n  `## Persona Guidance\\n${personaSummary || 'No persona memory retrieved; default to Casey baseline tone.'}`,\n);\n\nsystemSections.push(\n  proceduralSummary\n    ? `## Procedural References\\n${proceduralSummary}`\n    : '## Procedural References\\nNo procedural workflows retrieved. Use prompt_search or MCP tools to find relevant automations.',\n);\n\nsystemSections.push(\n  recentContext\n    ? `## Recent Conversation\\n${recentContext}`\n    : '## Recent Conversation\\nNo prior turns available for this session.',\n);\n\nsystemSections.push(\n  '## Response Rules\\n' +\n    '- REMEMBER: Run the initialization tools listed above FIRST before responding\\n' +\n    '- Use MCP tools proactively: prompt_search for personas/projects, HTTP requests for runs/videos\\n' +\n    '- Confirm assumptions before triggering long processes (especially AISMR video generation)\\n' +\n    '- Offer 1-3 actionable suggestions when helpful\\n' +\n    '- Cite which tool or memory snippet informed your response\\n' +\n    \"- Be concise but warm - this is Mylo's creative assistant\",\n);\n\nconst systemPrompt = systemSections.join('\\n\\n');\n\nreturn {\n  json: {\n    persona: {\n      id: base.personaId,\n      slug: base.personaSlug,\n    },\n    project: {\n      id: base.projectId,\n      slug: base.projectSlug,\n    },\n    session: {\n      id: storedTurn?.sessionId ?? base.sessionId,\n      originalId: base.sessionId,\n      userId: base.userId,\n    },\n    message: {\n      text: base.messageText,\n      type: base.messageType,\n      timestamp: base.timestamp,\n      telegramChatId: base.chatId ?? null,\n      telegramMessageId: base.messageId ?? null,\n      platform: base.platform,\n    },\n    platform: base.platform,\n    attachments: base.attachments ?? [],\n    memory: {\n      matches,\n      personaSummary,\n      proceduralSummary,\n      recentTurns: recentSlice,\n    },\n    conversation: {\n      userTurn: storedTurn,\n      recall: recallTurns,\n    },\n    systemPrompt,\n    telemetry: {\n      userStore: storeResponse,\n      memorySearch: searchResponse,\n      recall: recallResponse,\n    },\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        304
+      ],
+      "id": "7031e801-c4cf-4727-b2a6-3ef0995e72f8",
+      "name": "Assemble Agent Context"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.text }}",
+        "text": "={{ $json.message.text }}",
         "options": {
           "systemMessage": "={{ $json.systemPrompt }}"
         }
       },
-      "id": "ce13a580-5dee-46a2-8716-3f02304c8141",
-      "name": "Assistant Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        224,
-        -80
-      ]
+        1032,
+        304
+      ],
+      "id": "c3fee426-2ad2-48b1-bfe1-709db28a6d2e",
+      "name": "AI Agent"
     },
     {
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gpt-4.1-nano",
+          "value": "gpt-4.1-mini",
           "mode": "list",
-          "cachedResultName": "gpt-4.1-nano"
+          "cachedResultName": "gpt-4.1-mini"
         },
-        "options": {}
+        "options": {
+          "temperature": 0.2
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        160,
-        160
+        976,
+        528
       ],
-      "id": "37388d2b-d9b4-4ecf-b79d-af04fbbf92e5",
+      "id": "84025d3d-207e-418f-bbe4-dfa09fa54151",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -190,7 +346,29 @@
     },
     {
       "parameters": {
-        "description": "Use this tool to make viral ASMR videos or to interact with the AISMR project",
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        528
+      ],
+      "id": "910dd8cc-083d-4dae-a856-94abe184dbda",
+      "name": "MCP Client",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to orchestrate AISMR idea/script/video generation workflows when the user requests it.",
         "workflowId": {
           "__rl": true,
           "value": "DPQUPd5e4Uxkp5Bd",
@@ -201,8 +379,8 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "chatId": "={{ $('Merge').item.json.chatId }}",
-            "userInput": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('userInput', ``, 'string') }}"
+            "chatId": "={{ $('Assemble Agent Context').item.json.message.telegramChatId ?? $('Assemble Agent Context').item.json.session.id }}",
+            "userInput": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('userInput', '', 'string') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -234,39 +412,72 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        416,
-        160
+        1232,
+        528
       ],
-      "id": "0be3d454-9150-4b6b-8991-f6ce65fc1ac8",
-      "name": "AISMR Tool"
+      "id": "1f445e35-4452-4507-9b71-b4552dbb2954",
+      "name": "AISMR Workflow"
     },
     {
       "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Telegram Message Trigger').item.json.message.from.id }}"
+        "jsCode": "const context = $('Assemble Agent Context').item?.json ?? {};\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet content = typeof rawOutput === 'string' ? rawOutput : rawOutput?.output ?? null;\nif (!content || typeof content !== 'string' || content.trim().length === 0) {\n  content = JSON.stringify(rawOutput, null, 2);\n}\nconst trimmed = content.length > 12000 ? `${content.slice(0, 11997)}...` : content;\nconst timestamp = new Date().toISOString();\n\nconst metadata = {\n  platform: context.platform,\n  personaId: context.persona?.id ?? null,\n  projectId: context.project?.id ?? null,\n  workflow: 'chat',\n  timestamp,\n};\n\nif (context.message?.telegramChatId) {\n  metadata.chatId = context.message.telegramChatId;\n}\nif (context.message?.telegramMessageId) {\n  metadata.messageId = context.message.telegramMessageId;\n}\n\nconst payload = {\n  sessionId: context.session?.id,\n  role: 'assistant',\n  content: trimmed,\n  userId: context.session?.userId ?? null,\n  metadata,\n  embeddingText: trimmed,\n};\n\nreturn {\n  json: {\n    ...context,\n    agentOutput: trimmed,\n    responseText: trimmed,\n    conversationStorePayload: payload,\n  },\n};"
       },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        288,
-        160
+        1440,
+        304
       ],
-      "id": "e955e988-e077-4191-9c4c-7ae992217bc4",
-      "name": "Conversation Memory"
+      "id": "edb2461a-d3c7-4128-a697-ff0398525969",
+      "name": "Prepare Assistant Store Request"
     },
     {
       "parameters": {
-        "chatId": "={{ $('Telegram Message Trigger').first().json.message.chat.id }}",
-        "text": "={{ $json.output }}",
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/conversation/store",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.conversationStorePayload }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1664,
+        304
+      ],
+      "id": "b690e627-83d4-4eea-8655-4a250e4a160f",
+      "name": "Store Assistant Turn",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Prepare Assistant Store Request').item?.json ?? {};\nconst assistantStore = $json.data?.turn ?? null;\n\nreturn {\n  json: {\n    responseText: context.responseText,\n    persona: context.persona ?? null,\n    project: context.project ?? null,\n    session: context.session ?? null,\n    message: context.message ?? null,\n    platform: context.platform ?? null,\n    conversation: {\n      userTurn: context.conversation?.userTurn ?? null,\n      assistantTurn: assistantStore,\n    },\n    telemetry: {\n      assistantStore: $json,\n    },\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        304
+      ],
+      "id": "9742a09e-1602-45a4-96c9-695179c4c613",
+      "name": "Finalize Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.telegramChatId }}",
+        "text": "={{ $json.responseText }}",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        624,
-        -80
+        2112,
+        304
       ],
-      "id": "58d10bab-9172-4f3d-8859-a5389453113e",
+      "id": "44c69ca4-ea40-4cb4-a921-88e8fb37f8fe",
       "name": "Reply in Telegram",
       "webhookId": "b96b7a41-9806-455f-b72e-00aa638eda71",
       "credentials": {
@@ -274,99 +485,8 @@
           "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
-      }
-    },
-    {
-      "parameters": {
-        "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        -1520,
-        -192
-      ],
-      "id": "634d21f9-8e4d-4bb9-9669-e05d5d727d37",
-      "name": "When chat message received",
-      "webhookId": "e3de0da7-b71b-4add-a8e7-ba57bea9b2e4"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.message.voice }}",
-                    "rightValue": "",
-                    "operator": {
-                      "type": "string",
-                      "operation": "notEmpty",
-                      "singleValue": true
-                    },
-                    "id": "d1184e3b-d1c0-4981-b57a-1665af763023"
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "isVoice"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "9051798c-e739-4313-8d0e-1aec014a289b",
-                    "leftValue": "={{ $json.message.voice }}",
-                    "rightValue": "",
-                    "operator": {
-                      "type": "string",
-                      "operation": "empty",
-                      "singleValue": true
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "!isVoice"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.3,
-      "position": [
-        -1184,
-        -80
-      ],
-      "id": "28e521d5-605b-4f2a-bfc5-7c0c8d0a3199",
-      "name": "Switch"
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        -512,
-        -80
-      ],
-      "id": "336ec7ba-657c-40eb-8ea3-dbb6854688fe",
-      "name": "Merge"
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -374,7 +494,25 @@
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Detect Voice Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Voice Message": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Text Message",
             "type": "main",
             "index": 0
           }
@@ -396,7 +534,18 @@
       "main": [
         [
           {
-            "node": "Merge",
+            "node": "Set Voice Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Voice Message": {
+      "main": [
+        [
+          {
+            "node": "Normalize Chat Event",
             "type": "main",
             "index": 0
           }
@@ -407,40 +556,51 @@
       "main": [
         [
           {
-            "node": "Merge",
+            "node": "Normalize Chat Event",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Load Chatbot Persona": {
+    "Normalize Chat Event": {
       "main": [
         [
           {
-            "node": "Prepare Agent Input",
+            "node": "Store User Turn",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Agent Input": {
+    "Store User Turn": {
       "main": [
         [
           {
-            "node": "Assistant Agent",
+            "node": "Assemble Agent Context",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Assistant Agent": {
+    "Assemble Agent Context": {
       "main": [
         [
           {
-            "node": "Reply in Telegram",
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare Assistant Store Request",
             "type": "main",
             "index": 0
           }
@@ -451,69 +611,62 @@
       "ai_languageModel": [
         [
           {
-            "node": "Assistant Agent",
+            "node": "AI Agent",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "AISMR Tool": {
+    "MCP Client": {
       "ai_tool": [
         [
           {
-            "node": "Assistant Agent",
+            "node": "AI Agent",
             "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     },
-    "Conversation Memory": {
-      "ai_memory": [
+    "AISMR Workflow": {
+      "ai_tool": [
         [
           {
-            "node": "Assistant Agent",
-            "type": "ai_memory",
+            "node": "AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     },
-    "When chat message received": {
+    "Prepare Assistant Store Request": {
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Store Assistant Turn",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Switch": {
+    "Store Assistant Turn": {
       "main": [
         [
           {
-            "node": "Get Voice File",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set Text Message",
+            "node": "Finalize Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Merge": {
+    "Finalize Response": {
       "main": [
         [
           {
-            "node": "Load Chatbot Persona",
+            "node": "Reply in Telegram",
             "type": "main",
             "index": 0
           }
@@ -528,85 +681,7 @@
   "meta": {
     "templateCredsSetupCompleted": true
   },
-  "pinData": {
-    "Telegram Message Trigger": [
-      {
-        "json": {
-          "update_id": 96972001,
-          "message": {
-            "message_id": 92,
-            "from": {
-              "id": 6559268788,
-              "is_bot": false,
-              "first_name": "Mylo",
-              "last_name": "James",
-              "language_code": "en"
-            },
-            "chat": {
-              "id": 6559268788,
-              "first_name": "Mylo",
-              "last_name": "James",
-              "type": "private"
-            },
-            "date": 1761484835,
-            "text": "Use the aismr tool to make me a viral asmr video about sandwiches"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "00ff4e17-6c86-4296-8b51-f286c94878df",
-  "triggerCount": 2,
-  "shared": [
-    {
-      "updatedAt": "2025-10-16T02:29:50.741Z",
-      "createdAt": "2025-10-16T02:29:50.741Z",
-      "role": "workflow:owner",
-      "workflowId": "iGydAd7mC3NocD9X",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "pinData": {},
+  "versionId": "b604ff6e-0a41-4767-a2b9-a776dd8b0110",
+  "triggerCount": 2
 }

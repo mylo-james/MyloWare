@@ -1,15 +1,15 @@
 # Structured Output Parser Status – Oct 26, 2025
 
-We do not need why. I never wanted a why column. We just need vibe. 
+We do not need why. I never wanted a why column. We just need vibe.
 
 The n8n Structured Output Parser nodes keep our AI agents from emitting malformed JSON, but two agents are still running with the default `jsonSchemaExample` config instead of explicit schemas + `autoFix`. This document tracks the real state of each workflow and the work required to ship the hardened version.
 
 ## Current State
 
-| Workflow | Node | Parser Config | Notes |
-| --- | --- | --- | --- |
-| `workflows/idea-generator.workflow.json` | "Structured Output Parser" (id `86175964-7f37-435a-9aea-af0af9df2cf3`) | Uses `jsonSchemaExample` only (`idea`, `userIdea`, `vibe`) | The persona prompt still promises a `why` field and strict JSON-only output, but the parser neither validates that field nor enforces array length = 12. |
-| `workflows/screen-writer.workflow.json` | "Structured Output Parser" feeding the Screen Writer agent | Also driven by `jsonSchemaExample`; no manual schema or fix-up | Failures surface as generic "Model output doesn't fit required format" errors without context. |
+| Workflow                                 | Node                                                                   | Parser Config                                                  | Notes                                                                                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflows/idea-generator.workflow.json` | "Structured Output Parser" (id `86175964-7f37-435a-9aea-af0af9df2cf3`) | Uses `jsonSchemaExample` only (`idea`, `userIdea`, `vibe`)     | The persona prompt still promises a `why` field and strict JSON-only output, but the parser neither validates that field nor enforces array length = 12. |
+| `workflows/screen-writer.workflow.json`  | "Structured Output Parser" feeding the Screen Writer agent             | Also driven by `jsonSchemaExample`; no manual schema or fix-up | Failures surface as generic "Model output doesn't fit required format" errors without context.                                                           |
 
 No parser currently enables `autoFix`, so a single trailing comma or missing quote bubbles all the way up to a run failure.
 

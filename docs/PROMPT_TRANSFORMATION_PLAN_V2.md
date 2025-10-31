@@ -587,8 +587,7 @@ const chatAismr = await mcp.call('prompts.get', {
 });
 
 // Compose in workflow (you control the logic)
-const combined =
-  chat.content + '\n\n' + aismr.content + '\n\n' + chatAismr.content;
+const combined = chat.content + '\n\n' + aismr.content + '\n\n' + chatAismr.content;
 ```
 
 **Tasks:**

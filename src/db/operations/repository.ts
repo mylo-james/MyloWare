@@ -2,14 +2,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { getOperationsDb } from './client';
 import * as schema from './schema';
-import type {
-  NewRun,
-  NewVideo,
-  Run,
-  RunStatus,
-  Video,
-  VideoStatus,
-} from './schema';
+import type { NewVideo, Video, VideoStatus } from './schema';
 
 export interface ListVideosOptions {
   status?: VideoStatus[];
@@ -25,32 +18,6 @@ export interface DatabaseCheckResult {
   status: 'ok' | 'error';
   error?: string;
 }
-type RunUpdateData = Partial<
-  Pick<Run, 'result' | 'startedAt' | 'completedAt' | 'metadata' | 'input' | 'personaId' | 'chatId'> & {
-    status?: RunStatus;
-  }
->;
-
-type CreateRunData = {
-  id?: string;
-  projectId: string;
-  personaId?: string | null;
-  chatId?: string | null;
-  status?: RunStatus;
-  result?: string | null;
-  input?: Record<string, unknown> | null;
-  metadata?: Record<string, unknown> | null;
-  startedAt?: string | null;
-  completedAt?: string | null;
-};
-
-type UpdateRunData = Partial<
-  Pick<
-    Run,
-    'status' | 'result' | 'input' | 'metadata' | 'startedAt' | 'completedAt' | 'personaId' | 'chatId'
-  >
->;
-
 type CreateVideoData = {
   id?: string;
   runId: string;
@@ -85,88 +52,6 @@ type UpdateVideoData = Partial<
 
 export class OperationsRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema> = getOperationsDb()) {}
-
-  async createRun(data: CreateRunData): Promise<Run> {
-    const timestamp = new Date().toISOString();
-
-    const values: NewRun = {
-      id: data.id,
-      projectId: data.projectId,
-      personaId: data.personaId ?? null,
-      chatId: data.chatId ?? null,
-      status: data.status ?? 'pending',
-      result: data.result ?? null,
-      input: (data.input ?? {}) as NewRun['input'],
-      metadata: (data.metadata ?? {}) as NewRun['metadata'],
-      startedAt: (data.startedAt ?? null) as NewVideo['startedAt'],
-      completedAt: (data.completedAt ?? null) as NewVideo['completedAt'],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-
-    const [row] = await this.db.insert(schema.runs).values(values).returning();
-    return row;
-  }
-
-  async getRunById(runId: string): Promise<Run | null> {
-    const [row] = await this.db
-      .select()
-      .from(schema.runs)
-      .where(eq(schema.runs.id, runId))
-      .limit(1);
-
-    return row ?? null;
-  }
-
-  async updateRun(runId: string, data: RunUpdateData): Promise<Run | null> {
-    const updatePayload: Partial<NewRun> & { updatedAt?: string } = {};
-
-    if ('status' in data) {
-      updatePayload.status = data.status as RunStatus | undefined;
-    }
-
-    if ('result' in data) {
-      updatePayload.result = data.result ?? null;
-    }
-
-    if ('input' in data) {
-      updatePayload.input = (data.input ?? {}) as Record<string, unknown>;
-    }
-
-    if ('metadata' in data) {
-      updatePayload.metadata = (data.metadata ?? {}) as Record<string, unknown>;
-    }
-
-    if ('startedAt' in data) {
-      updatePayload.startedAt = (data.startedAt ?? null) as NewVideo['startedAt'];
-    }
-
-    if ('completedAt' in data) {
-      updatePayload.completedAt = (data.completedAt ?? null) as NewVideo['completedAt'];
-    }
-
-    if ('personaId' in data) {
-      updatePayload.personaId = (data.personaId ?? null) as NewRun['personaId'];
-    }
-
-    if ('chatId' in data) {
-      updatePayload.chatId = (data.chatId ?? null) as NewRun['chatId'];
-    }
-
-    if (Object.keys(updatePayload).length === 0) {
-      return this.getRunById(runId);
-    }
-
-    updatePayload.updatedAt = new Date().toISOString();
-
-    const [row] = await this.db
-      .update(schema.runs)
-      .set(updatePayload)
-      .where(eq(schema.runs.id, runId))
-      .returning();
-
-    return row ?? null;
-  }
 
   async getVideoById(videoId: string): Promise<Video | null> {
     const [row] = await this.db
@@ -268,8 +153,7 @@ export class OperationsRepository {
       conditions.push(inArray(schema.videos.status, options.status));
     }
 
-    const whereClause =
-      conditions.length === 1 ? conditions[0] : and(...conditions);
+    const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const baseQuery = this.db
       .select()
@@ -284,10 +168,7 @@ export class OperationsRepository {
     return baseQuery;
   }
 
-  async listVideosByRun(
-    runId: string,
-    options: ListVideosByRunOptions = {},
-  ): Promise<Video[]> {
+  async listVideosByRun(runId: string, options: ListVideosByRunOptions = {}): Promise<Video[]> {
     const conditions = [eq(schema.videos.runId, runId)];
 
     if (options.status && options.status.length > 0) {

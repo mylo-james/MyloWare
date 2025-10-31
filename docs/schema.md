@@ -268,20 +268,20 @@ CREATE INDEX idx_runs_status ON runs(status);
 CREATE INDEX idx_runs_created ON runs(created_at DESC);
 ```
 
-| Column        | Type        | Description                                                                 |
-| ------------- | ----------- | --------------------------------------------------------------------------- |
-| `id`          | UUID        | Primary key                                                                 |
-| `project_id`  | UUID        | Owning project (e.g., AISMR)                                                |
-| `persona_id`  | UUID        | Optional persona driving the run                                            |
-| `chat_id`     | TEXT        | Conversation/thread identifier                                              |
-| `status`      | run_status  | Lifecycle stage (`pending`, `idea_gen_pending`, `idea_gen_complete`, `ideas`, `scripts`, `videos`, `complete`, `failed`) |
-| `result`      | TEXT        | Outcome summary or terminal payload (e.g., video URL, error code)          |
-| `input`       | JSONB       | Structured input payload captured at kickoff                               |
-| `metadata`    | JSONB       | Additional context (provider choices, retries, etc.)                       |
-| `started_at`  | TIMESTAMPTZ | When the run began processing                                               |
-| `completed_at`| TIMESTAMPTZ | When the run finished (success or failure)                                  |
-| `created_at`  | TIMESTAMPTZ | Creation timestamp                                                          |
-| `updated_at`  | TIMESTAMPTZ | Last mutation timestamp                                                     |
+| Column         | Type        | Description                                                                                                              |
+| -------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `id`           | UUID        | Primary key                                                                                                              |
+| `project_id`   | UUID        | Owning project (e.g., AISMR)                                                                                             |
+| `persona_id`   | UUID        | Optional persona driving the run                                                                                         |
+| `chat_id`      | TEXT        | Conversation/thread identifier                                                                                           |
+| `status`       | run_status  | Lifecycle stage (`pending`, `idea_gen_pending`, `idea_gen_complete`, `ideas`, `scripts`, `videos`, `complete`, `failed`) |
+| `result`       | TEXT        | Outcome summary or terminal payload (e.g., video URL, error code)                                                        |
+| `input`        | JSONB       | Structured input payload captured at kickoff                                                                             |
+| `metadata`     | JSONB       | Additional context (provider choices, retries, etc.)                                                                     |
+| `started_at`   | TIMESTAMPTZ | When the run began processing                                                                                            |
+| `completed_at` | TIMESTAMPTZ | When the run finished (success or failure)                                                                               |
+| `created_at`   | TIMESTAMPTZ | Creation timestamp                                                                                                       |
+| `updated_at`   | TIMESTAMPTZ | Last mutation timestamp                                                                                                  |
 
 ### `videos`
 
@@ -308,22 +308,22 @@ CREATE TABLE videos (
 CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 ```
 
-| Column          | Type         | Description                                             |
-| --------------- | ------------ | ------------------------------------------------------- |
-| `id`            | UUID         | Primary key                                             |
-| `run_id`        | UUID         | Owning automation run (links back to `runs.id`)         |
-| `project_id`    | UUID         | Foreign key to projects table (NOT NULL)                |
-| `idea`          | TEXT         | The two-word video idea                                 |
-| `user_idea`     | TEXT         | Normalized object extracted from the request            |
-| `vibe`          | TEXT         | Emotional descriptor for the idea (serene, tense, etc.) |
-| `prompt`        | TEXT         | Generated Sora 2 video prompt                           |
-| `video_link`    | TEXT         | Link to generated video                                 |
+| Column          | Type         | Description                                                                              |
+| --------------- | ------------ | ---------------------------------------------------------------------------------------- |
+| `id`            | UUID         | Primary key                                                                              |
+| `run_id`        | UUID         | Owning automation run (links back to `runs.id`)                                          |
+| `project_id`    | UUID         | Foreign key to projects table (NOT NULL)                                                 |
+| `idea`          | TEXT         | The two-word video idea                                                                  |
+| `user_idea`     | TEXT         | Normalized object extracted from the request                                             |
+| `vibe`          | TEXT         | Emotional descriptor for the idea (serene, tense, etc.)                                  |
+| `prompt`        | TEXT         | Generated Sora 2 video prompt                                                            |
+| `video_link`    | TEXT         | Link to generated video                                                                  |
 | `status`        | video_status | Lifecycle status (`idea_gen`, `script_gen`, `video_gen`, `upload`, `complete`, `failed`) |
-| `error_message` | TEXT         | Error details if generation failed                      |
-| `started_at`    | TIMESTAMPTZ  | When video generation started                           |
-| `completed_at`  | TIMESTAMPTZ  | When video generation completed                         |
-| `created_at`    | TIMESTAMPTZ  | Creation timestamp                                      |
-| `updated_at`    | TIMESTAMPTZ  | Last update timestamp                                   |
+| `error_message` | TEXT         | Error details if generation failed                                                       |
+| `started_at`    | TIMESTAMPTZ  | When video generation started                                                            |
+| `completed_at`  | TIMESTAMPTZ  | When video generation completed                                                          |
+| `created_at`    | TIMESTAMPTZ  | Creation timestamp                                                                       |
+| `updated_at`    | TIMESTAMPTZ  | Last update timestamp                                                                    |
 
 **Indexes:**
 
@@ -498,4 +498,7 @@ ORDER BY created_at ASC;
 **Last Updated**: October 16, 2025
 **Schema Version**: 1.0
 **Database**: PostgreSQL (Supabase)
+
+```
+
 ```

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-29T21:40:03.000Z",
+  "updatedAt": "2025-10-31T18:29:56.775Z",
   "createdAt": "2025-10-16T20:03:31.615Z",
   "id": "qOgWNfGwMpWkPWjK",
   "name": "Screen Writer",
@@ -350,58 +350,6 @@
       }
     ]
   },
-  "versionId": "2e6cd566-a21d-441b-a027-59880fe9e3c4",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-16T20:03:31.618Z",
-      "createdAt": "2025-10-16T20:03:31.618Z",
-      "role": "workflow:owner",
-      "workflowId": "qOgWNfGwMpWkPWjK",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "fc61cf10-632f-4109-8400-fe47db3145fd",
+  "triggerCount": 0
 }

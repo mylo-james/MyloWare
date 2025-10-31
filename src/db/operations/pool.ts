@@ -10,9 +10,7 @@ export function createOperationsPool(config?: PoolConfig): Pool {
   const connectionString = process.env.OPERATIONS_DATABASE_URL;
 
   if (!config && !connectionString) {
-    throw new Error(
-      'OPERATIONS_DATABASE_URL is not set and no Pool configuration was provided.',
-    );
+    throw new Error('OPERATIONS_DATABASE_URL is not set and no Pool configuration was provided.');
   }
 
   poolInstance = new Pool(config ?? { connectionString });

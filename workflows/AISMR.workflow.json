@@ -1,101 +1,11 @@
 {
-  "updatedAt": "2025-10-29T21:43:33.000Z",
+  "updatedAt": "2025-10-31T18:29:54.397Z",
   "createdAt": "2025-10-16T02:50:22.545Z",
   "id": "DPQUPd5e4Uxkp5Bd",
   "name": "AISMR",
   "active": false,
   "isArchived": false,
   "nodes": [
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "project-id",
-              "name": "id",
-              "value": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-              "type": "string"
-            },
-            {
-              "id": "project-slug",
-              "name": "slug",
-              "value": "aismr",
-              "type": "string"
-            },
-            {
-              "id": "project-name",
-              "name": "name",
-              "value": "AISMR",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -32,
-        -544
-      ],
-      "id": "974dec2a-917d-4f4c-80c2-f0aea3546e93",
-      "name": "Project Config"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "ljH4wBxJn069C282",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/ljH4wBxJn069C282",
-          "cachedResultName": "Idea Generator"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "userInput": "={{ $json.input.userInput }}",
-            "runId": "={{ $json.id }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "userInput",
-              "displayName": "userInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        640,
-        -544
-      ],
-      "id": "dda7f671-2950-450f-b487-8c5d65aee8ca",
-      "name": "Generate Ideas",
-      "notes": "Calls idea-generator.fn with DB persona prompt"
-    },
     {
       "parameters": {
         "workflowInputs": {
@@ -112,292 +22,24 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -256,
-        -544
+        -512,
+        208
       ],
-      "id": "5b0e8131-c9bb-48f8-bb4c-92da03f80ae6",
+      "id": "066f514b-9fd1-4064-83e6-cdb5101ef59e",
       "name": "When Executed by Another Workflow"
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "ZBScJvTKGpbLGN8K",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/ZBScJvTKGpbLGN8K",
-          "cachedResultName": "Generate Video"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "id": "={{ $('Generate Ideas').item.json.id }}",
-            "runId": "={{ $json.id }}"
-          },
-          "matchingColumns": [
-            "id"
-          ],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {
-          "waitForSubWorkflow": false
-        }
+        "jsCode": "const raw = $json ?? {};\nconst userInput = typeof raw.userInput === 'string' && raw.userInput.trim().length > 0\n  ? raw.userInput.trim()\n  : '';\nif (!userInput) {\n  throw new Error('AISMR workflow requires a non-empty userInput.');\n}\nconst chatId = typeof raw.chatId === 'string' && raw.chatId.trim().length > 0\n  ? raw.chatId.trim()\n  : null;\nconst project = {\n  id: 'a372acc6-5b6a-46c5-835d-6e9859d5055c',\n  slug: 'aismr',\n  name: 'AISMR'\n};\nconst requestId = `aismr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\nreturn {\n  json: {\n    userInput,\n    chatId,\n    project,\n    requestId,\n    timestamps: {\n      receivedAt: new Date().toISOString()\n    }\n  }\n};"
       },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1312,
-        -544
+        -288,
+        208
       ],
-      "id": "44b5eef2-eff2-42a6-98d1-98d1eae152fb",
-      "name": "Call 'Generate Video'"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "qOgWNfGwMpWkPWjK",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/qOgWNfGwMpWkPWjK",
-          "cachedResultName": "Screen Writer"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "runId": "={{ $('Create Run').item.json.id }}",
-            "userInput": "={{ $('When Executed by Another Workflow').item.json.userInput }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "userInput",
-              "displayName": "userInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {
-          "waitForSubWorkflow": false
-        }
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        864,
-        -544
-      ],
-      "id": "14df8a30-d73c-409b-a24c-145251041c3b",
-      "name": "Write Screen"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "mtQuVF88e3mo20Mo",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/mtQuVF88e3mo20Mo",
-          "cachedResultName": "poll-db"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "id": "={{ $json.id }}",
-            "column": "prompt"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "column",
-              "displayName": "column",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "condition",
-              "displayName": "condition",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        1088,
-        -544
-      ],
-      "id": "be7270bc-23f7-480c-ac53-f526359dad0b",
-      "name": "Poll 'prompt'"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "mtQuVF88e3mo20Mo",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/mtQuVF88e3mo20Mo",
-          "cachedResultName": "poll-db"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "id": "={{ $('Write Screen').item.json.id }}",
-            "column": "=video_link"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "column",
-              "displayName": "column",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "condition",
-              "displayName": "condition",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "mode": "each",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        1536,
-        -544
-      ],
-      "id": "c573e0cb-0604-4e25-980c-8539d596a177",
-      "name": "Poll 'video_link'"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "CiFjhZbMj5L9blcH",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/CiFjhZbMj5L9blcH",
-          "cachedResultName": "Edit_AISMR"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "runId": "={{ $('Create Run').item.json.id }}"
-          },
-          "matchingColumns": [
-            "runId"
-          ],
-          "schema": [
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        1760,
-        -544
-      ],
-      "id": "68f25316-3fe8-438f-86c0-212adbcc13c0",
-      "name": "Edit"
+      "id": "3a7c18db-7fe1-4a8e-aaf6-95736c611ad6",
+      "name": "Normalize Request"
     },
     {
       "parameters": {
@@ -407,17 +49,17 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  projectId: $json.id,\n  chatId: $('When Executed by Another Workflow').item.json.chatId ?? null,\n  metadata: {\n    projectSlug: $json.slug,\n    projectName: $json.name\n  },\n  input: {\n    userInput: $('When Executed by Another Workflow').item.json.userInput ?? ''\n  }\n}) }}",
+        "jsonBody": "={{ { projectId: $('Normalize Request').item.json.project.id, chatId: $('Normalize Request').item.json.chatId ?? null, input: { userInput: $('Normalize Request').item.json.userInput }, metadata: { projectSlug: $('Normalize Request').item.json.project.slug, requestId: $('Normalize Request').item.json.requestId, source: 'aismr.workflow' } } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
-      "position": [
-        192,
-        -544
-      ],
-      "id": "d2326f15-605a-41e5-a1cc-8751134625ca",
-      "name": "Create Run (API)",
       "typeVersion": 4.2,
+      "position": [
+        -64,
+        208
+      ],
+      "id": "783f1b96-21af-4228-ae7f-5fd9f29f6a1c",
+      "name": "Create Run",
       "credentials": {
         "httpHeaderAuth": {
           "id": "PDRTlQZsKzQBcv6T",
@@ -427,80 +69,37 @@
     },
     {
       "parameters": {
-        "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($('Create Run').item.json.id || '') }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({ status: 'complete', result: 'success' }) }}",
-        "options": {}
+        "jsCode": "const request = $('Normalize Request').item.json;\nconst runResponse = $('Create Run').item.json;\nconst run = runResponse?.data?.run ?? runResponse?.run ?? runResponse;\nif (!run || !run.id) {\n  throw new Error('Unable to determine run id from Create Run response.');\n}\nconst outputSchema = JSON.stringify({\n  type: 'object',\n  properties: {\n    userIdea: {\n      type: 'string',\n      description: 'Normalized base object (lowercase singular) applied to every idea.'\n    },\n    ideas: {\n      type: 'array',\n      minItems: 12,\n      maxItems: 12,\n      items: {\n        type: 'object',\n        properties: {\n          idea: {\n            type: 'string',\n            description: 'Title Case descriptor + singular object (two words, descriptor is one word).'\n          },\n          vibe: {\n            type: 'string',\n            description: '2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.'\n          }\n        },\n        required: ['idea', 'vibe'],\n        additionalProperties: false\n      }\n    }\n  },\n  required: ['userIdea', 'ideas'],\n  additionalProperties: false\n});\nreturn {\n  json: {\n    persona: 'ideagenerator',\n    project: request.project.slug,\n    projectId: request.project.id,\n    chatInput: request.userInput,\n    chatId: request.chatId ?? null,\n    runId: run.id,\n    run,\n    outputSchema,\n    request\n  }\n};"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        2432,
-        -544
+        160,
+        208
       ],
-      "id": "bc1c81f1-85c6-472b-b5de-da3bfb6c2e5b",
-      "name": "Mark Run Complete"
+      "id": "b2f4bf62-196f-463f-98e1-886f24b35c94",
+      "name": "Prepare Idea Job"
     },
     {
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "vmp9L5Bhin2jQCPC",
+          "value": "Cz7h4stqCFJ4qZ9I",
           "mode": "list",
-          "cachedResultUrl": "/workflow/vmp9L5Bhin2jQCPC",
-          "cachedResultName": "Upload to TikTok"
+          "cachedResultUrl": "/workflow/Cz7h4stqCFJ4qZ9I",
+          "cachedResultName": "Mylo_MCP_Bot"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ $('Create Run').item.json.id }}"
+            "chatInput": "={{ $json.chatInput }}",
+            "outputSchema": "={{ $json.outputSchema }}"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        2208,
-        -544
-      ],
-      "id": "a2d9a0ea-46a8-4490-be47-1820c3a8df47",
-      "name": "Call 'Upload to TikTok'"
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "xXfy1EgFoH6EZU7v",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/xXfy1EgFoH6EZU7v",
-          "cachedResultName": "Upload file to Google Drive"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "ideaId",
-              "displayName": "ideaId",
+              "id": "projectId",
+              "displayName": "projectId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -509,8 +108,36 @@
               "removed": false
             },
             {
-              "id": "projectName",
-              "displayName": "projectName",
+              "id": "personaId",
+              "displayName": "personaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "chatInput",
+              "displayName": "chatInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "outputSchema",
+              "displayName": "outputSchema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -522,148 +149,137 @@
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
-        "options": {}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1984,
-        -544
+        384,
+        208
       ],
-      "id": "e91a1e02-8112-4624-84c3-b2aa40781df3",
-      "name": "Call 'Upload file to Google Drive'"
+      "id": "1aedf340-6a4d-4774-b95e-f0d0366fa78d",
+      "name": "Generate Ideas"
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+        "jsCode": "const agentOutput = $json ?? {};\nconst context = $('Prepare Idea Job').item.json;\nconst runId = context.runId;\nconst projectId = context.projectId;\nlet payload = agentOutput.structuredContent\n  ?? agentOutput.result?.structuredContent\n  ?? agentOutput.result?.output\n  ?? agentOutput.output\n  ?? agentOutput.result\n  ?? agentOutput.data?.structuredContent\n  ?? agentOutput.data\n  ?? null;\nif (typeof payload === 'string') {\n  try {\n    payload = JSON.parse(payload);\n  } catch (error) {\n    throw new Error(`Unable to parse idea generator payload: ${error.message}`);\n  }\n}\nif (!payload || typeof payload !== 'object') {\n  throw new Error('Idea generator returned an unexpected response shape.');\n}\nconst ideas = Array.isArray(payload.ideas) ? payload.ideas : [];\nif (ideas.length === 0) {\n  throw new Error('Idea generator returned zero ideas.');\n}\nconst normalizedIdeas = ideas.map((entry, index) => {\n  if (!entry || typeof entry !== 'object') {\n    throw new Error(`Idea entry at index ${index} is invalid.`);\n  }\n  const idea = typeof entry.idea === 'string' ? entry.idea.trim() : '';\n  const vibe = typeof entry.vibe === 'string' ? entry.vibe.trim() : '';\n  if (!idea || !vibe) {\n    throw new Error(`Idea entry at index ${index} is missing required fields.`);\n  }\n  return {\n    idea,\n    vibe,\n    metadata: {\n      original: entry\n    }\n  };\n});\nreturn {\n  json: {\n    runId,\n    projectId,\n    userIdea: typeof payload.userIdea === 'string' ? payload.userIdea : null,\n    ideas: normalizedIdeas,\n    agentOutput\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        -544
+        608,
+        208
       ],
-      "id": "a31f0c58-78d5-4d0b-82ce-10aa6756bc53",
-      "name": "Create Run"
+      "id": "d736e927-fc27-4a96-8953-00d0efce3e56",
+      "name": "Extract Ideas"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { ideas, runId, projectId, userIdea } = $json;\nreturn ideas.map((entry, index) => ({\n  json: {\n    runId,\n    projectId,\n    userIdea,\n    idea: entry.idea,\n    vibe: entry.vibe,\n    rank: index + 1\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        208
+      ],
+      "id": "a5942f26-b8e0-4b63-ac54-1f352f1ff890",
+      "name": "Ideas to Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/videos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { runId: $json.runId, projectId: $json.projectId, idea: $json.idea, userIdea: $json.userIdea, vibe: $json.vibe, status: 'idea_gen', metadata: { rank: $json.rank, source: 'aismr.workflow' } } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1056,
+        208
+      ],
+      "id": "1dea8394-2548-4448-a2d2-c84b00e26b98",
+      "name": "Create Idea Records",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ideaData = $('Extract Ideas').item.json;\nconst videoItems = $items('Create Idea Records', 0, -1).map((item) => item.json ?? {});\nreturn {\n  json: {\n    runId: ideaData.runId,\n    projectId: ideaData.projectId,\n    userIdea: ideaData.userIdea,\n    ideas: ideaData.ideas,\n    videoRecords: videoItems\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        208
+      ],
+      "id": "f030c3be-5b39-4915-bbde-e359b62f8192",
+      "name": "Collect Idea Records"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{{ { status: 'complete', result: 'ideas_generated', metadata: { ideaCount: Array.isArray($json.ideas) ? $json.ideas.length : 0, completedAt: new Date().toISOString() } } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1504,
+        208
+      ],
+      "id": "f030aad0-69e7-4bc6-858b-99c827343d07",
+      "name": "Mark Run Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ideas = Array.isArray($json.ideas) ? $json.ideas : [];\nconst userIdea = $json.userIdea || 'your brief';\nconst runId = $json.runId;\nconst projectId = $json.projectId;\nconst topIdeas = ideas.slice(0, 3);\nconst bullets = topIdeas.map((entry, index) => `  ${index + 1}. ${entry.idea}: ${entry.vibe}`);\nconst summaryLines = [`Generated ${ideas.length} AISMR-ready concepts for \"${userIdea}\".`];\nif (bullets.length) {\n  summaryLines.push(`Top concepts:\n${bullets.join('\\n')}`);\n} else {\n  summaryLines.push('No highlightable concepts were produced.');\n}\nconst summary = summaryLines.join('\\n\\n');\nreturn {\n  json: {\n    responseText: summary,\n    runId,\n    projectId,\n    userIdea,\n    ideaCount: ideas.length,\n    ideas\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        208
+      ],
+      "id": "2d639f63-52f1-4091-870d-0a55a08246d2",
+      "name": "Return Response"
     }
   ],
   "connections": {
-    "Generate Ideas": {
-      "main": [
-        [
-          {
-            "node": "Write Screen",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "When Executed by Another Workflow": {
       "main": [
         [
           {
-            "node": "Project Config",
+            "node": "Normalize Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call 'Generate Video'": {
-      "main": [
-        [
-          {
-            "node": "Poll 'video_link'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Write Screen": {
-      "main": [
-        [
-          {
-            "node": "Poll 'prompt'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Poll 'prompt'": {
-      "main": [
-        [
-          {
-            "node": "Call 'Generate Video'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Poll 'video_link'": {
-      "main": [
-        [
-          {
-            "node": "Edit",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Run Complete": {
-      "main": [
-        []
-      ]
-    },
-    "Edit": {
-      "main": [
-        [
-          {
-            "node": "Call 'Upload file to Google Drive'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Call 'Upload to TikTok'": {
-      "main": [
-        [
-          {
-            "node": "Mark Run Complete",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Call 'Upload file to Google Drive'": {
-      "main": [
-        [
-          {
-            "node": "Call 'Upload to TikTok'",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Project Config": {
-      "main": [
-        [
-          {
-            "node": "Create Run (API)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Run (API)": {
+    "Normalize Request": {
       "main": [
         [
           {
@@ -678,7 +294,84 @@
       "main": [
         [
           {
+            "node": "Prepare Idea Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Idea Job": {
+      "main": [
+        [
+          {
             "node": "Generate Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Ideas": {
+      "main": [
+        [
+          {
+            "node": "Extract Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Ideas": {
+      "main": [
+        [
+          {
+            "node": "Ideas to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ideas to Items": {
+      "main": [
+        [
+          {
+            "node": "Create Idea Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Idea Records": {
+      "main": [
+        [
+          {
+            "node": "Collect Idea Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Idea Records": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Complete": {
+      "main": [
+        [
+          {
+            "node": "Return Response",
             "type": "main",
             "index": 0
           }
@@ -697,130 +390,40 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "chatId": "6559268788",
-          "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
-        }
-      }
-    ],
-    "Project Config": [
-      {
-        "json": {
-          "id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "slug": "aismr",
-          "name": "AISMR"
-        }
-      }
-    ],
-    "Create Run (API)": [
-      {
-        "json": {
-          "data": {
-            "run": {
-              "id": "4c303dfd-cea0-477b-9390-865c39837d23",
-              "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-              "personaId": null,
-              "chatId": "6559268788",
-              "status": "pending",
-              "result": null,
-              "input": {
-                "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
-              },
-              "metadata": {
-                "projectName": "AISMR",
-                "projectSlug": "aismr"
-              },
-              "startedAt": null,
-              "completedAt": null,
-              "createdAt": "2025-10-29 21:41:51.84+00",
-              "updatedAt": "2025-10-29 21:41:51.84+00"
-            }
-          }
+          "chatId": "telegram:123",
+          "userInput": "Generate AISMR ideas about luminous seashells"
         }
       }
     ],
     "Create Run": [
       {
         "json": {
-          "id": "4c303dfd-cea0-477b-9390-865c39837d23",
-          "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "personaId": null,
-          "chatId": "6559268788",
-          "status": "pending",
-          "result": null,
-          "input": {
-            "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them"
-          },
-          "metadata": {
-            "projectName": "AISMR",
-            "projectSlug": "aismr"
-          },
-          "startedAt": null,
-          "completedAt": null,
-          "createdAt": "2025-10-29 21:41:51.84+00",
-          "updatedAt": "2025-10-29 21:41:51.84+00",
-          "project_id": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
-          "persona_id": null,
-          "chat_id": "6559268788",
-          "started_at": null,
-          "completed_at": null,
-          "created_at": "2025-10-29 21:41:51.84+00",
-          "updated_at": "2025-10-29 21:41:51.84+00"
+          "data": {
+            "run": {
+              "id": "d8e33955-fcaf-46f7-88ce-0dbee8e81950",
+              "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c",
+              "personaId": null,
+              "chatId": "telegram:123",
+              "status": "pending",
+              "result": null,
+              "input": {
+                "userInput": "Generate AISMR ideas about luminous seashells"
+              },
+              "metadata": {
+                "source": "aismr.workflow",
+                "requestId": "aismr-1761839242474-wepgz0",
+                "projectSlug": "aismr"
+              },
+              "startedAt": null,
+              "completedAt": null,
+              "createdAt": "2025-10-30 15:47:43.209+00",
+              "updatedAt": "2025-10-30 15:47:43.209+00"
+            }
+          }
         }
       }
     ]
   },
-  "versionId": "392f709f-7b6a-4231-b7a3-575d126ab768",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-16T02:50:22.546Z",
-      "createdAt": "2025-10-16T02:50:22.546Z",
-      "role": "workflow:owner",
-      "workflowId": "DPQUPd5e4Uxkp5Bd",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "195f3835-46e8-4dde-a080-f0be4efa57fd",
+  "triggerCount": 0
 }

@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  PromptChunk,
-  PromptEmbeddingsRepository,
-  PromptSummary,
-} from '../../db/repository';
+import type { PromptChunk, PromptEmbeddingsRepository, PromptSummary } from '../../db/repository';
 import { resolvePrompt } from './promptGetTool';
 
 function createSummary(
@@ -15,6 +11,7 @@ function createSummary(
     metadata,
     chunkCount: overrides.chunkCount ?? 1,
     updatedAt: overrides.updatedAt ?? '2025-01-01T00:00:00.000Z',
+    memoryType: overrides.memoryType ?? 'semantic',
   };
 }
 
@@ -28,6 +25,7 @@ function createChunk(overrides: Partial<PromptChunk> = {}): PromptChunk {
     metadata: overrides.metadata ?? { project: ['demo'], persona: ['reviewer'] },
     checksum: overrides.checksum ?? 'checksum',
     updatedAt: overrides.updatedAt ?? '2025-01-01T00:00:00.000Z',
+    memoryType: overrides.memoryType ?? 'semantic',
   };
 }
 
@@ -59,16 +57,18 @@ describe('resolvePrompt', () => {
 
   it('errors when persona-only lookup has multiple matches', async () => {
     const repository = {
-      listPrompts: vi.fn().mockResolvedValue([
-        createSummary(
-          { promptKey: 'demo::reviewer' },
-          { persona: ['reviewer'], project: ['demo'] },
-        ),
-        createSummary(
-          { promptKey: 'alt::reviewer' },
-          { persona: ['reviewer'], project: ['alt'] },
-        ),
-      ]),
+      listPrompts: vi
+        .fn()
+        .mockResolvedValue([
+          createSummary(
+            { promptKey: 'demo::reviewer' },
+            { persona: ['reviewer'], project: ['demo'] },
+          ),
+          createSummary(
+            { promptKey: 'alt::reviewer' },
+            { persona: ['reviewer'], project: ['alt'] },
+          ),
+        ]),
       getChunksByPromptKey: vi.fn(),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
@@ -84,12 +84,11 @@ describe('resolvePrompt', () => {
 
   it('resolves persona-only prompt when available', async () => {
     const repository = {
-      listPrompts: vi.fn().mockResolvedValue([
-        createSummary(
-          { promptKey: 'persona::reviewer' },
-          { persona: ['reviewer'] },
-        ),
-      ]),
+      listPrompts: vi
+        .fn()
+        .mockResolvedValue([
+          createSummary({ promptKey: 'persona::reviewer' }, { persona: ['reviewer'] }),
+        ]),
       getChunksByPromptKey: vi.fn().mockResolvedValue([
         createChunk({
           promptKey: 'persona::reviewer',

@@ -24,26 +24,26 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.1.1: Add Full-Text Search Capabilities
 
-- [ ] **Add tsvector column to schema**
-  - [ ] Create migration `0002_add_fulltext_search.sql`
-  - [ ] Add `textsearch tsvector` column to `prompt_embeddings` table
-  - [ ] Add GIN index for full-text search: `CREATE INDEX idx_textsearch ON prompt_embeddings USING gin(textsearch)`
-  - [ ] Add trigger to auto-update tsvector on insert/update:
+- [x] **Add tsvector column to schema**
+  - [x] Create migration `0002_add_fulltext_search.sql`
+  - [x] Add `textsearch tsvector` column to `prompt_embeddings` table
+  - [x] Add GIN index for full-text search: `CREATE INDEX idx_textsearch ON prompt_embeddings USING gin(textsearch)`
+  - [x] Add trigger to auto-update tsvector on insert/update:
     ```sql
     CREATE TRIGGER tsvector_update BEFORE INSERT OR UPDATE
     ON prompt_embeddings FOR EACH ROW EXECUTE FUNCTION
     tsvector_update_trigger(textsearch, 'pg_catalog.english', chunk_text, raw_markdown);
     ```
 
-- [ ] **Update schema types**
-  - [ ] Add `textsearch` field to `PromptEmbedding` interface in `src/db/schema.ts`
-  - [ ] Update Drizzle schema definition
-  - [ ] Run migration and verify index creation
+- [x] **Update schema types**
+  - [x] Add `textsearch` field to `PromptEmbedding` interface in `src/db/schema.ts`
+  - [x] Update Drizzle schema definition
+  - [x] Run migration and verify index creation
 
-- [ ] **Test full-text search**
-  - [ ] Write test query: `SELECT * FROM prompt_embeddings WHERE textsearch @@ to_tsquery('screenwriter & aismr')`
-  - [ ] Verify results match expected prompts
-  - [ ] Test ranking with `ts_rank(textsearch, query)`
+- [x] **Test full-text search**
+  - [x] Write test query: `SELECT * FROM prompt_embeddings WHERE textsearch @@ to_tsquery('screenwriter & aismr')`
+  - [x] Verify results match expected prompts
+  - [x] Test ranking with `ts_rank(textsearch, query)`
 
 **Files to modify:**
 
@@ -57,24 +57,24 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.1.2: Implement BM25 Keyword Search Repository Method
 
-- [ ] **Add keyword search method to repository**
-  - [ ] Create `keywordSearch(query: string, filters: MetadataFilters): Promise<SearchResult[]>` in `PromptEmbeddingsRepository`
-  - [ ] Implement ts_query parsing from natural language query
-  - [ ] Use `ts_rank_cd` for relevance scoring
-  - [ ] Apply persona/project metadata filters
-  - [ ] Return normalized results matching `SearchResult` interface
+- [x] **Add keyword search method to repository**
+  - [x] Create `keywordSearch(query: string, filters: MetadataFilters): Promise<SearchResult[]>` in `PromptEmbeddingsRepository`
+  - [x] Implement ts_query parsing from natural language query
+  - [x] Use `ts_rank_cd` for relevance scoring
+  - [x] Apply persona/project metadata filters
+  - [x] Return normalized results matching `SearchResult` interface
 
-- [ ] **Add configuration options**
-  - [ ] Add `FULLTEXT_SEARCH_WEIGHTS` to config (A: 1.0, B: 0.4, C: 0.2, D: 0.1)
-  - [ ] Add `FULLTEXT_MIN_SCORE` threshold (default: 0.1)
-  - [ ] Make language configurable (default: 'english')
+- [x] **Add configuration options**
+  - [x] Add `FULLTEXT_SEARCH_WEIGHTS` to config (A: 1.0, B: 0.4, C: 0.2, D: 0.1)
+  - [x] Add `FULLTEXT_MIN_SCORE` threshold (default: 0.1)
+  - [x] Make language configurable (default: 'english')
 
-- [ ] **Write unit tests**
-  - [ ] Test exact phrase matching
-  - [ ] Test multi-word queries
-  - [ ] Test stop word handling
-  - [ ] Test with metadata filters
-  - [ ] Test empty results handling
+- [x] **Write unit tests**
+  - [x] Test exact phrase matching
+  - [x] Test multi-word queries
+  - [x] Test stop word handling
+  - [x] Test with metadata filters
+  - [x] Test empty results handling
 
 **Files to modify:**
 
@@ -88,27 +88,27 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.1.3: Implement Reciprocal Rank Fusion (RRF)
 
-- [ ] **Create RRF utility function**
-  - [ ] Create `src/vector/hybridSearch.ts`
-  - [ ] Implement RRF algorithm:
+- [x] **Create RRF utility function**
+  - [x] Create `src/vector/hybridSearch.ts`
+  - [x] Implement RRF algorithm:
     ```typescript
     function reciprocalRankFusion(results: SearchResult[][], k: number = 60): SearchResult[];
     ```
-  - [ ] Formula: `score = sum(1 / (k + rank_i))` across all result lists
-  - [ ] Handle duplicate results (merge by chunk_id)
-  - [ ] Preserve metadata from highest-scoring source
+  - [x] Formula: `score = sum(1 / (k + rank_i))` across all result lists
+  - [x] Handle duplicate results (merge by chunk_id)
+  - [x] Preserve metadata from highest-scoring source
 
-- [ ] **Add configuration**
-  - [ ] Add `HYBRID_RRF_K` parameter (default: 60)
-  - [ ] Add `HYBRID_VECTOR_WEIGHT` (default: 0.6)
-  - [ ] Add `HYBRID_KEYWORD_WEIGHT` (default: 0.4)
+- [x] **Add configuration**
+  - [x] Add `HYBRID_RRF_K` parameter (default: 60)
+  - [x] Add `HYBRID_VECTOR_WEIGHT` (default: 0.6)
+  - [x] Add `HYBRID_KEYWORD_WEIGHT` (default: 0.4)
 
-- [ ] **Write comprehensive tests**
-  - [ ] Test with identical result sets (should equal input)
-  - [ ] Test with disjoint result sets (should merge)
-  - [ ] Test with overlapping results (should favor consensus)
-  - [ ] Test empty input handling
-  - [ ] Test single-source input
+- [x] **Write comprehensive tests**
+  - [x] Test with identical result sets (should equal input)
+  - [x] Test with disjoint result sets (should merge)
+  - [x] Test with overlapping results (should favor consensus)
+  - [x] Test empty input handling
+  - [x] Test single-source input
 
 **Files to create:**
 
@@ -121,30 +121,30 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.1.4: Update Search Tool with Hybrid Mode
 
-- [ ] **Add hybrid search mode to promptSearchTool**
-  - [ ] Add `searchMode: 'vector' | 'keyword' | 'hybrid'` parameter (default: 'hybrid')
-  - [ ] Update input schema validation
-  - [ ] Implement mode switching logic:
+- [x] **Add hybrid search mode to promptSearchTool**
+  - [x] Add `searchMode: 'vector' | 'keyword' | 'hybrid'` parameter (default: 'hybrid')
+  - [x] Update input schema validation
+  - [x] Implement mode switching logic:
     - Vector: existing cosine similarity search
     - Keyword: new BM25 search
     - Hybrid: both + RRF fusion
 
-- [ ] **Update search execution**
-  - [ ] For hybrid mode, run vector and keyword searches in parallel
-  - [ ] Apply RRF to merge results
-  - [ ] Filter by combined score threshold
-  - [ ] Return top-k after fusion
+- [x] **Update search execution**
+  - [x] For hybrid mode, run vector and keyword searches in parallel
+  - [x] Apply RRF to merge results
+  - [x] Filter by combined score threshold
+  - [x] Return top-k after fusion
 
-- [ ] **Update tool documentation**
-  - [ ] Document searchMode parameter
-  - [ ] Add usage examples for each mode
-  - [ ] Document when to use each mode
+- [x] **Update tool documentation**
+  - [x] Document searchMode parameter
+  - [x] Add usage examples for each mode
+  - [x] Document when to use each mode
 
-- [ ] **Write integration tests**
-  - [ ] Test all three modes with same query
-  - [ ] Verify hybrid returns better results than either alone
-  - [ ] Test with technical terms (should favor keyword)
-  - [ ] Test with semantic queries (should favor vector)
+- [x] **Write integration tests**
+  - [x] Test all three modes with same query
+  - [x] Verify hybrid returns better results than either alone
+  - [x] Test with technical terms (should favor keyword)
+  - [x] Test with semantic queries (should favor vector)
 
 **Files to modify:**
 
@@ -161,14 +161,14 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.2.1: Create Query Intent Classifier
 
-- [ ] **Design intent taxonomy**
-  - [ ] Define intents: `persona_lookup`, `project_lookup`, `combination_lookup`, `general_knowledge`, `workflow_step`, `example_request`
-  - [ ] Map intents to filter strategies
-  - [ ] Document intent → filter rules
+- [x] **Design intent taxonomy**
+  - [x] Define intents: `persona_lookup`, `project_lookup`, `combination_lookup`, `general_knowledge`, `workflow_step`, `example_request`
+  - [x] Map intents to filter strategies
+  - [x] Document intent → filter rules
 
-- [ ] **Implement LLM-based classifier**
-  - [ ] Create `src/vector/queryClassifier.ts`
-  - [ ] Implement classifier function:
+- [x] **Implement LLM-based classifier**
+  - [x] Create `src/vector/queryClassifier.ts`
+  - [x] Implement classifier function:
     ```typescript
     async function classifyQueryIntent(query: string): Promise<{
       intent: QueryIntent;
@@ -177,22 +177,22 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
       confidence: number;
     }>;
     ```
-  - [ ] Use GPT-4o-mini for cost efficiency
-  - [ ] Design classification prompt with few-shot examples
-  - [ ] Parse structured output (JSON mode)
+  - [x] Use GPT-4o-mini for cost efficiency
+  - [x] Design classification prompt with few-shot examples
+  - [x] Parse structured output (JSON mode)
 
-- [ ] **Add caching layer**
-  - [ ] Implement in-memory LRU cache (max 1000 entries)
-  - [ ] Cache key: hash of query string
-  - [ ] TTL: 1 hour
-  - [ ] Add cache hit metrics
+- [x] **Add caching layer**
+  - [x] Implement in-memory LRU cache (max 1000 entries)
+  - [x] Cache key: hash of query string
+  - [x] TTL: 1 hour
+  - [x] Add cache hit metrics
 
-- [ ] **Write tests**
-  - [ ] Test persona intent: "What is the screenwriter persona?"
-  - [ ] Test project intent: "Tell me about the AISMR project"
-  - [ ] Test combination: "How does screenwriter work with AISMR?"
-  - [ ] Test general: "What are the best practices for video generation?"
-  - [ ] Test edge cases (empty query, very long query)
+- [x] **Write tests**
+  - [x] Test persona intent: "What is the screenwriter persona?"
+  - [x] Test project intent: "Tell me about the AISMR project"
+  - [x] Test combination: "How does screenwriter work with AISMR?"
+  - [x] Test general: "What are the best practices for video generation?"
+  - [x] Test edge cases (empty query, very long query)
 
 **Files to create:**
 
@@ -203,36 +203,69 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 ---
 
+### Milestone 1.3: Episodic Memory Persistence (Weeks 3-4)
+
+**Goal:** Capture conversational turns in episodic storage so downstream tools can recall recent interactions.
+
+#### Step 1.3.1: Provision Episodic Schema
+
+- [x] **Create migration `0004_add_episodic_memory.sql`**
+  - [x] Define `conversation_role` enum
+  - [x] Create `conversation_turns` table with UUID keys and metadata JSONB
+  - [x] Add unique `(session_id, turn_index)` constraint plus supporting indexes
+  - [x] Register migration hash in `drizzle.__drizzle_migrations` and `_journal.json`
+- [x] **Verify deployment**
+  - [x] Run `npm run db:migrate` locally (no-op after manual apply)
+  - [x] Inspect table via `\d conversation_turns`
+  - [x] Document prod/staging rollout procedure
+
+#### Step 1.3.2: Wire Store Tool Output
+
+- [x] Ensure `conversation_store` fills in metadata defaults (`source`, `tags`)
+- [x] Normalize `storedAt` to ISO 8601 with offset to satisfy MCP validation
+- [ ] Add structured metadata for request checksum / client identity (follow-up)
+
+#### Step 1.3.3: End-to-End Validation & Follow-ups
+
+- [x] Smoke-test with `ts-node` script calling `storeConversationTurn`
+- [x] Confirm n8n workflow uses longer HTTP timeout (15s) to avoid premature aborts
+- [ ] Add automated regression covering repository insert + embedding write
+- [ ] Backfill existing runs into episodic memory (pending size estimate)
+
+**Exit Criteria:** `conversation_store` reliably creates episodic chunks and recall benchmarks can read them end-to-end
+
+---
+
 #### Step 1.2.2: Implement Automatic Filter Application
 
-- [ ] **Create query enhancer**
-  - [ ] Create `src/vector/queryEnhancer.ts`
-  - [ ] Implement `enhanceQuery(query: string): Promise<EnhancedQuery>`
-  - [ ] Extract persona/project from natural language:
+- [x] **Create query enhancer**
+  - [x] Create `src/vector/queryEnhancer.ts`
+  - [x] Implement `enhanceQuery(query: string): Promise<EnhancedQuery>`
+  - [x] Extract persona/project from natural language:
     - "screenwriter" → persona filter
     - "aismr" → project filter
-  - [ ] Normalize extracted terms to slugs
-  - [ ] Validate against known personas/projects
+  - [x] Normalize extracted terms to slugs
+  - [x] Validate against known personas/projects
 
-- [ ] **Update search tool to use classifier**
-  - [ ] Add `autoFilter: boolean` parameter (default: true)
-  - [ ] If autoFilter=true and no explicit filters:
+- [x] **Update search tool to use classifier**
+  - [x] Add `autoFilter: boolean` parameter (default: true)
+  - [x] If autoFilter=true and no explicit filters:
     - Call queryClassifier
     - Apply extracted filters
     - Log auto-applied filters in response
-  - [ ] If explicit filters provided, skip classification
-  - [ ] Add `appliedFilters.auto: boolean` to output
+  - [x] If explicit filters provided, skip classification
+  - [x] Add `appliedFilters.auto: boolean` to output
 
-- [ ] **Add fallback logic**
-  - [ ] If classifier fails (error/timeout), proceed without filters
-  - [ ] Log classification failures for monitoring
-  - [ ] Add retry logic (max 1 retry with exponential backoff)
+- [x] **Add fallback logic**
+  - [x] If classifier fails (error/timeout), proceed without filters
+  - [x] Log classification failures for monitoring
+  - [x] Add retry logic (max 1 retry with exponential backoff)
 
-- [ ] **Write integration tests**
-  - [ ] Test auto-filtering on persona query
-  - [ ] Test auto-filtering on project query
-  - [ ] Test override behavior (explicit filters take precedence)
-  - [ ] Test fallback on classifier failure
+- [x] **Write integration tests**
+  - [x] Test auto-filtering on persona query
+  - [x] Test auto-filtering on project query
+  - [x] Test override behavior (explicit filters take precedence)
+  - [x] Test fallback on classifier failure
 
 **Files to modify:**
 
@@ -246,31 +279,32 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.2.3: Implement Search Mode Auto-Selection
 
-- [ ] **Create mode selector**
-  - [ ] Add `selectSearchMode(query: string, intent: QueryIntent): SearchMode`
-  - [ ] Rules:
+- [x] **Create mode selector**
+  - [x] Add `selectSearchMode(query: string, intent: QueryIntent): SearchMode`
+  - [x] Rules:
     - Technical terms / IDs → keyword mode
     - Semantic concepts → vector mode
     - Default → hybrid mode
   - [ ] Use simple heuristics (presence of quotes, technical patterns)
+  - [x] Use simple heuristics (presence of quotes, technical patterns)
 
-- [ ] **Update search tool**
-  - [ ] If `searchMode` not specified and `autoFilter=true`:
+- [x] **Update search tool**
+  - [x] If `searchMode` not specified and `autoFilter=true`:
     - Detect best mode from query
     - Apply automatically
     - Log selected mode in response
-  - [ ] Add `appliedFilters.searchMode: 'auto' | 'manual'`
+  - [x] Add `appliedFilters.searchMode: 'auto' | 'manual'`
 
-- [ ] **Add configuration**
-  - [ ] `AUTO_MODE_ENABLED` (default: true)
-  - [ ] `TECHNICAL_PATTERN_REGEX` (configurable patterns)
-  - [ ] Mode selection weights/thresholds
+- [x] **Add configuration**
+  - [x] `AUTO_MODE_ENABLED` (default: true)
+  - [x] `TECHNICAL_PATTERN_REGEX` (configurable patterns)
+  - [x] Mode selection weights/thresholds
 
-- [ ] **Write tests**
-  - [ ] Test keyword selection for technical queries
-  - [ ] Test vector selection for conceptual queries
-  - [ ] Test hybrid as default
-  - [ ] Test manual override
+- [x] **Write tests**
+  - [x] Test keyword selection for technical queries
+  - [x] Test vector selection for conceptual queries
+  - [x] Test hybrid as default
+  - [x] Test manual override
 
 **Files to modify:**
 
@@ -288,23 +322,23 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.3.1: Add Temporal Decay Function
 
-- [ ] **Implement decay algorithms**
-  - [ ] Create `src/vector/temporalScoring.ts`
-  - [ ] Implement exponential decay: `score * exp(-lambda * age_days)`
-  - [ ] Implement linear decay: `score * max(0, 1 - age_days / max_age)`
-  - [ ] Make decay function configurable
+- [x] **Implement decay algorithms**
+  - [x] Create `src/vector/temporalScoring.ts`
+  - [x] Implement exponential decay: `score * exp(-lambda * age_days)`
+  - [x] Implement linear decay: `score * max(0, 1 - age_days / max_age)`
+  - [x] Make decay function configurable
 
-- [ ] **Add configuration**
-  - [ ] `TEMPORAL_DECAY_ENABLED` (default: false for now)
-  - [ ] `TEMPORAL_DECAY_FUNCTION` ('exponential' | 'linear' | 'none')
-  - [ ] `TEMPORAL_DECAY_HALFLIFE_DAYS` (default: 90)
-  - [ ] `TEMPORAL_DECAY_MAX_AGE_DAYS` (default: 365)
+- [x] **Add configuration**
+  - [x] `TEMPORAL_DECAY_ENABLED` (default: false for now)
+  - [x] `TEMPORAL_DECAY_FUNCTION` ('exponential' | 'linear' | 'none')
+  - [x] `TEMPORAL_DECAY_HALFLIFE_DAYS` (default: 90)
+  - [x] `TEMPORAL_DECAY_MAX_AGE_DAYS` (default: 365)
 
-- [ ] **Write tests**
-  - [ ] Test exponential decay formula
-  - [ ] Test linear decay formula
-  - [ ] Test edge cases (age = 0, age > max)
-  - [ ] Test score preservation when disabled
+- [x] **Write tests**
+  - [x] Test exponential decay formula
+  - [x] Test linear decay formula
+  - [x] Test edge cases (age = 0, age > max)
+  - [x] Test score preservation when disabled
 
 **Files to create:**
 
@@ -316,25 +350,25 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 #### Step 1.3.2: Update Repository Search to Apply Temporal Boost
 
 - [ ] **Modify search query**
-  - [ ] Calculate age in days: `EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400`
-  - [ ] Apply decay formula in SQL:
+  - [x] Calculate age in days: `EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400`
+  - [x] Apply decay formula in SQL:
     ```sql
     (1 - (embedding <=> embedding_literal)) *
     EXP(-0.007 * EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400) AS similarity
     ```
-  - [ ] Make decay factor configurable
-  - [ ] Only apply when `TEMPORAL_DECAY_ENABLED=true`
+  - [x] Make decay factor configurable
+  - [x] Only apply when `TEMPORAL_DECAY_ENABLED=true`
 
-- [ ] **Add temporal parameters**
-  - [ ] Add `applyTemporalDecay: boolean` to `SearchParameters`
-  - [ ] Add `temporalDecayConfig` optional parameter
-  - [ ] Default to config values if not specified
+- [x] **Add temporal parameters**
+  - [x] Add `applyTemporalDecay: boolean` to `SearchParameters`
+  - [x] Add `temporalDecayConfig` optional parameter
+  - [x] Default to config values if not specified
 
-- [ ] **Test with real data**
-  - [ ] Create test prompts with different ages
-  - [ ] Verify newer prompts rank higher with same semantic similarity
-  - [ ] Verify old prompts can still win with much higher similarity
-  - [ ] Test disable mode (should behave as before)
+- [x] **Test with real data**
+  - [x] Create test prompts with different ages
+  - [x] Verify newer prompts rank higher with same semantic similarity
+  - [x] Verify old prompts can still win with much higher similarity
+  - [x] Test disable mode (should behave as before)
 
 **Files to modify:**
 
@@ -347,20 +381,20 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.3.3: Expose Temporal Control in Search Tool
 
-- [ ] **Add temporal parameters to search tool**
-  - [ ] Add optional `temporalBoost: boolean` parameter
-  - [ ] Add optional `temporalConfig` parameter
-  - [ ] Pass through to repository search
+- [x] **Add temporal parameters to search tool**
+  - [x] Add optional `temporalBoost: boolean` parameter
+  - [x] Add optional `temporalConfig` parameter
+  - [x] Pass through to repository search
 
-- [ ] **Update documentation**
-  - [ ] Document temporal boosting behavior
-  - [ ] Provide examples of when to enable/disable
-  - [ ] Document configuration options
+- [x] **Update documentation**
+  - [x] Document temporal boosting behavior
+  - [x] Provide examples of when to enable/disable
+  - [x] Document configuration options
 
-- [ ] **Add to output metadata**
-  - [ ] Include `temporalDecayApplied: boolean` in response
-  - [ ] Include decay config used
-  - [ ] Add age_days to each result (optional)
+- [x] **Add to output metadata**
+  - [x] Include `temporalDecayApplied: boolean` in response
+  - [x] Include decay config used
+  - [x] Add age_days to each result (optional)
 
 **Files to modify:**
 
@@ -378,27 +412,27 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.1.1: Design Memory Component Architecture
 
-- [ ] **Document memory taxonomy**
-  - [ ] Create `docs/MEMORY_ARCHITECTURE.md`
-  - [ ] Define memory types:
+- [x] **Document memory taxonomy**
+  - [x] Create `docs/MEMORY_ARCHITECTURE.md`
+  - [x] Define memory types:
     - **Persona Memory**: Identity, role, style, capabilities
     - **Project Memory**: Project context, goals, specifications
     - **Semantic Memory**: General knowledge, workflows, best practices
     - **Episodic Memory**: Conversation history, user interactions (new)
     - **Procedural Memory**: Workflow steps, action sequences (new)
-  - [ ] Define routing rules for each type
-  - [ ] Document cross-component relationships
+  - [x] Define routing rules for each type
+  - [x] Document cross-component relationships
 
-- [ ] **Design database schema**
-  - [ ] Option A: Separate tables per memory type
-  - [ ] Option B: Single table with memory_type column + filtered indices
-  - [ ] Option C: Separate databases (over-engineering)
-  - [ ] **Decision:** Go with Option B for simplicity with dedicated indices
+- [x] **Design database schema**
+  - [x] Option A: Separate tables per memory type
+  - [x] Option B: Single table with memory_type column + filtered indices
+  - [x] Option C: Separate databases (over-engineering)
+  - [x] **Decision:** Go with Option B for simplicity with dedicated indices
 
-- [ ] **Create migration plan**
-  - [ ] Map existing prompts to new memory types
-  - [ ] Define data transformation logic
-  - [ ] Plan zero-downtime migration strategy
+- [x] **Create migration plan**
+  - [x] Map existing prompts to new memory types
+  - [x] Define data transformation logic
+  - [x] Plan zero-downtime migration strategy
 
 **Files to create:**
 
@@ -410,29 +444,29 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.1.2: Create Memory Component Tables/Indices
 
-- [ ] **Add memory_type to schema**
-  - [ ] Create migration `0003_add_memory_components.sql`
-  - [ ] Add `memory_type` enum: `persona | project | semantic | episodic | procedural`
-  - [ ] Add `memory_type` column with default 'semantic'
-  - [ ] Create partial indices per memory type:
+- [x] **Add memory_type to schema**
+  - [x] Create migration `0003_add_memory_components.sql`
+  - [x] Add `memory_type` enum: `persona | project | semantic | episodic | procedural`
+  - [x] Add `memory_type` column with default 'semantic'
+  - [x] Create partial indices per memory type:
     ```sql
     CREATE INDEX idx_persona_memory ON prompt_embeddings(updated_at)
     WHERE memory_type = 'persona';
     ```
-  - [ ] Add GIN index on metadata per type for faster filtering
+  - [x] Add GIN index on metadata per type for faster filtering
 
-- [ ] **Update existing data**
-  - [ ] Write data migration script
-  - [ ] Classify existing prompts:
+- [x] **Update existing data**
+  - [x] Write data migration script
+  - [x] Classify existing prompts:
     - `metadata.type = 'persona'` → memory_type = 'persona'
     - `metadata.type = 'project'` → memory_type = 'project'
     - `metadata.type = 'combination'` → memory_type = 'semantic'
-  - [ ] Run migration in transaction with rollback
+  - [x] Run migration in transaction with rollback
 
-- [ ] **Update schema types**
-  - [ ] Add `memoryType` field to schema.ts
-  - [ ] Update repository types
-  - [ ] Update ingestion types
+- [x] **Update schema types**
+  - [x] Add `memoryType` field to schema.ts
+  - [x] Update repository types
+  - [x] Update ingestion types
 
 **Files to modify:**
 
@@ -446,23 +480,23 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.1.3: Implement Memory Component Repository
 
-- [ ] **Create component-specific search methods**
-  - [ ] `searchPersonaMemory(query, filters): Promise<SearchResult[]>`
-  - [ ] `searchProjectMemory(query, filters): Promise<SearchResult[]>`
-  - [ ] `searchSemanticMemory(query, filters): Promise<SearchResult[]>`
-  - [ ] `searchEpisodicMemory(query, filters, timeRange?): Promise<SearchResult[]>`
-  - [ ] Each method filters by memory_type automatically
+- [x] **Create component-specific search methods**
+  - [x] `searchPersonaMemory(query, filters): Promise<SearchResult[]>`
+  - [x] `searchProjectMemory(query, filters): Promise<SearchResult[]>`
+  - [x] `searchSemanticMemory(query, filters): Promise<SearchResult[]>`
+  - [x] `searchEpisodicMemory(query, filters, timeRange?): Promise<SearchResult[]>`
+  - [x] Each method filters by memory_type automatically
 
-- [ ] **Implement cross-component search**
-  - [ ] `searchAllMemory(query, types: MemoryType[]): Promise<MemorySearchResult[]>`
-  - [ ] Return results grouped by memory type
-  - [ ] Apply type-specific ranking weights
-  - [ ] Merge results with component attribution
+- [x] **Implement cross-component search**
+  - [x] `searchAllMemory(query, types: MemoryType[]): Promise<MemorySearchResult[]>`
+  - [x] Return results grouped by memory type
+  - [x] Apply type-specific ranking weights
+  - [x] Merge results with component attribution
 
-- [ ] **Add memory type to search parameters**
-  - [ ] Add `memoryTypes?: MemoryType[]` to SearchParameters
-  - [ ] Filter query by memory types if specified
-  - [ ] Default to all types if not specified
+- [x] **Add memory type to search parameters**
+  - [x] Add `memoryTypes?: MemoryType[]` to SearchParameters
+  - [x] Filter query by memory types if specified
+  - [x] Default to all types if not specified
 
 **Files to modify:**
 
@@ -475,35 +509,35 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.1.4: Create Memory Router
 
-- [ ] **Implement routing logic**
-  - [ ] Create `src/vector/memoryRouter.ts`
-  - [ ] Implement `routeQuery(query: string, intent: QueryIntent): MemoryType[]`
-  - [ ] Routing rules:
+- [x] **Implement routing logic**
+  - [x] Create `src/vector/memoryRouter.ts`
+  - [x] Implement `routeQuery(query: string, intent: QueryIntent): MemoryType[]`
+  - [x] Routing rules:
     - "Who am I?" / "What's my role?" → persona
     - "What is project X?" → project
     - "How do I..." / "Best practices for..." → semantic
     - "What did we discuss?" / "Yesterday I said..." → episodic
     - "What are the steps for..." → procedural
-  - [ ] Return ordered list of memory types to search
+  - [x] Return ordered list of memory types to search
 
-- [ ] **Implement multi-component query orchestration**
-  - [ ] Create `orchestrateMemorySearch(query: string): Promise<MultiComponentResult>`
-  - [ ] Classify query intent
-  - [ ] Route to appropriate memory components
-  - [ ] Execute searches in parallel
-  - [ ] Merge and rank results
-  - [ ] Return with component attribution
+- [x] **Implement multi-component query orchestration**
+  - [x] Create `orchestrateMemorySearch(query: string): Promise<MultiComponentResult>`
+  - [x] Classify query intent
+  - [x] Route to appropriate memory components
+  - [x] Execute searches in parallel
+  - [x] Merge and rank results
+  - [x] Return with component attribution
 
-- [ ] **Add routing metrics**
-  - [ ] Log routing decisions
-  - [ ] Track search count per memory type
-  - [ ] Measure cross-component query latency
+- [x] **Add routing metrics**
+  - [x] Log routing decisions
+  - [x] Track search count per memory type
+  - [x] Measure cross-component query latency
 
-- [ ] **Write tests**
-  - [ ] Test persona query routing
-  - [ ] Test project query routing
-  - [ ] Test multi-component queries
-  - [ ] Test fallback to all components
+- [x] **Write tests**
+  - [x] Test persona query routing
+  - [x] Test project query routing
+  - [x] Test multi-component queries
+  - [x] Test fallback to all components
 
 **Files to create:**
 
@@ -516,27 +550,27 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.1.5: Update Search Tool with Memory Routing
 
-- [ ] **Add memory-aware search mode**
-  - [ ] Add `useMemoryRouting: boolean` parameter (default: false initially)
-  - [ ] When enabled, use memoryRouter instead of single search
-  - [ ] Return component-attributed results
-  - [ ] Include routing decision in response metadata
+- [x] **Add memory-aware search mode**
+  - [x] Add `useMemoryRouting: boolean` parameter (default: false initially)
+  - [x] When enabled, use memoryRouter instead of single search
+  - [x] Return component-attributed results
+  - [x] Include routing decision in response metadata
 
-- [ ] **Update output schema**
-  - [ ] Add `memoryComponent: MemoryType` to each result
-  - [ ] Add `routingDecision` to metadata
-  - [ ] Add `componentsSearched: MemoryType[]`
+- [x] **Update output schema**
+  - [x] Add `memoryComponent: MemoryType` to each result
+  - [x] Add `routingDecision` to metadata
+  - [x] Add `componentsSearched: MemoryType[]`
 
-- [ ] **Add gradual rollout control**
-  - [ ] Feature flag: `MEMORY_ROUTING_ENABLED`
-  - [ ] Percentage rollout: `MEMORY_ROUTING_ROLLOUT_PCT`
-  - [ ] Allow per-request override
+- [x] **Add gradual rollout control**
+  - [x] Feature flag: `MEMORY_ROUTING_ENABLED`
+  - [x] Percentage rollout: `MEMORY_ROUTING_ROLLOUT_PCT`
+  - [x] Allow per-request override
 
-- [ ] **Write integration tests**
-  - [ ] Test routing with persona queries
-  - [ ] Test routing with project queries
-  - [ ] Test multi-component result merging
-  - [ ] Test fallback when routing disabled
+- [x] **Write integration tests**
+  - [x] Test routing with persona queries
+  - [x] Test routing with project queries
+  - [x] Test multi-component result merging
+  - [x] Test fallback when routing disabled
 
 **Files to modify:**
 
@@ -553,9 +587,9 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.2.1: Design Episodic Memory Schema
 
-- [ ] **Define conversation data model**
-  - [ ] Create `docs/EPISODIC_MEMORY_DESIGN.md`
-  - [ ] Design schema:
+- [x] **Define conversation data model**
+  - [x] Create `docs/EPISODIC_MEMORY_DESIGN.md`
+  - [x] Design schema:
     ```typescript
     interface ConversationTurn {
       id: uuid;
@@ -567,20 +601,20 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
       metadata: jsonb;
     }
     ```
-  - [ ] Design indexing strategy (timestamp, session, user)
-  - [ ] Plan embedding strategy (full turn vs. summary)
+  - [x] Design indexing strategy (timestamp, session, user)
+  - [x] Plan embedding strategy (full turn vs. summary)
 
-- [ ] **Create database migration**
-  - [ ] Create `0004_add_episodic_memory.sql`
-  - [ ] Create `conversation_turns` table
-  - [ ] Add to `prompt_embeddings` or separate? **Decision: Add to prompt_embeddings with memory_type='episodic'**
-  - [ ] Add session index, user index, timestamp index
-  - [ ] Add vector index for conversation embeddings
+- [x] **Create database migration**
+  - [x] Create `0004_add_episodic_memory.sql`
+  - [x] Create `conversation_turns` table
+  - [x] Add to `prompt_embeddings` or separate? **Decision: Add to prompt_embeddings with memory_type='episodic'**
+  - [x] Add session index, user index, timestamp index
+  - [x] Add vector index for conversation embeddings
 
-- [ ] **Design retention policy**
-  - [ ] Define TTL: keep 90 days, summarize and archive older
-  - [ ] Plan summarization strategy
-  - [ ] Define storage limits per user/session
+- [x] **Design retention policy**
+  - [x] Define TTL: keep 90 days, summarize and archive older
+  - [x] Plan summarization strategy
+  - [x] Define storage limits per user/session
 
 **Files to create:**
 
@@ -593,31 +627,31 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.2.2: Implement Conversation Storage
 
-- [ ] **Create episodic memory repository**
-  - [ ] Create `src/db/episodicRepository.ts`
-  - [ ] Implement `storeConversationTurn(turn: ConversationTurn): Promise<void>`
-  - [ ] Implement `getSessionHistory(sessionId: uuid): Promise<ConversationTurn[]>`
-  - [ ] Implement `searchConversationHistory(query: string, filters): Promise<ConversationTurn[]>`
-  - [ ] Use same vector search but filtered to memory_type='episodic'
+- [x] **Create episodic memory repository**
+  - [x] Create `src/db/episodicRepository.ts`
+  - [x] Implement `storeConversationTurn(turn: ConversationTurn): Promise<void>`
+  - [x] Implement `getSessionHistory(sessionId: uuid): Promise<ConversationTurn[]>`
+  - [x] Implement `searchConversationHistory(query: string, filters): Promise<ConversationTurn[]>`
+  - [x] Use same vector search but filtered to memory_type='episodic'
 
-- [ ] **Implement auto-embedding**
-  - [ ] Embed conversation turn content on store
-  - [ ] Generate contextual summary for metadata
-  - [ ] Extract keywords/entities from conversation
-  - [ ] Store with session context
+- [x] **Implement auto-embedding**
+  - [x] Embed conversation turn content on store
+  - [x] Generate contextual summary for metadata
+  - [x] Extract keywords/entities from conversation
+  - [x] Store with session context
 
-- [ ] **Add session management**
-  - [ ] Create session on first interaction
-  - [ ] Track session start/end times
-  - [ ] Associate turns with sessions
-  - [ ] Support session retrieval by ID or time range
+- [x] **Add session management**
+  - [x] Create session on first interaction
+  - [x] Track session start/end times
+  - [x] Associate turns with sessions
+  - [x] Support session retrieval by ID or time range
 
-- [ ] **Write tests**
-  - [ ] Test single turn storage
-  - [ ] Test multi-turn conversation storage
-  - [ ] Test session history retrieval
-  - [ ] Test conversation search
-  - [ ] Test embedding generation
+- [x] **Write tests**
+  - [x] Test single turn storage
+  - [x] Test multi-turn conversation storage
+  - [x] Test session history retrieval
+  - [x] Test conversation search
+  - [x] Test embedding generation
 
 **Files to create:**
 
@@ -630,36 +664,36 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.2.3: Create Conversation Memory MCP Tool
 
-- [ ] **Design tool interface**
-  - [ ] Tool name: `conversation.remember`
-  - [ ] Inputs:
+- [x] **Design tool interface**
+  - [x] Tool name: `conversation.remember`
+  - [x] Inputs:
     - `query: string` - what to search for in history
     - `sessionId?: uuid` - limit to specific session
     - `timeRange?: { start, end }` - time window
     - `limit?: number` - max results
-  - [ ] Outputs:
+  - [x] Outputs:
     - `turns: ConversationTurn[]` - matching conversation history
     - `context: string` - summarized context
     - `appliedFilters: object`
 
-- [ ] **Implement tool**
-  - [ ] Create `src/server/tools/conversationMemoryTool.ts`
-  - [ ] Implement search logic using episodicRepository
-  - [ ] Add relevance filtering
-  - [ ] Generate context summary from results
-  - [ ] Register with MCP server
+- [x] **Implement tool**
+  - [x] Create `src/server/tools/conversationMemoryTool.ts`
+  - [x] Implement search logic using episodicRepository
+  - [x] Add relevance filtering
+  - [x] Generate context summary from results
+  - [x] Register with MCP server
 
-- [ ] **Add context injection helper**
-  - [ ] Create utility to format conversation history for prompts
-  - [ ] Support different formats (chat, narrative, bullets)
-  - [ ] Add token counting to avoid context overflow
-  - [ ] Implement smart truncation (keep most relevant)
+- [x] **Add context injection helper**
+  - [x] Create utility to format conversation history for prompts
+  - [x] Support different formats (chat, narrative, bullets)
+  - [x] Add token counting to avoid context overflow
+  - [x] Implement smart truncation (keep most relevant)
 
-- [ ] **Write integration tests**
-  - [ ] Test retrieval of specific conversation
-  - [ ] Test semantic search over history
-  - [ ] Test time range filtering
-  - [ ] Test session isolation
+- [x] **Write integration tests**
+  - [x] Test retrieval of specific conversation
+  - [x] Test semantic search over history
+  - [x] Test time range filtering
+  - [x] Test session isolation
 
 **Files to create:**
 
@@ -672,27 +706,27 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.2.4: Add Conversation Logging to Agent Workflows
 
-- [ ] **Create logging middleware**
-  - [ ] Add conversation logging to MCP transport layer
-  - [ ] Capture user messages and assistant responses
-  - [ ] Extract session ID from request context
-  - [ ] Log asynchronously (don't block requests)
+- [x] **Create logging middleware**
+  - [x] Add conversation logging to MCP transport layer
+  - [x] Capture user messages and assistant responses
+  - [x] Extract session ID from request context
+  - [x] Log asynchronously (don't block requests)
 
 - [ ] **Update n8n workflows**
-  - [ ] Add conversation.store call after agent responses
-  - [ ] Pass session ID through workflow context
-  - [ ] Handle logging failures gracefully
+  - [x] Add conversation.store call after agent responses
+  - [x] Pass session ID through workflow context
+  - [x] Handle logging failures gracefully
 
-- [ ] **Add opt-out mechanism**
-  - [ ] Environment variable: `EPISODIC_MEMORY_ENABLED`
-  - [ ] Per-user opt-out flag
-  - [ ] Privacy controls
+- [x] **Add opt-out mechanism**
+  - [x] Environment variable: `EPISODIC_MEMORY_ENABLED`
+  - [x] Per-user opt-out flag
+  - [x] Privacy controls
 
-- [ ] **Implement summarization cron**
-  - [ ] Create scheduled job to summarize old conversations
-  - [ ] Run weekly, process conversations >30 days old
-  - [ ] Replace detailed turns with summary embeddings
-  - [ ] Archive original data
+- [x] **Implement summarization cron**
+  - [x] Create scheduled job to summarize old conversations
+  - [x] Run weekly, process conversations >30 days old
+  - [x] Replace detailed turns with summary embeddings
+  - [x] Archive original data
 
 **Files to modify:**
 
@@ -710,10 +744,10 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.3.1: Design Memory Graph Schema
 
-- [ ] **Define graph data model**
-  - [ ] Create `docs/MEMORY_GRAPH_DESIGN.md`
-  - [ ] Design node: existing prompt_embeddings rows
-  - [ ] Design edges:
+- [x] **Define graph data model**
+  - [x] Create `docs/MEMORY_GRAPH_DESIGN.md`
+  - [x] Design node: existing prompt_embeddings rows
+  - [x] Design edges:
     ```sql
     CREATE TABLE memory_links (
       id uuid PRIMARY KEY,
@@ -724,14 +758,14 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
       created_at timestamptz
     );
     ```
-  - [ ] Define link types and semantics
-  - [ ] Plan automatic vs. manual link creation
+  - [x] Define link types and semantics
+  - [x] Plan automatic vs. manual link creation
 
-- [ ] **Create migration**
-  - [ ] Create `0005_add_memory_graph.sql`
-  - [ ] Create `memory_links` table
-  - [ ] Add indices on source and target
-  - [ ] Add index on link_type for filtering
+- [x] **Create migration**
+  - [x] Create `0005_add_memory_graph.sql`
+  - [x] Create `memory_links` table
+  - [x] Add indices on source and target
+  - [x] Add index on link_type for filtering
 
 **Files to create:**
 
@@ -744,31 +778,31 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.3.2: Implement Automatic Link Generation
 
-- [ ] **Create link detector**
-  - [ ] Create `src/vector/linkDetector.ts`
-  - [ ] Implement `generateLinks(chunkId: string): Promise<MemoryLink[]>`
-  - [ ] Find similar chunks via cosine similarity
-  - [ ] Threshold: similarity > 0.75 for 'similar' link
-  - [ ] Threshold: similarity 0.5-0.75 for 'related' link
-  - [ ] Filter out self-links
+- [x] **Create link detector**
+  - [x] Create `src/vector/linkDetector.ts`
+  - [x] Implement `generateCandidates(chunkId: string): Promise<LinkCandidate[]>`
+  - [x] Find similar chunks via cosine similarity
+  - [x] Threshold: similarity > 0.75 for 'similar' link
+  - [x] Threshold: similarity 0.5-0.75 for 'related' link
+  - [x] Filter out self-links
 
-- [ ] **Add to ingestion pipeline**
-  - [ ] After embedding new chunks, generate links
-  - [ ] Run link generation asynchronously
-  - [ ] Batch process to avoid N² complexity
-  - [ ] Update existing chunks' links when new content added
+- [x] **Add to ingestion pipeline**
+  - [x] After embedding new chunks, generate links
+  - [x] Run link generation asynchronously
+  - [x] Batch process to avoid N² complexity
+  - [x] Update existing chunks' links when new content added
 
-- [ ] **Implement link repository**
-  - [ ] Create `src/db/linkRepository.ts`
-  - [ ] `createLink(source, target, type, strength): Promise<void>`
-  - [ ] `getLinkedChunks(chunkId): Promise<LinkedChunk[]>`
-  - [ ] `findCluster(chunkId, depth): Promise<ChunkCluster>`
+- [x] **Implement link repository**
+  - [x] Create `src/db/linkRepository.ts`
+  - [x] `createLink(source, target, type, strength): Promise<void>`
+  - [x] `getLinkedChunks(chunkId): Promise<LinkedChunk[]>`
+  - [x] `findCluster(chunkId, depth): Promise<ChunkCluster>`
 
-- [ ] **Write tests**
-  - [ ] Test link generation for similar prompts
-  - [ ] Test link filtering by threshold
-  - [ ] Test bidirectional linking
-  - [ ] Test cluster discovery
+- [x] **Write tests**
+  - [x] Test link generation for similar prompts
+  - [x] Test link filtering by threshold
+  - [x] Test bidirectional linking
+  - [x] Test cluster discovery
 
 **Files to create:**
 
@@ -782,30 +816,29 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.3.3: Implement Graph Traversal Search
 
-- [ ] **Create graph search algorithm**
-  - [ ] Create `src/vector/graphSearch.ts`
-  - [ ] Implement BFS graph traversal from seed chunk
-  - [ ] Implement weighted graph walk (prioritize strong links)
-  - [ ] Implement cluster expansion (get all chunks within N hops)
-  - [ ] Add cycle detection
+- [x] **Create graph search algorithm**
+  - [x] Create `src/vector/graphSearch.ts`
+  - [x] Implement BFS graph traversal from seed chunk
+  - [x] Implement weighted graph walk (prioritize strong links)
+  - [x] Implement cluster expansion (get all chunks within N hops)
+  - [x] Add cycle detection safeguards
 
-- [ ] **Add to search repository**
-  - [ ] `searchWithGraphExpansion(query, maxHops): Promise<GraphSearchResult[]>`
-  - [ ] Initial semantic search for seed nodes
-  - [ ] Expand via graph links
-  - [ ] Score by: (initial_similarity _ 0.7) + (link_strength _ 0.3 / hop_distance)
-  - [ ] Return ranked results with graph path
+- [x] **Add to search repository**
+  - [x] Implement `searchWithGraphExpansion(...)` wrapper
+  - [x] Seed with semantic vector results
+  - [x] Expand via memory links with scoring formula `(seed * 0.7) + (link * 0.3 / hop)`
+  - [x] Return ranked results annotated with graph path metadata
 
-- [ ] **Add graph search parameters**
-  - [ ] `expandGraph: boolean` - enable graph expansion
-  - [ ] `maxHops: number` - traversal depth (default: 2)
-  - [ ] `minLinkStrength: float` - filter weak links (default: 0.5)
+- [x] **Add graph search parameters**
+  - [x] `expandGraph: boolean` toggle in tool/repository
+  - [x] `maxHops: number` depth control (default 2)
+  - [x] `minLinkStrength: float` thresholding (default 0.45)
 
-- [ ] **Write tests**
-  - [ ] Test single-hop expansion
-  - [ ] Test multi-hop expansion
-  - [ ] Test cycle handling
-  - [ ] Test weak link filtering
+- [x] **Write tests**
+  - [x] Test single-hop expansion
+  - [x] Test multi-hop expansion
+  - [x] Test cycle handling
+  - [x] Test weak link filtering
 
 **Files to create:**
 
@@ -822,21 +855,20 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 2.3.4: Update Search Tool with Graph Expansion
 
-- [ ] **Add graph expansion to search tool**
-  - [ ] Add `expandGraph: boolean` parameter
-  - [ ] Add `graphDepth: number` parameter (default: 2)
-  - [ ] Pass to repository search
-  - [ ] Include graph path in results
+- [x] **Add graph expansion to search tool**
+  - [x] Add `expandGraph: boolean` parameter
+  - [x] Add `graphMaxHops: number` parameter (default: 2)
+  - [x] Pass configuration through to repository search
+  - [x] Include graph path context in serialized matches
 
-- [ ] **Update output schema**
-  - [ ] Add `relatedChunks: ChunkReference[]` to each result
-  - [ ] Add `linkPath: LinkEdge[]` showing graph traversal
-  - [ ] Add `graphExpanded: boolean` to metadata
+- [x] **Update output schema**
+  - [x] Add `graphContext` details (path, weights, hop count)
+  - [x] Add `graphExpansion` metadata (enabled, depth, min strength)
 
-- [ ] **Add visualization support**
-  - [ ] Return graph structure as JSON for visualization
-  - [ ] Include nodes (chunks) and edges (links)
-  - [ ] Add link types and strengths
+- [x] **Add visualization support**
+  - [x] Return graph structure as JSON for visualization
+  - [x] Include nodes (chunks) and edges (links)
+  - [x] Add link types and strengths
 
 **Files to modify:**
 
@@ -1431,10 +1463,10 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 **Priority Tasks:**
 
 1. ✅ Review and approve this plan
-2. ⬜ Create Phase 1 branch
-3. ⬜ Set up feature flag infrastructure
-4. ⬜ Implement Step 1.1.1: Add full-text search schema
-5. ⬜ Implement Step 1.1.2: Add keyword search method
+2. ✅ Create Phase 1 branch
+3. ✅ Set up feature flag infrastructure
+4. ✅ Implement Step 1.1.1: Add full-text search schema
+5. ✅ Implement Step 1.1.2: Add keyword search method
 6. ⬜ Daily standups to track progress
 
 **Success Criteria:**

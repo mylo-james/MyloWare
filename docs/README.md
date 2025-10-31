@@ -4,16 +4,16 @@ Markdown sources for every persona, project, and persona×project system prompt 
 
 ## File Map
 
-| Scope | File | Purpose |
-| --- | --- | --- |
-| Persona | `persona-chat.md` | Telegram assistant tone, safety policy, and tool usage |
-| Persona | `persona-ideagenerator.md` | Baseline rules for the 12-idea generator agent |
-| Persona | `persona-screenwriter.md` | Craft guidelines for the cinematic prompt writer |
-| Persona | `persona-captionhashtag.md` | Caption & Hashtag Expert used by the TikTok uploader |
-| Project | `project-aismr.md` | AISMR brand DNA: impossible-but-tactile vibe, audio rules, deliverable format |
-| Persona × Project | `ideagenerator-aismr.md` | Adds AISMR-specific constraints (uniqueness checks, vibes, JSON contract) to the idea agent |
-| Persona × Project | `screenwriter-aismr.md` | AISMR version of the scripting prompt (10-second Veo brief, texture/audiobed requirements) |
-| Reference | `PROMPT_UPDATES.md` | Changelog + manual test steps for prompt edits |
+| Scope             | File                        | Purpose                                                                                     |
+| ----------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| Persona           | `persona-chat.md`           | Telegram assistant tone, safety policy, and tool usage                                      |
+| Persona           | `persona-ideagenerator.md`  | Baseline rules for the 12-idea generator agent                                              |
+| Persona           | `persona-screenwriter.md`   | Craft guidelines for the cinematic prompt writer                                            |
+| Persona           | `persona-captionhashtag.md` | Caption & Hashtag Expert used by the TikTok uploader                                        |
+| Project           | `project-aismr.md`          | AISMR brand DNA: impossible-but-tactile vibe, audio rules, deliverable format               |
+| Persona × Project | `ideagenerator-aismr.md`    | Adds AISMR-specific constraints (uniqueness checks, vibes, JSON contract) to the idea agent |
+| Persona × Project | `screenwriter-aismr.md`     | AISMR version of the scripting prompt (10-second Veo brief, texture/audiobed requirements)  |
+| Reference         | `PROMPT_UPDATES.md`         | Changelog + manual test steps for prompt edits                                              |
 
 > **Tip:** Base persona files stay short and timeless. Project files capture shared production context, and the combined `*-aismr.md` files add run-specific instructions that only make sense when both IDs are present.
 

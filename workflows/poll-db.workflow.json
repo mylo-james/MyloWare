@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-29T21:19:49.306Z",
+  "updatedAt": "2025-10-31T18:29:56.503Z",
   "createdAt": "2025-10-24T19:54:05.937Z",
   "id": "mtQuVF88e3mo20Mo",
   "name": "poll-db",
@@ -26,22 +26,21 @@
       "typeVersion": 1.1,
       "position": [
         -1328,
-        128
+        120
       ],
       "id": "c0c2561f-dc54-481f-a324-6e34d84ab7b0",
       "name": "When Executed by Another Workflow"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($json.id || '') }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -928,
-        128
+        -1104,
+        120
       ],
       "id": "6bec188f-b611-40dd-ac6b-fa2f6d82124a",
       "name": "Fetch Video"
@@ -108,7 +107,7 @@
       "name": "Status Switch2",
       "type": "n8n-nodes-base.switch",
       "position": [
-        -704,
+        -656,
         48
       ],
       "typeVersion": 3.2
@@ -121,8 +120,8 @@
       "name": "Wait 30 seconds1",
       "type": "n8n-nodes-base.wait",
       "position": [
-        -480,
-        128
+        -432,
+        120
       ],
       "webhookId": "d6b5d4ee-dce9-4053-97c0-75b49c1158a4",
       "typeVersion": 1.1
@@ -134,8 +133,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1024,
-        128
+        -880,
+        48
       ],
       "id": "f5a7b5e9-4c5e-4778-8e47-4a87f85b0ecf",
       "name": "Normalize Video"
@@ -512,58 +511,6 @@
       }
     ]
   },
-  "versionId": "556d6d62-5743-4121-b7da-d8d27c36e4ac",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-24T19:54:05.941Z",
-      "createdAt": "2025-10-24T19:54:05.941Z",
-      "role": "workflow:owner",
-      "workflowId": "mtQuVF88e3mo20Mo",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "d5580c79-7c83-4d4b-815a-fa2ff7631252",
+  "triggerCount": 0
 }

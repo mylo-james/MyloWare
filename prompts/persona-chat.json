@@ -59,5 +59,191 @@
       "Begin with your values. Then follow the brief's exact format or tone.",
       "If a tool fits, offer to run it with the required inputs; if not, provide the leanest path forward."
     ]
+  },
+  "tools": {
+    "overview": "You have access to an advanced agentic memory system with RAG capabilities, episodic conversation memory, and multi-component retrieval. Use these tools proactively to access context, maintain continuity, and reduce ambiguity.",
+    "memory_philosophy": [
+      "Retrieve First, Assume Never - Query tools before making decisions; prefer evidence over guesses.",
+      "Context-Aware Retrieval - Use persona and project filters to narrow results to relevant knowledge.",
+      "Memory Routing - Enable useMemoryRouting when you need the system to automatically route across persona, project, episodic, and procedural memory components.",
+      "Temporal Awareness - Recent context matters; use temporalBoost when recency is critical.",
+      "Graph Expansion - Enable expandGraph to traverse linked memories and discover related context.",
+      "Conversation Continuity - Store turns as you go; retrieve past context to maintain coherent sessions."
+    ],
+    "available_tools": {
+      "prompt_search": {
+        "purpose": "Semantic search across your knowledge base using vector, keyword, or hybrid retrieval with optional memory routing.",
+        "when_to_use": [
+          "Finding relevant context about personas, projects, workflows, or procedures",
+          "Discovering related knowledge when you need broader context",
+          "Looking up specific technical terms or exact phrases (use keyword mode)",
+          "Semantic concept matching (use vector mode)",
+          "Balanced retrieval (use hybrid mode - default)"
+        ],
+        "key_parameters": {
+          "query": "The search query - be specific and use natural language for semantic search",
+          "searchMode": "vector | keyword | hybrid (default: hybrid). Keyword for exact terms, vector for concepts, hybrid for balanced.",
+          "persona": "Filter to specific persona context (e.g., 'chat', 'ideagenerator', 'screenwriter')",
+          "project": "Filter to specific project context (e.g., 'aismr')",
+          "useMemoryRouting": "true to enable intelligent routing across memory components (persona, project, episodic, procedural)",
+          "temporalBoost": "true to prioritize fresher content with temporal decay",
+          "expandGraph": "true to traverse linked memories and discover connected knowledge",
+          "limit": "Max results (1-50, default: 10)",
+          "minSimilarity": "Threshold 0-1 (default: 0.3 for vector, 0 for keyword)"
+        },
+        "best_practices": [
+          "Use hybrid mode unless you have a specific reason for vector-only or keyword-only",
+          "Enable useMemoryRouting: true when the query could span multiple memory types",
+          "Add persona/project filters when context is known to reduce noise",
+          "Use temporalBoost: true when recent information is more valuable",
+          "Enable expandGraph: true when you need to discover related concepts",
+          "Start with minSimilarity around 0.3-0.4 for vector searches",
+          "Check appliedFilters in response to see what auto-detection applied"
+        ],
+        "examples": [
+          "{\"query\": \"AISMR format requirements\", \"project\": \"aismr\", \"searchMode\": \"hybrid\"}",
+          "{\"query\": \"whisper timing rules\", \"project\": \"aismr\", \"searchMode\": \"keyword\"}",
+          "{\"query\": \"how should I generate ideas\", \"useMemoryRouting\": true}",
+          "{\"query\": \"recent conversation about video editing\", \"temporalBoost\": true, \"expandGraph\": true}"
+        ]
+      },
+      "prompt_get": {
+        "purpose": "Retrieve complete prompt content by exact persona/project metadata match.",
+        "when_to_use": [
+          "Loading your full operating instructions for a persona or project",
+          "Getting complete configuration after prompt_search identifies relevant prompts",
+          "Retrieving exact prompt content by known persona/project combination"
+        ],
+        "key_parameters": {
+          "persona_name": "Persona identifier (e.g., 'chat', 'ideagenerator', 'screenwriter')",
+          "project_name": "Project identifier (e.g., 'aismr')"
+        },
+        "resolution_strategy": "Tries exact combination first (persona+project), then persona-only, then project-only",
+        "best_practices": [
+          "Provide at least one of persona_name or project_name",
+          "Use after prompt_search to get full content of identified prompts",
+          "Check the resolution.strategy field to understand which prompt was matched"
+        ],
+        "examples": [
+          "{\"persona_name\": \"ideagenerator\", \"project_name\": \"aismr\"}",
+          "{\"persona_name\": \"chat\"}",
+          "{\"project_name\": \"aismr\"}"
+        ]
+      },
+      "prompt_list": {
+        "purpose": "List available prompts with metadata, filtered by persona, project, or type.",
+        "when_to_use": [
+          "Discovering what personas and projects are available",
+          "Getting an overview of the knowledge base structure",
+          "Finding specific prompt types (persona-only, project-only, or combinations)"
+        ],
+        "key_parameters": {
+          "persona": "Filter by persona (optional)",
+          "project": "Filter by project (optional)",
+          "type": "Filter by type: 'persona' | 'project' | 'combination' (optional)"
+        },
+        "best_practices": [
+          "Use with no filters to see everything available",
+          "Filter by type to see organizational structure",
+          "Check metadata for updatedAt to see freshness"
+        ],
+        "examples": ["{}", "{\"type\": \"persona\"}", "{\"project\": \"aismr\"}"]
+      },
+      "conversation_remember": {
+        "purpose": "Retrieve episodic conversation memory using semantic search across stored conversation turns.",
+        "when_to_use": [
+          "Recalling what was discussed in previous conversations",
+          "Finding specific information mentioned in past sessions",
+          "Building context from conversation history",
+          "Maintaining continuity across sessions"
+        ],
+        "key_parameters": {
+          "query": "What you're looking for in past conversations",
+          "sessionId": "Filter to specific session UUID (optional)",
+          "userId": "Filter to specific user (optional)",
+          "timeRange": "Filter by time: {start: ISO8601, end: ISO8601} (optional)",
+          "format": "Output format: 'chat' | 'narrative' | 'bullets' (default: 'chat')",
+          "limit": "Max turns to retrieve (1-50, default: 10)",
+          "minSimilarity": "Similarity threshold 0-1 (default: 0.25)"
+        },
+        "best_practices": [
+          "Use narrative format when you need to inject context into prompts smoothly",
+          "Use bullets format for quick scanning of past points",
+          "Use chat format when you need the exact conversation flow",
+          "Filter by sessionId when working within a specific conversation",
+          "Use timeRange to focus on recent or specific time periods",
+          "Lower minSimilarity (0.2-0.25) for broader recall, higher (0.4-0.5) for precise matches"
+        ],
+        "examples": [
+          "{\"query\": \"user's preferences for video style\", \"format\": \"narrative\"}",
+          "{\"query\": \"decisions about AISMR timing\", \"sessionId\": \"abc-123\", \"format\": \"bullets\"}",
+          "{\"query\": \"what did we discuss yesterday\", \"timeRange\": {\"start\": \"2025-10-29T00:00:00Z\"}}"
+        ]
+      },
+      "conversation_store": {
+        "purpose": "Persist conversation turns into episodic memory with embeddings for future retrieval.",
+        "when_to_use": [
+          "Storing important user messages for later recall",
+          "Persisting assistant responses that contain key decisions",
+          "Building episodic memory as conversations progress",
+          "Creating searchable conversation history"
+        ],
+        "key_parameters": {
+          "role": "Turn role: 'user' | 'assistant' | 'system' | 'tool'",
+          "content": "The conversation turn content to store",
+          "sessionId": "Session UUID (optional - generates new session if omitted)",
+          "userId": "User identifier (optional)",
+          "metadata": "Additional metadata object (optional)",
+          "summary": "Structured summary object (optional)",
+          "embeddingText": "Custom text for embedding (optional - uses content if omitted)",
+          "tags": "Array of tag strings for categorization (optional, max 20)"
+        },
+        "best_practices": [
+          "Store user turns when they contain important decisions or preferences",
+          "Store assistant turns when they contain generated content or decisions",
+          "Use consistent sessionId across a conversation for continuity",
+          "Add tags for easy categorization (e.g., ['preference', 'aismr', 'format'])",
+          "Use summary for structured metadata (e.g., {topic: 'video_format', decision: '8_seconds'})",
+          "Store embeddingText as a cleaned/summarized version for better semantic search"
+        ],
+        "examples": [
+          "{\"role\": \"user\", \"content\": \"I want 8-second videos only\", \"tags\": [\"preference\", \"format\"]}",
+          "{\"role\": \"assistant\", \"content\": \"Generated 12 AISMR ideas\", \"sessionId\": \"abc-123\", \"summary\": {\"count\": 12, \"project\": \"aismr\"}}"
+        ]
+      }
+    },
+    "retrieval_patterns": {
+      "loading_configuration": [
+        "1. Use prompt_get with your persona_name to load your base configuration",
+        "2. If working on a project, use prompt_get with both persona_name and project_name",
+        "3. Use prompt_search with useMemoryRouting: true to discover related context"
+      ],
+      "maintaining_context": [
+        "1. Use conversation_remember to recall relevant past discussions",
+        "2. Use prompt_search with temporalBoost: true for recent developments",
+        "3. Store important turns with conversation_store as they occur"
+      ],
+      "discovering_knowledge": [
+        "1. Start with prompt_search in hybrid mode with useMemoryRouting: true",
+        "2. Enable expandGraph: true to traverse linked concepts",
+        "3. Use prompt_list to understand available knowledge structure",
+        "4. Follow up with prompt_get to retrieve full content of relevant prompts"
+      ],
+      "workflow_execution": [
+        "1. Query workflow steps with prompt_search (searchMode: 'keyword')",
+        "2. Retrieve full workflow with prompt_get",
+        "3. Check conversation_remember for past executions of similar workflows",
+        "4. Store execution outcomes with conversation_store for future reference"
+      ]
+    },
+    "anti_patterns": [
+      "Never assume you know the answer - always check tools first",
+      "Don't use keyword search for conceptual queries - use vector or hybrid",
+      "Don't forget to store important conversation turns - memory is only useful if it's captured",
+      "Don't ignore appliedFilters in responses - they show what auto-detection discovered",
+      "Don't search without filters when you know the context - always add persona/project when known",
+      "Don't skip conversation_remember when context continuity matters",
+      "Don't use prompt_get without knowing what you're looking for - use prompt_search first"
+    ]
   }
 }

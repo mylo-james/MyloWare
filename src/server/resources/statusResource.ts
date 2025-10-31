@@ -1,6 +1,4 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with {
-  'resolution-mode': 'import',
-};
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import packageJson from '../../../package.json';
 import { config } from '../../config';
 import {
@@ -45,12 +43,7 @@ export function registerStatusResource(
         safeCheckOperationsConnection(operationsRepository),
       ]);
 
-      const payload = buildStatusPayload(
-        dbStatus,
-        statsResult,
-        now(),
-        operationsStatus,
-      );
+      const payload = buildStatusPayload(dbStatus, statsResult, now(), operationsStatus);
       return buildJsonResourceResponse(uri, payload);
     },
   );
@@ -72,9 +65,7 @@ async function safeGetPromptStatistics(repository: PromptEmbeddingsRepository) {
 
 function buildStatusPayload(
   dbStatus: DatabaseCheckResult,
-  statsResult:
-    | { status: 'ok'; stats: PromptStatistics }
-    | { status: 'error'; error: string },
+  statsResult: { status: 'ok'; stats: PromptStatistics } | { status: 'error'; error: string },
   generatedAt: Date,
   operationsStatus: OperationsDatabaseCheckResult | { status: 'disabled'; reason: string },
 ) {
@@ -140,9 +131,7 @@ function evaluateEmbeddingStatus() {
 function deriveOverallStatus(
   dbStatus: DatabaseCheckResult['status'],
   embeddingStatus: 'ok' | 'error',
-  statsResult:
-    | { status: 'ok'; stats: PromptStatistics }
-    | { status: 'error'; error: string },
+  statsResult: { status: 'ok'; stats: PromptStatistics } | { status: 'error'; error: string },
   operationsStatus: OperationsDatabaseCheckResult['status'] | 'disabled',
 ) {
   if (

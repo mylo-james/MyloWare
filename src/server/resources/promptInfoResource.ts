@@ -1,12 +1,7 @@
 import { config } from '../../config';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with {
-  'resolution-mode': 'import',
-};
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import packageJson from '../../../package.json';
-import {
-  PromptEmbeddingsRepository,
-  type PromptStatistics,
-} from '../../db/repository';
+import { PromptEmbeddingsRepository, type PromptStatistics } from '../../db/repository';
 import { buildJsonResourceResponse } from './utils';
 
 const VECTOR_DIMENSIONS = 1536;

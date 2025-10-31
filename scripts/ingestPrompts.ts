@@ -45,9 +45,7 @@ async function main(): Promise<void> {
   }
 
   console.info(
-    `Processed ${result.processed.length} prompt(s)${
-      options.dryRun ? ' (dry run)' : ''
-    }.`,
+    `Processed ${result.processed.length} prompt(s)${options.dryRun ? ' (dry run)' : ''}.`,
   );
 
   for (const entry of result.processed) {

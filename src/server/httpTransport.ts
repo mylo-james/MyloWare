@@ -2,8 +2,10 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { timingSafeEqual } from 'node:crypto';
 import { config } from '../config';
 import { createMcpServer } from './createMcpServer';
+import { attachConversationLogging } from './logging/conversationLogger';
 
-type StreamableHttpModule = typeof import('@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js');
+type StreamableHttpModule =
+  typeof import('@modelcontextprotocol/sdk/dist/cjs/server/streamableHttp.js');
 
 interface RateLimitState {
   count: number;
@@ -18,7 +20,9 @@ interface RateLimitResult {
 const rateLimitStore = new Map<string, RateLimitState>();
 
 export async function registerMcpRoutes(app: FastifyInstance): Promise<void> {
-  const streamableModule = ((await import('@modelcontextprotocol/sdk/server/streamableHttp.js')) as unknown as StreamableHttpModule);
+  const streamableModule = (await import(
+    '@modelcontextprotocol/sdk/server/streamableHttp.js'
+  )) as unknown as StreamableHttpModule;
   const mcpServer = await createMcpServer();
   const transport = new streamableModule.StreamableHTTPServerTransport({
     enableJsonResponse: true,
@@ -27,6 +31,7 @@ export async function registerMcpRoutes(app: FastifyInstance): Promise<void> {
     allowedOrigins: config.http.allowedOrigins.length ? config.http.allowedOrigins : undefined,
   });
 
+  attachConversationLogging(transport);
   await mcpServer.connect(transport);
 
   app.addHook('onRequest', async (request, reply) => {
@@ -62,12 +67,9 @@ export async function registerMcpRoutes(app: FastifyInstance): Promise<void> {
         { ip: clientIp, origin: originResult.origin ?? null },
         'Rejected request due to disallowed origin',
       );
-      return sendJsonError(
-        reply,
-        403,
-        'Origin is not allowed for this endpoint.',
-        { code: 'ORIGIN_NOT_ALLOWED' },
-      );
+      return sendJsonError(reply, 403, 'Origin is not allowed for this endpoint.', {
+        code: 'ORIGIN_NOT_ALLOWED',
+      });
     }
 
     const apiKeyResult = validateApiKey(request);
@@ -271,9 +273,11 @@ function validateOrigin(request: FastifyRequest): { allowed: boolean; origin?: s
   return { allowed: false, origin: originHeader };
 }
 
-function validateApiKey(
-  request: FastifyRequest,
-): { allowed: boolean; reason?: string; validated?: boolean } {
+function validateApiKey(request: FastifyRequest): {
+  allowed: boolean;
+  reason?: string;
+  validated?: boolean;
+} {
   const expected = config.mcpApiKey;
   if (!expected) {
     return { allowed: true };

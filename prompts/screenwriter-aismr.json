@@ -203,5 +203,79 @@
         "answer": "Maximum two hands from one person unless the video is explicitly about people."
       }
     ]
+  },
+  "tools": {
+    "overview": "This workflow inherits tool access from both the screenwriter persona and the aismr project. Refer to those configurations for complete tool documentation.",
+    "workflow_specific_usage": {
+      "critical_sequence": [
+        "1. Load this prompt (screenwriter-aismr) with prompt_get for workflow-specific rules",
+        "2. Load AISMR DNA with prompt_get({project_name: 'aismr'}) for sacred specifications",
+        "3. Verify timing rules with keyword search: 'whisper timing 3.0 seconds sacred'",
+        "4. Verify hand discipline with keyword search: 'hand discipline maximum two hands'",
+        "5. Verify audio rules with keyword search: 'no music ever generation'",
+        "6. Check past screenplay patterns with conversation_remember",
+        "7. Write screenplay following exact specifications",
+        "8. Double-check whisper placement and timing before finalizing",
+        "9. Store completed screenplay with structured metadata including timing"
+      ],
+      "sacred_specifications_checklist": [
+        "Runtime: 8 seconds exactly",
+        "Aspect: 9:16 vertical (1080x1920)",
+        "Shot: Single continuous shot, no cuts",
+        "Whisper: Exactly at 3.0 seconds (frame-accurate, non-negotiable)",
+        "Hands: Maximum 2 hands from one person unless video is about people",
+        "Audio: No music, score, or soundtrack during generation (whisper + foley only)",
+        "Motion: Continuous flow from start to finish, no dead zones",
+        "Transitions: Cross-dissolve for flow, never hard stops"
+      ],
+      "key_queries": [
+        "{\"persona_name\": \"screenwriter\", \"project_name\": \"aismr\"} - Load this workflow",
+        "{\"project_name\": \"aismr\"} - Load AISMR DNA and all constraints",
+        "{\"query\": \"whisper timing 3.0 seconds sacred\", \"project\": \"aismr\", \"searchMode\": \"keyword\"} - Verify whisper rule",
+        "{\"query\": \"hand discipline maximum two hands\", \"project\": \"aismr\", \"searchMode\": \"keyword\"} - Verify hand limit",
+        "{\"query\": \"no music ever generation audio\", \"project\": \"aismr\", \"searchMode\": \"keyword\"} - Verify audio rule",
+        "{\"query\": \"past AISMR screenplay feedback\", \"format\": \"narrative\"} - Learn from history"
+      ]
+    },
+    "timing_verification": {
+      "whisper_placement": [
+        "Query exact timing spec: must be 3.0 seconds, not 3s or ~3 seconds",
+        "This is SACRED and NON-NEGOTIABLE - early feels rushed, late creates dead air",
+        "Verify placement twice before finalizing screenplay",
+        "Store timing metadata in summary for quality tracking"
+      ],
+      "motion_continuity": [
+        "Verify continuous motion from 0.0s to 8.0s",
+        "Check that entry and exit states maintain energy",
+        "Confirm no dead zones or pauses",
+        "Ensure transitions use cross-dissolve for flow"
+      ]
+    },
+    "quality_assurance": {
+      "preflight_checks": [
+        "Load all sacred specifications before writing",
+        "Check conversation memory for known timing drift issues",
+        "Verify hand count rules for this specific idea",
+        "Confirm audio generation rules (no music contamination)"
+      ],
+      "post_writing_audit": [
+        "Whisper at exactly 3.0s (verify timestamp format and value)",
+        "Hand count within limits (count explicitly in screenplay)",
+        "No music/score/soundtrack mentioned in audio directions",
+        "Motion continuous throughout (no fade-in/fade-out during gen)",
+        "Runtime exactly 8 seconds",
+        "Aspect ratio 9:16 specified"
+      ],
+      "storage": [
+        "Store screenplay with tags=['screenplay', 'aismr', 'completed']",
+        "Include structured summary: {idea, runtime, whisperTiming, handCount, musicUsed}",
+        "This enables future quality analysis and pattern recognition"
+      ]
+    },
+    "refer_to_parent_configs": [
+      "See persona-screenwriter tools section for complete specification loading workflow and timing discipline",
+      "See project-aismr tools section for sacred specifications and quality monitoring patterns",
+      "Both parent configurations contain detailed best practices and anti-patterns specific to AISMR"
+    ]
   }
 }

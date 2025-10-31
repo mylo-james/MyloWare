@@ -5,10 +5,12 @@ import { listPrompts } from './promptListTool';
 describe('listPrompts', () => {
   it('returns prompts with normalized filters', async () => {
     const repository = {
-      listPrompts: vi.fn().mockResolvedValue([
-        createSummary({ promptKey: 'demo::persona', chunkCount: 3 }),
-        createSummary({ promptKey: 'demo::project', chunkCount: 2 }),
-      ]),
+      listPrompts: vi
+        .fn()
+        .mockResolvedValue([
+          createSummary({ promptKey: 'demo::persona', chunkCount: 3 }),
+          createSummary({ promptKey: 'demo::project', chunkCount: 2 }),
+        ]),
     } satisfies Partial<PromptEmbeddingsRepository>;
 
     const result = await listPrompts(repository as unknown as PromptEmbeddingsRepository, {
@@ -58,5 +60,6 @@ function createSummary(
     chunkCount: overrides.chunkCount ?? 1,
     updatedAt: overrides.updatedAt ?? '2025-01-01T00:00:00.000Z',
     metadata,
+    memoryType: overrides.memoryType ?? 'semantic',
   };
 }

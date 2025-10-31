@@ -2,11 +2,10 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import type { McpEmbeddings } from '../types';
-import {
-  PromptEmbeddingsRepository,
-  type EmbeddingRecord,
-} from '../db/repository';
+import { PromptEmbeddingsRepository, type EmbeddingRecord } from '../db/repository';
+import type { MemoryType } from '../db/schema';
 import { embedTexts } from '../vector/embedTexts';
+import { MemoryLinkGenerator } from '../vector/linkDetector';
 import { normaliseSlug } from '../utils/slug';
 
 export type PromptType = 'persona' | 'project' | 'combination';
@@ -17,6 +16,7 @@ export interface IngestOptions {
   removeMissing?: boolean;
   repository?: PromptEmbeddingsRepository;
   embed?: McpEmbeddings['embedTexts'];
+  linkGenerator?: Pick<MemoryLinkGenerator, 'generateForChunks'>;
 }
 
 export interface IngestResult {
@@ -55,6 +55,7 @@ interface ParsedPrompt {
   content: string;
   chunkTexts: ChunkText[];
   checksum: string;
+  memoryType: MemoryType;
 }
 
 interface ChunkText {
@@ -71,6 +72,9 @@ export async function ingestPrompts(options: IngestOptions = {}): Promise<Ingest
   const removeMissing = options.removeMissing !== false;
   const repository = options.repository ?? new PromptEmbeddingsRepository();
   const embed = options.embed ?? embedTexts;
+  const linkGenerator =
+    options.linkGenerator ??
+    (dryRun ? null : new MemoryLinkGenerator({ promptRepository: repository }));
 
   const files = await loadPromptFiles(directory);
 
@@ -103,6 +107,7 @@ export async function ingestPrompts(options: IngestOptions = {}): Promise<Ingest
   }
 
   const processed: Array<{ promptKey: string; chunks: number }> = [];
+  const linkTasks: Promise<void>[] = [];
 
   for (const prompt of parsed) {
     if (dryRun) {
@@ -114,7 +119,26 @@ export async function ingestPrompts(options: IngestOptions = {}): Promise<Ingest
     await repository.deleteByPromptKey(prompt.promptKey);
     await repository.upsertEmbeddings(records);
 
+    if (linkGenerator && records.length > 0) {
+      const chunkIds = records.map((record) => record.chunkId);
+      linkTasks.push(
+        linkGenerator
+          .generateForChunks(chunkIds)
+          .then(() => undefined)
+          .catch((error) => {
+            console.error(
+              `Failed to generate memory links for prompt "${prompt.promptKey}":`,
+              error,
+            );
+          }),
+      );
+    }
+
     processed.push({ promptKey: prompt.promptKey, chunks: records.length });
+  }
+
+  if (!dryRun && linkTasks.length > 0) {
+    await Promise.all(linkTasks);
   }
 
   return {
@@ -161,6 +185,8 @@ export function parsePromptDocument(document: PromptDocument, sourceName: string
   const chunkTexts = buildChunkTexts(content);
 
   const metadata = buildPromptMetadata(document, identity);
+  const memoryType: MemoryType =
+    identity.type === 'persona' ? 'persona' : identity.type === 'project' ? 'project' : 'semantic';
 
   return {
     promptKey,
@@ -171,6 +197,7 @@ export function parsePromptDocument(document: PromptDocument, sourceName: string
     content,
     chunkTexts,
     checksum,
+    memoryType,
   };
 }
 
@@ -365,10 +392,7 @@ function appendSection(lines: string[], heading: string, value: unknown): void {
   lines.push(content);
 }
 
-function appendAgentSection(
-  lines: string[],
-  agent: Required<PromptDocument>['agent'],
-): void {
+function appendAgentSection(lines: string[], agent: Required<PromptDocument>['agent']): void {
   const details: string[] = [];
 
   if (agent?.title) {
@@ -653,6 +677,7 @@ async function buildEmbeddingRecords(
     embedding: embeddings[index],
     metadata: prompt.metadata,
     checksum: prompt.checksum,
+    memoryType: prompt.memoryType,
   }));
 }
 

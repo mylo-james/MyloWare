@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-29T21:19:48.402Z",
+  "updatedAt": "2025-10-31T18:29:55.743Z",
   "createdAt": "2025-10-26T00:09:51.842Z",
   "id": "npVoihZwWs7hAxeF",
   "name": "HITL TEMP",
@@ -834,58 +834,6 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "c4cf315b-1419-43ca-b5f2-a686195450f0",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-26T00:09:51.844Z",
-      "createdAt": "2025-10-26T00:09:51.844Z",
-      "role": "workflow:owner",
-      "workflowId": "npVoihZwWs7hAxeF",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "1e9b504c-e697-4416-98b7-fb1ee0a66de8",
+  "triggerCount": 0
 }

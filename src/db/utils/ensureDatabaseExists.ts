@@ -51,7 +51,9 @@ export async function ensureDatabaseExists(): Promise<void> {
   await client.connect();
 
   try {
-    const result = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [databaseName]);
+    const result = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [
+      databaseName,
+    ]);
     if (result.rowCount === 0) {
       try {
         await client.query(`CREATE DATABASE ${escapeIdentifier(databaseName)}`);

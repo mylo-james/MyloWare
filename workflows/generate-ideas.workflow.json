@@ -1,8 +1,8 @@
 {
-  "updatedAt": "2025-10-29T21:37:57.000Z",
+  "updatedAt": "2025-10-31T18:29:55.213Z",
   "createdAt": "2025-10-16T05:23:17.280Z",
   "id": "ljH4wBxJn069C282",
-  "name": "Idea Generator",
+  "name": "Generate Ideas",
   "active": false,
   "isArchived": false,
   "nodes": [
@@ -177,7 +177,8 @@
             "projectId": "={{ $json.metadata.projectSlug }}",
             "personaId": "ideagenerator",
             "chatInput": "={{ $('When Called').item.json.userInput }}",
-            "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"userIdea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Normalized base object (lowercase singular) applied to every idea.\\\"},\\\"ideas\\\":{\\\"type\\\":\\\"array\\\",\\\"description\\\":\\\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\\\",\\\"items\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"idea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Title Case descriptor + singular object (two words, descriptor is one word).\\\"},\\\"vibe\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\\\"}},\\\"required\\\":[\\\"idea\\\",\\\"vibe\\\"],\\\"additionalProperties\\\":false},\\\"minItems\\\":12,\\\"maxItems\\\":12}},\\\"required\\\":[\\\"userIdea\\\",\\\"ideas\\\"],\\\"additionalProperties\\\":false}\""
+            "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"userIdea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Normalized base object (lowercase singular) applied to every idea.\\\"},\\\"ideas\\\":{\\\"type\\\":\\\"array\\\",\\\"description\\\":\\\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\\\",\\\"items\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"idea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Title Case descriptor + singular object (two words, descriptor is one word).\\\"},\\\"vibe\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\\\"}},\\\"required\\\":[\\\"idea\\\",\\\"vibe\\\"],\\\"additionalProperties\\\":false},\\\"minItems\\\":12,\\\"maxItems\\\":12}},\\\"required\\\":[\\\"userIdea\\\",\\\"ideas\\\"],\\\"additionalProperties\\\":false}\"",
+            "sessionId": "={{ $json.chatId }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -214,6 +215,16 @@
             {
               "id": "outputSchema",
               "displayName": "outputSchema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -351,64 +362,11 @@
       {
         "json": {
           "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them",
-          "runId": "140b9873-9155-4019-8878-fec00981f660",
-          "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
+          "runId": "ed35928c-8028-48cd-8893-e3da53838bb0"
         }
       }
     ]
   },
-  "versionId": "6fbaf98f-ab18-4dfe-8b7f-7685ef33461b",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-16T05:23:17.282Z",
-      "createdAt": "2025-10-16T05:23:17.282Z",
-      "role": "workflow:owner",
-      "workflowId": "ljH4wBxJn069C282",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "87c1e182-cd40-4fc8-bb51-37a92382793c",
+  "triggerCount": 0
 }

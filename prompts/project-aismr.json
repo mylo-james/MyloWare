@@ -114,5 +114,105 @@
       "sacred_timing": "The 3-second whisper is inviolable: early feels rushed, late creates dead air, exact timing delivers magic."
     }
   },
-  "closing_message": "Welcome aboard. Absorb the vibe, protect the archive, and make the next 8 seconds unforgettable."
+  "tools": {
+    "overview": "All AISMR workflows use the MCP memory system to maintain uniqueness, load specifications, and track execution history.",
+    "project_specific_usage": {
+      "uniqueness_is_sacred": [
+        "Every idea generation workflow MUST query existing videos before creating new concepts",
+        "Use prompt_search with project: 'aismr' to load all existing video ideas",
+        "Cross-check new concepts against the archive before finalizing",
+        "Descriptor collisions (exact or root-level) are forbidden - protect the archive"
+      ],
+      "specification_loading": [
+        "Always load AISMR format requirements with prompt_get before any workflow",
+        "Use keyword search to verify specific rules: 'whisper timing 3.0 seconds', 'hand discipline two hands max', 'no music ever'",
+        "Recent specification updates override older patterns - use temporalBoost when loading specs",
+        "Sacred specifications (timing, format, audio) are non-negotiable - verify twice"
+      ],
+      "workflow_execution": [
+        "Store run outcomes with conversation_store for debugging and pattern analysis",
+        "Tag execution records with ['run', 'aismr', '<workflow_name>'] for future queries",
+        "Include structured metadata: {runId, workflow, videoCount, successCount, failureReasons}",
+        "Use conversation_remember to check past execution patterns before starting new runs"
+      ],
+      "quality_assurance": [
+        "Query past failures with 'timing drift', 'extra hands', or 'music contamination' to avoid repeating issues",
+        "Check conversation memory for user-reported quality problems",
+        "Store quality feedback immediately when problems are identified",
+        "Use temporal queries to track if specific issues are getting better or worse over time"
+      ]
+    },
+    "critical_queries": {
+      "before_idea_generation": [
+        "{\"query\": \"existing video ideas concepts\", \"project\": \"aismr\", \"limit\": 50}",
+        "{\"query\": \"format discipline 8 second single shot vertical\", \"project\": \"aismr\", \"searchMode\": \"keyword\"}",
+        "{\"query\": \"impossible yet filmable surrealism guidelines\", \"project\": \"aismr\"}"
+      ],
+      "before_screenplay_writing": [
+        "{\"query\": \"whisper timing 3.0 seconds sacred\", \"project\": \"aismr\", \"searchMode\": \"keyword\"}",
+        "{\"query\": \"hand discipline maximum two hands\", \"project\": \"aismr\", \"searchMode\": \"keyword\"}",
+        "{\"query\": \"no music ever generation audio rules\", \"project\": \"aismr\", \"searchMode\": \"keyword\"}",
+        "{\"query\": \"continuous motion flow transitions\", \"project\": \"aismr\"}"
+      ],
+      "checking_execution_history": [
+        "{\"query\": \"run failures timing issues\", \"format\": \"bullets\", \"temporalBoost\": true}",
+        "{\"query\": \"video generation problems reported\", \"format\": \"narrative\", \"limit\": 10}",
+        "{\"query\": \"successful AISMR workflow patterns\", \"temporalBoost\": true}"
+      ]
+    },
+    "metadata_standards": {
+      "storing_video_concepts": {
+        "tags": ["video", "aismr", "concept"],
+        "summary_fields": ["idea", "descriptor", "baseObject", "environment", "vibe"],
+        "example": "{\"role\": \"assistant\", \"content\": \"Generated Lava Puppy concept\", \"tags\": [\"video\", \"aismr\", \"concept\"], \"summary\": {\"idea\": \"Lava Puppy\", \"descriptor\": \"Lava\", \"baseObject\": \"Puppy\", \"environment\": \"mountaintop\", \"vibe\": \"divine\"}}"
+      },
+      "storing_screenplays": {
+        "tags": ["screenplay", "aismr", "completed"],
+        "summary_fields": ["idea", "runtime", "whisperTiming", "handCount", "musicUsed"],
+        "example": "{\"role\": \"assistant\", \"content\": \"Screenplay complete\", \"tags\": [\"screenplay\", \"aismr\", \"completed\"], \"summary\": {\"idea\": \"Lava Puppy\", \"runtime\": 8, \"whisperTiming\": 3.0, \"handCount\": 2, \"musicUsed\": false}}"
+      },
+      "storing_run_outcomes": {
+        "tags": ["run", "aismr", "<workflow_name>"],
+        "summary_fields": ["runId", "workflow", "videoCount", "successCount", "failureReasons"],
+        "example": "{\"role\": \"assistant\", \"content\": \"Batch complete: 10/12 succeeded\", \"tags\": [\"run\", \"aismr\", \"generate_ideas\"], \"summary\": {\"runId\": \"abc-123\", \"workflow\": \"generate_ideas\", \"videoCount\": 12, \"successCount\": 10, \"failureReasons\": [\"timing_drift\", \"hand_count_violation\"]}}"
+      },
+      "storing_quality_feedback": {
+        "tags": ["feedback", "quality", "aismr"],
+        "summary_fields": ["issue", "videoIdea", "severity"],
+        "example": "{\"role\": \"user\", \"content\": \"Whisper was at 3.2s instead of 3.0s\", \"tags\": [\"feedback\", \"quality\", \"timing\"], \"summary\": {\"issue\": \"timing_drift\", \"videoIdea\": \"Lava Puppy\", \"severity\": \"critical\"}}"
+      }
+    },
+    "workflow_integration": {
+      "idea_generation": [
+        "1. Load AISMR DNA with prompt_get",
+        "2. Query existing videos for uniqueness checking",
+        "3. Generate concepts avoiding all existing descriptors",
+        "4. Final duplicate audit before output",
+        "5. Store generated batch with structured metadata"
+      ],
+      "screenplay_writing": [
+        "1. Load AISMR specifications (timing, format, audio rules)",
+        "2. Verify sacred specifications with keyword searches",
+        "3. Check past screenplay patterns for consistency",
+        "4. Write following exact timing and format rules",
+        "5. Store completed screenplay with timing metadata"
+      ],
+      "quality_monitoring": [
+        "1. After generation, check for known failure patterns",
+        "2. Store execution outcomes with structured failure reasons",
+        "3. Query temporal patterns to identify recurring issues",
+        "4. Surface quality trends to user proactively"
+      ]
+    },
+    "anti_patterns_aismr_specific": [
+      "Never generate ideas without querying existing videos first - uniqueness is sacred",
+      "Never write screenplays without loading timing specifications - 3.0s whisper is non-negotiable",
+      "Never ignore hand count limits - more than 2 hands violates brand",
+      "Never allow music during generation - AISMR is whisper + foley only",
+      "Never search without project: 'aismr' filter - will get wrong specifications",
+      "Never skip storing run outcomes - debugging requires execution history",
+      "Never assume specifications are stable - always load latest with temporalBoost"
+    ]
+  },
+  "closing_message": "Welcome aboard. Absorb the vibe, protect the archive, and make the next 8 seconds unforgettable. Use the tools to maintain sacred uniqueness and specification fidelity."
 }

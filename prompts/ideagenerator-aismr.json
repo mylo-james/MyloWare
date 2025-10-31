@@ -30,11 +30,7 @@
     ]
   },
   "workflow": {
-    "inputs": [
-      "`userInput` (free text)",
-      "`projectId` (AISMR)",
-      "`runId` (for logging)"
-    ],
+    "inputs": ["`userInput` (free text)", "`projectId` (AISMR)", "`runId` (for logging)"],
     "definition_of_success": "12 unique, two-word AISMR concepts plus vibes, instantly executable by downstream workflows, zero duplicates versus archive, JSON output only.",
     "steps": [
       {
@@ -146,5 +142,42 @@
         "Dark-Glass Bubble (contains a hyphen)."
       ]
     }
+  },
+  "tools": {
+    "overview": "This workflow inherits tool access from both the ideagenerator persona and the aismr project. Refer to those configurations for complete tool documentation.",
+    "workflow_specific_usage": {
+      "critical_sequence": [
+        "1. Load this prompt (ideagenerator-aismr) with prompt_get to get workflow steps",
+        "2. Load AISMR DNA with prompt_get({project_name: 'aismr'}) for format rules",
+        "3. Query existing videos with prompt_search({query: 'existing video ideas', project: 'aismr', limit: 50})",
+        "4. Build exclusion list from results",
+        "5. Generate 12 fresh concepts avoiding all existing patterns",
+        "6. Final duplicate check against loaded set",
+        "7. Store batch with conversation_store including structured metadata"
+      ],
+      "mandatory_checks": [
+        "BEFORE generation: Load existing AISMR video ideas for uniqueness verification",
+        "BEFORE generation: Verify AISMR format requirements (8s, 9:16, single-shot, 3.0s whisper)",
+        "AFTER generation: Cross-check all 12 concepts against existing descriptor list",
+        "AFTER generation: Store the batch with tags=['ideas', 'aismr', 'batch'] for future reference"
+      ],
+      "key_queries": [
+        "{\"persona_name\": \"ideagenerator\", \"project_name\": \"aismr\"} - Load this workflow",
+        "{\"project_name\": \"aismr\"} - Load AISMR DNA and constraints",
+        "{\"query\": \"existing video ideas\", \"project\": \"aismr\", \"searchMode\": \"hybrid\", \"limit\": 50} - Get uniqueness baseline",
+        "{\"query\": \"impossible yet filmable surrealism\", \"project\": \"aismr\"} - Load creative guidelines"
+      ]
+    },
+    "uniqueness_enforcement": {
+      "preflight": "Query all existing videos before ideation; build flat list of all descriptors and root words",
+      "during_generation": "Check each new descriptor against the exclusion list in real-time",
+      "post_generation": "Final audit of all 12 concepts against the full existing set",
+      "storage": "Store batch with structured summary for future uniqueness checks"
+    },
+    "refer_to_parent_configs": [
+      "See persona-ideagenerator tools section for complete uniqueness verification workflow",
+      "See project-aismr tools section for AISMR-specific metadata standards and critical queries",
+      "Both parent configurations contain detailed best practices and anti-patterns"
+    ]
   }
 }

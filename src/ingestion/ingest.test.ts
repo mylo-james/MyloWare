@@ -1,11 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import type { PromptEmbeddingsRepository } from '../db/repository';
-import {
-  ingestPrompts,
-  parsePromptDocument,
-  type PromptType,
-} from './ingest';
+import { ingestPrompts, parsePromptDocument, type PromptType } from './ingest';
 
 const samplePersonaPrompt = {
   title: 'Idea Generator Persona',
@@ -57,6 +53,7 @@ describe('parsePromptDocument', () => {
     expect(parsed.metadata.persona).toEqual(['ideagenerator']);
     expect(parsed.metadata.project).toEqual([]);
     expect(parsed.chunkTexts.length).toBeGreaterThan(0);
+    expect(parsed.memoryType).toBe('persona');
   });
 
   it('derives combination metadata from compound agent id', () => {
@@ -68,6 +65,7 @@ describe('parsePromptDocument', () => {
     expect(parsed.metadata.persona).toEqual(['screenwriter']);
     expect(parsed.metadata.project).toEqual(['aismr']);
     expect(parsed.chunkTexts[0].granularity).toBe('document');
+    expect(parsed.memoryType).toBe('semantic');
   });
 });
 
@@ -82,6 +80,9 @@ describe('ingestPrompts', () => {
     const embed = vi.fn().mockImplementation(async (texts: string[]) => {
       return texts.map(() => [0.1, 0.2, 0.3]);
     });
+    const linkGenerator = {
+      generateForChunks: vi.fn().mockResolvedValue(undefined),
+    };
 
     const promptCount = await countPromptFiles();
 
@@ -89,12 +90,14 @@ describe('ingestPrompts', () => {
       directory: pathFixtureDirectory(),
       repository: repository as unknown as PromptEmbeddingsRepository,
       embed,
+      linkGenerator,
     });
 
     expect(result.processed.length).toBe(promptCount);
     expect(repository.listPrompts).toHaveBeenCalled();
     expect(repository.upsertEmbeddings).toHaveBeenCalled();
     expect(embed).toHaveBeenCalled();
+    expect(linkGenerator.generateForChunks).toHaveBeenCalled();
   });
 
   it('skips database writes when running in dry run mode', async () => {
@@ -105,18 +108,23 @@ describe('ingestPrompts', () => {
     } satisfies Partial<PromptEmbeddingsRepository>;
 
     const embed = vi.fn();
+    const linkGenerator = {
+      generateForChunks: vi.fn().mockResolvedValue(undefined),
+    };
 
     const result = await ingestPrompts({
       directory: pathFixtureDirectory(),
       repository: repository as unknown as PromptEmbeddingsRepository,
       embed,
       dryRun: true,
+      linkGenerator,
     });
 
     expect(result.processed.length).toBeGreaterThan(0);
     expect(repository.listPrompts).not.toHaveBeenCalled();
     expect(repository.upsertEmbeddings).not.toHaveBeenCalled();
     expect(embed).not.toHaveBeenCalled();
+    expect(linkGenerator.generateForChunks).not.toHaveBeenCalled();
   });
 });
 

@@ -8,26 +8,26 @@ services:
       POSTGRES_PASSWORD: ${MCP_DB_PASSWORD:-mcp_prompts}
       POSTGRES_DB: ${MCP_DB_NAME:-mcp_prompts}
     ports:
-    - 5442:5432
+      - 5442:5432
     volumes:
-    - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test:
-      - CMD-SHELL
-      - pg_isready -d $${POSTGRES_DB:-mcp_prompts} -U $${POSTGRES_USER:-mcp_prompts}
+        - CMD-SHELL
+        - pg_isready -d $${POSTGRES_DB:-mcp_prompts} -U $${POSTGRES_USER:-mcp_prompts}
       interval: 10s
       timeout: 5s
       retries: 5
   server-prod:
     profiles:
-    - prod
+      - prod
     build:
       context: .
       target: prod
     container_name: mcp-prompts-server
     restart: unless-stopped
     env_file:
-    - .env
+      - .env
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
@@ -38,10 +38,10 @@ services:
       postgres:
         condition: service_healthy
     ports:
-    - 3456:3456
+      - 3456:3456
   server-dev:
     profiles:
-    - dev
+      - dev
     build:
       context: .
       target: dev
@@ -50,7 +50,7 @@ services:
     working_dir: /app
     command: npm run dev
     env_file:
-    - .env
+      - .env
     environment:
       NODE_ENV: development
       DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
@@ -58,43 +58,43 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3456
     volumes:
-    - ./src:/app/src
-    - ./scripts:/app/scripts
-    - ./tsconfig.json:/app/tsconfig.json
-    - ./package.json:/app/package.json
-    - ./package-lock.json:/app/package-lock.json
-    - ./vitest.config.ts:/app/vitest.config.ts
-    - ..:/workspace:ro
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./vitest.config.ts:/app/vitest.config.ts
+      - ..:/workspace:ro
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-    - 3456:3456
+      - 3456:3456
   cloudflared-prod:
     profiles:
-    - prod
+      - prod
     image: cloudflare/cloudflared:latest
     container_name: mcp-prompts-cloudflared
     restart: unless-stopped
     command: tunnel --config /etc/cloudflared/config.prompts.yml run
     volumes:
-    - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
-    - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
-    - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
+      - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+      - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
     depends_on:
       server-prod:
         condition: service_started
   cloudflared-dev:
     profiles:
-    - dev
+      - dev
     image: cloudflare/cloudflared:latest
     container_name: mcp-prompts-cloudflared-dev
     restart: unless-stopped
     command: tunnel --config /etc/cloudflared/config.prompts.yml run
     volumes:
-    - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
-    - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
-    - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
+      - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+      - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
     depends_on:
       server-dev:
         condition: service_started

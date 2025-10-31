@@ -80,16 +80,16 @@ The script validates the config, credentials, and origin certificate before laun
 
 Environment variables for the HTTP transport (defaults shown):
 
-| Variable | Description | Default |
-| -------- | ----------- | ------- |
-| `SERVER_HOST` | Bind host for Fastify server | `0.0.0.0` |
-| `SERVER_PORT` | Bind port | `3456` |
-| `HTTP_RATE_LIMIT_MAX` | Requests per IP per window | `100` |
-| `HTTP_RATE_LIMIT_WINDOW_MS` | Rate-limit window (ms) | `60000` |
-| `HTTP_REQUEST_TIMEOUT_MS` | Request timeout for non-SSE requests | `15000` |
-| `HTTP_ALLOWED_ORIGINS` | Comma-separated list of allowed `Origin` values (empty = allow all) | _(empty)_ |
-| `HTTP_ALLOWED_HOSTS` | Comma-separated list of allowed `Host` headers for MCP transport | _(empty)_ |
-| `MCP_API_KEY` | API key required in the `X-API-Key` header (unset disables auth) | _(unset)_ |
+| Variable                    | Description                                                         | Default   |
+| --------------------------- | ------------------------------------------------------------------- | --------- |
+| `SERVER_HOST`               | Bind host for Fastify server                                        | `0.0.0.0` |
+| `SERVER_PORT`               | Bind port                                                           | `3456`    |
+| `HTTP_RATE_LIMIT_MAX`       | Requests per IP per window                                          | `100`     |
+| `HTTP_RATE_LIMIT_WINDOW_MS` | Rate-limit window (ms)                                              | `60000`   |
+| `HTTP_REQUEST_TIMEOUT_MS`   | Request timeout for non-SSE requests                                | `15000`   |
+| `HTTP_ALLOWED_ORIGINS`      | Comma-separated list of allowed `Origin` values (empty = allow all) | _(empty)_ |
+| `HTTP_ALLOWED_HOSTS`        | Comma-separated list of allowed `Host` headers for MCP transport    | _(empty)_ |
+| `MCP_API_KEY`               | API key required in the `X-API-Key` header (unset disables auth)    | _(unset)_ |
 
 Set `DEBUG_MCP_HTTP=true` to log normalized Accept headers while troubleshooting Cloudflare proxy behaviour.
 

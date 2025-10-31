@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-29T21:19:50.012Z",
+  "updatedAt": "2025-10-31T18:29:57.265Z",
   "createdAt": "2025-10-26T14:21:00.710Z",
   "id": "vmp9L5Bhin2jQCPC",
   "name": "Upload to TikTok",
@@ -47,7 +47,7 @@
       "name": "Upload Video and Description to Tiktok",
       "type": "n8n-nodes-base.httpRequest",
       "position": [
-        1952,
+        2400,
         0
       ],
       "notesInFlow": true,
@@ -91,7 +91,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        1376,
+        1824,
         0
       ],
       "id": "c58d479f-2b27-409c-94cc-ad108d617590",
@@ -110,7 +110,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        1392,
+        1832,
         224
       ],
       "id": "e2583121-bada-42fe-989c-ba8bb75d25a2",
@@ -148,7 +148,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        928,
+        1152,
         0
       ],
       "id": "079e73b1-06bf-494a-a3f0-1bb13c9980e2",
@@ -161,7 +161,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1520,
+        1960,
         224
       ],
       "id": "f09a23dc-f060-4470-a924-42dc9e73c5fc",
@@ -169,7 +169,6 @@
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
         "options": {}
       },
@@ -184,14 +183,13 @@
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent($json.runId || '') }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1152,
+        1376,
         0
       ],
       "id": "1d3887a5-65fb-4995-8f2f-e06b271d70e0",
@@ -205,7 +203,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1728,
+        2176,
         0
       ],
       "id": "6133a461-89f9-48f2-b56f-6deee1ae1718",
@@ -218,7 +216,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        704,
+        928,
         0
       ],
       "id": "0f9073df-29ad-4203-98e0-d17cde0bb0bc",
@@ -231,7 +229,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1152,
+        1600,
         0
       ],
       "id": "35896ce0-42ce-4e34-a22a-fe85e8d03295",
@@ -371,58 +369,6 @@
       }
     ]
   },
-  "versionId": "fe919964-bffc-4b20-900c-caa8717b1d3e",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-10-26T14:21:00.712Z",
-      "createdAt": "2025-10-26T14:21:00.712Z",
-      "role": "workflow:owner",
-      "workflowId": "vmp9L5Bhin2jQCPC",
-      "projectId": "LTPeNZWlXtWGs8Sc",
-      "project": {
-        "updatedAt": "2025-10-02T21:38:07.889Z",
-        "createdAt": "2025-10-02T21:38:04.742Z",
-        "id": "LTPeNZWlXtWGs8Sc",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-10-02T21:38:04.742Z",
-            "createdAt": "2025-10-02T21:38:04.742Z",
-            "userId": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-            "projectId": "LTPeNZWlXtWGs8Sc",
-            "user": {
-              "updatedAt": "2025-10-29T19:19:26.000Z",
-              "createdAt": "2025-10-02T21:38:03.169Z",
-              "id": "56558acb-69ff-4ebb-a219-43a79afba1c7",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": null,
-              "settings": {
-                "userActivated": true,
-                "userClaimedAiCredits": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "j8nzahKvrqBM0AAW",
-                "userActivatedAt": 1760430470031,
-                "npsSurvey": {
-                  "waitingForResponse": true,
-                  "ignoredCount": 0,
-                  "lastShownAt": 1761216291825
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "6ae2a03d-1e0d-4b0c-a03c-420eddd3a88d",
+  "triggerCount": 0
 }
