@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { getDb } from './client';
 import * as schema from './schema';
@@ -92,6 +92,38 @@ export class MemoryLinkRepository {
 
   async createLink(input: CreateMemoryLinkInput): Promise<void> {
     await this.upsertLinks([input]);
+  }
+
+  async deleteLinksForSource(sourceChunkId: string): Promise<number> {
+    const result = await this.db
+      .delete(schema.memoryLinks)
+      .where(eq(schema.memoryLinks.sourceChunkId, sourceChunkId))
+      .returning({ id: schema.memoryLinks.id });
+
+    return result.length;
+  }
+
+  async deleteLinksForTarget(targetChunkId: string): Promise<number> {
+    const result = await this.db
+      .delete(schema.memoryLinks)
+      .where(eq(schema.memoryLinks.targetChunkId, targetChunkId))
+      .returning({ id: schema.memoryLinks.id });
+
+    return result.length;
+  }
+
+  async deleteLinksForChunk(chunkId: string): Promise<number> {
+    const result = await this.db
+      .delete(schema.memoryLinks)
+      .where(
+        or(
+          eq(schema.memoryLinks.sourceChunkId, chunkId),
+          eq(schema.memoryLinks.targetChunkId, chunkId),
+        ),
+      )
+      .returning({ id: schema.memoryLinks.id });
+
+    return result.length;
   }
 
   async getLinkedChunks(chunkId: string, options: LinkQueryOptions = {}): Promise<LinkedChunk[]> {

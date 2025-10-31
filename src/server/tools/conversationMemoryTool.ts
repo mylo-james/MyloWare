@@ -158,8 +158,9 @@ export function registerConversationMemoryTool(
     {
       title: 'Retrieve episodic conversation context',
       description: [
-        'Searches stored conversation turns using semantic similarity and optional filters.',
-        'Supports chat, narrative, or bullet formatting to inject context into prompts.',
+        'Instantly pull the most relevant past conversation turns using semantic search, session/user filters, and time ranges.',
+        'Choose chat, narrative, or bullet formatting so you can drop the recall straight into a response plan.',
+        'Perfect for grounding follow-up answers without manually paging through history.',
       ].join('\n'),
       inputSchema: conversationRememberArgsSchema.shape,
       outputSchema: outputSchema.shape,

@@ -17,9 +17,10 @@
     "ingest": "tsx scripts/ingestPrompts.ts",
     "tunnel": "tsx scripts/runCloudflared.ts",
     "tunnel:credentials": "tsx scripts/createTunnelCredentials.ts",
-    "stack:dev": "docker compose --profile dev up",
+    "episodic:backfill": "tsx scripts/backfillRunsToEpisodic.ts",
+    "stack:dev": "tsx scripts/manageComposeStack.ts --profile dev",
     "stack:dev:down": "docker compose --profile dev down",
-    "stack:prod": "docker compose --profile prod up -d",
+    "stack:prod": "tsx scripts/manageComposeStack.ts --profile prod -d",
     "stack:prod:down": "docker compose --profile prod down",
     "n8n:push": "tsx scripts/n8nSync.ts --push",
     "n8n:pull": "tsx scripts/n8nSync.ts --pull"

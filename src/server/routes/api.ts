@@ -1,4 +1,5 @@
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { timingSafeEqual } from 'node:crypto';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { config } from '../../config';
 import { PromptEmbeddingsRepository } from '../../db/repository';
@@ -8,6 +9,14 @@ import { embedTexts } from '../../vector/embedTexts';
 import { resolvePrompt } from '../tools/promptGetTool';
 import { searchPrompts } from '../tools/promptSearchTool';
 import { enhanceQuery as baseEnhanceQuery } from '../../vector/queryEnhancer';
+import {
+  featureFlagDefinitions,
+  featureFlagNames,
+  getFeatureFlagsSnapshot,
+  resetFeatureFlag,
+  setFeatureFlag,
+  type FeatureFlagName,
+} from '../../config/featureFlags';
 
 const videoStatusValues = new Set(videoStatusEnum.enumValues);
 
@@ -128,6 +137,39 @@ const conversationRecallQuerySchema = z.object({
   to: optionalDate.optional(),
 });
 
+const featureFlagNameEnum = z.enum(
+  [...featureFlagNames] as [FeatureFlagName, ...FeatureFlagName[]],
+);
+
+const featureFlagUpdateSchema = z.object({
+  updates: z
+    .array(
+      z
+        .object({
+          flag: featureFlagNameEnum,
+          value: z.boolean().optional(),
+          reset: z.boolean().optional(),
+        })
+        .superRefine((entry, ctx) => {
+          const hasValue = entry.value !== undefined;
+          const shouldReset = entry.reset === true;
+          if (shouldReset && hasValue) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Provide either value or reset, but not both.',
+            });
+          }
+          if (!shouldReset && !hasValue) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Provide a boolean value when reset is not specified.',
+            });
+          }
+        }),
+    )
+    .min(1, 'Provide at least one feature flag update.'),
+});
+
 export interface ApiRouteDependencies {
   promptRepository?: PromptEmbeddingsRepository;
   operationsRepository?: OperationsRepository | null;
@@ -153,6 +195,44 @@ export async function registerApiRoutes(
     dependencies.episodicRepository !== undefined
       ? dependencies.episodicRepository
       : new EpisodicMemoryRepository();
+
+  app.get('/api/admin/features', async (request, reply) => {
+    if (!ensureAdminAuthorized(request, reply)) {
+      return;
+    }
+
+    return reply.status(200).send({
+      data: {
+        flags: getFeatureFlagsSnapshot(),
+        definitions: featureFlagDefinitions,
+      },
+    });
+  });
+
+  app.patch('/api/admin/features', async (request, reply) => {
+    if (!ensureAdminAuthorized(request, reply)) {
+      return;
+    }
+
+    const parsed = featureFlagUpdateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return sendValidationError(reply, parsed.error);
+    }
+
+    for (const update of parsed.data.updates) {
+      if (update.reset) {
+        resetFeatureFlag(update.flag);
+      } else {
+        setFeatureFlag(update.flag, update.value!);
+      }
+    }
+
+    return reply.status(200).send({
+      data: {
+        flags: getFeatureFlagsSnapshot(),
+      },
+    });
+  });
 
   app.post('/api/conversation/store', async (request, reply) => {
     if (!ensureEpisodicAvailable(reply, episodicRepository)) {
@@ -481,4 +561,37 @@ function validateVideoStatus(status: unknown, ctx: z.RefinementCtx) {
       message: `status must be one of: ${Array.from(videoStatusValues).join(', ')}`,
     });
   }
+}
+
+function ensureAdminAuthorized(request: FastifyRequest, reply: FastifyReply): boolean {
+  const expected = config.mcpApiKey;
+  if (!expected) {
+    return true;
+  }
+
+  const header = request.headers['x-api-key'];
+  const provided =
+    typeof header === 'string'
+      ? header.trim()
+      : Array.isArray(header)
+        ? header[0]?.trim()
+        : null;
+
+  if (!provided) {
+    void sendError(reply, 401, 'UNAUTHORIZED', 'Missing x-api-key header.');
+    return false;
+  }
+
+  const expectedBuffer = Buffer.from(expected);
+  const providedBuffer = Buffer.from(provided);
+
+  if (
+    expectedBuffer.length !== providedBuffer.length ||
+    !timingSafeEqual(expectedBuffer, providedBuffer)
+  ) {
+    void sendError(reply, 403, 'FORBIDDEN', 'Invalid API key provided.');
+    return false;
+  }
+
+  return true;
 }

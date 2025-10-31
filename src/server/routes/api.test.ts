@@ -18,6 +18,7 @@ import type {
 } from '../../db/episodicRepository';
 
 import type { EnhancedQuery } from '../../vector/queryEnhancer';
+import { config, getFeatureFlagsSnapshot, resetAllFeatureFlags } from '../../config';
 
 const enhanceMock = vi.fn<(query: string, options?: unknown) => Promise<EnhancedQuery>>();
 
@@ -27,8 +28,12 @@ describe('registerApiRoutes', () => {
   let operationsRepository: OperationsRepositoryMock;
   let episodicRepository: EpisodicMemoryRepositoryMock;
   const embedMock = vi.fn(async (texts: string[]) => texts.map(() => [0.1, 0.2, 0.3]));
+  let originalApiKey: string | null;
 
   beforeEach(async () => {
+    resetAllFeatureFlags();
+    originalApiKey = config.mcpApiKey;
+    (config as { mcpApiKey: string | null }).mcpApiKey = null;
     promptRepository = createPromptRepositoryMock();
     operationsRepository = createOperationsRepositoryMock();
     episodicRepository = createEpisodicRepositoryMock();
@@ -56,6 +61,8 @@ describe('registerApiRoutes', () => {
     await app.close();
     vi.resetAllMocks();
     enhanceMock.mockReset();
+    resetAllFeatureFlags();
+    (config as { mcpApiKey: string | null }).mcpApiKey = originalApiKey;
   });
 
   it('resolves a prompt via /api/prompts/resolve', async () => {
@@ -220,6 +227,76 @@ describe('registerApiRoutes', () => {
         metadata: { source: 'telegram' },
       }),
     );
+  });
+
+  it('exposes feature flag snapshot via admin endpoint', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/admin/features',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.data.flags).toBeDefined();
+    expect(body.data.definitions.hybridSearch).toBeDefined();
+  });
+
+  it('updates feature flags via admin endpoint', async () => {
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/admin/features',
+      payload: {
+        updates: [
+          {
+            flag: 'runtimeMemory',
+            value: true,
+          },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const snapshot = response.json().data.flags;
+    expect(snapshot.runtimeMemory).toBe(true);
+    expect(getFeatureFlagsSnapshot().runtimeMemory).toBe(true);
+
+    const resetResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/admin/features',
+      payload: {
+        updates: [
+          {
+            flag: 'runtimeMemory',
+            reset: true,
+          },
+        ],
+      },
+    });
+
+    expect(resetResponse.statusCode).toBe(200);
+    expect(getFeatureFlagsSnapshot().runtimeMemory).toBe(false);
+  });
+
+  it('requires API key when configured', async () => {
+    const originalKey = config.mcpApiKey;
+    (config as { mcpApiKey: string | null }).mcpApiKey = 'secret-key';
+
+    const missingKeyResponse = await app.inject({
+      method: 'GET',
+      url: '/api/admin/features',
+    });
+    expect(missingKeyResponse.statusCode).toBe(401);
+
+    const validResponse = await app.inject({
+      method: 'GET',
+      url: '/api/admin/features',
+      headers: {
+        'x-api-key': 'secret-key',
+      },
+    });
+    expect(validResponse.statusCode).toBe(200);
+
+    (config as { mcpApiKey: string | null }).mcpApiKey = originalKey ?? null;
   });
 
   it('recalls conversation history via /api/conversation/recall', async () => {

@@ -306,6 +306,20 @@ describe('PromptEmbeddingsRepository', () => {
     expect(spies.execute).toHaveBeenCalledTimes(1);
   });
 
+  it('excludes inactive memories from keyword search', async () => {
+    const { mockDb, spies } = createMockDb();
+    const repository = new PromptEmbeddingsRepository(mockDb as never);
+
+    spies.execute.mockResolvedValueOnce({ rows: [] });
+
+    await repository.keywordSearch('vector memory governance', {});
+
+    const sqlString = stringifySql(spies.execute.mock.calls[0][0]).toLowerCase();
+    expect(sqlString).toContain('coalesce(');
+    expect(sqlString).toContain('metadata');
+    expect(sqlString).toContain('inactive');
+  });
+
   it('returns vector search results with age metadata by default', async () => {
     const { mockDb, spies } = createMockDb();
     const repository = new PromptEmbeddingsRepository(mockDb as never);
@@ -390,6 +404,24 @@ describe('PromptEmbeddingsRepository', () => {
     const sqlString = stringifySql(spies.execute.mock.calls[0][0]);
     expect(sqlString).toContain('EXP(-');
     expect(sqlString).toContain('86400.0');
+  });
+
+  it('excludes inactive memories from vector search results', async () => {
+    const { mockDb, spies } = createMockDb();
+    const repository = new PromptEmbeddingsRepository(mockDb as never);
+
+    spies.execute.mockResolvedValueOnce({ rows: [] });
+
+    await repository.search({
+      embedding: [0.2, 0.3, 0.4],
+      limit: 5,
+      minSimilarity: 0.1,
+    });
+
+    const sqlString = stringifySql(spies.execute.mock.calls[0][0]).toLowerCase();
+    expect(sqlString).toContain('coalesce(');
+    expect(sqlString).toContain('metadata');
+    expect(sqlString).toContain('inactive');
   });
 
   it('filters vector search by memory type when provided', async () => {

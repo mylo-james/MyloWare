@@ -474,14 +474,9 @@ export function registerPromptSearchTool(
     {
       title: 'Search prompt corpus semantically',
       description: [
-        'Performs vector, keyword, or hybrid search across prompts with optional persona/project filters.',
-        'Use the searchMode parameter to control retrieval:',
-        ' - {"query": "briefing deck outline", "searchMode": "vector"} for semantic matches',
-        ' - {"query": "pg_trgm index configuration", "searchMode": "keyword"} for exact technical terms',
-        ' - {"query": "hybrid strategy workshop", "searchMode": "hybrid"} to blend both approaches',
-        ' - Add "temporalBoost": true with temporalConfig overrides to prioritise fresher content',
-        ' - Use {"useMemoryRouting": true} to route across persona, project, episodic, and procedural memories',
-        'Returns ranked chunks with similarity scores.',
+        'Swiss-army retrieval across the entire prompt corpus: vector, keyword, or hybrid modes in one tool.',
+        'Layer on persona/project filters, temporal decay, graph expansion, and memory routing to surface the most relevant snippets.',
+        'Returns ranked chunks with previews, similarity scores, and diagnostics so you know why each result appeared.',
       ].join('\n'),
       inputSchema: promptSearchArgsSchema.shape,
       outputSchema: outputSchema.shape,

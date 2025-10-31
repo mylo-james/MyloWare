@@ -7,8 +7,10 @@ import { normaliseSlugOptional } from '../utils/slug';
 
 type RouteHeuristic = (normalizedQuery: string) => MemoryType | null;
 
+export type MemoryRouterRepository = Pick<PromptEmbeddingsRepository, 'search' | 'keywordSearch'>;
+
 export interface MemoryRouterOptions {
-  repository?: PromptEmbeddingsRepository;
+  repository?: MemoryRouterRepository;
   embed?: typeof embedTexts;
   classify?: typeof classifyQueryIntent;
   limitPerType?: number;
@@ -139,7 +141,8 @@ export async function orchestrateMemorySearch(
   }
 
   const classify = options.classify ?? classifyQueryIntent;
-  const repository = options.repository ?? new PromptEmbeddingsRepository();
+  const repository: MemoryRouterRepository =
+    options.repository ?? (new PromptEmbeddingsRepository() as MemoryRouterRepository);
   const embed = options.embed ?? embedTexts;
   const limitPerType = options.limitPerType ?? DEFAULT_LIMIT_PER_TYPE;
   const minSimilarity = options.minSimilarity ?? DEFAULT_MIN_SIMILARITY;

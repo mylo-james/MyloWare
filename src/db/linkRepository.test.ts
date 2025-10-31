@@ -8,10 +8,18 @@ function createMockDb() {
   const insert = vi.fn().mockReturnValue({ values });
 
   const execute = vi.fn().mockResolvedValue({ rows: [] });
+  const deleteReturning = vi.fn().mockResolvedValue([{ id: 'link-1' }]);
+  const deleteWhere = vi.fn().mockReturnValue({
+    returning: deleteReturning,
+  });
+  const del = vi.fn().mockReturnValue({
+    where: deleteWhere,
+  });
 
   const mockDb = {
     insert,
     execute,
+    delete: del,
   } as Record<string, unknown>;
 
   return {
@@ -22,6 +30,9 @@ function createMockDb() {
       onConflictDoUpdate,
       returning,
       execute,
+      delete: del,
+      deleteWhere,
+      deleteReturning,
     },
   };
 }
@@ -168,5 +179,41 @@ describe('MemoryLinkRepository', () => {
     });
     expect(cluster?.nodes).toHaveLength(4);
     expect(cluster?.edges).toHaveLength(3);
+  });
+
+  it('deletes links for a source chunk', async () => {
+    const { mockDb, spies } = createMockDb();
+    const repository = new MemoryLinkRepository(mockDb as never);
+
+    const removed = await repository.deleteLinksForSource('chunk-1');
+
+    expect(removed).toBe(1);
+    expect(spies.delete).toHaveBeenCalledTimes(1);
+    expect(spies.deleteWhere).toHaveBeenCalledTimes(1);
+    expect(spies.deleteReturning).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes links for a target chunk', async () => {
+    const { mockDb, spies } = createMockDb();
+    const repository = new MemoryLinkRepository(mockDb as never);
+
+    const removed = await repository.deleteLinksForTarget('chunk-2');
+
+    expect(removed).toBe(1);
+    expect(spies.delete).toHaveBeenCalledTimes(1);
+    expect(spies.deleteWhere).toHaveBeenCalledTimes(1);
+    expect(spies.deleteReturning).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes links where chunk participates as source or target', async () => {
+    const { mockDb, spies } = createMockDb();
+    const repository = new MemoryLinkRepository(mockDb as never);
+
+    const removed = await repository.deleteLinksForChunk('chunk-3');
+
+    expect(removed).toBe(1);
+    expect(spies.delete).toHaveBeenCalledTimes(1);
+    expect(spies.deleteWhere).toHaveBeenCalledTimes(1);
+    expect(spies.deleteReturning).toHaveBeenCalledTimes(1);
   });
 });

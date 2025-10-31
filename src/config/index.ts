@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
 import type { TemporalDecayStrategy } from '../vector/temporalScoring';
+import { getFeatureFlagsSnapshot as getInitialFeatureFlagsSnapshot } from './featureFlags';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).catch('development'),
@@ -140,6 +141,9 @@ export const config = {
   },
   episodicMemory: episodicMemoryConfig,
   memoryGraph: memoryGraphConfig,
+  features: {
+    initialSnapshot: getInitialFeatureFlagsSnapshot(),
+  },
 } as const;
 
 export {

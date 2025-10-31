@@ -58,7 +58,11 @@ export function registerPromptListTool(
     toolName,
     {
       title: 'List available prompts',
-      description: 'Returns prompt metadata filtered by persona, project, or type.',
+      description: [
+        'Build a bird’s-eye map of the prompt library with rich metadata in one call.',
+        'Filter by persona, project, or combination type to see exactly what content exists and when it was last updated.',
+        'Perfect for loading every project slug before a conversation or auditing coverage across personas.',
+      ].join('\n'),
       inputSchema: promptListArgsSchema.shape,
       outputSchema: outputSchema.shape,
       annotations: {

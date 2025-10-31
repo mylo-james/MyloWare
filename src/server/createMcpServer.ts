@@ -2,8 +2,10 @@ import type { McpServer as McpServerType } from '@modelcontextprotocol/sdk/serve
 import { registerPromptGetTool } from './tools/promptGetTool';
 import { registerPromptListTool } from './tools/promptListTool';
 import { registerPromptSearchTool } from './tools/promptSearchTool';
+import { registerAdaptiveSearchTool } from './tools/adaptiveSearchTool';
 import { registerConversationMemoryTool } from './tools/conversationMemoryTool';
 import { registerConversationStoreTool } from './tools/conversationStoreTool';
+import { registerMemoryTools } from './tools/memoryAddTool';
 import { registerResources } from './resources';
 
 export async function createMcpServer(): Promise<McpServerType> {
@@ -18,8 +20,10 @@ export async function createMcpServer(): Promise<McpServerType> {
   registerPromptGetTool(server);
   registerPromptListTool(server);
   registerPromptSearchTool(server);
+  registerAdaptiveSearchTool(server);
   registerConversationMemoryTool(server);
   registerConversationStoreTool(server);
+  registerMemoryTools(server);
   registerResources(server);
 
   return server;

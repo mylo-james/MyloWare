@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-31T18:29:56.274Z",
+  "updatedAt": "2025-10-31T22:24:09Z",
   "createdAt": "2025-10-28T23:40:45.212Z",
   "id": "Cz7h4stqCFJ4qZ9I",
   "name": "Mylo_MCP_Bot",
@@ -10,7 +10,7 @@
       "parameters": {
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are an AI orchestrator that loads persona and project prompts from a vector database, then executes tasks according to their specifications.\n\n## Workflow Inputs\nYou receive:\n- **personaId**: {{$json.personaId}} (e.g., \"ideagenerator\", \"chat\", \"screenwriter\")\n- **projectId**: {{$json.projectId}} (e.g., \"aismr\")\n- **chatInput**: {{$json.chatInput}} (the user's request)\n- **outputSchema**: {{$json.outputSchema}} (JSON schema for structured output)\n\n## Step 1: Load Required Prompts\nUse the MCP tools to retrieve configuration. **IMPORTANT**: The tools return both text summaries AND structured content - you need the structured content for the actual prompt data.\n\n1. **Get the combination prompt first** (persona × project):\n   ```\n   prompt_get({\n     \"persona_name\": \"{{$json.personaId}}\",\n     \"project_name\": \"{{$json.projectId}}\"\n   })\n   ```\n\n2. **If no combination exists, get individual prompts**:\n   - Persona prompt: `prompt_get({\"persona_name\": \"{{$json.personaId}}\"})`\n   - Project prompt: `prompt_get({\"project_name\": \"{{$json.projectId}}\"})`\n\n3. **If prompts are missing**, search for alternatives:\n   ```\n   prompt_search({\n     \"query\": \"{{$json.personaId}} persona configuration\",\n     \"persona\": \"{{$json.personaId}}\",\n     \"limit\": 3\n   })\n   ```\n\n## Step 2: Extract the Actual Prompt Content\n**CRITICAL**: The MCP tools return structured data with the actual prompt content. Access it like this:\n- From `prompt_get`: Look for the `prompt.content` field in the tool response - this contains the full JSON prompt\n- From `prompt_search`: Use the `promptKey` from search results, then call `prompt_get` to get the full content\n- **Parse the JSON content** - it contains the complete agent configuration, not just metadata\n\n## Step 3: Process the Loaded Prompts\nOnce you have the actual prompt content (JSON):\n- **Parse the JSON structure** completely - especially `agent`, `persona`, `workflow`, and `session_posture` sections\n- **Extract the role, style, principles, and workflow steps**\n- **Note any specific formatting requirements, schemas, or guardrails**\n- **Identify any examples or templates provided**\n\n## Step 4: Execute the Task\n- **Adopt the persona** described in the loaded prompts\n- **Follow the workflow steps** exactly as documented in the prompt content\n- **Apply all guardrails and constraints** specified in the prompts\n- **Honor the output schema** provided in the workflow inputs\n- **Match the tone and style** defined in the persona configuration\n\n## Step 5: Format and Validate Output\n- **Structure your response** according to the provided JSON schema\n- **Ensure all required fields** are present and correctly formatted\n- **Follow any specific formatting rules** from the prompt configuration\n- **Validate against constraints** like count requirements, content types, etc.\n\n## Error Handling\nIf prompts fail to load or are incomplete:\n1. Report the specific missing component (persona/project/combination)\n2. List what was found vs. what was expected\n3. Show the actual tool responses you received\n4. Do not proceed with generic behavior - request clarification\n\n## Key Principles\n- **Access Full Content**: Don't rely on tool summaries - extract the actual prompt.content JSON\n- **Prompt Fidelity**: Execute exactly what the loaded prompts specify\n- **Schema Compliance**: Always match the required output format\n- **No Assumptions**: Only use information from loaded prompts, never from memory\n- **Explicit Workflow**: Follow documented steps in the prompt configurations\n- **Tool Mastery**: Use MCP tools correctly and access their structured responses"
+          "systemMessage": "=You are an AI orchestrator that loads persona and project prompts from a vector database, then executes tasks according to their specifications.\n\n## Workflow Inputs\nYou receive:\n- **personaId**: {{$json.personaId}} (e.g., \"ideagenerator\", \"chat\", \"screenwriter\")\n- **projectId**: {{$json.projectId}} (e.g., \"aismr\")\n- **chatInput**: {{$json.chatInput}} (the user's request)\n- **outputSchema**: {{$json.outputSchema}} (JSON schema for structured output)\n\n## Step 1: Load Required Prompts\nUse the MCP tools to retrieve configuration. **IMPORTANT**: The tools return both text summaries AND structured content - you need the structured content for the actual prompt data.\n\n1. **Get the combination prompt first** (persona \u00d7 project):\n   ```\n   prompt_get({\n     \"persona_name\": \"{{$json.personaId}}\",\n     \"project_name\": \"{{$json.projectId}}\"\n   })\n   ```\n\n2. **If no combination exists, get individual prompts**:\n   - Persona prompt: `prompt_get({\"persona_name\": \"{{$json.personaId}}\"})`\n   - Project prompt: `prompt_get({\"project_name\": \"{{$json.projectId}}\"})`\n\n3. **If prompts are missing**, search for alternatives:\n   ```\n   prompt_search({\n     \"query\": \"{{$json.personaId}} persona configuration\",\n     \"persona\": \"{{$json.personaId}}\",\n     \"limit\": 3\n   })\n   ```\n\n## Step 2: Extract the Actual Prompt Content\n**CRITICAL**: The MCP tools return structured data with the actual prompt content. Access it like this:\n- From `prompt_get`: Look for the `prompt.content` field in the tool response - this contains the full JSON prompt\n- From `prompt_search`: Use the `promptKey` from search results, then call `prompt_get` to get the full content\n- **Parse the JSON content** - it contains the complete agent configuration, not just metadata\n\n## Step 3: Process the Loaded Prompts\nOnce you have the actual prompt content (JSON):\n- **Parse the JSON structure** completely - especially `agent`, `persona`, `workflow`, and `session_posture` sections\n- **Extract the role, style, principles, and workflow steps**\n- **Note any specific formatting requirements, schemas, or guardrails**\n- **Identify any examples or templates provided**\n\n## Step 4: Execute the Task\n- **Adopt the persona** described in the loaded prompts\n- **Follow the workflow steps** exactly as documented in the prompt content\n- **Apply all guardrails and constraints** specified in the prompts\n- **Honor the output schema** provided in the workflow inputs\n- **Match the tone and style** defined in the persona configuration\n\n## Step 5: Format and Validate Output\n- **Structure your response** according to the provided JSON schema\n- **Ensure all required fields** are present and correctly formatted\n- **Follow any specific formatting rules** from the prompt configuration\n- **Validate against constraints** like count requirements, content types, etc.\n\n## Error Handling\nIf prompts fail to load or are incomplete:\n1. Report the specific missing component (persona/project/combination)\n2. List what was found vs. what was expected\n3. Show the actual tool responses you received\n4. Do not proceed with generic behavior - request clarification\n\n## Key Principles\n- **Access Full Content**: Don't rely on tool summaries - extract the actual prompt.content JSON\n- **Prompt Fidelity**: Execute exactly what the loaded prompts specify\n- **Schema Compliance**: Always match the required output format\n- **No Assumptions**: Only use information from loaded prompts, never from memory\n- **Explicit Workflow**: Follow documented steps in the prompt configurations\n- **Tool Mastery**: Use MCP tools correctly and access their structured responses"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -129,7 +129,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const existingSessionId = typeof $json.sessionId === 'string' && $json.sessionId.trim().length > 0 ? $json.sessionId.trim() : null;\nconst rawOutput = $json.output ?? $json.result ?? $json;\nlet content = typeof rawOutput === 'string' ? rawOutput : JSON.stringify(rawOutput, null, 2);\nif (!content || content.trim().length === 0) {\n  content = JSON.stringify($json, null, 2);\n}\nconst normalized = content.length > 4000 ? `${content.slice(0, 3997)}…` : content;\nconst metadata = {\n  personaId: $json.personaId ?? null,\n  projectId: $json.projectId ?? null,\n  chatInput: $json.chatInput ?? null,\n  workflow: $json.workflow ?? 'mylo-mcp-bot',\n  outputSchema: $json.outputSchema ?? null,\n};\nconst args = {\n  role: 'assistant',\n  content: normalized,\n  metadata,\n  tags: ['agent-response', 'mylo-mcp-bot'],\n};\nif (existingSessionId) {\n  args.sessionId = existingSessionId;\n}\nconst requestId = `store-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\nreturn {\n  json: {\n    ...$json,\n    conversationStoreRequest: {\n      jsonrpc: '2.0',\n      id: requestId,\n      method: 'tools/call',\n      params: {\n        name: 'conversation_store',\n        arguments: args,\n      },\n    },\n  },\n};"
+        "jsCode": "const existingSessionId = typeof $json.sessionId === 'string' && $json.sessionId.trim().length > 0 ? $json.sessionId.trim() : null;\nconst rawOutput = $json.output ?? $json.result ?? $json;\nlet content = typeof rawOutput === 'string' ? rawOutput : JSON.stringify(rawOutput, null, 2);\nif (!content || content.trim().length === 0) {\n  content = JSON.stringify($json, null, 2);\n}\nconst normalized = content.length > 4000 ? `${content.slice(0, 3997)}\u2026` : content;\nconst metadata = {\n  personaId: $json.personaId ?? null,\n  projectId: $json.projectId ?? null,\n  chatInput: $json.chatInput ?? null,\n  workflow: $json.workflow ?? 'mylo-mcp-bot',\n  outputSchema: $json.outputSchema ?? null,\n};\nconst args = {\n  role: 'assistant',\n  content: normalized,\n  metadata,\n  tags: ['agent-response', 'mylo-mcp-bot'],\n};\nif (existingSessionId) {\n  args.sessionId = existingSessionId;\n}\nconst requestId = `store-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\nreturn {\n  json: {\n    ...$json,\n    conversationStoreRequest: {\n      jsonrpc: '2.0',\n      id: requestId,\n      method: 'tools/call',\n      params: {\n        name: 'conversation_store',\n        arguments: args,\n      },\n    },\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -161,6 +161,75 @@
       ],
       "id": "1b8e9b56-46f1-4a1e-9c91-3d6b098320c4",
       "name": "Store Conversation Turn",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "function parseStructured(value) {\n  if (value == null) return null;\n  if (typeof value === 'string') {\n    const trimmed = value.trim();\n    if (!trimmed) {\n      return null;\n    }\n    try {\n      return JSON.parse(trimmed);\n    } catch (error) {\n      return null;\n    }\n  }\n  if (typeof value === 'object') {\n    return value;\n  }\n  return null;\n}\n\nconst personaId = $json.personaId ?? null;\nconst projectId = $json.projectId ?? null;\nconst sessionCandidates = [$json.sessionId, $json.conversationSessionId, $json.mcpSessionId];\nconst sessionId = sessionCandidates.find((value) => typeof value === 'string' && value.trim().length > 0) ?? null;\nconst chatInput = typeof $json.chatInput === 'string' ? $json.chatInput.trim() : '';\n\nconst primaryOutput = $json.output ?? $json.result ?? $json.response ?? $json.data ?? null;\nlet structured = parseStructured(primaryOutput);\nif (!structured && typeof $json.parsedOutput === 'object') {\n  structured = $json.parsedOutput;\n}\n\nconst ideas = Array.isArray(structured?.ideas) ? structured.ideas : Array.isArray($json.ideas) ? $json.ideas : [];\nconst ideaSummaries = [];\nconst ideaTitles = [];\n\nfor (const idea of ideas) {\n  if (!idea || typeof idea !== 'object') continue;\n  const title = typeof idea.idea === 'string' && idea.idea.trim().length > 0\n    ? idea.idea.trim()\n    : typeof idea.title === 'string' && idea.title.trim().length > 0\n      ? idea.title.trim()\n      : null;\n  const vibe = typeof idea.vibe === 'string' ? idea.vibe.trim() : typeof idea.description === 'string' ? idea.description.trim() : '';\n  if (title) {\n    ideaTitles.push(title);\n  }\n  const line = title ? `- ${title}${vibe ? `: ${vibe}` : ''}` : vibe ? `- ${vibe}` : null;\n  if (line) {\n    ideaSummaries.push(line);\n  }\n}\n\nconst memoryCandidates = [];\nconst nowIso = new Date().toISOString();\nconst isoDate = nowIso.slice(0, 10);\n\nif (projectId && ideaSummaries.length > 0) {\n  const titleParts = ['Decision'];\n  if (projectId) {\n    titleParts.push(projectId);\n  }\n  if (personaId) {\n    titleParts.push(personaId);\n  }\n  titleParts.push(isoDate);\n  const decisionTitle = titleParts.join(' \u00b7 ');\n\n  const contentSections = [\n    `Project: ${projectId}`,\n    personaId ? `Persona: ${personaId}` : null,\n    `Generated ${ideaSummaries.length} concept${ideaSummaries.length === 1 ? '' : 's'} via Mylo MCP Bot.`,\n    '',\n    'Key Concepts:',\n    ...ideaSummaries.slice(0, 8),\n  ].filter(Boolean);\n\n  memoryCandidates.push({\n    memoryType: 'project',\n    title: decisionTitle,\n    content: contentSections.join('\n'),\n    tags: [\n      'decision',\n      `project:${projectId}`,\n      personaId ? `persona:${personaId}` : null,\n      'mylo-mcp-bot',\n    ].filter(Boolean),\n    metadata: {\n      personaId,\n      projectId,\n      capturedAt: nowIso,\n      summaryIdeas: ideaTitles.slice(0, 12),\n      reviewStatus: 'pending_review',\n      requiresHumanReview: true,\n    },\n    confidence: 0.7,\n    visibility: 'team',\n    source: 'agent',\n  });\n\n  const semanticTitleParts = ['AISMR Concepts', isoDate];\n  if (projectId) {\n    semanticTitleParts.splice(1, 0, projectId);\n  }\n  const semanticTitle = semanticTitleParts.join(' \u00b7 ');\n\n  const semanticContent = [\n    `Highlights captured on ${isoDate}.`,\n    '',\n    ...ideaSummaries.slice(0, 6),\n  ].join('\n');\n\n  memoryCandidates.push({\n    memoryType: 'semantic',\n    title: semanticTitle,\n    content: semanticContent,\n    tags: [\n      'semantic-note',\n      'mylo-mcp-bot',\n      projectId ? `project:${projectId}` : null,\n      personaId ? `persona:${personaId}` : null,\n    ].filter(Boolean),\n    metadata: {\n      personaId,\n      projectId,\n      capturedAt: nowIso,\n      summaryIdeas: ideaTitles.slice(0, 12),\n      reviewStatus: 'pending_review',\n      requiresHumanReview: false,\n    },\n    confidence: 0.6,\n    visibility: 'team',\n    source: 'agent',\n  });\n}\n\nif (chatInput && sessionId) {\n  memoryCandidates.push({\n    memoryType: 'episodic',\n    title: `User Preference \u00b7 ${isoDate}`,\n    content: `User request excerpt: \"${chatInput.slice(0, 400)}\"${chatInput.length > 400 ? '\u2026' : ''}`,\n    tags: [\n      'user-preference',\n      'mylo-mcp-bot',\n      sessionId ? `session:${sessionId.slice(0, 8)}` : null,\n    ].filter(Boolean),\n    metadata: {\n      personaId,\n      projectId,\n      capturedAt: nowIso,\n      reviewStatus: 'pending_review',\n      requiresHumanReview: true,\n    },\n    confidence: 0.5,\n    visibility: 'private',\n    source: 'agent',\n    sessionId,\n  });\n}\n\nreturn [\n  {\n    json: {\n      ...$json,\n      structuredOutput: structured,\n      memoryCandidates,\n      sessionId,\n      generatedAt: nowIso,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -256
+      ],
+      "id": "4b7273d4-9500-444b-af60-5a20850d95ab",
+      "name": "Extract Memory Candidates"
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        -192
+      ],
+      "id": "bf72c809-872c-431e-bb31-114e555711b8",
+      "name": "Combine Memory Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const memoryCandidates = Array.isArray($json.memoryCandidates) ? $json.memoryCandidates : [];\n\nif (memoryCandidates.length === 0) {\n  return [];\n}\n\nfunction extractStructuredContent(payload) {\n  if (!payload || typeof payload !== 'object') {\n    return null;\n  }\n  if (payload.structuredContent && typeof payload.structuredContent === 'object') {\n    return payload.structuredContent;\n  }\n  if (payload.result && typeof payload.result === 'object') {\n    return extractStructuredContent(payload.result);\n  }\n  if (payload.data && typeof payload.data === 'object') {\n    return extractStructuredContent(payload.data);\n  }\n  return null;\n}\n\nconst conversationResponse = $json.result ?? $json.response ?? $json;\nconst structuredContent = extractStructuredContent(conversationResponse) ?? {};\nconst conversationChunkId = structuredContent.chunkId ?? structuredContent.chunkID ?? structuredContent.chunk_id ?? null;\nconst sessionId = structuredContent.sessionId ?? structuredContent.sessionID ?? structuredContent.session_id ?? $json.sessionId ?? null;\n\nconst actor = {\n  type: 'agent',\n  id: 'mylo-mcp-bot',\n  scopes: ['runtime-memory'],\n};\n\nconst results = [];\n\nfor (const candidate of memoryCandidates) {\n  if (!candidate || typeof candidate !== 'object') continue;\n\n  const args = {\n    ...candidate,\n    actor,\n  };\n\n  if (args.memoryType === 'episodic' && !args.sessionId && sessionId) {\n    args.sessionId = sessionId;\n  }\n\n  const existingRelated = Array.isArray(args.relatedChunkIds) ? args.relatedChunkIds.slice() : [];\n  if (conversationChunkId && !existingRelated.includes(conversationChunkId)) {\n    existingRelated.push(conversationChunkId);\n  }\n  if (existingRelated.length > 0) {\n    args.relatedChunkIds = existingRelated;\n  }\n\n  const metadata = {\n    ...(args.metadata ?? {}),\n    conversationChunkId,\n    workflow: 'mylo-mcp-bot',\n  };\n  if (!metadata.reviewStatus) {\n    metadata.reviewStatus = 'pending_review';\n  }\n  args.metadata = metadata;\n\n  if (!Array.isArray(args.tags)) {\n    args.tags = [];\n  }\n  if (!args.tags.includes('needs-review')) {\n    args.tags.push('needs-review');\n  }\n\n  const rpcPayload = {\n    jsonrpc: '2.0',\n    id: `memory-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,\n    method: 'tools/call',\n    params: {\n      name: 'memory_add',\n      arguments: args,\n      options: {\n        timeout: 15000,\n      },\n    },\n  };\n\n  results.push({\n    rpcPayload,\n    memoryType: args.memoryType,\n    title: args.title ?? null,\n  });\n}\n\nreturn results.map((entry) => ({ json: entry }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        -192
+      ],
+      "id": "c82024c1-735a-42a7-bee5-7fcffa37fb72",
+      "name": "Prepare Memory Requests"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpcPayload }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1856,
+        -192
+      ],
+      "id": "97e94b45-4df6-4175-ae1a-a2bca375b50f",
+      "name": "Call Memory Add",
       "credentials": {
         "httpHeaderAuth": {
           "id": "PDRTlQZsKzQBcv6T",
@@ -233,6 +302,11 @@
             "node": "Prepare Conversation Payload",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Extract Memory Candidates",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -250,7 +324,46 @@
     },
     "Store Conversation Turn": {
       "main": [
-        []
+        [
+          {
+            "node": "Combine Memory Context",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Memory Candidates": {
+      "main": [
+        [
+          {
+            "node": "Combine Memory Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Memory Context": {
+      "main": [
+        [
+          {
+            "node": "Prepare Memory Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Memory Requests": {
+      "main": [
+        [
+          {
+            "node": "Call Memory Add",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

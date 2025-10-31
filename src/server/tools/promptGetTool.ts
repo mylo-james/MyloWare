@@ -65,8 +65,11 @@ export function registerPromptGetTool(
     toolName,
     {
       title: 'Resolve prompt by project/persona metadata',
-      description:
-        'Retrieves a prompt using project/persona metadata. Requires at least one of project_name or persona_name.',
+      description: [
+        'Fetch the canonical prompt document—complete with markdown content and metadata—for a given persona or project.',
+        'Pass persona_name, project_name, or both to disambiguate overlapping prompts, and receive resolution diagnostics along the way.',
+        'Ideal for loading an AI Agent persona’s system prompt before answering a user.',
+      ].join('\n'),
       inputSchema: promptGetArgsSchema.shape,
       outputSchema: outputSchema.shape,
       annotations: {

@@ -39,6 +39,10 @@ services:
         condition: service_healthy
     ports:
       - 3456:3456
+    networks:
+      default:
+        aliases:
+          - server
   server-dev:
     profiles:
       - dev
@@ -70,6 +74,10 @@ services:
         condition: service_healthy
     ports:
       - 3456:3456
+    networks:
+      default:
+        aliases:
+          - server
   cloudflared-prod:
     profiles:
       - prod

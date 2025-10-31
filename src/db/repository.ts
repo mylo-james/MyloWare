@@ -299,8 +299,12 @@ export class PromptEmbeddingsRepository {
             ageDaysExpression,
             temporalSettings,
           );
+    const thresholdExpression = temporalSettings === null ? baseSimilarityExpression : similarityExpression;
 
-    const conditions: SQL[] = [sql`${baseSimilarityExpression} >= ${similarityThreshold}`];
+    const conditions: SQL[] = [
+      sql`${thresholdExpression} >= ${similarityThreshold}`,
+      sql`COALESCE(${schema.promptEmbeddings.metadata} ->> 'status', 'active') <> 'inactive'`,
+    ];
 
     if (persona) {
       const personaValue = persona.toLowerCase();
@@ -384,6 +388,7 @@ export class PromptEmbeddingsRepository {
     }
     const whereConditions: SQL[] = [
       sql`keyword_query.query @@ ${schema.promptEmbeddings.textsearch}`,
+      sql`COALESCE(${schema.promptEmbeddings.metadata} ->> 'status', 'active') <> 'inactive'`,
       ...metadataConditions,
     ];
 

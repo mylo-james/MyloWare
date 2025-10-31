@@ -114,6 +114,6 @@ describe('attachConversationLogging', () => {
 
     const lastCall = storeConversationTurn.mock.calls[storeConversationTurn.mock.calls.length - 1]?.[0];
     expect(lastCall?.role).toBe('assistant');
-    expect(lastCall?.metadata?.related_request_id).toBe(3);
+    expect(lastCall?.metadata?.related_request_id).toBe('3');
   });
 });

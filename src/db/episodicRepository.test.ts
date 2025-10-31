@@ -80,6 +80,102 @@ describe('EpisodicMemoryRepository', () => {
     expect(result.chunkId).toBe('episodic::session-123::turn-1');
   });
 
+  it('persists sequential turns within a session and writes embeddings for each', async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce(createSqlStubResult([{ next_index: 0 }]))
+      .mockResolvedValueOnce(
+        createSqlStubResult([
+          {
+            id: 'turn-1',
+            session_id: 'session-789',
+            user_id: 'agent-99',
+            role: 'assistant',
+            turn_index: 0,
+            content: 'First turn',
+            summary: null,
+            metadata: {},
+            created_at: '2025-10-30T08:00:00.000Z',
+            updated_at: '2025-10-30T08:00:00.000Z',
+          },
+        ]),
+      )
+      .mockResolvedValueOnce(createSqlStubResult([{ next_index: 1 }]))
+      .mockResolvedValueOnce(
+        createSqlStubResult([
+          {
+            id: 'turn-2',
+            session_id: 'session-789',
+            user_id: 'agent-99',
+            role: 'assistant',
+            turn_index: 1,
+            content: 'Second turn',
+            summary: null,
+            metadata: {},
+            created_at: '2025-10-30T08:01:00.000Z',
+            updated_at: '2025-10-30T08:01:00.000Z',
+          },
+        ]),
+      );
+
+    const promptRepo = {
+      upsertEmbeddings: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const promptRepoFactory = vi.fn().mockReturnValue(promptRepo);
+    const embed = vi
+      .fn()
+      .mockResolvedValueOnce([[0.11, 0.22]])
+      .mockResolvedValueOnce([[0.33, 0.44]]);
+
+    const mockDb = {
+      transaction: vi.fn(async (fn: (tx: { execute: typeof execute }) => Promise<unknown>) =>
+        fn({ execute }),
+      ),
+    };
+
+    const repository = new EpisodicMemoryRepository({
+      db: mockDb as never,
+      promptRepositoryFactory: promptRepoFactory,
+      embed,
+    });
+
+    const first = await repository.storeConversationTurn({
+      sessionId: 'session-789',
+      content: 'First turn',
+      role: 'assistant',
+      userId: 'agent-99',
+    });
+
+    const second = await repository.storeConversationTurn({
+      sessionId: 'session-789',
+      content: 'Second turn',
+      role: 'assistant',
+      userId: 'agent-99',
+    });
+
+    expect(first.isNewSession).toBe(true);
+    expect(first.turn.turnIndex).toBe(0);
+    expect(second.isNewSession).toBe(false);
+    expect(second.turn.turnIndex).toBe(1);
+
+    expect(embed).toHaveBeenCalledTimes(2);
+    expect(promptRepoFactory).toHaveBeenCalledTimes(2);
+    expect(promptRepo.upsertEmbeddings).toHaveBeenCalledTimes(2);
+
+    const firstEmbeddingCall = promptRepo.upsertEmbeddings.mock.calls[0][0][0];
+    const secondEmbeddingCall = promptRepo.upsertEmbeddings.mock.calls[1][0][0];
+
+    expect(firstEmbeddingCall.chunkId).toBe('episodic::session-789::turn-1');
+    expect(secondEmbeddingCall.chunkId).toBe('episodic::session-789::turn-2');
+    expect(secondEmbeddingCall.metadata).toMatchObject({
+      session_id: 'session-789',
+      turn_index: 1,
+    });
+
+    expect(execute).toHaveBeenCalledTimes(4);
+  });
+
   it('retrieves ordered session history within a time range', async () => {
     const mockDb = {
       transaction: vi.fn(),

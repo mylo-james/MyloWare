@@ -223,14 +223,15 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 - [x] Ensure `conversation_store` fills in metadata defaults (`source`, `tags`)
 - [x] Normalize `storedAt` to ISO 8601 with offset to satisfy MCP validation
-- [ ] Add structured metadata for request checksum / client identity (follow-up)
+- [x] Add structured metadata for request checksum / client identity (follow-up)
 
 #### Step 1.3.3: End-to-End Validation & Follow-ups
 
 - [x] Smoke-test with `ts-node` script calling `storeConversationTurn`
 - [x] Confirm n8n workflow uses longer HTTP timeout (15s) to avoid premature aborts
-- [ ] Add automated regression covering repository insert + embedding write
-- [ ] Backfill existing runs into episodic memory (pending size estimate)
+- [x] Add automated regression covering repository insert + embedding write
+- [x] Backfill existing runs into episodic memory (pending size estimate)
+  - Implemented via `scripts/backfillRunsToEpisodic.ts` with `npm run episodic:backfill`.
 
 **Exit Criteria:** `conversation_store` reliably creates episodic chunks and recall benchmarks can read them end-to-end
 
@@ -285,7 +286,6 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
     - Technical terms / IDs → keyword mode
     - Semantic concepts → vector mode
     - Default → hybrid mode
-  - [ ] Use simple heuristics (presence of quotes, technical patterns)
   - [x] Use simple heuristics (presence of quotes, technical patterns)
 
 - [x] **Update search tool**
@@ -349,7 +349,7 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 1.3.2: Update Repository Search to Apply Temporal Boost
 
-- [ ] **Modify search query**
+- [x] **Modify search query**
   - [x] Calculate age in days: `EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400`
   - [x] Apply decay formula in SQL:
     ```sql
@@ -712,7 +712,7 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
   - [x] Extract session ID from request context
   - [x] Log asynchronously (don't block requests)
 
-- [ ] **Update n8n workflows**
+- [x] **Update n8n workflows**
   - [x] Add conversation.store call after agent responses
   - [x] Pass session ID through workflow context
   - [x] Handle logging failures gracefully
@@ -886,24 +886,25 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.1.1: Design Adaptive Retrieval Framework
 
-- [ ] **Create architecture document**
-  - [ ] Create `docs/ADAPTIVE_RETRIEVAL.md`
-  - [ ] Define retrieval decision workflow:
+-
+- [x] **Create architecture document**
+  - [x] Create `docs/ADAPTIVE_RETRIEVAL.md`
+  - [x] Define retrieval decision workflow:
     1. Agent receives query
     2. Self-assess: "Do I need more information?"
     3. If yes, formulate retrieval query
     4. Execute search
     5. Evaluate result utility
     6. Decide: iterate, refine, or stop
-  - [ ] Design confidence scoring
-  - [ ] Plan iteration limits and termination conditions
+  - [x] Design confidence scoring
+  - [x] Plan iteration limits and termination conditions
 
-- [ ] **Define retrieval strategies**
-  - [ ] **Single-shot**: Traditional one-time search
-  - [ ] **Iterative**: Multi-round with query refinement
-  - [ ] **Hypothesis-driven**: Generate hypothetical query, search, validate
-  - [ ] **Multi-hop**: Follow references across searches
-  - [ ] **Fallback**: Try different search modes if initial fails
+- [x] **Define retrieval strategies**
+  - [x] **Single-shot**: Traditional one-time search
+  - [x] **Iterative**: Multi-round with query refinement
+  - [x] **Hypothesis-driven**: Generate hypothetical query, search, validate
+  - [x] **Multi-hop**: Follow references across searches
+  - [x] **Fallback**: Try different search modes if initial fails
 
 **Files to create:**
 
@@ -915,35 +916,35 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.1.2: Implement Retrieval Decision Agent
 
-- [ ] **Create retrieval decision module**
-  - [ ] Create `src/vector/retrievalDecisionAgent.ts`
-  - [ ] Implement `shouldRetrieve(context: AgentContext): Promise<RetrievalDecision>`
-  - [ ] Use LLM to assess information need:
+- [x] **Create retrieval decision module**
+  - [x] Create `src/vector/retrievalDecisionAgent.ts`
+  - [x] Implement `shouldRetrieve(context: AgentContext): Promise<RetrievalDecision>`
+  - [x] (openAI sdk) Use LLM to assess information need:
     ```
     Given query: {query}
     Current knowledge: {summary}
     Do you need external information? (yes/no/maybe)
     If yes, what specific information would help?
     ```
-  - [ ] Return structured decision with confidence score
+  - [x] Return structured decision with confidence score
 
-- [ ] **Implement query formulation**
-  - [ ] `formulateRetrievalQuery(query: string, context: string): Promise<string>`
-  - [ ] Generate search query from agent's information need
-  - [ ] Optimize for vector search (descriptive, semantic)
-  - [ ] Generate multiple query variations if confidence low
+- [x] **Implement query formulation**
+  - [x] `formulateRetrievalQuery(query: string, context: QueryFormulationContext): Promise<string>`
+  - [x] Generate search query from agent's information need
+  - [x] Optimize for vector search (descriptive, semantic)
+  - [x] Generate multiple query variations if confidence low
 
-- [ ] **Add utility evaluation**
-  - [ ] `evaluateResultUtility(results: SearchResult[], query: string): number`
-  - [ ] Score 0-1 based on relevance
-  - [ ] Use LLM or heuristics (similarity threshold, result count)
-  - [ ] Decide if refinement needed
+- [x] **Add utility evaluation**
+  - [x] `evaluateResultUtility(results: SearchResult[], query: string): number`
+  - [x] Score 0-1 based on relevance
+  - [x] Use LLM or heuristics (similarity threshold, result count)
+  - [x] Decide if refinement needed
 
-- [ ] **Write tests**
-  - [ ] Test decision on query with missing context
-  - [ ] Test decision on query with sufficient context
-  - [ ] Test query formulation quality
-  - [ ] Test utility evaluation
+- [x] **Write tests**
+  - [x] Test decision on query with missing context
+  - [x] Test decision on query with sufficient context
+  - [x] Test query formulation quality
+  - [x] Test utility evaluation
 
 **Files to create:**
 
@@ -956,10 +957,10 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.1.3: Implement Iterative Retrieval Loop
 
-- [ ] **Create retrieval orchestrator**
-  - [ ] Create `src/vector/retrievalOrchestrator.ts`
-  - [ ] Implement `adaptiveSearch(query: string, context: Context): Promise<RetrievalResult>`
-  - [ ] Workflow:
+- [x] **Create retrieval orchestrator**
+  - [x] Create `src/vector/retrievalOrchestrator.ts`
+  - [x] Implement `adaptiveSearch(query: string, context: AdaptiveSearchParams): Promise<AdaptiveSearchResult>`
+  - [x] Workflow:
     1. Assess retrieval need
     2. If needed, formulate query
     3. Execute search
@@ -967,29 +968,29 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
     5. If utility low, refine and iterate (max 3 iterations)
     6. Return aggregated results
 
-- [ ] **Implement query refinement**
-  - [ ] `refineQuery(originalQuery: string, results: SearchResult[]): string`
-  - [ ] Analyze gaps in results
-  - [ ] Generate improved query
-  - [ ] Try different search modes or filters
+- [x] **Implement query refinement**
+  - [x] `refineQuery(originalQuery: string, results: SearchResult[]): string`
+  - [x] Analyze gaps in results
+  - [x] Generate improved query
+  - [x] Try different search modes or filters
 
-- [ ] **Add iteration tracking**
-  - [ ] Track iteration count
-  - [ ] Log refinement decisions
-  - [ ] Measure cumulative latency
-  - [ ] Limit max iterations (default: 3)
+- [x] **Add iteration tracking**
+  - [x] Track iteration count
+  - [x] Log refinement decisions
+  - [x] Measure cumulative latency
+  - [x] Limit max iterations (default: 3)
 
-- [ ] **Implement result aggregation**
-  - [ ] Merge results across iterations
-  - [ ] Deduplicate by chunk_id
-  - [ ] Rank by combined relevance
-  - [ ] Track provenance (which iteration found each result)
+- [x] **Implement result aggregation**
+  - [x] Merge results across iterations
+  - [x] Deduplicate by chunk_id
+  - [x] Rank by combined relevance
+  - [x] Track provenance (which iteration found each result)
 
-- [ ] **Write tests**
-  - [ ] Test single iteration (high utility)
-  - [ ] Test multiple iterations (refinement)
-  - [ ] Test iteration limit
-  - [ ] Test result deduplication
+- [x] **Write tests**
+  - [x] Test single iteration (high utility)
+  - [x] Test multiple iterations (refinement)
+  - [x] Test iteration limit
+  - [x] Test result deduplication
 
 **Files to create:**
 
@@ -1002,37 +1003,37 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.1.4: Create Adaptive Search MCP Tool
 
-- [ ] **Design tool interface**
-  - [ ] Tool name: `prompts.search_adaptive`
-  - [ ] Inputs:
+- [x] **Design tool interface**
+  - [x] Tool name: `prompts_search_adaptive`
+  - [x] Inputs:
     - `query: string`
     - `context?: string` - current agent knowledge
     - `maxIterations?: number` - iteration limit
     - `utilityThreshold?: number` - stop if exceeded
-  - [ ] Outputs:
+  - [x] Outputs:
     - `results: SearchResult[]`
     - `iterations: IterationLog[]` - decision history
     - `totalDuration: number`
     - `finalUtility: number`
 
-- [ ] **Implement tool**
-  - [ ] Create `src/server/tools/adaptiveSearchTool.ts`
-  - [ ] Use retrievalOrchestrator
-  - [ ] Add timeout protection (max 30s)
-  - [ ] Include detailed logging for debugging
-  - [ ] Register with MCP server
+- [x] **Implement tool**
+  - [x] Create `src/server/tools/adaptiveSearchTool.ts`
+  - [x] Use retrievalOrchestrator
+  - [x] Add timeout protection (max 30s)
+  - [x] Include detailed logging for debugging
+  - [x] Register with MCP server
 
-- [ ] **Add monitoring**
-  - [ ] Track adaptive search usage
-  - [ ] Measure iteration distribution
-  - [ ] Monitor latency P50/P95/P99
-  - [ ] Alert on excessive iterations
+- [x] **Add monitoring**
+  - [x] Track adaptive search usage
+  - [x] Measure iteration distribution
+  - [x] Monitor latency P50/P95/P99
+  - [x] Alert on excessive iterations
 
-- [ ] **Write integration tests**
-  - [ ] Test simple query (should not iterate)
-  - [ ] Test complex query (should iterate)
-  - [ ] Test timeout handling
-  - [ ] Test error recovery
+- [x] **Write integration tests**
+  - [x] Test simple query (should not iterate)
+  - [x] Test complex query (should iterate)
+  - [x] Test timeout handling
+  - [x] Test error recovery
 
 **Files to create:**
 
@@ -1049,25 +1050,25 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.2.1: Implement Reference Extraction
 
-- [ ] **Create reference detector**
-  - [ ] Create `src/vector/referenceExtractor.ts`
-  - [ ] Extract references from search results:
+- [x] **Create reference detector**
+  - [x] Create `src/vector/referenceExtractor.ts`
+  - [x] Extract references from search results:
     - Persona names
     - Project names
     - Workflow step references
     - External documentation links
-  - [ ] Use regex + NLP (entity recognition)
-  - [ ] Return structured reference list
+  - [x] Use regex + NLP (entity recognition)
+  - [x] Return structured reference list
 
-- [ ] **Add reference resolution**
-  - [ ] `resolveReference(ref: Reference): Promise<SearchResult[]>`
-  - [ ] Look up referenced entity in appropriate memory component
-  - [ ] Return full context for reference
+- [x] **Add reference resolution**
+  - [x] `resolveReference(ref: Reference): Promise<SearchResult[]>`
+  - [x] Look up referenced entity in appropriate memory component
+  - [x] Return full context for reference
 
-- [ ] **Write tests**
-  - [ ] Test persona reference extraction
-  - [ ] Test project reference extraction
-  - [ ] Test reference resolution
+- [x] **Write tests**
+  - [x] Test persona reference extraction
+  - [x] Test project reference extraction
+  - [x] Test reference resolution
 
 **Files to create:**
 
@@ -1080,31 +1081,31 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.2.2: Implement Multi-Hop Search Algorithm
 
-- [ ] **Create multi-hop searcher**
-  - [ ] Create `src/vector/multiHopSearch.ts`
-  - [ ] Implement `multiHopSearch(query: string, maxHops: number): Promise<MultiHopResult>`
-  - [ ] Algorithm:
+- [x] **Create multi-hop searcher**
+  - [x] Create `src/vector/multiHopSearch.ts`
+  - [x] Implement `multiHopSearch(query: string, maxHops: number): Promise<MultiHopResult>`
+  - [x] Algorithm:
     1. Initial search (hop 0)
     2. Extract references from results
     3. Search for each reference (hop 1)
     4. Repeat up to maxHops
     5. Aggregate all results with hop provenance
 
-- [ ] **Add hop scoring**
-  - [ ] Score decay per hop: `score / (hop + 1)`
-  - [ ] Prioritize direct results over transitive
-  - [ ] Track hop path for each result
+- [x] **Add hop scoring**
+  - [x] Score decay per hop: `score / (hop + 1)`
+  - [x] Prioritize direct results over transitive
+  - [x] Track hop path for each result
 
-- [ ] **Implement pruning**
-  - [ ] Limit results per hop (e.g., top 5)
-  - [ ] Skip low-relevance hops
-  - [ ] Deduplicate across hops
+- [x] **Implement pruning**
+  - [x] Limit results per hop (e.g., top 5)
+  - [x] Skip low-relevance hops
+  - [x] Deduplicate across hops
 
-- [ ] **Write tests**
-  - [ ] Test single-hop search
-  - [ ] Test two-hop search with references
-  - [ ] Test hop limit enforcement
-  - [ ] Test result deduplication
+- [x] **Write tests**
+  - [x] Test single-hop search
+  - [x] Test two-hop search with references
+  - [x] Test hop limit enforcement
+  - [x] Test result deduplication
 
 **Files to create:**
 
@@ -1117,16 +1118,16 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.2.3: Add Multi-Hop to Adaptive Search
 
-- [ ] **Integrate multi-hop with adaptive search**
-  - [ ] Add `enableMultiHop: boolean` to adaptive search
-  - [ ] If enabled, apply multi-hop expansion after initial retrieval
-  - [ ] Include hop information in results
-  - [ ] Count hops toward iteration limit
+- [x] **Integrate multi-hop with adaptive search**
+  - [x] Add `enableMultiHop: boolean` to adaptive search
+  - [x] If enabled, apply multi-hop expansion after initial retrieval
+  - [x] Include hop information in results
+  - [x] Count hops toward iteration limit
 
-- [ ] **Update adaptive search tool**
-  - [ ] Add `maxHops: number` parameter
-  - [ ] Add hop path to output
-  - [ ] Document multi-hop behavior
+- [x] **Update adaptive search tool**
+  - [x] Add `maxHops: number` parameter
+  - [x] Add hop path to output
+  - [x] Document multi-hop behavior
 
 **Files to modify:**
 
@@ -1143,24 +1144,24 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.3.1: Design Runtime Memory API
 
-- [ ] **Define memory write permissions**
-  - [ ] Create `docs/RUNTIME_MEMORY_PERMISSIONS.md`
-  - [ ] Define who can write to memory:
+- [x] **Define memory write permissions**
+  - [x] Create `docs/RUNTIME_MEMORY_PERMISSIONS.md`
+  - [x] Define who can write to memory:
     - System (always allowed)
     - Agents (with restrictions)
     - Users (with restrictions)
-  - [ ] Define moderation requirements
-  - [ ] Plan abuse prevention
+  - [x] Define moderation requirements
+  - [x] Plan abuse prevention
 
-- [ ] **Design memory addition API**
-  - [ ] MCP tool: `memory.add`
-  - [ ] Inputs:
+- [x] **Design memory addition API**
+  - [x] MCP tool: `memory_add`
+  - [x] Inputs:
     - `content: string` - what to remember
     - `memoryType: MemoryType` - where to store
     - `metadata: object` - context
     - `tags?: string[]` - categorization
-  - [ ] Validation rules
-  - [ ] Embedding generation
+  - [x] Validation rules
+  - [x] Embedding generation
 
 **Files to create:**
 
@@ -1172,41 +1173,41 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.3.2: Implement Memory Addition Tool
 
-- [ ] **Create memory writer**
-  - [ ] Create `src/server/tools/memoryAddTool.ts`
-  - [ ] Implement `addMemory(params: AddMemoryParams): Promise<MemoryId>`
-  - [ ] Validate inputs
-  - [ ] Generate embeddings
-  - [ ] Store in appropriate memory component
-  - [ ] Generate links to related memories
-  - [ ] Return memory ID
+- [x] **Create memory writer**
+  - [x] Create `src/server/tools/memoryAddTool.ts`
+  - [x] Implement `addMemory(params: AddMemoryParams): Promise<MemoryId>`
+  - [x] Validate inputs
+  - [x] Generate embeddings
+  - [x] Store in appropriate memory component
+  - [x] Generate links to related memories
+  - [x] Return memory ID
 
-- [ ] **Add moderation layer**
-  - [ ] Check content for harmful/inappropriate content
-  - [ ] Use OpenAI moderation API
-  - [ ] Reject or flag problematic content
-  - [ ] Log moderation decisions
+- [x] **Add moderation layer**
+  - [x] Check content for harmful/inappropriate content
+  - [x] Use OpenAI moderation API
+  - [x] Reject or flag problematic content
+  - [x] Log moderation decisions
 
-- [ ] **Implement memory update**
-  - [ ] Tool: `memory.update`
-  - [ ] Allow modifying existing memories
-  - [ ] Preserve version history
-  - [ ] Re-generate embeddings if content changed
-  - [ ] Update links
+- [x] **Implement memory update**
+  - [x] Tool: `memory_update`
+  - [x] Allow modifying existing memories
+  - [x] Preserve version history
+  - [x] Re-generate embeddings if content changed
+  - [x] Update links
 
-- [ ] **Add memory deletion**
-  - [ ] Tool: `memory.delete`
-  - [ ] Soft delete (mark inactive)
-  - [ ] Preserve for audit trail
-  - [ ] Remove from search results
-  - [ ] Cascade to links (mark orphaned)
+- [x] **Add memory deletion**
+  - [x] Tool: `memory_delete`
+  - [x] Soft delete (mark inactive)
+  - [x] Preserve for audit trail
+  - [x] Remove from search results
+  - [x] Cascade to links (mark orphaned)
 
-- [ ] **Write tests**
-  - [ ] Test valid memory addition
-  - [ ] Test validation rejection
-  - [ ] Test moderation filtering
-  - [ ] Test memory update
-  - [ ] Test memory deletion
+- [x] **Write tests**
+  - [x] Test valid memory addition
+  - [x] Test validation rejection
+  - [x] Test moderation filtering
+  - [x] Test memory update
+  - [x] Test memory deletion
 
 **Files to create:**
 
@@ -1219,22 +1220,22 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 #### Step 3.3.3: Add Memory Addition to Agent Workflows
 
-- [ ] **Update workflow to use memory.add**
-  - [ ] Modify `mylo-mcp-agent.workflow.json`
-  - [ ] Add memory.add call after learning new facts
-  - [ ] Store project decisions as project memory
-  - [ ] Store user preferences as episodic memory
+- [x] **Update workflow to use memory_add**
+  - [x] Modify `mylo-mcp-bot.workflow.json`
+  - [x] Add memory_add call after learning new facts
+  - [x] Store project decisions as project memory
+  - [x] Store user preferences as episodic memory
 
-- [ ] **Implement memory synthesis**
-  - [ ] After conversation, synthesize key learnings
-  - [ ] Use LLM to extract important facts
-  - [ ] Store as semantic memory
-  - [ ] Link to conversation (episodic memory)
+- [x] **Implement memory synthesis**
+  - [x] After conversation, synthesize key learnings
+  - [x] Use LLM to extract important facts
+  - [x] Store as semantic memory
+  - [x] Link to conversation (episodic memory)
 
-- [ ] **Add memory review process**
-  - [ ] Periodic review of agent-added memories
-  - [ ] Human-in-the-loop approval for sensitive data
-  - [ ] Dashboard for memory management
+- [x] **Add memory review process**
+  - [x] Periodic review of agent-added memories
+  - [x] Human-in-the-loop approval for sensitive data
+  - [x] Dashboard for memory management
 
 **Files to modify:**
 
@@ -1244,23 +1245,23 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 ---
 
-### Milestone 3.4: Integration and Testing
+### Milestone 3.4: Integration and Testing - SKIP
 
 **Goal:** Integrate all adaptive features and validate end-to-end.
 
 #### Step 3.4.1: Feature Flag Management
 
-- [ ] **Implement feature flag system**
-  - [ ] Add configuration for all new features:
+- [x] **Implement feature flag system**
+  - [x] Add configuration for all new features:
     - `HYBRID_SEARCH_ENABLED`
     - `MEMORY_ROUTING_ENABLED`
     - `EPISODIC_MEMORY_ENABLED`
     - `MEMORY_GRAPH_ENABLED`
     - `ADAPTIVE_RETRIEVAL_ENABLED`
     - `RUNTIME_MEMORY_ENABLED`
-  - [ ] Support environment variables
-  - [ ] Support runtime configuration
-  - [ ] Add admin API to toggle flags
+  - [x] Support environment variables
+  - [x] Support runtime configuration
+  - [x] Add admin API to toggle flags
 
 - [ ] **Create gradual rollout plan**
   - [ ] Phase 1: Enable hybrid search (50% traffic)
@@ -1275,7 +1276,7 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 ---
 
-#### Step 3.4.2: Comprehensive Integration Testing
+#### Step 3.4.2: Comprehensive Integration Testing - SKIP
 
 - [ ] **Create end-to-end test suite**
   - [ ] Test full adaptive search workflow
@@ -1303,7 +1304,7 @@ This plan transforms our B+ static RAG implementation into a production-grade ad
 
 ---
 
-#### Step 3.4.3: Documentation and Training
+#### Step 3.4.3: Documentation and Training - update all documentation
 
 - [ ] **Update documentation**
   - [ ] Update README.md with new features
