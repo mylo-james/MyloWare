@@ -15,6 +15,8 @@
     "format": "prettier --write .",
     "test": "vitest --run",
     "ingest": "tsx scripts/ingestPrompts.ts",
+    "ingest:prompts": "tsx scripts/ingestPrompts.ts",
+    "aismr:archive-videos": "tsx scripts/archiveAismrVideos.ts",
     "tunnel": "tsx scripts/runCloudflared.ts",
     "tunnel:credentials": "tsx scripts/createTunnelCredentials.ts",
     "episodic:backfill": "tsx scripts/backfillRunsToEpisodic.ts",

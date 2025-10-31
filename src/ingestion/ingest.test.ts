@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { PromptEmbeddingsRepository } from '../db/repository';
 import { ingestPrompts, parsePromptDocument, type PromptType } from './ingest';
@@ -67,6 +68,36 @@ describe('parsePromptDocument', () => {
     expect(parsed.chunkTexts[0].granularity).toBe('document');
     expect(parsed.memoryType).toBe('semantic');
   });
+
+  it('applies memory overrides for type, project, tags, and memory type', () => {
+    const parsed = parsePromptDocument(
+      {
+        title: 'AISMR Specifications',
+        agent: {
+          id: 'memory-aismr-specifications',
+        },
+        memory: {
+          promptType: 'project',
+          project: ['aismr'],
+          type: 'procedural',
+          tags: ['specifications', 'sacred rules'],
+        },
+        operating_notes: {
+          rules: ['Timing: whisper at 3.0s', 'Aspect ratio: 9:16'],
+        },
+      },
+      'memory/aismr-specifications.json',
+    );
+
+    expect(parsed.promptKey).toBe('memory-aismr-specifications');
+    expect(parsed.type).toBe<'project'>('project');
+    expect(parsed.projectSlug).toBe('aismr');
+    const metadata = parsed.metadata as Record<string, unknown>;
+    expect(metadata.project).toEqual(expect.arrayContaining(['aismr']));
+    expect(metadata.tags).toEqual(expect.arrayContaining(['specifications', 'sacred-rules']));
+    expect(metadata.memoryType).toBe('procedural');
+    expect(metadata.sourcePath).toBe('memory/aismr-specifications.json');
+  });
 });
 
 describe('ingestPrompts', () => {
@@ -133,7 +164,25 @@ function pathFixtureDirectory(): string {
 }
 
 async function countPromptFiles(): Promise<number> {
-  const directory = pathFixtureDirectory();
-  const entries = await fs.readdir(directory);
-  return entries.filter((name) => name.endsWith('.json')).length;
+  return countJsonFiles(pathFixtureDirectory());
+}
+
+async function countJsonFiles(directory: string): Promise<number> {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  let count = 0;
+
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      count += await countJsonFiles(fullPath);
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith('.json')) {
+      count += 1;
+    }
+  }
+
+  return count;
 }

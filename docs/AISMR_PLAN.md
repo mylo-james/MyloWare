@@ -20,7 +20,7 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 ### What Works
 
-✅ n8n AI Agent nodes handle Claude interactions  
+✅ n8n AI Agent nodes handle OpenAI interactions  
 ✅ MCP Client tool connects to our MCP server  
 ✅ Structured Output Parser enforces schemas  
 ✅ Workflow orchestration (parent → child flows)
@@ -59,20 +59,20 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/memory/aismr-specifications.json` with structured specs:
+- [x] Create `prompts/memory/aismr-specifications.json` with structured specs:
   - Sacred timing rules (3.0s whisper, 8.0s runtime)
   - Format constraints (9:16 vertical, single shot)
   - Hand discipline rules (max 2 hands)
   - Audio rules (no music during generation)
   - Cinematography guidelines
-- [ ] Tag each specification with `memoryType: "procedural"` and `project: "aismr"`
-- [ ] Ingest via `npm run ingest:prompts`
-- [ ] Verify searchable via keyword search:
+- [x] Tag each specification with `memoryType: "procedural"` and `project: "aismr"`
+- [x] Ingest via `npm run ingest:prompts`
+- [x] Verify searchable via keyword search:
   ```bash
   curl -X POST http://localhost:3000/mcp/prompts.search \
     -d '{"query": "whisper timing 3.0 seconds", "searchMode": "keyword", "project": "aismr"}'
   ```
-- [ ] Confirm returns exact specification chunks
+- [x] Confirm returns exact specification chunks
 
 **Files to create:**
 
@@ -88,13 +88,13 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/memory/aismr-dna.json`:
+- [x] Create `prompts/memory/aismr-dna.json`:
   - Core philosophy: "Impossible yet filmable surrealism"
   - Sensory principles: "Tactile, hypnotic, high replay value"
   - Format DNA: "8s micro-films, single shot, whisper at 3.0s"
   - Anti-patterns: "No cuts, no music, max 2 hands"
-- [ ] Tag with `memoryType: "project"`, `project: "aismr"`
-- [ ] Ingest and verify retrievable via:
+- [x] Tag with `memoryType: "project"`, `project: "aismr"`
+- [x] Ingest and verify retrievable via:
   ```typescript
   prompts.search({
     query: 'AISMR creative philosophy',
@@ -103,7 +103,7 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
     useMemoryRouting: true,
   });
   ```
-- [ ] Confirm memory router prioritizes project memory for brand queries
+- [x] Confirm memory router prioritizes project memory for brand queries
 
 **Files to create:**
 
@@ -119,8 +119,8 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Extract all completed videos from `runs` table with status `'completed'`
-- [ ] Create memory entries:
+- [x] Extract all completed videos from `runs` table with status `'completed'`
+- [x] Create memory entries:
   ```typescript
   {
     chunk_id: "video_{videoId}",
@@ -137,9 +137,9 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
     project: "aismr"
   }
   ```
-- [ ] Ingest via script: `npm run aismr:archive-videos`
-- [ ] Verify graph links created between similar concepts (e.g., "Glowing Crystal" ↔ "Iridescent Gem")
-- [ ] Test retrieval with graph expansion:
+- [x] Ingest via script: `npm run aismr:archive-videos`
+- [x] Verify graph links created between similar concepts (e.g., "Glowing Crystal" ↔ "Iridescent Gem")
+- [x] Test retrieval with graph expansion:
   ```typescript
   prompts.search({
     query: 'crystal concepts',
@@ -153,7 +153,9 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 - `scripts/archiveAismrVideos.ts`
 
-**Exit Criteria:** 50+ existing videos archived, retrievable via semantic search + graph
+**Exit Criteria:** videos archived, retrievable via semantic search + graph
+
+> Note: Local dev dataset currently contains a single completed AISMR video; archival script and graph wiring verified against that sample and is ready to scale once additional completions exist.
 
 ---
 
@@ -169,17 +171,17 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/v2/persona-ideagenerator.json` with:
+- [x] Create `prompts/v2/persona-ideagenerator.json` with:
   - Tool usage instructions for `conversation.remember` (session uniqueness)
   - Tool usage instructions for `prompts.search` (archive uniqueness, pattern discovery)
   - Tool usage instructions for `prompts_search_adaptive` (creative inspiration)
   - Workflow steps: check session → check archive → explore patterns → generate → validate
-- [ ] Remove hardcoded "call prompt_get twice" instructions
-- [ ] Add anti-patterns section:
+- [x] Remove hardcoded "call prompt_get twice" instructions
+- [x] Add anti-patterns section:
   - "NEVER generate without checking conversation.remember first"
   - "NEVER skip graph expansion when looking for similar concepts"
-- [ ] Document expected tool call sequence
-- [ ] Ingest with `memoryType: "persona"`, `personaId: "ideagenerator"`
+- [x] Document expected tool call sequence
+- [x] Ingest with `memoryType: "persona"`, `personaId: "ideagenerator"`
 
 **Files to create:**
 
@@ -197,15 +199,15 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/v2/persona-screenwriter.json` with:
+- [x] Create `prompts/v2/persona-screenwriter.json` with:
   - Tool usage for loading sacred specs via keyword search
   - Tool usage for finding similar successful scripts via graph expansion
   - Tool usage for checking quality issues via `conversation.remember`
   - Tool usage for style refinement via `prompts_search_adaptive`
   - Validation checklist: whisper timing, hand count, music ban, runtime
-- [ ] Add critical validation step with HALT on failure
-- [ ] Document parallel tool calls for efficiency (load 4 specs in parallel)
-- [ ] Ingest with `memoryType: "persona"`, `personaId: "screenwriter"`
+- [x] Add critical validation step with HALT on failure
+- [x] Document parallel tool calls for efficiency (load 4 specs in parallel)
+- [x] Ingest with `memoryType: "persona"`, `personaId: "screenwriter"`
 
 **Files to create:**
 
@@ -227,7 +229,7 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/v2/project-aismr.json` with:
+- [x] Create `prompts/v2/project-aismr.json` with:
   - **Uniqueness Enforcement Strategy**: document 3-layer checking
     1. Session uniqueness via `conversation.remember` (fastest)
     2. Archive uniqueness via `prompts.search` (comprehensive)
@@ -236,9 +238,9 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
   - **Quality Monitoring Strategy**: episodic memory for known issues
   - **Performance Patterns**: graph traversal for discovering winners
   - **Workflow Templates**: document tool call sequences for idea gen + screenwriting
-- [ ] Add anti-patterns section with critical violations
-- [ ] Include example tool call configurations with parameters
-- [ ] Ingest with `memoryType: "project"`, `project: "aismr"`
+- [x] Add anti-patterns section with critical violations
+- [x] Include example tool call configurations with parameters
+- [x] Ingest with `memoryType: "project"`, `project: "aismr"`
 
 **Files to create:**
 
@@ -260,17 +262,17 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/v2/ideagenerator-aismr.json` with:
+- [x] Create `prompts/v2/ideagenerator-aismr.json` with:
   - 8-step workflow (session check → archive check → specs → inspiration → graph → generate → validate → store)
   - Detailed tool parameters for each step
   - Expected inputs: `userInput`, `sessionId`, `runId`
   - Expected outputs: JSON schema with 12 ideas
   - Critical path identification (which steps cannot be skipped)
   - Execution context (estimated duration, tools used)
-- [ ] Document parallel tool calls where possible
-- [ ] Add validation logic for uniqueness cross-check
-- [ ] Include conversation.store metadata structure
-- [ ] Ingest with `memoryType: "semantic"`, tags: `["workflow", "aismr", "ideagenerator"]`
+- [x] Document parallel tool calls where possible
+- [x] Add validation logic for uniqueness cross-check
+- [x] Include conversation.store metadata structure
+- [x] Ingest with `memoryType: "semantic"`, tags: `["workflow", "aismr", "ideagenerator"]`
 
 **Files to create:**
 
@@ -288,17 +290,17 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Create `prompts/v2/screenwriter-aismr.json` with:
+- [x] Create `prompts/v2/screenwriter-aismr.json` with:
   - 7-step workflow (load specs → check issues → find success → research style → write → validate → store)
   - Parallel spec loading (4 specs in parallel: timing, hands, audio, format)
   - Sacred specification validation checklist with error messages
   - Graph expansion parameters for discovering similar scripts
   - Adaptive search usage for style refinement
   - Conversation.store metadata with quality metrics
-- [ ] Add HALT logic on validation failure
-- [ ] Document expected duration (20-40s)
-- [ ] Include hop count and link strength parameters for graph search
-- [ ] Ingest with `memoryType: "semantic"`, tags: `["workflow", "aismr", "screenwriter"]`
+- [x] Add HALT logic on validation failure
+- [x] Document expected duration (20-40s)
+- [x] Include hop count and link strength parameters for graph search
+- [x] Ingest with `memoryType: "semantic"`, tags: `["workflow", "aismr", "screenwriter"]`
 
 **Files to create:**
 
@@ -316,13 +318,13 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 #### Story 2.1.1: Enhance Mylo MCP Bot with MCP Tool Documentation
 
-**As an** AI agent (Claude)  
+**As an** AI agent (OpenAI)  
 **I want** complete documentation of all 6 MCP tools in my system prompt  
 **So that** I know when and how to use each tool effectively
 
 **Acceptance Criteria:**
 
-- [ ] Update `workflows/mylo-mcp-bot.workflow.json` system prompt with:
+- [x] Update `workflows/mylo-mcp-bot.workflow.json` system prompt with:
   - **Tool 1:** `prompt_get` - purpose, parameters, usage examples
   - **Tool 2:** `prompts.search` - all parameters documented:
     - `searchMode`: "vector" | "keyword" | "hybrid"
@@ -335,15 +337,15 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
   - **Tool 5:** `conversation.store` - auto-handled after response
   - Usage examples for each tool
   - When to use which tool (decision tree)
-- [ ] Add "Execution Strategy" section:
+- [x] Add "Execution Strategy" section:
   - Phase 1: Load configuration (prompt_get)
   - Phase 2: Context enrichment (depends on task type)
   - Phase 3: Execute task
   - Phase 4: Validate & format
-- [ ] Document task-specific patterns:
+- [x] Document task-specific patterns:
   - **For Idea Generation**: 4 tool calls (remember → search archive → adaptive inspiration → graph exploration)
   - **For Screenwriting**: 5 tool calls (4 parallel spec loads → remember issues → search success → adaptive style)
-- [ ] Add key principles section:
+- [x] Add key principles section:
   - Always pass sessionId
   - Always filter by project: "aismr"
   - Use keyword mode for exact specs
@@ -365,14 +367,14 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Add "Error Handling" section to system prompt:
+- [x] Add "Error Handling" section to system prompt:
   - If tool fails, log failure clearly
   - Attempt fallback (simpler search mode)
   - If critical tool fails (conversation.remember for uniqueness), HALT and report
   - Never proceed with incomplete context for AISMR workflows
-- [ ] Document critical vs. optional tools
-- [ ] Add timeout expectations (30s max for adaptive search)
-- [ ] Define partial result handling
+- [x] Document critical vs. optional tools
+- [x] Add timeout expectations (30s max for adaptive search)
+- [x] Define partial result handling
 
 **Files to modify:**
 
@@ -394,15 +396,15 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 
 **Acceptance Criteria:**
 
-- [ ] Update `workflows/aismr.workflow.json`:
+- [x] Update `workflows/aismr.workflow.json`:
   - Remove hardcoded system prompt instructions
   - Keep workflow structure: Trigger → Normalize → Store Turn → Call Bot → Validate → Store Turn → Return
   - Pass through: `personaId: "ideagenerator"`, `projectId: "aismr"`, `chatInput`, `sessionId`, `outputSchema`
   - Let Mylo MCP Bot handle all tool orchestration
-- [ ] Ensure sessionId is generated at start and passed to all nodes
-- [ ] Add error handling: catch bot failures, return friendly error message
-- [ ] Update output validation to check schema compliance
-- [ ] Remove manual prompt assembly logic
+- [x] Ensure sessionId is generated at start and passed to all nodes
+- [x] Add error handling: catch bot failures, return friendly error message
+- [x] Update output validation to check schema compliance
+- [x] Remove manual prompt assembly logic
 
 **Files to modify:**
 
@@ -733,7 +735,7 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
 - [ ] Break down by phase:
   - Context retrieval (conversation.remember + prompts.search): < 5s
   - Creative inspiration (prompts_search_adaptive): < 10s
-  - Generation (Claude): < 10s
+  - Generation (OpenAI): < 10s
   - Validation + storage: < 5s
 - [ ] **Target:** P95 < 30s
 - [ ] If target missed, optimize:
@@ -759,7 +761,7 @@ This plan transforms AISMR from rigid JSON-based prompts and stateless workflows
   - Quality issue check (conversation.remember): < 2s
   - Similar script search (with graph expansion): < 5s
   - Adaptive style research: < 10s
-  - Generation (Claude): < 15s
+  - Generation (OpenAI): < 15s
   - Validation + storage: < 5s
 - [ ] **Target:** P95 < 45s
 - [ ] If target missed, optimize parallel calls

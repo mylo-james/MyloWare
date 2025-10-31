@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json ?? {};\nconst userInput = typeof raw.userInput === 'string' ? raw.userInput.trim() : '';\nif (!userInput) {\n  throw new Error('AISMR workflow requires a non-empty userInput string.');\n}\nconst sessionId = raw.sessionId && typeof raw.sessionId === 'string' && raw.sessionId.trim().length > 0\n  ? raw.sessionId.trim()\n  : `aismr:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\nreturn {\n  json: {\n    userInput,\n    sessionId,\n    timestamps: {\n      receivedAt: new Date().toISOString()\n    }\n  }\n};"
+        "jsCode": "const raw = $json ?? {};\nconst userInput = typeof raw.userInput === 'string' ? raw.userInput.trim() : '';\nif (!userInput) {\n  throw new Error('AISMR workflow requires a non-empty userInput string.');\n}\nconst nowIso = new Date().toISOString();\nconst sessionId = raw.sessionId && typeof raw.sessionId === 'string' && raw.sessionId.trim().length > 0\n  ? raw.sessionId.trim()\n  : `aismr:${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;\nconst personaId = typeof raw.personaId === 'string' && raw.personaId.trim().length > 0 ? raw.personaId.trim() : 'ideagenerator';\nconst projectId = typeof raw.projectId === 'string' && raw.projectId.trim().length > 0 ? raw.projectId.trim() : 'aismr';\nconst outputSchema = {\n  type: 'object',\n  properties: {\n    userIdea: {\n      type: 'string',\n      description: 'Normalized base object (lowercase singular) applied to every idea.'\n    },\n    ideas: {\n      type: 'array',\n      description: 'Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.',\n      items: {\n        type: 'object',\n        properties: {\n          idea: {\n            type: 'string',\n            description: 'Title Case descriptor + singular object (two words, descriptor is one word).'\n          },\n          vibe: {\n            type: 'string',\n            description: '2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.'\n          }\n        },\n        required: ['idea', 'vibe'],\n        additionalProperties: false\n      },\n      minItems: 12,\n      maxItems: 12\n    }\n  },\n  required: ['userIdea', 'ideas'],\n  additionalProperties: false\n};\nreturn {\n  json: {\n    userInput,\n    sessionId,\n    personaId,\n    projectId,\n    outputSchema: JSON.stringify(outputSchema),\n    timestamps: {\n      receivedAt: nowIso\n    },\n    userId: raw.userId ?? null,\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -34,7 +34,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const normalized = $('Normalize Request').item?.json ?? {};\nconst sessionId = typeof normalized.sessionId === 'string' ? normalized.sessionId.trim() : '';\nconst content = typeof normalized.userInput === 'string' ? normalized.userInput.trim() : '';\nconst timestamp = normalized.timestamps?.receivedAt ?? new Date().toISOString();\n\nconst metadata = {\n  workflow: 'aismr',\n  timestamp,\n  source: 'n8n-aismr',\n};\n\nconst payload = sessionId && content\n  ? {\n      sessionId,\n      role: 'user',\n      content,\n      metadata,\n      embeddingText: content,\n      userId: normalized.userId ?? null,\n    }\n  : null;\n\nreturn {\n  json: {\n    ...normalized,\n    conversationStorePayload: payload,\n  },\n};\n"
+        "jsCode": "const normalized = $('Normalize Request').item?.json ?? {};\nconst sessionId = typeof normalized.sessionId === 'string' ? normalized.sessionId.trim() : '';\nconst content = typeof normalized.userInput === 'string' ? normalized.userInput.trim() : '';\nconst timestamp = normalized.timestamps?.receivedAt ?? new Date().toISOString();\n\nconst metadata = {\n  workflow: 'aismr',\n  persona: normalized.personaId,\n  project: normalized.projectId,\n  timestamp,\n};\n\nconst payload = sessionId && content\n  ? {\n      sessionId,\n      role: 'user',\n      content,\n      metadata,\n      embeddingText: content,\n      userId: normalized.userId ?? null,\n    }\n  : null;\n\nreturn {\n  json: {\n    ...normalized,\n    conversationStorePayload: payload,\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -68,7 +68,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare agent context with mandatory tooling instructions for AISMR idea generation\nconst normalized = $('Prepare User Store Request').item?.json ?? $('Normalize Request').item?.json ?? {};\nconst storeResponse = $('Store User Turn').item?.json ?? {};\nconst storedTurn = storeResponse.data?.turn ?? null;\nconst latestLine = storedTurn\n  ? `USER (${storedTurn.created_at ?? 'recent'}): ${String(storedTurn.content ?? '').slice(0, 240)}`\n  : `USER: ${normalized.userInput}`;\n\nconst systemPrompt = [\n  'You are Casey, an AI collaborator for Mylo. Keep responses succinct, warm, and actionable.',\n  '## Non-negotiable startup steps',\n  'Before analysing the request, you MUST execute these tools in order:',\n  '1. Call `prompt_get` for the Idea Generator persona using this exact payload (replace the id with your own identifier if needed):',\n  '{\"jsonrpc\":\"2.0\",\"id\":\"persona-load\",\"method\":\"tools/call\",\"params\":{\"name\":\"prompt_get\",\"arguments\":{\"persona_name\":\"ideagenerator\"}}}',\n  '2. Call `prompt_get` for the AISMR project using this exact payload:',\n  '{\"jsonrpc\":\"2.0\",\"id\":\"project-load\",\"method\":\"tools/call\",\"params\":{\"name\":\"prompt_get\",\"arguments\":{\"project_name\":\"aismr\"}}}',\n  'Do not wrap the arguments in strings or include extra fields. If either call fails, retry once and then surface the error to the user.',\n  'After both prompts are loaded you may use additional MCP tools as needed.',\n  '## Output contract',\n  'Respond with JSON that conforms to the schema provided by the Structured Output Parser (userIdea string plus exactly 12 ideas with idea + vibe fields). Return JSON only—no markdown, no prose.',\n  '## Latest user input',\n  latestLine,\n].join('\\n\\n');\n\nconst sessionId = normalized.sessionId;\nconst timestamp = storedTurn?.created_at ?? normalized.timestamps?.receivedAt ?? new Date().toISOString();\n\nreturn {\n  json: {\n    session: {\n      id: sessionId,\n      originalId: sessionId,\n      userId: normalized.userId ?? null,\n    },\n    message: {\n      text: normalized.userInput,\n      type: 'text',\n      timestamp,\n      platform: 'internal',\n    },\n    systemPrompt,\n    conversation: {\n      userTurn: storedTurn,\n    },\n    telemetry: {\n      normalize: normalized,\n      userStore: storeResponse,\n    },\n  },\n};\n"
+        "jsCode": "const normalized = $('Normalize Request').item?.json ?? {};\nconst payload = {\n  projectId: normalized.projectId,\n  personaId: normalized.personaId,\n  chatInput: normalized.userInput,\n  outputSchema: normalized.outputSchema,\n  sessionId: normalized.sessionId,\n};\nreturn { json: payload };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -77,78 +77,97 @@
         256
       ],
       "id": "817fc5a0-bb9c-4b38-b5ca-3995949055f8",
-      "name": "Assemble Agent Context"
+      "name": "Prepare Mylo Inputs"
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.message.text }}",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "={{ $json.systemPrompt }}"
-        }
+        "workflowId": {
+          "__rl": true,
+          "value": "Cz7h4stqCFJ4qZ9I",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Cz7h4stqCFJ4qZ9I",
+          "cachedResultName": "Mylo_MCP_Bot"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "projectId": "={{ $json.projectId }}",
+            "personaId": "={{ $json.personaId }}",
+            "chatInput": "={{ $json.chatInput }}",
+            "outputSchema": "={{ $json.outputSchema }}",
+            "sessionId": "={{ $json.sessionId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "projectId",
+              "displayName": "projectId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "personaId",
+              "displayName": "personaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "chatInput",
+              "displayName": "chatInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "outputSchema",
+              "displayName": "outputSchema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
       "position": [
         -48,
         256
       ],
       "id": "144eae3a-bdf1-4c68-b1ae-fc040b6b942d",
-      "name": "AI Agent"
+      "name": "Call 'Mylo_MCP_Bot'",
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4.1-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4.1-mini"
-        },
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        -112,
-        480
-      ],
-      "id": "0da62048-a8bb-4e9c-b755-ddb29361f4a3",
-      "name": "OpenAI Chat Model",
-      "credentials": {
-        "openAiApi": {
-          "id": "ddYuAnkE3FT5NJj3",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
-        "serverTransport": "httpStreamable",
-        "authentication": "headerAuth",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
-      "typeVersion": 1.1,
-      "position": [
-        32,
-        480
-      ],
-      "id": "39c4981b-4d52-4a9a-b821-d5b3ccd7df9a",
-      "name": "MCP Client",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const context = $('Assemble Agent Context').item?.json ?? {};\nconst parsed = $json ?? {};\nif (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {\n  throw new Error('AISMR agent response missing structured payload.');\n}\nif (typeof parsed.userIdea !== 'string' || parsed.userIdea.trim().length === 0) {\n  throw new Error('AISMR agent output missing userIdea string.');\n}\nif (!Array.isArray(parsed.ideas) || parsed.ideas.length !== 12) {\n  throw new Error('AISMR agent must return an array of exactly 12 ideas.');\n}\nfor (const [index, idea] of parsed.ideas.entries()) {\n  if (!idea || typeof idea !== 'object') {\n    throw new Error(`Idea #${index + 1} is not an object.`);\n  }\n  if (typeof idea.idea !== 'string' || idea.idea.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing idea text.`);\n  }\n  if (typeof idea.vibe !== 'string' || idea.vibe.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing vibe text.`);\n  }\n}\nconst rawResponse = JSON.stringify(parsed, null, 2);\nconst timestamp = new Date().toISOString();\nconst conversationStorePayload = {\n  sessionId: context.session?.id ?? null,\n  role: 'assistant',\n  content: rawResponse,\n  userId: context.session?.userId ?? null,\n  metadata: {\n    workflow: 'aismr',\n    timestamp,\n    persona: 'ideagenerator',\n    project: 'aismr',\n    ideaCount: parsed.ideas.length,\n    userIdea: parsed.userIdea,\n  },\n  embeddingText: rawResponse,\n};\nreturn {\n  json: {\n    sessionId: context.session?.id ?? null,\n    userIdea: parsed.userIdea,\n    ideas: parsed.ideas,\n    rawResponse,\n    conversationStorePayload,\n    telemetry: {\n      agent: parsed,\n      context,\n    },\n  },\n};\n"
+        "jsCode": "function tryParse(value) {\n  if (typeof value === 'string') {\n    try {\n      return JSON.parse(value);\n    } catch (error) {\n      return null;\n    }\n  }\n  return null;\n}\n\nfunction extractStructured(value) {\n  if (value == null) {\n    return null;\n  }\n  if (typeof value === 'string') {\n    const parsed = tryParse(value);\n    if (parsed) {\n      return extractStructured(parsed);\n    }\n    return null;\n  }\n  if (Array.isArray(value)) {\n    for (const item of value) {\n      const extracted = extractStructured(item);\n      if (extracted) return extracted;\n    }\n    return null;\n  }\n  if (typeof value === 'object') {\n    if (typeof value.userIdea === 'string' && Array.isArray(value.ideas)) {\n      return value;\n    }\n    const candidates = [value.output, value.result, value.structuredOutput, value.data, value.response, value.content];\n    for (const candidate of candidates) {\n      const extracted = extractStructured(candidate);\n      if (extracted) return extracted;\n    }\n  }\n  return null;\n}\n\nconst original = $json ?? {};\nif (original.error) {\n  const reason = typeof original.error === 'object' ? (original.error.message || original.error.reason || JSON.stringify(original.error)) : String(original.error);\n  throw new Error(`Mylo MCP Bot failed: ${reason}`);\n}\n\nconst structured = extractStructured(original);\nif (!structured) {\n  throw new Error('AISMR Mylo response did not include structured output.');\n}\nif (typeof structured.userIdea !== 'string' || structured.userIdea.trim().length === 0) {\n  throw new Error('AISMR Mylo response missing userIdea string.');\n}\nif (!Array.isArray(structured.ideas) || structured.ideas.length !== 12) {\n  throw new Error('AISMR Mylo response must contain exactly 12 ideas.');\n}\nstructured.ideas.forEach((idea, index) => {\n  if (!idea || typeof idea !== 'object') {\n    throw new Error(`Idea #${index + 1} is not an object.`);\n  }\n  if (typeof idea.idea !== 'string' || idea.idea.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing idea text.`);\n  }\n  if (typeof idea.vibe !== 'string' || idea.vibe.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing vibe text.`);\n  }\n});\n\nconst normalized = $('Normalize Request').item?.json ?? {};\nconst rawResponse = JSON.stringify(structured, null, 2);\nconst sessionId = normalized.sessionId ?? null;\nconst timestamp = new Date().toISOString();\n\nconst conversationStorePayload = {\n  sessionId,\n  role: 'assistant',\n  content: rawResponse,\n  userId: normalized.userId ?? null,\n  metadata: {\n    workflow: 'aismr',\n    persona: normalized.personaId,\n    project: normalized.projectId,\n    ideaCount: structured.ideas.length,\n    userIdea: structured.userIdea,\n    generatedAt: timestamp,\n  },\n  embeddingText: rawResponse,\n};\n\nreturn {\n  json: {\n    sessionId,\n    userIdea: structured.userIdea,\n    ideas: structured.ideas,\n    rawResponse,\n    conversationStorePayload,\n    telemetry: {\n      myloResponse: original,\n    },\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -182,7 +201,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $('Prepare Response').item?.json ?? {};\nconst assistantStore = $json ?? {};\nconst userStore = $('Store User Turn').item?.json ?? {};\n\nreturn {\n  json: {\n    sessionId: response.sessionId ?? null,\n    userIdea: response.userIdea,\n    ideas: response.ideas,\n    rawResponse: response.rawResponse,\n    telemetry: {\n      agent: response.telemetry?.agent ?? null,\n      context: response.telemetry?.context ?? null,\n      userStore,\n      assistantStore,\n    },\n  },\n};\n"
+        "jsCode": "const response = $('Prepare Response').item?.json ?? {};\nconst assistantStore = $json ?? {};\nconst userStore = $('Store User Turn').item?.json ?? {};\n\nreturn {\n  json: {\n    sessionId: response.sessionId ?? null,\n    userIdea: response.userIdea,\n    ideas: response.ideas,\n    rawResponse: response.rawResponse,\n    telemetry: {\n      myloResponse: response.telemetry?.myloResponse ?? null,\n      userStore,\n      assistantStore,\n    },\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -192,20 +211,6 @@
       ],
       "id": "dfbe9b8a-7356-4fbd-9e5a-2be81fbd13d4",
       "name": "Finalize Response"
-    },
-    {
-      "parameters": {
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"userIdea\": {\n      \"type\": \"string\",\n      \"description\": \"Normalized base object (lowercase singular) applied to every idea.\"\n    },\n    \"ideas\": {\n      \"type\": \"array\",\n      \"description\": \"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"idea\": {\n            \"type\": \"string\",\n            \"description\": \"Title Case descriptor + singular object (two words, descriptor is one word).\"\n          },\n          \"vibe\": {\n            \"type\": \"string\",\n            \"description\": \"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\"\n          }\n        },\n        \"required\": [\n          \"idea\",\n          \"vibe\"\n        ],\n        \"additionalProperties\": false\n      },\n      \"minItems\": 12,\n      \"maxItems\": 12\n    }\n  },\n  \"required\": [\n    \"userIdea\",\n    \"ideas\"\n  ],\n  \"additionalProperties\": false\n}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [
-        160,
-        480
-      ],
-      "id": "23ee073c-e431-4fee-a232-4e08aa01822c",
-      "name": "Structured Output Parser"
     }
   ],
   "connections": {
@@ -231,61 +236,6 @@
         ]
       ]
     },
-    "Assemble Agent Context": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Prepare Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "MCP Client": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Structured Output Parser": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_outputParser",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Prepare User Store Request": {
       "main": [
         [
@@ -301,7 +251,7 @@
       "main": [
         [
           {
-            "node": "Assemble Agent Context",
+            "node": "Prepare Mylo Inputs",
             "type": "main",
             "index": 0
           }
@@ -333,6 +283,28 @@
     "Finalize Response": {
       "main": [
         []
+      ]
+    },
+    "Prepare Mylo Inputs": {
+      "main": [
+        [
+          {
+            "node": "Call 'Mylo_MCP_Bot'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Mylo_MCP_Bot'": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

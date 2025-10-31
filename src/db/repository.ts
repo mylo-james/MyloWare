@@ -844,8 +844,33 @@ function normalizeVector(value: unknown): number[] {
     return value.map((item) => Number(item));
   }
 
+  if (value instanceof Uint8Array) {
+    const view = new DataView(value.buffer, value.byteOffset, value.byteLength);
+    const result: number[] = [];
+    for (let offset = 0; offset <= view.byteLength - 4; offset += 4) {
+      result.push(view.getFloat32(offset, true));
+    }
+    if (result.length > 0) {
+      return result;
+    }
+  }
+
   if (value instanceof Float32Array || value instanceof Float64Array) {
     return Array.from(value);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => Number(item));
+        }
+      } catch {
+        // Fall through to error below when parsing fails.
+      }
+    }
   }
 
   if (value == null) {

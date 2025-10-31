@@ -25,6 +25,16 @@ export interface IngestResult {
   skipped: string[];
 }
 
+interface MemoryConfigInput {
+  promptKey?: string | null;
+  promptType?: PromptType | null;
+  type?: MemoryType | string | null;
+  persona?: string | string[] | null;
+  project?: string | string[] | null;
+  tags?: string | string[] | null;
+  metadata?: Record<string, unknown> | null;
+}
+
 interface PromptDocument {
   title?: string;
   activation_notice?: string | null;
@@ -43,6 +53,8 @@ interface PromptDocument {
   workflow?: Record<string, unknown> | null;
   orientation?: Record<string, unknown> | null;
   additional_sections?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  memory?: MemoryConfigInput | null;
   [key: string]: unknown;
 }
 
@@ -62,6 +74,16 @@ interface ChunkText {
   granularity: 'document' | 'section';
   text: string;
   index: number;
+}
+
+interface MemoryConfig {
+  promptKey?: string;
+  promptType?: PromptType;
+  type?: MemoryType;
+  persona: string[];
+  project: string[];
+  tags: string[];
+  metadata: Record<string, unknown>;
 }
 
 const DEFAULT_PROMPTS_DIR = path.resolve(process.cwd(), 'prompts');
@@ -153,18 +175,28 @@ interface PromptFile {
   relativePath: string;
 }
 
-async function loadPromptFiles(directory: string): Promise<PromptFile[]> {
+async function loadPromptFiles(directory: string, baseDir: string = directory): Promise<PromptFile[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const files: PromptFile[] = [];
 
   for (const entry of entries) {
+    const absolutePath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      const nested = await loadPromptFiles(absolutePath, baseDir);
+      files.push(...nested);
+      continue;
+    }
+
     if (!entry.isFile() || !entry.name.endsWith('.json')) {
       continue;
     }
 
+    const relativePath = path.relative(baseDir, absolutePath).split(path.sep).join('/');
+
     files.push({
-      absolutePath: path.join(directory, entry.name),
-      relativePath: entry.name,
+      absolutePath,
+      relativePath,
     });
   }
 
@@ -178,15 +210,15 @@ async function readPromptDocument(filePath: string): Promise<PromptDocument> {
 }
 
 export function parsePromptDocument(document: PromptDocument, sourceName: string): ParsedPrompt {
-  const promptKey = derivePromptKey(document, sourceName);
-  const identity = derivePromptIdentity(document, promptKey, sourceName);
+  const memory = normalizeMemoryConfig(document.memory);
+  const promptKey = derivePromptKey(document, sourceName, memory);
+  const identity = derivePromptIdentity(document, promptKey, sourceName, memory);
   const content = buildPromptContent(document, identity.promptTitle);
   const checksum = createHash('sha256').update(content).digest('hex');
   const chunkTexts = buildChunkTexts(content);
 
-  const metadata = buildPromptMetadata(document, identity);
-  const memoryType: MemoryType =
-    identity.type === 'persona' ? 'persona' : identity.type === 'project' ? 'project' : 'semantic';
+  const memoryType = resolveMemoryType(identity.type, memory.type);
+  const metadata = buildPromptMetadata(document, identity, memory, memoryType, sourceName);
 
   return {
     promptKey,
@@ -201,7 +233,15 @@ export function parsePromptDocument(document: PromptDocument, sourceName: string
   };
 }
 
-function derivePromptKey(document: PromptDocument, sourceName: string): string {
+function derivePromptKey(
+  document: PromptDocument,
+  sourceName: string,
+  memory: MemoryConfig,
+): string {
+  if (memory.promptKey) {
+    return memory.promptKey;
+  }
+
   const agentId = document.agent?.id?.trim();
   if (agentId && agentId.length > 0) {
     return agentId.toLowerCase();
@@ -221,7 +261,8 @@ interface PromptIdentity {
 function derivePromptIdentity(
   document: PromptDocument,
   promptKey: string,
-  sourceName: string,
+  _sourceName: string,
+  memory: MemoryConfig,
 ): PromptIdentity {
   const promptKeySlug = ensureSlug(promptKey);
   const title = document.title?.trim() ?? promptKey;
@@ -236,68 +277,81 @@ function derivePromptIdentity(
 
   const keyParts = promptKey.split('-').filter(Boolean);
 
+  let type: PromptType;
+  let personaSlug: string | null = null;
+  let projectSlug: string | null = null;
+
   if (inferredFromTitle === 'combination' || keyParts.length >= 2) {
-    const personaSlug = ensureSlug(keyParts[0]);
-    const projectSlug = ensureSlug(keyParts[keyParts.length - 1]);
-    return {
-      promptTitle: title,
-      personaSlug,
-      projectSlug,
-      type: 'combination',
-    };
+    type = 'combination';
+    personaSlug = ensureSlug(keyParts[0]);
+    projectSlug = ensureSlug(keyParts[keyParts.length - 1]);
+  } else if (inferredFromTitle === 'project') {
+    type = 'project';
+    projectSlug = promptKeySlug;
+  } else if (inferredFromTitle === 'persona') {
+    type = 'persona';
+    personaSlug = promptKeySlug;
+  } else {
+    const likelyProject = lowerTitle.includes('project') || promptKey === 'project';
+
+    if (likelyProject) {
+      type = 'project';
+      projectSlug = promptKeySlug;
+    } else {
+      type = 'persona';
+      personaSlug = promptKeySlug;
+    }
   }
 
-  if (inferredFromTitle === 'project') {
-    return {
-      promptTitle: title,
-      personaSlug: null,
-      projectSlug: promptKeySlug,
-      type: 'project',
-    };
-  }
-
-  if (inferredFromTitle === 'persona') {
-    return {
-      promptTitle: title,
-      personaSlug: promptKeySlug,
-      projectSlug: null,
-      type: 'persona',
-    };
-  }
-
-  // Fall back to persona unless title strongly indicates project.
-  const likelyProject = lowerTitle.includes('project') || promptKey === 'project';
-
-  if (likelyProject) {
-    return {
-      promptTitle: title,
-      personaSlug: null,
-      projectSlug: promptKeySlug,
-      type: 'project',
-    };
-  }
+  const overriddenType = memory.promptType ?? type;
+  const overriddenPersona = memory.persona[0] ?? personaSlug;
+  const overriddenProject = memory.project[0] ?? projectSlug;
 
   return {
     promptTitle: title,
-    personaSlug: promptKeySlug,
-    projectSlug: null,
-    type: 'persona',
+    personaSlug: overriddenType === 'project' ? null : overriddenPersona ?? null,
+    projectSlug: overriddenType === 'persona' ? null : overriddenProject ?? null,
+    type: overriddenType,
   };
 }
 
 function buildPromptMetadata(
   document: PromptDocument,
   identity: PromptIdentity,
+  memory: MemoryConfig,
+  memoryType: MemoryType,
+  sourcePath: string,
 ): Record<string, unknown> {
-  const persona = identity.personaSlug ? [identity.personaSlug] : [];
-  const project = identity.projectSlug ? [identity.projectSlug] : [];
+  const persona = dedupeStrings([
+    ...(memory.persona.length > 0 ? memory.persona : []),
+    identity.type !== 'project' ? identity.personaSlug ?? undefined : undefined,
+  ]);
+  const project = dedupeStrings([
+    ...(memory.project.length > 0 ? memory.project : []),
+    identity.type !== 'persona' ? identity.projectSlug ?? undefined : undefined,
+  ]);
 
   const metadata: Record<string, unknown> = {
     type: identity.type,
     persona,
     project,
     title: identity.promptTitle,
+    source: 'file',
+    sourcePath,
+    memoryType,
   };
+
+  if (memory.tags.length > 0) {
+    metadata.tags = memory.tags;
+  }
+
+  if (Object.keys(memory.metadata).length > 0) {
+    metadata.memory = memory.metadata;
+  }
+
+  if (document.metadata && typeof document.metadata === 'object') {
+    metadata.documentMetadata = document.metadata;
+  }
 
   if (document.activation_notice) {
     metadata.activationNotice = document.activation_notice;
@@ -334,8 +388,6 @@ function buildPromptMetadata(
   if (document.additional_sections) {
     metadata.additionalSections = document.additional_sections;
   }
-
-  metadata.source = 'file';
 
   return metadata;
 }
@@ -567,6 +619,8 @@ function extractAdditionalKeys(document: PromptDocument): Record<string, unknown
     'workflow',
     'orientation',
     'additional_sections',
+    'metadata',
+    'memory',
   ]);
 
   const extra: Record<string, unknown> = {};
@@ -679,6 +733,169 @@ async function buildEmbeddingRecords(
     checksum: prompt.checksum,
     memoryType: prompt.memoryType,
   }));
+}
+
+const MEMORY_TYPE_VALUES: MemoryType[] = ['persona', 'project', 'semantic', 'episodic', 'procedural'];
+const PROMPT_TYPE_VALUES: PromptType[] = ['persona', 'project', 'combination'];
+
+function resolveMemoryType(baseType: PromptType, override?: MemoryType): MemoryType {
+  if (override && MEMORY_TYPE_VALUES.includes(override)) {
+    return override;
+  }
+
+  if (baseType === 'persona') {
+    return 'persona';
+  }
+
+  if (baseType === 'project') {
+    return 'project';
+  }
+
+  return 'semantic';
+}
+
+function normalizeMemoryConfig(input?: MemoryConfigInput | null): MemoryConfig {
+  const base: MemoryConfig = {
+    promptKey: undefined,
+    promptType: undefined,
+    type: undefined,
+    persona: [],
+    project: [],
+    tags: [],
+    metadata: {},
+  };
+
+  if (!input || typeof input !== 'object') {
+    return base;
+  }
+
+  if (typeof input.promptKey === 'string') {
+    const trimmed = input.promptKey.trim();
+    if (trimmed.length > 0) {
+      base.promptKey = trimmed.toLowerCase();
+    }
+  }
+
+  if (typeof input.promptType === 'string') {
+    const normalizedPromptType = normalizePromptType(input.promptType);
+    if (normalizedPromptType) {
+      base.promptType = normalizedPromptType;
+    }
+  }
+
+  if (typeof input.type === 'string') {
+    const normalizedMemoryType = normalizeMemoryTypeValue(input.type);
+    if (normalizedMemoryType) {
+      base.type = normalizedMemoryType;
+    }
+  }
+
+  base.persona = normalizeSlugList(input.persona);
+  base.project = normalizeSlugList(input.project);
+  base.tags = normalizeTagList(input.tags);
+
+  if (input.metadata && typeof input.metadata === 'object' && !Array.isArray(input.metadata)) {
+    base.metadata = input.metadata;
+  }
+
+  return base;
+}
+
+function normalizeMemoryTypeValue(value: string): MemoryType | undefined {
+  const slug = ensureSlug(value);
+  if (!slug) {
+    return undefined;
+  }
+
+  const candidate = MEMORY_TYPE_VALUES.find((type) => type === slug);
+  return candidate;
+}
+
+function normalizePromptType(value: string): PromptType | undefined {
+  const normalised = value.trim().toLowerCase();
+  if (PROMPT_TYPE_VALUES.includes(normalised as PromptType)) {
+    return normalised as PromptType;
+  }
+
+  if (normalised === 'combo') {
+    return 'combination';
+  }
+
+  return undefined;
+}
+
+function normalizeSlugList(value: string | string[] | null | undefined): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const values = Array.isArray(value) ? value : [value];
+  const result: string[] = [];
+
+  for (const entry of values) {
+    if (typeof entry !== 'string') {
+      continue;
+    }
+
+    const slug = ensureSlug(entry);
+    if (!slug) {
+      continue;
+    }
+
+    if (!result.includes(slug)) {
+      result.push(slug);
+    }
+  }
+
+  return result;
+}
+
+function normalizeTagList(value: string | string[] | null | undefined): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const values = Array.isArray(value) ? value : [value];
+  const result: string[] = [];
+
+  for (const entry of values) {
+    if (typeof entry !== 'string') {
+      continue;
+    }
+
+    const slug = ensureSlug(entry);
+    const normalised = slug ?? entry.trim().toLowerCase();
+
+    if (!normalised || normalised.length === 0) {
+      continue;
+    }
+
+    if (!result.includes(normalised)) {
+      result.push(normalised);
+    }
+  }
+
+  return result;
+}
+
+function dedupeStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    if (!value) {
+      continue;
+    }
+
+    if (seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
 }
 
 function ensureSlug(value?: string | null): string | null {
