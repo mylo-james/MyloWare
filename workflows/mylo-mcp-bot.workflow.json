@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T02:03:21.253Z",
+  "updatedAt": "2025-11-02T05:56:58.453Z",
   "createdAt": "2025-11-02T01:07:29.357Z",
   "id": "7qSyk9RjD6HhPWNm",
   "name": "Mylo_MCP_Bot",
@@ -42,7 +42,7 @@
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "ddYuAnkE3FT5NJj3",
+          "id": "BPz7M5LEDbqEvdCZ",
           "name": "OpenAi account"
         }
       }
@@ -373,7 +373,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "a1188ce8-af4d-42ba-a64c-bfa4fa945f9f",
+  "versionId": "732a0436-02b4-4dbe-a07b-0a43de8d1302",
   "triggerCount": 0,
   "shared": [
     {
@@ -397,7 +397,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "updatedAt": "2025-11-02T06:40:51.365Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -414,12 +414,14 @@
                 "reportedSourceOther": "f"
               },
               "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-01",
+              "lastActiveAt": "2025-11-02",
               "isPending": false
             }
           }

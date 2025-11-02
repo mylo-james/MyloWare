@@ -228,11 +228,11 @@ export async function registerApiRoutes(
   dependencies: ApiRouteDependencies = {},
 ): Promise<void> {
   // Register HITL routes
-  const { registerHITLRoutes } = await import('./hitl');
+  const { registerHITLRoutes } = await import('./hitl.js');
   await registerHITLRoutes(app, { hitlService: dependencies.hitlService });
 
   // Register workflow-runs routes
-  const { registerWorkflowRunRoutes } = await import('./workflow-runs');
+  const { registerWorkflowRunRoutes } = await import('./workflow-runs.js');
   await registerWorkflowRunRoutes(app);
   const promptRepository = dependencies.promptRepository ?? new PromptEmbeddingsRepository();
   const embed = dependencies.embedTexts ?? embedTexts;

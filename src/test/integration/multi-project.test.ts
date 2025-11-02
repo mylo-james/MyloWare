@@ -271,7 +271,7 @@ describe('Multi-Project Integration', () => {
       return;
     }
 
-    const { WorkflowStateManager } = await import('../../workflow/WorkflowStateManager');
+    const { WorkflowStateManager } = await import('../../workflow/WorkflowStateManager.js');
     const stateManager = new WorkflowStateManager();
 
     const aismrRunId = randomUUID();
@@ -332,4 +332,3 @@ describe('Multi-Project Integration', () => {
     }
   });
 });
-

@@ -68,7 +68,7 @@
         "dependsOn": ["analyze_transcript"],
         "validation": {
           "timing": {
-            "runtime": undefined,
+            "runtime": null,
             "onViolation": "halt"
           },
           "custom": [

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T02:03:21.405Z",
+  "updatedAt": "2025-11-02T05:56:58.777Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -25,6 +25,32 @@
       "name": "Update Row with Prompt"
     },
     {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Called').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const run = $('Get Run').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = { ...clone(stages.screenplay), status: 'completed', output: $json.output ?? {} };\n  const videoStage = { ...clone(stages.video_generation), status: 'running' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  const mergedOutput = { ...(run.output ?? {}), screenplay: $json.output ?? {} };\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        -224
+      ],
+      "id": "5c6464f3-5b50-4d6f-9d87-6814c6efa57b",
+      "name": "Update Run Screenplay Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
       "parameters": {},
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -37,11 +63,13 @@
     },
     {
       "parameters": {
-        "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Called').item.json.runId) || '') }}",
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Called').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ status: 'failed', result: 'scripts_error' }) }}",
+        "jsonBody": "={{ ({\n  status: 'failed',\n  stages: {\n    idea_generation: ($('Get Run').item.json.stages?.idea_generation ?? { status: 'completed' }),\n    screenplay: {\n      status: 'failed',\n      error: {\n        message: $json.error?.message ?? 'Screenwriter workflow failed.',\n        stack: $json.error?.stack ?? null,\n        lastNode: $json.execution?.lastNodeExecuted ?? null\n      }\n    },\n    video_generation: ($('Get Run').item.json.stages?.video_generation ?? { status: 'pending' }),\n    publishing: ($('Get Run').item.json.stages?.publishing ?? { status: 'pending' })\n  },\n  output: {\n    stage: 'screenplay',\n    error: {\n      message: $json.error?.message ?? 'Screenwriter workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  }\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -51,7 +79,13 @@
         0
       ],
       "id": "a477a4ea-efbd-4aba-af0a-bd0fb4f9dc27",
-      "name": "Mark Run Failed (Scripts)"
+      "name": "Mark Run Failed (Scripts)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
@@ -66,9 +100,9 @@
           "mappingMode": "defineBelow",
           "value": {
             "projectId": "={{ $json.metadata.projectSlug }}",
-            "personaId": "ideagenerator",
+            "personaId": "screenwriter",
             "chatInput": "={{ $('When Called').item.json.userInput }}",
-            "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"userIdea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Normalized base object (lowercase singular) applied to every idea.\\\"},\\\"ideas\\\":{\\\"type\\\":\\\"array\\\",\\\"description\\\":\\\"Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.\\\",\\\"items\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"idea\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Title Case descriptor + singular object (two words, descriptor is one word).\\\"},\\\"vibe\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.\\\"}},\\\"required\\\":[\\\"idea\\\",\\\"vibe\\\"],\\\"additionalProperties\\\":false},\\\"minItems\\\":12,\\\"maxItems\\\":12}},\\\"required\\\":[\\\"userIdea\\\",\\\"ideas\\\"],\\\"additionalProperties\\\":false}\""
+            "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"prompt\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Complete video generation prompt for the AISMR video\\\"},\\\"sceneDescription\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Detailed scene description for the video\\\"},\\\"soundDesign\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"ASMR sound design elements\\\"},\\\"duration\\\":{\\\"type\\\":\\\"number\\\",\\\"description\\\":\\\"Expected duration in seconds\\\"}},\\\"required\\\":[\\\"prompt\\\",\\\"sceneDescription\\\"],\\\"additionalProperties\\\":false}\""
           },
           "matchingColumns": [],
           "schema": [
@@ -136,6 +170,9 @@
             },
             {
               "name": "runId"
+            },
+            {
+              "name": "ideaId"
             }
           ]
         }
@@ -151,7 +188,9 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -161,11 +200,17 @@
         -224
       ],
       "id": "72caab9a-2716-4bd2-ac5b-1be064550fea",
-      "name": "Get Run (API)"
+      "name": "Get Run (API)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+        "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\n\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\n\nconst normalized = {\n  ...payload,\n  run_id: payload.id,\n  project_id: payload.projectId ?? null,\n  projectId: payload.projectId ?? null,\n  session_id: payload.sessionId ?? null,\n  sessionId: payload.sessionId ?? null,\n  input: payload.input ?? {},\n  metadata,\n};\n\nreturn [{ json: normalized }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -179,6 +224,17 @@
   ],
   "connections": {
     "Update Row with Prompt": {
+      "main": [
+        [
+          {
+            "node": "Update Run Screenplay Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Screenplay Complete": {
       "main": [
         []
       ]
@@ -250,7 +306,7 @@
   "staticData": null,
   "meta": null,
   "pinData": null,
-  "versionId": "63daf0a2-bae1-4343-a50b-5aa235f6f2c0",
+  "versionId": "3ecd5363-9703-4aea-931a-8df02e14d57d",
   "triggerCount": 0,
   "shared": [
     {
@@ -274,7 +330,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "updatedAt": "2025-11-02T06:40:51.365Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -291,12 +347,14 @@
                 "reportedSourceOther": "f"
               },
               "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-01",
+              "lastActiveAt": "2025-11-02",
               "isPending": false
             }
           }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { HITLService } from './HITLService';
 import { NotificationService } from './NotificationService';
 import { WorkflowRunRepository } from '../../db/operations/workflowRunRepository';
@@ -9,31 +9,31 @@ import type { HITLApproval, WorkflowRun } from '../../db/operations/schema';
 
 describe('HITLService', () => {
   let service: HITLService;
-  let mockWorkflowRunRepo: vi.Mocked<WorkflowRunRepository>;
-  let mockHITLRepo: vi.Mocked<HITLRepository>;
-  let mockNotificationService: vi.Mocked<NotificationService>;
-  let mockEpisodicRepo: vi.Mocked<EpisodicMemoryRepository>;
+  let mockWorkflowRunRepo: Mocked<WorkflowRunRepository>;
+  let mockHITLRepo: Mocked<HITLRepository>;
+  let mockNotificationService: Mocked<NotificationService>;
+  let mockEpisodicRepo: Mocked<EpisodicMemoryRepository>;
 
   beforeEach(() => {
     mockWorkflowRunRepo = {
       getWorkflowRunById: vi.fn(),
       updateWorkflowRun: vi.fn(),
-    } as never;
+    } as unknown as Mocked<WorkflowRunRepository>;
 
     mockHITLRepo = {
       createHITLApproval: vi.fn(),
       getHITLApproval: vi.fn(),
       updateHITLApproval: vi.fn(),
       getPendingApprovals: vi.fn(),
-    } as never;
+    } as unknown as Mocked<HITLRepository>;
 
     mockNotificationService = {
       notify: vi.fn(),
-    } as never;
+    } as unknown as Mocked<NotificationService>;
 
     mockEpisodicRepo = {
       storeConversationTurn: vi.fn(),
-    } as never;
+    } as unknown as Mocked<EpisodicMemoryRepository>;
 
     service = new HITLService(
       mockWorkflowRunRepo,
@@ -334,4 +334,3 @@ describe('HITLService', () => {
     });
   });
 });
-

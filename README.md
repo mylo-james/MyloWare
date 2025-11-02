@@ -17,19 +17,22 @@ A Model Context Protocol (MCP) server providing prompt management, vector search
 ### Local Development
 
 ```bash
-# One-command setup
-./scripts/dev-setup.sh
+# Start the development environment (n8n + databases + cloudflared)
+npm run dev:up
 
-# Start the server
+# Check if everything is running
+npm run services:check
+
+# Start the MCP server (in another terminal)
 npm run dev
 
 # Access services
-# - MCP Server: http://localhost:3456 (local) / https://mcp-vector.mjames.dev (tunnel)
-# - n8n: https://n8n.mjames.dev
+# - n8n: http://localhost:5678 or https://n8n.mjames.dev
+# - MCP Server: http://localhost:3456 or https://mcp-vector.mjames.dev
 # - Metrics: http://localhost:3456/metrics
 ```
 
-See [docs/LOCAL-DEVELOPMENT.md](docs/LOCAL-DEVELOPMENT.md) for full setup guide.
+See [SCRIPTS_CHEATSHEET.md](SCRIPTS_CHEATSHEET.md) for quick reference or [docs/SCRIPTS_GUIDE.md](docs/SCRIPTS_GUIDE.md) for full documentation.
 
 ### Production Deployment
 
@@ -37,16 +40,18 @@ See [docs/LOCAL-DEVELOPMENT.md](docs/LOCAL-DEVELOPMENT.md) for full setup guide.
 # Install dependencies
 npm install
 
-# Set environment variables
+# Set environment variables (see .env.example)
 export DATABASE_URL=postgresql://...
 export OPENAI_API_KEY=sk-...
 
 # Run migrations
 npm run db:migrate
 
-# Start server
-npm start
+# Start production stack
+npm run stack:prod
 ```
+
+See [docs/DEPLOYMENT_SETUP.md](docs/DEPLOYMENT_SETUP.md) for detailed deployment guide.
 
 ## Architecture
 

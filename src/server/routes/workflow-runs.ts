@@ -145,7 +145,7 @@ export async function registerWorkflowRunRoutes(
       const { id } = request.params;
 
       try {
-        const { WorkflowStateManager } = await import('../../workflow/WorkflowStateManager');
+        const { WorkflowStateManager } = await import('../../workflow/WorkflowStateManager.js');
         const stateManager = new WorkflowStateManager();
 
         const context = await stateManager.getExecutionContext(id);
@@ -202,4 +202,3 @@ export async function registerWorkflowRunRoutes(
     },
   );
 }
-

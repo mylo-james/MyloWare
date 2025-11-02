@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mocked } from 'vitest';
 import fastify, { type FastifyInstance } from 'fastify';
 import { registerHITLRoutes } from './hitl';
 import { HITLService } from '../../services/hitl/HITLService';
@@ -6,7 +6,7 @@ import type { HITLApproval } from '../../db/operations/schema';
 
 describe('HITL Routes', () => {
   let app: FastifyInstance;
-  let mockHITLService: vi.Mocked<HITLService>;
+  let mockHITLService: Mocked<HITLService>;
 
   beforeEach(async () => {
     app = fastify();
@@ -16,7 +16,7 @@ describe('HITL Routes', () => {
       approve: vi.fn(),
       reject: vi.fn(),
       requestApproval: vi.fn(),
-    } as never;
+    } as unknown as Mocked<HITLService>;
 
     await registerHITLRoutes(app, { hitlService: mockHITLService });
     await app.ready();

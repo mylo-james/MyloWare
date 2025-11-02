@@ -57,7 +57,10 @@ export async function createServer(): Promise<FastifyInstance> {
 
   app.addHook('onResponse', async (request, reply) => {
     const duration = (Date.now() - (request as any).startTime) / 1000;
-    const route = request.routerPath || request.url;
+    const route =
+      (request as unknown as { routerPath?: string }).routerPath ??
+      request.routeOptions?.url ??
+      request.url;
     const labels = {
       method: request.method,
       route,

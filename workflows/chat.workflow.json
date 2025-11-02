@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T02:17:53.044Z",
+  "updatedAt": "2025-11-02T06:42:56.673Z",
   "createdAt": "2025-11-02T01:09:00.910Z",
   "id": "MhurGfQPUg5lWdXw",
   "name": "Chat",
@@ -305,7 +305,7 @@
         "promptType": "define",
         "text": "={{ $json.message.text }}",
         "options": {
-          "systemMessage": "=Required Steps\n1. Load persona using prompt_search_adaptive and prompt_get for the persona \"chat\"\n2. Load the past conversation with conversation_recall with \"recent conversation context\"\n3. Decide if you have enough information to process user Input otherwise you're free to query as needed. USE search tools!\n3. Handle user input using any tools provided.\n4. Respond to user with tool execution results\n"
+          "systemMessage": "=Required Steps\n1. Load persona using prompt_search_adaptive and prompt_get for the persona \"chat\"\n2. Load the past conversation with conversation_remember with \"recent conversation context\"\n3. Decide if you have enough information to process user Input otherwise you're free to query as needed. USE search tools!\n3. Handle user input using any tools provided.\n4. Respond to user with tool execution results\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -316,7 +316,7 @@
       ],
       "id": "de108ba0-ac47-4f93-abcf-b27e5bf09987",
       "name": "AI Agent",
-      "retryOnFail": true
+      "retryOnFail": false
     },
     {
       "parameters": {
@@ -370,29 +370,28 @@
         "description": "ASMR video generation workflow",
         "workflowId": {
           "__rl": true,
-          "value": "3khS1fzjeKkgEizz",
+          "value": "NGKqyspp66gDGVI0",
           "mode": "list",
-          "cachedResultUrl": "/workflow/3khS1fzjeKkgEizz",
+          "cachedResultUrl": "/workflow/NGKqyspp66gDGVI0",
           "cachedResultName": "AISMR"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "sessionId": "={{ $('Store User Turn').item.json.data.turn.sessionId }}"
+            "turnId": "={{ $json.conversation.userTurn.id }}"
           },
           "matchingColumns": [
-            "userInput"
+            "turnId"
           ],
           "schema": [
             {
-              "id": "sessionId",
-              "displayName": "sessionId",
+              "id": "turnId",
+              "displayName": "turnId",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
             }
           ],
           "attemptToConvertTypes": false,
@@ -470,6 +469,42 @@
       "id": "4bfc2a3e-82f2-4b09-8e18-c26036408fc8",
       "name": "Reply in Telegram",
       "webhookId": "b96b7a41-9806-455f-b72e-00aa638eda71",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle AI Agent errors\nconst context = $('Assemble Agent Context').item?.json ?? {};\nconst errorData = $json ?? {};\n\n// Extract error message\nconst errorMessage = errorData.error?.message ?? errorData.message ?? 'Unknown error processing your request';\nconst errorDetails = errorData.error?.stack ?? errorData.stack ?? '';\n\n// Format user-friendly error message\nconst userMessage = 'I encountered an error processing your request. Please try again or contact support if the issue persists.';\n\nconst timestamp = new Date().toISOString();\n\nconst metadata = {\n  platform: context.platform,\n  workflow: 'chat',\n  timestamp,\n  errorType: 'ai_agent_error'\n};\n\nif (context.message?.telegramChatId) {\n  metadata.chatId = context.message.telegramChatId;\n}\nif (context.message?.telegramMessageId) {\n  metadata.messageId = context.message.telegramMessageId;\n}\n\nreturn {\n  json: {\n    responseText: userMessage,\n    errorMessage,\n    errorDetails,\n    chatId: context.message?.telegramChatId ?? null,\n    session: context.session ?? null,\n    message: context.message ?? null,\n    platform: context.platform ?? null,\n    metadata\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        480
+      ],
+      "id": "handle-ai-agent-error",
+      "name": "Handle AI Agent Error"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.responseText }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        480
+      ],
+      "id": "reply-error-telegram",
+      "name": "Reply Error in Telegram",
+      "webhookId": "error-telegram-webhook",
       "credentials": {
         "telegramApi": {
           "id": "GPniCaPupOh6tYzX",
@@ -595,6 +630,31 @@
             "index": 0
           }
         ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Handle AI Agent Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle AI Agent Error": {
+      "main": [
+        [
+          {
+            "node": "Reply Error in Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Error in Telegram": {
+      "main": [
+        []
       ]
     },
     "OpenAI Chat Model": {
@@ -690,13 +750,13 @@
               "type": "private"
             },
             "date": 1762048699,
-            "text": "Test"
+            "text": "Make an asmr video about puppies"
           }
         }
       }
     ]
   },
-  "versionId": "5f4bbf89-d4d6-4630-b006-e35c5bd5b2bf",
+  "versionId": "b4143aed-4933-4cca-aa13-4115a83e25fc",
   "triggerCount": 1,
   "shared": [
     {
@@ -720,7 +780,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "updatedAt": "2025-11-02T06:40:51.365Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -737,12 +797,14 @@
                 "reportedSourceOther": "f"
               },
               "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-01",
+              "lastActiveAt": "2025-11-02",
               "isPending": false
             }
           }

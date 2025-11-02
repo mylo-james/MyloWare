@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T02:03:21.099Z",
+  "updatedAt": "2025-11-02T05:56:58.346Z",
   "createdAt": "2025-11-02T01:07:29.234Z",
   "id": "XILT3npSi1rA1azF",
   "name": "Generate Video",
@@ -106,6 +106,32 @@
       ],
       "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
       "name": "Update a row"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Called').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n  const videoResponse = $json?.data?.video ?? {};\n  const videoUrl = videoResponse.videoLink ?? $json.videoLink ?? null;\n  const videoId = videoResponse.id ?? $('Get Idea').item?.json?.ideaId ?? $('When Called').item.json.id;\n  const videoStage = {\n    ...clone(stages.video_generation),\n    status: 'completed',\n    output: {\n      ideaId: videoId,\n      idea: $('Get Idea').item?.json?.idea ?? null,\n      videoUrl,\n      status: videoResponse.status ?? $json.status ?? null\n    }\n  };\n  const mergedOutput = {\n    ...(run.output ?? {}),\n    video_generation: {\n      ideaId: videoId,\n      idea: $('Get Idea').item?.json?.idea ?? null,\n      videoUrl,\n      status: videoResponse.status ?? $json.status ?? null\n    }\n  };\n  return {\n    status: 'running',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: { ...publishingStage, status: 'in_progress' }\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        424
+      ],
+      "id": "a9b1ad49-3c6e-4c4f-86a8-0c2836ab4f3c",
+      "name": "Update Run Video Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
@@ -271,7 +297,9 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -281,7 +309,13 @@
         352
       ],
       "id": "7afa8ae6-ead1-4479-90c2-11a37decf0d6",
-      "name": "Get Run (API)"
+      "name": "Get Run (API)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {},
@@ -296,11 +330,13 @@
     },
     {
       "parameters": {
-        "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($('When Called').item.json.runId) || '') }}",
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Called').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ status: 'failed', result: 'videos_error' }) }}",
+        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = {\n    ...clone(stages.video_generation),\n    status: 'failed',\n    error: {\n      message: $json.error?.message ?? 'Video generation workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  return {\n    status: 'failed',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: {\n      ...(run.output ?? {}),\n      video_generation: {\n        error: {\n          message: $json.error?.message ?? 'Video generation workflow failed.',\n          stack: $json.error?.stack ?? null,\n          lastNode: $json.execution?.lastNodeExecuted ?? null\n        }\n      }\n    }\n  };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -310,15 +346,23 @@
         128
       ],
       "id": "23ace120-e8d8-4789-8726-f4470e311afb",
-      "name": "Mark Run Failed (Videos)"
+      "name": "Mark Run Failed (Videos)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
-        "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + (($json.runId) || '') }}",
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ status: 'videos' }) }}",
+        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = { ...clone(stages.video_generation), status: 'in_progress' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: run.output ?? {}\n  };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -328,7 +372,13 @@
         736
       ],
       "id": "832e7b6c-4d94-4725-a0aa-89ac13a813de",
-      "name": "Mark Run Videos"
+      "name": "Mark Run Videos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
@@ -378,7 +428,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json?.data?.run;\nif (!payload) {\n  throw new Error('Run payload missing from API response.');\n}\nconst normalized = {\n  ...payload,\n  project_id: payload.projectId ?? null,\n  persona_id: payload.personaId ?? null,\n  chat_id: payload.chatId ?? null,\n  result: payload.result ?? null,\n  started_at: payload.startedAt ?? null,\n  completed_at: payload.completedAt ?? null,\n  created_at: payload.createdAt ?? null,\n  updated_at: payload.updatedAt ?? null,\n  input: payload.input ?? {},\n  metadata: payload.metadata ?? {},\n};\nreturn [{ json: normalized }];"
+        "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\n\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\n\nconst normalized = {\n  ...payload,\n  run_id: payload.id,\n  project_id: payload.projectId ?? null,\n  projectId: payload.projectId ?? null,\n  session_id: payload.sessionId ?? null,\n  sessionId: payload.sessionId ?? null,\n  input: payload.input ?? {},\n  metadata,\n};\n\nreturn [{ json: normalized }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -412,11 +462,6 @@
           },
           {
             "node": "Get Idea (API)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Mark Run Videos",
             "type": "main",
             "index": 0
           }
@@ -457,6 +502,17 @@
       ]
     },
     "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Update Run Video Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Video Complete": {
       "main": [
         []
       ]
@@ -579,6 +635,11 @@
             "node": "Merge",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Mark Run Videos",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -590,7 +651,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "49fe0270-e004-4327-baef-fb11c8b31964",
+  "versionId": "2ec8b0c8-6840-4cba-ba80-75a49999f982",
   "triggerCount": 0,
   "shared": [
     {
@@ -614,7 +675,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "updatedAt": "2025-11-02T06:40:51.365Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -631,12 +692,14 @@
                 "reportedSourceOther": "f"
               },
               "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-01",
+              "lastActiveAt": "2025-11-02",
               "isPending": false
             }
           }

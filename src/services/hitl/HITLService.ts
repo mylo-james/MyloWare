@@ -260,7 +260,6 @@ export class HITLService {
         projectId: workflowRun.projectId,
         approvalId: approval.id,
       },
-      tags: ['hitl', 'approval', approval.stage],
     });
   }
 
@@ -300,8 +299,6 @@ export class HITLService {
         projectId: workflowRun.projectId,
         approvalId: approval.id,
       },
-      tags: ['hitl', 'rejection', approval.stage],
     });
   }
 }
-

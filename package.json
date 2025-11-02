@@ -24,6 +24,13 @@
     "stack:dev:down": "docker compose --profile dev down",
     "stack:prod": "tsx scripts/manageComposeStack.ts --profile prod -d",
     "stack:prod:down": "docker compose --profile prod down",
+    "dev:up": "tsx scripts/manageDevStack.ts up -d",
+    "dev:down": "tsx scripts/manageDevStack.ts down",
+    "dev:restart": "tsx scripts/manageDevStack.ts restart",
+    "dev:logs": "tsx scripts/manageDevStack.ts logs -f",
+    "dev:status": "tsx scripts/manageDevStack.ts status",
+    "dev:clean": "tsx scripts/manageDevStack.ts clean",
+    "services:check": "tsx scripts/checkServices.ts",
     "n8n:push": "tsx scripts/n8nSync.ts --push",
     "n8n:pull": "tsx scripts/n8nSync.ts --pull",
     "validate:tool-specs": "tsx scripts/validateToolSpecs.ts"

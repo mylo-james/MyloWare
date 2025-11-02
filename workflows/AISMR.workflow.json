@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T02:03:20.759Z",
+  "updatedAt": "2025-11-02T06:53:18.483Z",
   "createdAt": "2025-11-02T01:09:00.869Z",
   "id": "NGKqyspp66gDGVI0",
   "name": "AISMR",
@@ -11,9 +11,6 @@
         "workflowInputs": {
           "values": [
             {
-              "name": "runId"
-            },
-            {
               "name": "turnId"
             }
           ]
@@ -22,10 +19,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        496,
-        176
+        -672,
+        -16
       ],
-      "id": "9441507d-5b8d-40d5-ab90-eb055a4b66d7",
+      "id": "86f8f799-7dea-440c-af6d-792234085b4f",
       "name": "When Executed by Another Workflow"
     },
     {
@@ -40,83 +37,61 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
-        176
+        -448,
+        -16
       ],
-      "id": "c1539d41-5fec-4917-ab0c-a42c254ff18c",
+      "id": "e866efd4-a577-4d6e-9ce7-fba652758619",
       "name": "Get Turn",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const runResponse = $('Create Run').item?.json ?? {};\nconst run = runResponse.data?.run ?? runResponse.run ?? runResponse;\nif (!run || !run.id) {\n  throw new Error('AISMR workflow could not load run details.');\n}\nconst turnResponse = $('Get Turn').item?.json ?? {};\nconst turn = turnResponse.data?.turn ?? turnResponse.turn ?? turnResponse;\nif (!turn || typeof turn !== 'object') {\n  throw new Error('AISMR workflow could not load conversation turn details.');\n}\nconst turnContent = typeof turn.content === 'string' ? turn.content.trim() : '';\nif (!turnContent) {\n  throw new Error('AISMR workflow could not find user turn content.');\n}\nconst sessionIdRaw = turn.sessionId ?? turn.session_id ?? turn.metadata?.sessionId ?? null;\nconst sessionId = typeof sessionIdRaw === 'string' ? sessionIdRaw.trim().toLowerCase() : null;\nif (!sessionId) {\n  throw new Error('AISMR workflow could not determine sessionId from turn record.');\n}\nconst runId = $('Validate Inputs').item.json.runId;\nconst personaId = run.personaId ?? run.persona_id ?? run.metadata?.personaId ?? 'ideagenerator';\nconst projectId = run.projectId ?? run.project_id ?? run.metadata?.projectId ?? 'aismr';\nconst outputSchema = {\n  type: 'object',\n  properties: {\n    userIdea: {\n      type: 'string',\n      description: 'Normalized base object (lowercase singular) applied to every idea.'\n    },\n    ideas: {\n      type: 'array',\n      description: 'Exactly 12 unique AISMR-ready concepts in Title Case descriptor + singular object format.',\n      items: {\n        type: 'object',\n        properties: {\n          idea: {\n            type: 'string',\n            description: 'Title Case descriptor + singular object (two words, descriptor is one word).'\n          },\n          vibe: {\n            type: 'string',\n            description: '2-4 sentence explanation covering emotion, hook, texture, feasibility, replay value, and environment potential.'\n          }\n        },\n        required: ['idea', 'vibe'],\n        additionalProperties: false\n      },\n      minItems: 12,\n      maxItems: 12\n    }\n  },\n  required: ['userIdea', 'ideas'],\n  additionalProperties: false\n};\nreturn {\n  json: {\n    sessionId,\n    runId,\n    run,\n    projectId,\n    personaId,\n    userInput: turnContent,\n    turn,\n    turnId: turn.id ?? $('Validate Inputs').item.json.turnId,\n    outputSchema: JSON.stringify(outputSchema),\n  },\n};"
+        "jsCode": "// Extract chatId and user input from turn\nconst turnResponse = $('Get Turn').item?.json ?? {};\nconst turn = turnResponse.data?.turn ?? turnResponse.turn ?? turnResponse;\nif (!turn || typeof turn !== 'object') {\n  throw new Error('AISMR workflow could not load conversation turn details.');\n}\nconst turnContent = typeof turn.content === 'string' ? turn.content.trim() : '';\nif (!turnContent) {\n  throw new Error('AISMR workflow could not find user turn content.');\n}\nconst chatId = turn.metadata?.chatId ?? turn.metadata?.telegramChatId ?? null;\nif (!chatId) {\n  console.warn('No chatId found in turn metadata - progress updates will fail');\n}\n\nreturn {\n  json: {\n    chatId,\n    userInput: turnContent,\n    turn,\n    turnId: turn.id ?? $('When Executed by Another Workflow').item?.json?.turnId ?? $json.turnId\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1168,
-        176
+        -224,
+        -16
       ],
-      "id": "44a1e5af-0d09-4c74-b3c8-7d26a5b2515a",
+      "id": "43ce582c-259e-4a06-b8fc-d958453c200f",
+      "name": "Extract ChatId"
+    },
+    {
+      "parameters": {
+        "jsCode": "const runResponse = $('Create Run').item?.json ?? {};\nconst workflowRun = runResponse.workflowRun ?? runResponse.data?.workflowRun ?? runResponse;\nif (!workflowRun || !workflowRun.id) {\n  throw new Error('AISMR workflow could not load workflow run details.');\n}\nconst chatData = $('Extract ChatId').item?.json ?? {};\nconst runId = workflowRun.id;\n\nreturn {\n  json: {\n    runId,\n    workflowRun,\n    chatId: chatData.chatId,\n    userInput: chatData.userInput,\n    turn: chatData.turn,\n    turnId: chatData.turnId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -16
+      ],
+      "id": "3c04b647-0f6d-4c93-86b8-9391be86488c",
       "name": "Assemble Context"
     },
     {
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "Cz7h4stqCFJ4qZ9I",
+          "value": "9tBbhRfA4149YH0f",
           "mode": "list",
-          "cachedResultUrl": "/workflow/Cz7h4stqCFJ4qZ9I",
-          "cachedResultName": "Mylo_MCP_Bot"
+          "cachedResultUrl": "/workflow/9tBbhRfA4149YH0f",
+          "cachedResultName": "Generate Ideas"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "projectId": "={{ $json.projectId }}",
-            "personaId": "={{ $json.personaId }}",
-            "sessionId": "={{ $json.sessionId }}",
             "runId": "={{ $json.runId }}",
-            "chatInput": "={{ $json.userInput }}",
-            "outputSchema": "={{ $json.outputSchema }}",
-            "turnId": "={{ $json.turnId }}"
+            "userInput": "={{ $json.userInput }}"
           },
           "matchingColumns": [],
           "schema": [
-            {
-              "id": "projectId",
-              "displayName": "projectId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "personaId",
-              "displayName": "personaId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "sessionId",
-              "displayName": "sessionId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
             {
               "id": "runId",
               "displayName": "runId",
@@ -128,28 +103,8 @@
               "removed": false
             },
             {
-              "id": "turnId",
-              "displayName": "turnId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "chatInput",
-              "displayName": "chatInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "outputSchema",
-              "displayName": "outputSchema",
+              "id": "userInput",
+              "displayName": "userInput",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -166,35 +121,21 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1392,
-        176
+        -640,
+        272
       ],
-      "id": "f359b519-6d21-46b3-bf8f-d7584bbf6749",
-      "name": "Call 'Mylo_MCP_Bot'",
-      "continueOnFail": true
+      "id": "db0ccb9f-ffc7-47f8-8304-c376074b1465",
+      "name": "Call Generate Ideas"
     },
     {
       "parameters": {
-        "jsCode": "function tryParse(value) {\n  if (typeof value === 'string') {\n    try {\n      return JSON.parse(value);\n    } catch (error) {\n      return null;\n    }\n  }\n  return null;\n}\nfunction extractStructured(value) {\n  if (value == null) {\n    return null;\n  }\n  if (typeof value === 'string') {\n    const parsed = tryParse(value);\n    if (parsed) {\n      return extractStructured(parsed);\n    }\n    return null;\n  }\n  if (Array.isArray(value)) {\n    for (const item of value) {\n      const extracted = extractStructured(item);\n      if (extracted) return extracted;\n    }\n    return null;\n  }\n  if (typeof value === 'object') {\n    if (typeof value.userIdea === 'string' && Array.isArray(value.ideas)) {\n      return value;\n    }\n    const candidates = [value.output, value.result, value.structuredOutput, value.data, value.response, value.content];\n    for (const candidate of candidates) {\n      const extracted = extractStructured(candidate);\n      if (extracted) return extracted;\n    }\n  }\n  return null;\n}\nconst original = $json ?? {};\nif (original.error) {\n  const reason = typeof original.error === 'object' ? (original.error.message || original.error.reason || JSON.stringify(original.error)) : String(original.error);\n  throw new Error(`Mylo MCP Bot failed: ${reason}`);\n}\nconst structured = extractStructured(original);\nif (!structured) {\n  throw new Error('AISMR Mylo response did not include structured output.');\n}\nif (typeof structured.userIdea !== 'string' || structured.userIdea.trim().length === 0) {\n  throw new Error('AISMR Mylo response missing userIdea string.');\n}\nif (!Array.isArray(structured.ideas) || structured.ideas.length !== 12) {\n  throw new Error('AISMR Mylo response must contain exactly 12 ideas.');\n}\nstructured.ideas.forEach((idea, index) => {\n  if (!idea || typeof idea !== 'object') {\n    throw new Error(`Idea #${index + 1} is not an object.`);\n  }\n  if (typeof idea.idea !== 'string' || idea.idea.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing idea text.`);\n  }\n  if (typeof idea.vibe !== 'string' || idea.vibe.trim().length === 0) {\n    throw new Error(`Idea #${index + 1} missing vibe text.`);\n  }\n});\nconst context = $('Assemble Context').item?.json ?? {};\nconst runId = context.runId;\nconst sessionId = context.sessionId;\nconst timestamp = new Date().toISOString();\nconst runUpdate = {\n  status: 'ideas_complete',\n  result: structured,\n  completedAt: timestamp\n};\nreturn {\n  json: {\n    sessionId,\n    runId,\n    structured,\n    runUpdate,\n    telemetry: {\n      myloResponse: original\n    }\n  }\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1616,
-        176
-      ],
-      "id": "0a652bd5-8d43-4f99-8498-9eb3256f41c1",
-      "name": "Prepare Response"
-    },
-    {
-      "parameters": {
-        "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + ($json.runId || '') }}",
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/workflow-runs",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.runUpdate }}",
+        "jsonBody": "={{ ({\n  projectId: 'aismr',\n  sessionId:\n    $('Get Turn').item.json?.data?.turn?.sessionId ??\n    $('Get Turn').item.json?.turn?.sessionId ??\n    $('Get Turn').item.json?.sessionId,\n  input: {\n    source: 'aismr_orchestrator',\n    personaId: 'ideagenerator',\n    turnId: $json.turnId,\n    chatId: $('Extract ChatId').item?.json?.chatId ?? null,\n    userInput: $('Extract ChatId').item?.json?.userInput ?? null,\n    turn: $('Extract ChatId').item?.json?.turn ?? null\n  }\n}) }}",
         "options": {
           "timeout": 15000
         }
@@ -202,35 +143,110 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1840,
-        176
+        16,
+        -16
       ],
-      "id": "0558d591-1732-49c7-93f3-7f4ba0ee937b",
-      "name": "Update Run",
+      "id": "36e8933c-c428-41bb-bed2-1b12d63bff74",
+      "name": "Create Run",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store runId in execution custom data for error handler\nconst runResponse = $json ?? {};\nconst workflowRun = runResponse.workflowRun ?? runResponse.data?.workflowRun ?? runResponse;\nconst runId = workflowRun?.id;\n\nif (runId) {\n  $execution.customData.set('runId', runId);\n}\n\nreturn {\n  json: {\n    ...runResponse,\n    workflowRun,\n    runId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -16
+      ],
+      "id": "9119cb8c-7560-49d5-8e5d-9c5e7c90a21e",
+      "name": "Store RunId"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        -256
+      ],
+      "id": "153fa465-d283-44e6-a75c-3d69f46b4ed6",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Try to extract runId and chatId from various sources\nconst errorData = $json ?? {};\nconst execution = errorData.execution ?? {};\n\n// Try to get runId from execution custom data\nlet runId = $execution.customData?.get('runId');\nlet chatId = null;\n\n// If not found, try to extract from Create Run node if it executed\nif (!runId) {\n  try {\n    const createRunResponse = $('Create Run').item?.json ?? {};\n    runId = createRunResponse.workflowRun?.id ??\n      createRunResponse.data?.workflowRun?.id ??\n      createRunResponse.data?.run?.id ??\n      createRunResponse.run?.id ??\n      createRunResponse.id;\n  } catch (e) {\n    // Node may not have executed\n  }\n}\n\n// Try to get chatId from Extract ChatId node if it executed\nif (!chatId) {\n  try {\n    const chatData = $('Extract ChatId').item?.json ?? {};\n    chatId = chatData.chatId;\n  } catch (e) {\n    // Node may not have executed\n  }\n}\n\n// Try to get chatId from Get Turn node if it executed\nif (!chatId) {\n  try {\n    const turnResponse = $('Get Turn').item?.json ?? {};\n    const turn = turnResponse.data?.turn ?? turnResponse.turn ?? turnResponse;\n    chatId = turn?.metadata?.chatId ?? turn?.metadata?.telegramChatId;\n  } catch (e) {\n    // Node may not have executed\n  }\n}\n\n// If still not found, try to get from Assemble Context if it executed\nif (!runId || !chatId) {\n  try {\n    const context = $('Assemble Context').item?.json ?? {};\n    if (!runId) runId = context.runId;\n    if (!chatId) chatId = context.chatId;\n  } catch (e) {\n    // Node may not have executed\n  }\n}\n\n// Extract error message\nconst errorMessage = execution.error?.message ?? errorData.error?.message ?? 'Unknown error in AISMR workflow';\nconst errorStack = execution.error?.stack ?? errorData.error?.stack ?? '';\n\nreturn {\n  json: {\n    runId,\n    chatId,\n    errorMessage,\n    errorStack,\n    executionId: execution.id ?? null,\n    lastNodeExecuted: execution.lastNodeExecuted ?? null,\n    errorData\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        -256
+      ],
+      "id": "bc8e852a-0abc-49ae-a565-8094b57c700c",
+      "name": "Extract Error Data"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || 'unknown') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  status: 'failed',\n  output: {\n    code: 'aismr_error',\n    message: $json.errorMessage ?? 'Unknown error in AISMR workflow',\n    stack: $json.errorStack ?? null,\n    lastNode: $json.lastNodeExecuted ?? null,\n    executionId: $json.executionId ?? null\n  }\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -256
+      ],
+      "id": "efbe3368-c972-49de-8fb2-60acee6a6c36",
+      "name": "Mark Run Failed",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       },
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const prepared = $('Prepare Response').item?.json ?? {};\nreturn {\n  json: {\n    sessionId: prepared.sessionId ?? null,\n    runId: prepared.runId ?? null,\n    ideas: prepared.structured?.ideas ?? [],\n    userIdea: prepared.structured?.userIdea ?? null,\n    result: prepared.structured ?? null,\n    telemetry: prepared.telemetry ?? {}\n  }\n};"
+        "chatId": "={{ $('Extract Error Data').item.json.chatId }}",
+        "text": "={{ '❌ An error occurred while processing your AISMR video request. Run ID: ' + ($('Extract Error Data').item.json.runId || 'unknown') + '. Our team has been notified and will investigate.' }}",
+        "additionalFields": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
-        2064,
-        176
+        32,
+        -256
       ],
-      "id": "33457692-bf68-4675-963b-957fb5cc877f",
-      "name": "Finalize Response"
+      "id": "78023a13-4970-4772-84be-fb2543ac132d",
+      "name": "Error Notification Telegram",
+      "webhookId": "278e8d04-4101-430d-acb7-89bff0a4fc9e",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/runs/' + $json.runId }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($('Assemble Context').item.json.runId || '') }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
@@ -240,17 +256,574 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        944,
-        176
+        -416,
+        272
       ],
-      "id": "0ac69665-09ac-43c1-b263-8d95ac921102",
-      "name": "Create Run",
+      "id": "3b6ce9bf-8d90-46f5-8ebf-35649d8da033",
+      "name": "Get Run After Ideas",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "✅ Generated 12 ideas! Waiting for approval...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -192,
+        272
+      ],
+      "id": "8aafc9ad-c253-4560-ae75-9458d1d7d9af",
+      "name": "Progress: Ideas Generated",
+      "webhookId": "85f81f2d-87b9-4975-aed8-3d249a1ac98f",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/hitl/request-approval",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const runPayload =\n    $json.workflowRun ??\n    $json.data?.workflowRun ??\n    $json.data?.run ??\n    $json.run ??\n    $json;\n\n  const stageOutput = runPayload?.stages?.idea_generation?.output ?? null;\n  const candidateIdeas = [\n    Array.isArray(stageOutput?.ideas) ? stageOutput.ideas : null,\n    Array.isArray(runPayload?.output?.ideas) ? runPayload.output.ideas : null,\n    Array.isArray(runPayload?.result) ? runPayload.result : null\n  ];\n  const ideas = candidateIdeas.find(Array.isArray) ?? [];\n\n  const userIdea =\n    runPayload?.input?.userIdea ??\n    runPayload?.input?.user_input ??\n    runPayload?.input?.userInput ??\n    runPayload?.metadata?.userIdea ??\n    '';\n\n  return ({\n    workflowRunId: $('Assemble Context').item.json.runId,\n    stage: 'idea_generation',\n    content: {\n      ideas,\n      userIdea,\n      totalIdeas: Array.isArray(ideas) ? ideas.length : 0\n    },\n    notifyChannels: ['slack']\n  });\n})() }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -640,
+        640
+      ],
+      "id": "3d795fe2-9f21-47d4-b04a-50088f036228",
+      "name": "Request HITL Approval",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.approval?.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        640
+      ],
+      "id": "1887a1be-7809-4399-a315-02cb80f3446c",
+      "name": "Check Approval ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop back to check approval status\nconst approvalId = $('Request HITL Approval').item.json.approval?.id;\nconst workflowRunId = $('Assemble Context').item.json.runId;\n\nreturn [{\n  json: {\n    approvalId,\n    workflowRunId,\n    loopCount: ($input.all().length > 0 && $input.item(0).json.loopCount ? $input.item(0).json.loopCount + 1 : 1),\n    maxLoops: 100\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        640
+      ],
+      "id": "9880999c-c5ac-4777-8c83-0a9d043edc2f",
+      "name": "Prepare Loop"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.loopCount }}",
+              "operation": "smaller",
+              "value2": 100
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        48,
+        560
+      ],
+      "id": "8069fa07-c030-4080-830d-ddce903dd65c",
+      "name": "Check Loop Limit"
+    },
+    {
+      "parameters": {
+        "amount": 5000,
+        "unit": "milliseconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        560
+      ],
+      "id": "be455f94-1841-424e-88c8-7ac0a4a04c63",
+      "name": "Wait Before Polling",
+      "webhookId": "hitl-polling-webhook"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/hitl/approval/' + $json.approvalId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        560
+      ],
+      "id": "fd1dc9bb-88c6-4749-bc0e-f116a9e070ab",
+      "name": "Get Approval Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.approval?.status }}",
+              "value2": "approved",
+              "operation": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        640
+      ],
+      "id": "5d8d51b9-da1e-45aa-9b63-c568a52cb438",
+      "name": "Check If Approved"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract selected idea and video ID from HITL approval\nconst approval = $('Get Approval Status').item.json.approval ?? {};\nconst selectedItem = approval.content?.selectedItem ?? null;\n\nconst runResponse = $('Get Run After Ideas').item?.json ?? {};\nconst runPayload =\n  runResponse.workflowRun ??\n  runResponse.data?.workflowRun ??\n  runResponse.data?.run ??\n  runResponse.run ??\n  runResponse;\n\nconst stageOutput = runPayload?.stages?.idea_generation?.output ?? null;\nconst candidateIdeas = [\n  Array.isArray(stageOutput?.ideas) ? stageOutput.ideas : null,\n  Array.isArray(runPayload?.output?.ideas) ? runPayload.output.ideas : null,\n  Array.isArray(runPayload?.result) ? runPayload.result : null\n];\nconst ideas = candidateIdeas.find(Array.isArray) ?? [];\n\n// Find the selected idea in the ideas array\nlet selectedIdea = selectedItem;\nlet videoId = null;\n\nif (selectedItem && selectedItem.ideaId) {\n  videoId = selectedItem.ideaId;\n} else if (selectedItem && selectedItem.idea) {\n  // Find matching idea from the ideas array\n  const matching = ideas.find((idea) => idea.idea === selectedItem.idea);\n  if (matching && matching.ideaId) {\n    videoId = matching.ideaId;\n    selectedIdea = matching;\n  }\n} else if (ideas.length > 0) {\n  // Fallback to first idea if no selection\n  selectedIdea = ideas[0];\n  videoId = selectedIdea.ideaId || selectedIdea.id;\n}\n\nreturn {\n  json: {\n    selectedIdea,\n    videoId,\n    runId: $('Assemble Context').item.json.runId,\n    chatId: $('Assemble Context').item.json.chatId,\n    userInput: $('Assemble Context').item.json.userInput\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        944
+      ],
+      "id": "6958060a-f053-4a05-a559-da08f62e2de2",
+      "name": "Extract Selected Idea"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "🎬 Screenplay ready! Generating video...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        944
+      ],
+      "id": "e7b6e05f-f6d4-47c0-b483-5b7ae67e692f",
+      "name": "Progress: Screenplay Ready",
+      "webhookId": "04415893-3114-487c-b1ae-e944382dfaeb",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "UH0zBnpPyB8HHUKW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/UH0zBnpPyB8HHUKW",
+          "cachedResultName": "Screen Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $json.runId }}",
+            "userInput": "={{ $json.userInput }}",
+            "ideaId": "={{ $json.videoId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "userInput",
+              "displayName": "userInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "selectedIdea",
+              "displayName": "selectedIdea",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        944
+      ],
+      "id": "d405fc21-e5cb-424e-a345-6b88e57e7217",
+      "name": "Call Screen Writer"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "🎥 Video generated! Editing...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        944
+      ],
+      "id": "5f3e9ecf-d809-41a5-8561-a6986b256198",
+      "name": "Progress: Video Generated",
+      "webhookId": "4643451a-dba6-439a-a254-9b93339a426b",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "XILT3npSi1rA1azF",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XILT3npSi1rA1azF",
+          "cachedResultName": "Generate Video"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('Assemble Context').item.json.runId }}",
+            "id": "={{ $json.id || $json.videoId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        944
+      ],
+      "id": "193c0696-c1a3-43d2-afdf-4ee96f644b28",
+      "name": "Call Generate Video"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "✂️ Video edited! Uploading...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        944
+      ],
+      "id": "43e8572a-7b81-4912-9694-3c80220b182d",
+      "name": "Progress: Video Edited",
+      "webhookId": "1ec6bf40-c62c-43cb-ac64-4b3303789426",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "uLwOn2FpGtS7DiqE",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/uLwOn2FpGtS7DiqE",
+          "cachedResultName": "Edit_AISMR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('Assemble Context').item.json.runId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        944
+      ],
+      "id": "4a546256-b647-47d0-b9f7-7c895cf5eaf1",
+      "name": "Call Edit AISMR"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "☁️ Uploaded to Drive! Posting to TikTok...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        1344
+      ],
+      "id": "31586e50-93e5-499d-bd91-185be7f5f5ea",
+      "name": "Progress: Uploaded",
+      "webhookId": "9e4cbfb2-0caa-43f8-b567-f059e04c08b9",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "hePBBi9MkuJN7Fpj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/hePBBi9MkuJN7Fpj",
+          "cachedResultName": "Upload file to Google Drive"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('Assemble Context').item.json.runId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -624,
+        1344
+      ],
+      "id": "d104df5f-994f-4833-933b-d37886e1c8a6",
+      "name": "Call Upload to Google Drive"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "📱 Uploaded! Posting to TikTok...",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        1344
+      ],
+      "id": "29debd31-91e3-45d2-a66f-a25bc3511eff",
+      "name": "Progress: Posting to TikTok",
+      "webhookId": "d7347230-725e-43e3-91ea-6100ebdc6bb7",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "85BRncHFFikG9FIE",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/85BRncHFFikG9FIE",
+          "cachedResultName": "Upload to TikTok"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('Assemble Context').item.json.runId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        1344
+      ],
+      "id": "04b44a5b-6ad0-44c3-a29e-5a24e4e447a4",
+      "name": "Call Post to TikTok"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Assemble Context').item.json.chatId }}",
+        "text": "={{ '🎉 Your AISMR video is live: ' + ($json.tiktokUrl || $json.url || 'Check TikTok for your video!') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        1344
+      ],
+      "id": "cd129976-36a4-48bd-972a-91e5861cbd5b",
+      "name": "Final: Posted",
+      "webhookId": "0d1a7520-456f-4965-b9c2-e1f5579fdca6",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -269,6 +842,17 @@
       "main": [
         [
           {
+            "node": "Extract ChatId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract ChatId": {
+      "main": [
+        [
+          {
             "node": "Create Run",
             "type": "main",
             "index": 0
@@ -280,40 +864,18 @@
       "main": [
         [
           {
-            "node": "Call 'Mylo_MCP_Bot'",
+            "node": "Call Generate Ideas",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call 'Mylo_MCP_Bot'": {
+    "Call Generate Ideas": {
       "main": [
         [
           {
-            "node": "Prepare Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Response": {
-      "main": [
-        [
-          {
-            "node": "Update Run",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Run": {
-      "main": [
-        [
-          {
-            "node": "Finalize Response",
+            "node": "Get Run After Ideas",
             "type": "main",
             "index": 0
           }
@@ -324,7 +886,278 @@
       "main": [
         [
           {
+            "node": "Store RunId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store RunId": {
+      "main": [
+        [
+          {
             "node": "Assemble Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Extract Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Error Data": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed": {
+      "main": [
+        [
+          {
+            "node": "Error Notification Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Run After Ideas": {
+      "main": [
+        [
+          {
+            "node": "Progress: Ideas Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Ideas Generated": {
+      "main": [
+        [
+          {
+            "node": "Request HITL Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request HITL Approval": {
+      "main": [
+        [
+          {
+            "node": "Check Approval ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approval ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Loop": {
+      "main": [
+        [
+          {
+            "node": "Check Loop Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Loop Limit": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Polling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Polling": {
+      "main": [
+        [
+          {
+            "node": "Get Approval Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Approval Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Approved": {
+      "main": [
+        [
+          {
+            "node": "Extract Selected Idea",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Selected Idea": {
+      "main": [
+        [
+          {
+            "node": "Call Screen Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Screenplay Ready": {
+      "main": [
+        [
+          {
+            "node": "Call Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Screen Writer": {
+      "main": [
+        [
+          {
+            "node": "Progress: Screenplay Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Video Generated": {
+      "main": [
+        [
+          {
+            "node": "Call Edit AISMR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Progress: Video Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Video Edited": {
+      "main": [
+        [
+          {
+            "node": "Call Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Edit AISMR": {
+      "main": [
+        [
+          {
+            "node": "Progress: Video Edited",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Uploaded": {
+      "main": [
+        [
+          {
+            "node": "Call Post to TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Upload to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Progress: Uploaded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Progress: Posting to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Final: Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Post to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Progress: Posting to TikTok",
             "type": "main",
             "index": 0
           }
@@ -337,8 +1170,16 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "versionId": "b4b3217e-3d85-405f-bd15-98ecfd4ce9f9",
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "turnId": "a044a7b7-a2f0-439b-86cb-82191e8593c3"
+        }
+      }
+    ]
+  },
+  "versionId": "99c6dc42-8455-46b2-b592-888262eba499",
   "triggerCount": 0,
   "shared": [
     {
@@ -362,7 +1203,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "updatedAt": "2025-11-02T06:40:51.365Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -379,12 +1220,14 @@
                 "reportedSourceOther": "f"
               },
               "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-01",
+              "lastActiveAt": "2025-11-02",
               "isPending": false
             }
           }
