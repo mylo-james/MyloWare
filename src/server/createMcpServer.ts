@@ -5,6 +5,7 @@ import { registerPromptSearchTool } from './tools/promptSearchTool';
 import { registerAdaptiveSearchTool } from './tools/adaptiveSearchTool';
 import { registerConversationMemoryTool } from './tools/conversationMemoryTool';
 import { registerConversationStoreTool } from './tools/conversationStoreTool';
+import { registerConversationLatestTool } from './tools/conversationLatestTool';
 import { registerMemoryTools } from './tools/memoryAddTool';
 import { registerResources } from './resources';
 
@@ -23,6 +24,7 @@ export async function createMcpServer(): Promise<McpServerType> {
   registerAdaptiveSearchTool(server);
   registerConversationMemoryTool(server);
   registerConversationStoreTool(server);
+  registerConversationLatestTool(server);
   registerMemoryTools(server);
   registerResources(server);
 

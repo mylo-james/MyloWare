@@ -289,6 +289,34 @@ export class EpisodicMemoryRepository {
     return rows.map((row): ConversationTurnRecord => mapTurnRow(row));
   }
 
+  async getTurnById(turnId: string): Promise<ConversationTurnRecord | null> {
+    const { rows } = await this.db.execute(
+      sql<ConversationTurnRow>`
+        SELECT
+          id,
+          session_id,
+          user_id,
+          role,
+          turn_index,
+          content,
+          summary,
+          metadata,
+          created_at,
+          updated_at
+        FROM conversation_turns
+        WHERE id = ${turnId}::uuid
+        LIMIT 1
+      `,
+    );
+
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return mapTurnRow(row as ConversationTurnRow);
+  }
+
   async searchConversationHistory(
     query: string,
     options: ConversationSearchOptions = {},

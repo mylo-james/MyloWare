@@ -46,6 +46,20 @@ export async function createServer(): Promise<FastifyInstance> {
   await registerMcpRoutes(app);
   await registerApiRoutes(app);
 
+  // Serve HITL UI
+  app.get('/hitl', async (request, reply) => {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    try {
+      const htmlPath = path.join(process.cwd(), 'public', 'hitl', 'index.html');
+      const html = await fs.readFile(htmlPath, 'utf-8');
+      return reply.type('text/html').send(html);
+    } catch (error) {
+      app.log.error({ err: error }, 'Failed to serve HITL UI');
+      return reply.status(404).send({ error: 'HITL UI not found' });
+    }
+  });
+
   app.get('/health', async () => ({ status: 'ok' }));
 
   return app;

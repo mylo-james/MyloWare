@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-31T18:29:55.213Z",
+  "updatedAt": "2025-11-01T16:55:16.113Z",
   "createdAt": "2025-10-16T05:23:17.280Z",
   "id": "ljH4wBxJn069C282",
   "name": "Generate Ideas",
@@ -259,6 +259,260 @@
       ],
       "id": "0ba93b9e-d12c-43f4-939f-634f7755c448",
       "name": "Get Run"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all ideas from the previous items\nconst ideas = [];\nconst workflowRunId = $('Get Run').item.json.run_id || $('Get Run').item.json.id || $('When Called').item.json.runId;\nconst projectId = $('Get Run').item.json.project_id || $('Get Run').item.json.projectId || 'aismr';\n\n// Collect all ideas from the split items\nfor (const item of $input.all()) {\n  if (item.json.idea) {\n    ideas.push({\n      idea: item.json.idea,\n      vibe: item.json.vibe,\n      ideaId: item.json.run_id || item.json.id,\n    });\n  }\n}\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: $('Get Run').item.json.user_idea || $('Get Run').item.json.userIdea || '',\n    totalIdeas: ideas.length,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1672,
+        -128
+      ],
+      "id": "aggregate-ideas-node",
+      "name": "Aggregate Ideas"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/api/hitl/request-approval",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  workflowRunId: $json.workflowRunId,\n  stage: 'idea_generation',\n  content: {\n    ideas: $json.ideas,\n    userIdea: $json.userIdea,\n    totalIdeas: $json.totalIdeas,\n  },\n  notifyChannels: ['slack']\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        -128
+      ],
+      "id": "request-hitl-approval",
+      "name": "Request HITL Approval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.approval?.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        2104,
+        -128
+      ],
+      "id": "Check Approval ID",
+      "name": "Check Approval ID"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/hitl/approval/' + $json.approvalId }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        -128
+      ],
+      "id": "Get Approval Status",
+      "name": "Get Approval Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.approval?.status }}",
+              "value2": "approved",
+              "operation": "equals"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        2536,
+        -128
+      ],
+      "id": "Check If Approved",
+      "name": "Check If Approved"
+    },
+    {
+      "parameters": {
+        "amount": 5000,
+        "unit": "milliseconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2318,
+        -8
+      ],
+      "id": "Wait Before Polling",
+      "name": "Wait Before Polling"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  status: 'waiting_for_hitl',\n  currentStage: 'idea_generation',\n  stages: {\n    idea_generation: {\n      status: 'waiting_for_hitl',\n      output: $('Aggregate Ideas').item.json.ideas\n    },\n    screenplay: { status: 'pending' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2104,
+        -248
+      ],
+      "id": "Update Run Status Waiting",
+      "name": "Update Run Status Waiting"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "qOgWNfGwMpWkPWjK",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/qOgWNfGwMpWkPWjK",
+          "cachedResultName": "Screen Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "userInput": "={{ $('Get Run').item.json.user_idea || $('Aggregate Ideas').item.json.userIdea }}",
+            "runId": "={{ $('Aggregate Ideas').item.json.workflowRunId }}",
+            "selectedIdea": "={{ $json.approval?.content?.selectedItem || $('Aggregate Ideas').item.json.ideas[0] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "userInput",
+              "displayName": "userInput",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "selectedIdea",
+              "displayName": "selectedIdea",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2752,
+        -128
+      ],
+      "id": "Trigger Screenplay",
+      "name": "Trigger Screenplay"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  status: 'completed',\n  currentStage: 'screenplay',\n  stages: {\n    idea_generation: {\n      status: 'completed',\n      output: $('Aggregate Ideas').item.json.ideas\n    },\n    screenplay: { status: 'running' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2968,
+        -128
+      ],
+      "id": "Update Run Approved",
+      "name": "Update Run Approved"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({\n  status: 'needs_revision',\n  currentStage: 'idea_generation'\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2536,
+        128
+      ],
+      "id": "Update Run Rejected",
+      "name": "Update Run Rejected"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop back to check approval status\nconst approvalId = $('Request HITL Approval').item.json.approval?.id;\nconst workflowRunId = $('Aggregate Ideas').item.json.workflowRunId;\n\nreturn [{\n  json: {\n    approvalId,\n    workflowRunId,\n    loopCount: ($input.all().length > 0 && $input.item(0).json.loopCount ? $input.item(0).json.loopCount + 1 : 1),\n    maxLoops: 100\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2318,
+        128
+      ],
+      "id": "Prepare Loop",
+      "name": "Prepare Loop"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.loopCount }}",
+              "operation": "smaller",
+              "value2": 100
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        2318,
+        248
+      ],
+      "id": "Check Loop Limit",
+      "name": "Check Loop Limit"
     }
   ],
   "connections": {
@@ -275,7 +529,13 @@
     },
     "Create a row": {
       "main": [
-        []
+        [
+          {
+            "node": "Aggregate Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Split Out": {
@@ -348,6 +608,139 @@
           }
         ]
       ]
+    },
+    "Aggregate Ideas": {
+      "main": [
+        [
+          {
+            "node": "Request HITL Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request HITL Approval": {
+      "main": [
+        [
+          {
+            "node": "Update Run Status Waiting",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Approval ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Status Waiting": {
+      "main": [
+        []
+      ]
+    },
+    "Check Approval ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Approval Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Approved": {
+      "main": [
+        [
+          {
+            "node": "Update Run Approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Polling": {
+      "main": [
+        [
+          {
+            "node": "Get Approval Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Loop": {
+      "main": [
+        [
+          {
+            "node": "Check Loop Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Loop Limit": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Polling",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Run Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Approved": {
+      "main": [
+        [
+          {
+            "node": "Trigger Screenplay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Rejected": {
+      "main": [
+        []
+      ]
+    },
+    "Trigger Screenplay": {
+      "main": [
+        []
+      ]
     }
   },
   "settings": {
@@ -367,6 +760,6 @@
       }
     ]
   },
-  "versionId": "87c1e182-cd40-4fc8-bb51-37a92382793c",
+  "versionId": "071694aa-3949-4b6a-8dc8-d57870fd6847",
   "triggerCount": 0
 }

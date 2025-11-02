@@ -1,5 +1,13 @@
 {
   "version": "5",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 3,
+      "version": "0003",
+      "when": 1733140800000,
+      "tag": "0003_add_hitl_tables",
+      "breakpoints": true
+    }
+  ]
 }

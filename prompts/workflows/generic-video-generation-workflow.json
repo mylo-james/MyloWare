@@ -1,0 +1,120 @@
+{
+  "title": "Generic Video Generation Workflow Template",
+  "memoryType": "procedural",
+  "project": [],
+  "version": "1.0.0",
+  "workflow": {
+    "name": "Generic Video Generation",
+    "description": "Generic workflow template that loads project-specific configuration and adapts execution accordingly",
+    "steps": [
+      {
+        "id": "load_project_config",
+        "step": 1,
+        "type": "mcp_call",
+        "description": "Load project-specific configuration from RAG",
+        "mcp_call": {
+          "tool": "prompts.search",
+          "params": {
+            "query": "project configuration ${context.projectId}",
+            "project": "${context.projectId}",
+            "searchMode": "keyword",
+            "limit": 5
+          },
+          "storeAs": "projectConfig"
+        }
+      },
+      {
+        "id": "load_persona_config",
+        "step": 2,
+        "type": "mcp_call",
+        "description": "Load persona configuration",
+        "mcp_call": {
+          "tool": "prompt_get",
+          "params": {
+            "persona_name": "${context.personaId}"
+          },
+          "storeAs": "personaConfig"
+        }
+      },
+      {
+        "id": "generate_content",
+        "step": 3,
+        "type": "llm_generation",
+        "description": "Generate content using project and persona configs",
+        "dependsOn": ["load_project_config", "load_persona_config"],
+        "llm_generation": {
+          "model": "gpt-4",
+          "prompt": "Using persona: ${personaConfig.persona.role}, project requirements: ${projectConfig.workflow.taskDescription}, generate content based on: ${context.userInput}",
+          "schema": "${projectConfig.workflow.outputSchema}",
+          "structuredOutput": true,
+          "storeAs": "generatedContent"
+        },
+        "validation": {
+          "schema": {
+            "schema": "${projectConfig.workflow.outputSchema}",
+            "onViolation": "halt"
+          }
+        }
+      },
+      {
+        "id": "validate_guardrails",
+        "step": 4,
+        "type": "validation",
+        "description": "Validate against project guardrails",
+        "dependsOn": ["generate_content"],
+        "validation": "${projectConfig.workflow.guardrails}"
+      },
+      {
+        "id": "generate_artifact",
+        "step": 5,
+        "type": "api_call",
+        "description": "Generate final artifact using project API",
+        "dependsOn": ["validate_guardrails"],
+        "api_call": {
+          "method": "POST",
+          "url": "${projectConfig.generation_api}",
+          "headers": {
+            "Authorization": "Bearer ${env.API_KEY}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "prompt": "${generatedContent.data}",
+            "config": "${projectConfig.generation_config}"
+          },
+          "storeAs": "artifactResult",
+          "expectedStatusCodes": [200, 202]
+        }
+      },
+      {
+        "id": "store_result",
+        "step": 6,
+        "type": "mcp_call",
+        "description": "Store generation result",
+        "dependsOn": ["generate_artifact"],
+        "mcp_call": {
+          "tool": "conversation.store",
+          "params": {
+            "sessionId": "${context.sessionId}",
+            "role": "assistant",
+            "content": "Generated ${projectConfig.title} content",
+            "tags": ["${context.projectId}", "workflow-output"],
+            "metadata": {
+              "projectId": "${context.projectId}",
+              "workflowRunId": "${context.workflowRunId}",
+              "artifactUrl": "${artifactResult.url}"
+            }
+          }
+        }
+      }
+    ],
+    "output_format": {
+      "type": "object",
+      "properties": {
+        "artifactUrl": { "type": "string" },
+        "generatedContent": { "type": "object" },
+        "projectConfig": { "type": "object" }
+      }
+    }
+  }
+}
+

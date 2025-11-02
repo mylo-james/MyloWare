@@ -1,0 +1,160 @@
+{
+  "title": "Podcast Clips Extraction Workflow",
+  "memoryType": "procedural",
+  "project": ["podcast-clips"],
+  "persona": ["editor"],
+  "version": "1.0.0",
+  "workflow": {
+    "name": "Extract Podcast Clips",
+    "description": "Extract and enhance engaging clips from podcast transcripts",
+    "steps": [
+      {
+        "id": "load_transcript",
+        "step": 1,
+        "type": "api_call",
+        "description": "Load podcast transcript from user input or API",
+        "api_call": {
+          "method": "GET",
+          "url": "${context.transcriptUrl}",
+          "headers": {
+            "Authorization": "Bearer ${env.PODCAST_API_KEY}"
+          },
+          "storeAs": "transcript",
+          "expectedStatusCodes": [200]
+        }
+      },
+      {
+        "id": "analyze_transcript",
+        "step": 2,
+        "type": "llm_generation",
+        "description": "Analyze transcript and identify engaging moments",
+        "dependsOn": ["load_transcript"],
+        "llm_generation": {
+          "model": "gpt-4",
+          "prompt": "Analyze this podcast transcript and identify the most engaging moments for clips: ${transcript}. Focus on: complete thoughts, strong hooks, valuable insights, emotional peaks. Each clip should be 30-90 seconds with a clear beginning and end.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "clips": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start_time": { "type": "number" },
+                    "end_time": { "type": "number" },
+                    "transcript": { "type": "string" },
+                    "hook": { "type": "string" },
+                    "topic": { "type": "string" },
+                    "value_proposition": { "type": "string" }
+                  },
+                  "required": ["start_time", "end_time", "transcript", "hook"]
+                },
+                "minItems": 1,
+                "maxItems": 10
+              }
+            },
+            "required": ["clips"]
+          },
+          "structuredOutput": true,
+          "storeAs": "identifiedClips",
+          "temperature": 0.7
+        }
+      },
+      {
+        "id": "validate_clips",
+        "step": 3,
+        "type": "validation",
+        "description": "Validate clips meet duration and completeness requirements",
+        "dependsOn": ["analyze_transcript"],
+        "validation": {
+          "timing": {
+            "runtime": undefined,
+            "onViolation": "halt"
+          },
+          "custom": [
+            {
+              "name": "clip_duration_check",
+              "validate": "(clip) => clip.end_time - clip.start_time >= 30 && clip.end_time - clip.start_time <= 90",
+              "onViolation": "halt"
+            }
+          ]
+        }
+      },
+      {
+        "id": "enhance_clips",
+        "step": 4,
+        "type": "llm_generation",
+        "description": "Enhance clips with better hooks and descriptions",
+        "dependsOn": ["validate_clips"],
+        "llm_generation": {
+          "model": "gpt-4",
+          "prompt": "Enhance these podcast clips with stronger hooks, clearer value propositions, and better topic classifications: ${identifiedClips.clips}",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "enhancedClips": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start_time": { "type": "number" },
+                    "end_time": { "type": "number" },
+                    "transcript": { "type": "string" },
+                    "hook": { "type": "string" },
+                    "topic": { "type": "string" },
+                    "value_proposition": { "type": "string" },
+                    "metadata": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "structuredOutput": true,
+          "storeAs": "enhancedClips",
+          "temperature": 0.6
+        }
+      },
+      {
+        "id": "store_result",
+        "step": 5,
+        "type": "mcp_call",
+        "description": "Store extracted clips",
+        "dependsOn": ["enhance_clips"],
+        "mcp_call": {
+          "tool": "conversation.store",
+          "params": {
+            "sessionId": "${context.sessionId}",
+            "role": "assistant",
+            "content": "Extracted ${enhancedClips.enhancedClips.length} podcast clips",
+            "tags": ["podcast-clips", "extraction", "workflow-output"],
+            "metadata": {
+              "stage": "clip_extraction",
+              "workflowRunId": "${context.workflowRunId}",
+              "totalClips": "${enhancedClips.enhancedClips.length}"
+            }
+          }
+        }
+      }
+    ],
+    "output_format": {
+      "type": "object",
+      "properties": {
+        "clips": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "start_time": { "type": "number" },
+              "end_time": { "type": "number" },
+              "transcript": { "type": "string" },
+              "hook": { "type": "string" },
+              "topic": { "type": "string" },
+              "value_proposition": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

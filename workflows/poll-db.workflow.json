@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-10-31T18:29:56.503Z",
+  "updatedAt": "2025-11-01T16:55:17.435Z",
   "createdAt": "2025-10-24T19:54:05.937Z",
   "id": "mtQuVF88e3mo20Mo",
   "name": "poll-db",
@@ -511,6 +511,6 @@
       }
     ]
   },
-  "versionId": "d5580c79-7c83-4d4b-815a-fa2ff7631252",
+  "versionId": "b933be85-ef55-4eb3-84ff-f7ba891152fa",
   "triggerCount": 0
 }

@@ -1,0 +1,127 @@
+{
+  "title": "YouTube Shorts Idea Generation Workflow",
+  "memoryType": "procedural",
+  "project": ["youtube-shorts"],
+  "persona": ["content-creator"],
+  "version": "1.0.0",
+  "workflow": {
+    "name": "Generate Shorts Ideas",
+    "description": "Generate engaging YouTube Shorts ideas with viral potential",
+    "steps": [
+      {
+        "id": "remember_past_shorts",
+        "step": 1,
+        "type": "mcp_call",
+        "description": "Retrieve past successful shorts for inspiration",
+        "mcp_call": {
+          "tool": "conversation.remember",
+          "params": {
+            "sessionId": "${context.sessionId}",
+            "query": "past YouTube Shorts ideas successful viral",
+            "limit": 30,
+            "format": "bullets"
+          },
+          "storeAs": "pastShorts"
+        }
+      },
+      {
+        "id": "search_trends",
+        "step": 2,
+        "type": "mcp_call",
+        "description": "Search for trending topics and patterns",
+        "mcp_call": {
+          "tool": "prompts.search",
+          "params": {
+            "query": "${context.userInput} trending YouTube Shorts",
+            "project": "youtube-shorts",
+            "searchMode": "hybrid",
+            "expandGraph": true,
+            "temporalBoost": true,
+            "limit": 20
+          },
+          "storeAs": "trendingTopics"
+        }
+      },
+      {
+        "id": "generate_ideas",
+        "step": 3,
+        "type": "llm_generation",
+        "description": "Generate 10 YouTube Shorts ideas",
+        "dependsOn": ["remember_past_shorts", "search_trends"],
+        "llm_generation": {
+          "model": "gpt-4",
+          "prompt": "Generate 10 engaging YouTube Shorts ideas about ${context.userInput}. Each idea must have: a catchy title (max 100 chars), a strong hook for the first 3 seconds, clear value proposition, and viral potential. Use these patterns for inspiration: ${trendingTopics}. Avoid repeating: ${pastShorts}.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "ideas": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string", "maxLength": 100 },
+                    "hook": { "type": "string" },
+                    "value_proposition": { "type": "string" },
+                    "tags": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "maxItems": 15
+                    },
+                    "estimated_duration": { "type": "number", "minimum": 15, "maximum": 60 }
+                  },
+                  "required": ["title", "hook", "value_proposition"]
+                },
+                "minItems": 10,
+                "maxItems": 10
+              }
+            },
+            "required": ["ideas"]
+          },
+          "structuredOutput": true,
+          "storeAs": "generatedIdeas",
+          "temperature": 0.8
+        }
+      },
+      {
+        "id": "store_result",
+        "step": 4,
+        "type": "mcp_call",
+        "description": "Store ideas in episodic memory",
+        "dependsOn": ["generate_ideas"],
+        "mcp_call": {
+          "tool": "conversation.store",
+          "params": {
+            "sessionId": "${context.sessionId}",
+            "role": "assistant",
+            "content": "Generated 10 YouTube Shorts ideas: ${generatedIdeas}",
+            "tags": ["youtube-shorts", "idea-generation", "workflow-output"],
+            "metadata": {
+              "stage": "idea_generation",
+              "workflowRunId": "${context.workflowRunId}",
+              "totalIdeas": "${generatedIdeas.ideas.length}"
+            }
+          }
+        }
+      }
+    ],
+    "output_format": {
+      "type": "object",
+      "properties": {
+        "ideas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "hook": { "type": "string" },
+              "value_proposition": { "type": "string" },
+              "tags": { "type": "array" },
+              "estimated_duration": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

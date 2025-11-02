@@ -1,0 +1,143 @@
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
+import { EpisodicMemoryRepository } from '../../db/episodicRepository';
+
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
+
+const argsSchema = z
+  .object({
+    sessionId: z.string().uuid('sessionId must be a valid UUID'),
+    limit: z
+      .number()
+      .int()
+      .min(1, 'limit must be at least 1')
+      .max(MAX_LIMIT, `limit must not exceed ${MAX_LIMIT}`)
+      .optional(),
+    order: z.enum(['asc', 'desc']).optional(),
+  })
+  .strict();
+
+const turnSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  userId: z.string().nullable(),
+  role: z.enum(['user', 'assistant', 'system', 'tool']),
+  turnIndex: z.number().int().min(0),
+  content: z.string(),
+  summary: z.record(z.string(), z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.unknown()),
+  createdAt: z.string().nullable(),
+  updatedAt: z.string().nullable(),
+});
+
+const outputSchema = z.object({
+  turns: z.array(turnSchema),
+  sessionId: z.string(),
+  fetched: z.number().int(),
+  limit: z.number().int(),
+  order: z.enum(['asc', 'desc']),
+});
+
+type ConversationLatestArgs = z.infer<typeof argsSchema>;
+type ConversationLatestOutput = z.infer<typeof outputSchema>;
+
+export interface ConversationLatestToolDependencies {
+  repository?: EpisodicMemoryRepository;
+}
+
+export function registerConversationLatestTool(
+  server: McpServer,
+  dependencies: ConversationLatestToolDependencies = {},
+): void {
+  let repository = dependencies.repository;
+  const toolName = 'conversation_latest';
+
+  server.registerTool(
+    toolName,
+    {
+      title: 'Fetch recent conversation turns',
+      description: [
+        'Pull the most recent conversation turns for a session without doing semantic search.',
+        'Perfect when you just need the latest context window before making a decision.',
+        'Defaults to 10 newest turns (descending order).',
+      ].join('\n'),
+      inputSchema: argsSchema.shape,
+      outputSchema: outputSchema.shape,
+      annotations: {
+        category: 'memory',
+      },
+    },
+    async (rawArgs: unknown) => {
+      let args: ConversationLatestArgs;
+
+      try {
+        args = argsSchema.parse(rawArgs ?? {});
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unable to parse conversation_latest arguments.';
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `conversation_latest validation failed: ${message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      try {
+        if (!repository) {
+          repository = new EpisodicMemoryRepository();
+        }
+
+        const limit = args.limit ?? DEFAULT_LIMIT;
+        const order = args.order ?? 'desc';
+
+        const turns = await repository.getSessionHistory(args.sessionId, {
+          limit,
+          order,
+        });
+
+        const response: ConversationLatestOutput = {
+          turns,
+          sessionId: args.sessionId,
+          fetched: turns.length,
+          limit,
+          order,
+        };
+
+        const summaryLines = [
+          `Fetched ${turns.length} turn${turns.length === 1 ? '' : 's'} for session ${args.sessionId}.`,
+          turns[0] ? `Newest turn #${turns[0].turnIndex} (${turns[0].role}).` : 'No turns found for this session.',
+        ];
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: summaryLines.join('\n'),
+            },
+          ],
+          structuredContent: response,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unexpected error fetching conversation turns.';
+        console.error('conversation_latest failed', error);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `conversation_latest failed: ${message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  console.info('[MCP] Tool registered:', toolName);
+}

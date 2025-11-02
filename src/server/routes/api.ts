@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { config } from '../../config';
 import { PromptEmbeddingsRepository } from '../../db/repository';
-import { OperationsRepository, VideoStatus, videoStatusEnum } from '../../db/operations';
+import { OperationsRepository, RunStatus, runStatusEnum, VideoStatus, videoStatusEnum } from '../../db/operations';
 import { EpisodicMemoryRepository } from '../../db/episodicRepository';
 import { embedTexts } from '../../vector/embedTexts';
 import { resolvePrompt } from '../tools/promptGetTool';
@@ -19,6 +19,7 @@ import {
 } from '../../config/featureFlags';
 
 const videoStatusValues = new Set(videoStatusEnum.enumValues);
+const runStatusValues = new Set(runStatusEnum.enumValues);
 
 const promptResolveQuerySchema = z
   .object({
@@ -137,6 +138,48 @@ const conversationRecallQuerySchema = z.object({
   to: optionalDate.optional(),
 });
 
+const conversationTurnParamsSchema = z.object({
+  id: z.string().trim().uuid('turnId must be a valid UUID'),
+});
+
+const runBaseSchema = z.object({
+  personaId: z.string().trim().uuid('personaId must be a valid UUID').optional(),
+  chatId: z.string().trim().optional(),
+  status: z.string().trim().optional(),
+  result: z.string().trim().optional().nullable(),
+  input: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  startedAt: z.string().trim().optional().nullable(),
+  completedAt: z.string().trim().optional().nullable(),
+});
+
+const validateRunStatus = (value: { status?: string | null }, ctx: z.RefinementCtx) => {
+  if (value.status && !runStatusValues.has(value.status as RunStatus)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['status'],
+      message: `status must be one of: ${Array.from(runStatusValues).join(', ')}`,
+    });
+  }
+};
+
+const runCreateSchema = runBaseSchema
+  .extend({
+    projectId: z.string().trim().uuid('projectId must be a valid UUID'),
+  })
+  .superRefine(validateRunStatus);
+
+const runUpdateSchema = runBaseSchema
+  .partial()
+  .extend({
+    projectId: z.never().optional(),
+  })
+  .superRefine(validateRunStatus);
+
+const runParamsSchema = z.object({
+  id: z.string().trim().uuid('runId must be a valid UUID'),
+});
+
 const featureFlagNameEnum = z.enum(
   [...featureFlagNames] as [FeatureFlagName, ...FeatureFlagName[]],
 );
@@ -176,12 +219,20 @@ export interface ApiRouteDependencies {
   embedTexts?: typeof embedTexts;
   enhanceQuery?: typeof baseEnhanceQuery;
   episodicRepository?: EpisodicMemoryRepository | null;
+  hitlService?: import('../../services/hitl/HITLService').HITLService;
 }
 
 export async function registerApiRoutes(
   app: FastifyInstance,
   dependencies: ApiRouteDependencies = {},
 ): Promise<void> {
+  // Register HITL routes
+  const { registerHITLRoutes } = await import('./hitl');
+  await registerHITLRoutes(app, { hitlService: dependencies.hitlService });
+
+  // Register workflow-runs routes
+  const { registerWorkflowRunRoutes } = await import('./workflow-runs');
+  await registerWorkflowRunRoutes(app);
   const promptRepository = dependencies.promptRepository ?? new PromptEmbeddingsRepository();
   const embed = dependencies.embedTexts ?? embedTexts;
   const enhance = dependencies.enhanceQuery ?? baseEnhanceQuery;
@@ -299,6 +350,34 @@ export async function registerApiRoutes(
       const message =
         error instanceof Error ? error.message : 'Unexpected error recalling conversation.';
       return sendError(reply, 500, 'CONVERSATION_RECALL_ERROR', message);
+    }
+  });
+
+  app.get('/api/conversation/turns/:id', async (request, reply) => {
+    if (!ensureEpisodicAvailable(reply, episodicRepository)) {
+      return;
+    }
+
+    const parsed = conversationTurnParamsSchema.safeParse(request.params);
+    if (!parsed.success) {
+      return sendValidationError(reply, parsed.error);
+    }
+
+    try {
+      const turn = await episodicRepository!.getTurnById(parsed.data.id);
+      if (!turn) {
+        return sendError(reply, 404, 'TURN_NOT_FOUND', `No conversation turn found with id "${parsed.data.id}".`);
+      }
+
+      return reply.status(200).send({
+        data: {
+          turn,
+        },
+      });
+    } catch (error) {
+      request.log.error({ err: error }, 'conversation turn fetch failed');
+      const message = error instanceof Error ? error.message : 'Unexpected error fetching conversation turn.';
+      return sendError(reply, 500, 'CONVERSATION_TURN_ERROR', message);
     }
   });
 

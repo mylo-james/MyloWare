@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { getOperationsDb } from './client';
 import * as schema from './schema';
-import type { NewVideo, Video, VideoStatus } from './schema';
+import type { NewRun, NewVideo, Run, RunStatus, Video, VideoStatus } from './schema';
 
 export interface ListVideosOptions {
   status?: VideoStatus[];
@@ -18,6 +18,27 @@ export interface DatabaseCheckResult {
   status: 'ok' | 'error';
   error?: string;
 }
+
+type CreateRunData = {
+  id?: string;
+  projectId: string;
+  personaId?: string | null;
+  chatId?: string | null;
+  status?: RunStatus;
+  result?: string | null;
+  input?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+type UpdateRunData = Partial<
+  Pick<
+    Run,
+    'projectId' | 'personaId' | 'chatId' | 'status' | 'result' | 'input' | 'metadata' | 'startedAt' | 'completedAt'
+  >
+>;
+
 type CreateVideoData = {
   id?: string;
   runId: string;
@@ -52,6 +73,84 @@ type UpdateVideoData = Partial<
 
 export class OperationsRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema> = getOperationsDb()) {}
+
+  async createRun(data: CreateRunData): Promise<Run> {
+    const timestamp = new Date().toISOString();
+
+    const values: NewRun = {
+      id: data.id,
+      projectId: data.projectId,
+      personaId: (data.personaId ?? null) as NewRun['personaId'],
+      chatId: (data.chatId ?? null) as NewRun['chatId'],
+      status: data.status ?? 'pending',
+      result: (data.result ?? null) as NewRun['result'],
+      input: (data.input ?? {}) as NewRun['input'],
+      metadata: (data.metadata ?? {}) as NewRun['metadata'],
+      startedAt: (data.startedAt ?? null) as NewRun['startedAt'],
+      completedAt: (data.completedAt ?? null) as NewRun['completedAt'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const [row] = await this.db.insert(schema.runs).values(values).returning();
+    return row;
+  }
+
+  async getRunById(runId: string): Promise<Run | null> {
+    const [row] = await this.db
+      .select()
+      .from(schema.runs)
+      .where(eq(schema.runs.id, runId))
+      .limit(1);
+
+    return row ?? null;
+  }
+
+  async updateRun(runId: string, data: UpdateRunData): Promise<Run | null> {
+    const updatePayload: Partial<NewRun> & { updatedAt?: string } = {};
+
+    if (data.projectId !== undefined) {
+      updatePayload.projectId = data.projectId;
+    }
+    if (data.personaId !== undefined) {
+      updatePayload.personaId = (data.personaId ?? null) as NewRun['personaId'];
+    }
+    if (data.chatId !== undefined) {
+      updatePayload.chatId = (data.chatId ?? null) as NewRun['chatId'];
+    }
+    if (data.status !== undefined) {
+      updatePayload.status = data.status;
+    }
+    if (data.result !== undefined) {
+      updatePayload.result = (data.result ?? null) as NewRun['result'];
+    }
+    if (data.input !== undefined) {
+      updatePayload.input = (data.input ?? {}) as NewRun['input'];
+    }
+    if (data.metadata !== undefined) {
+      updatePayload.metadata = (data.metadata ?? {}) as NewRun['metadata'];
+    }
+    if (data.startedAt !== undefined) {
+      updatePayload.startedAt = (data.startedAt ?? null) as NewRun['startedAt'];
+    }
+    if (data.completedAt !== undefined) {
+      updatePayload.completedAt = (data.completedAt ?? null) as NewRun['completedAt'];
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return this.getRunById(runId);
+    }
+
+    updatePayload.updatedAt = new Date().toISOString();
+
+    const [row] = await this.db
+      .update(schema.runs)
+      .set(updatePayload)
+      .where(eq(schema.runs.id, runId))
+      .returning();
+
+    return row ?? null;
+  }
 
   async getVideoById(videoId: string): Promise<Video | null> {
     const [row] = await this.db
