@@ -2,6 +2,7 @@ import { EpisodicMemoryRepository } from '../../db/episodicRepository';
 import { WorkflowRunRepository } from '../../db/operations/workflowRunRepository';
 import { HITLRepository } from '../../db/operations/hitlRepository';
 import { NotificationService, type NotifyParams } from './NotificationService';
+import { NotFoundError } from '../../types/errors';
 import type {
   WorkflowRun,
   HITLApproval,
@@ -41,14 +42,10 @@ export class HITLService {
   ) {}
 
   async requestApproval(params: RequestApprovalParams): Promise<HITLApproval> {
-    // Validate workflow run exists
+    // Validate workflow run exists (throws NotFoundError if not found)
     const workflowRun = await this.workflowRunRepo.getWorkflowRunById(
       params.workflowRunId,
     );
-
-    if (!workflowRun) {
-      throw new Error(`Workflow run with id ${params.workflowRunId} not found`);
-    }
 
     // Create HITL approval record
     const approval = await this.hitlRepo.createHITLApproval({
@@ -73,12 +70,20 @@ export class HITLService {
       stages,
     });
 
+    // Extract Telegram chat ID from workflow run input
+    const input = workflowRun.input as Record<string, unknown> | null;
+    const telegramChatId = input?.telegramChatId as string | undefined;
+
+    // Determine notification channels - prefer Telegram if available
+    const channels = params.notifyChannels || (telegramChatId ? ['telegram'] : ['slack']);
+
     // Send notification
     await this.notificationService.notify({
-      channels: params.notifyChannels || ['slack'],
-      message: `New ${params.stage} awaiting approval for project ${workflowRun.projectId}`,
+      channels,
+      message: `🔔 *${params.stage} Approval Needed*\n\nProject: ${workflowRun.projectId}\n\nReview the content and reply to approve or reject.`,
       link: `/hitl/review/${approval.id}`,
       data: params.content,
+      telegramChatId,
     });
 
     return approval;
@@ -88,7 +93,7 @@ export class HITLService {
     const approval = await this.hitlRepo.getHITLApproval(approvalId);
 
     if (!approval) {
-      throw new Error(`HITL approval with id ${approvalId} not found`);
+      throw new NotFoundError(`HITL approval with id ${approvalId} not found`);
     }
 
     const reviewedAt = new Date().toISOString();
@@ -101,14 +106,10 @@ export class HITLService {
       feedback: params.feedback || null,
     });
 
-    // Update workflow run status
+    // Update workflow run status (throws NotFoundError if not found)
     const workflowRun = await this.workflowRunRepo.getWorkflowRunById(
       approval.workflowRunId,
     );
-
-    if (!workflowRun) {
-      throw new Error(`Workflow run with id ${approval.workflowRunId} not found`);
-    }
 
     const stages = workflowRun.stages as Record<
       string,
@@ -147,7 +148,7 @@ export class HITLService {
     const approval = await this.hitlRepo.getHITLApproval(approvalId);
 
     if (!approval) {
-      throw new Error(`HITL approval with id ${approvalId} not found`);
+      throw new NotFoundError(`HITL approval with id ${approvalId} not found`);
     }
 
     const reviewedAt = new Date().toISOString();
@@ -160,14 +161,10 @@ export class HITLService {
       feedback: params.reason,
     });
 
-    // Update workflow run status
+    // Update workflow run status (throws NotFoundError if not found)
     const workflowRun = await this.workflowRunRepo.getWorkflowRunById(
       approval.workflowRunId,
     );
-
-    if (!workflowRun) {
-      throw new Error(`Workflow run with id ${approval.workflowRunId} not found`);
-    }
 
     const stages = workflowRun.stages as Record<
       string,

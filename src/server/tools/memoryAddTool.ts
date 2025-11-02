@@ -13,6 +13,7 @@ import { MemoryLinkRepository, type MemoryLinkType } from '../../db/linkReposito
 import type { MemoryType } from '../../db/schema';
 import { embedTexts } from '../../vector/embedTexts';
 import { normaliseSlug, normaliseSlugOptional } from '../../utils/slug';
+import { extractToolArgs } from './argUtils';
 
 const MEMORY_TYPES = ['persona', 'project', 'semantic', 'procedural', 'episodic'] as const;
 const ACTOR_TYPES = ['system', 'agent', 'user', 'integration', 'operator'] as const;
@@ -90,6 +91,22 @@ const baseContentSchema = z
   .min(1, 'content must not be empty')
   .max(2048, 'content must not exceed 2048 characters');
 
+const MEMORY_ADD_ARG_KEYS = [
+  'content',
+  'memoryType',
+  'title',
+  'summary',
+  'tags',
+  'source',
+  'visibility',
+  'metadata',
+  'relatedChunkIds',
+  'confidence',
+  'sessionId',
+  'actor',
+  'force',
+] as const;
+
 const memoryAddArgsBaseSchema = z
   .object({
     content: baseContentSchema,
@@ -126,6 +143,20 @@ const memoryAddArgsSchema = memoryAddArgsBaseSchema
     }
   });
 
+const MEMORY_UPDATE_ARG_KEYS = [
+  'memoryId',
+  'content',
+  'title',
+  'summary',
+  'tags',
+  'visibility',
+  'metadata',
+  'relatedChunkIds',
+  'confidence',
+  'actor',
+  'force',
+] as const;
+
 const memoryUpdateArgsBaseSchema = z
   .object({
     memoryId: z.string().trim().min(1, 'memoryId must not be empty'),
@@ -153,6 +184,8 @@ const memoryUpdateArgsSchema = memoryUpdateArgsBaseSchema
       });
     }
   });
+
+const MEMORY_DELETE_ARG_KEYS = ['memoryId', 'actor', 'reason', 'force'] as const;
 
 const memoryDeleteArgsSchema = z
   .object({
@@ -502,7 +535,10 @@ export function registerMemoryTools(
     async (rawArgs: unknown) => {
       let args: MemoryAddArgs;
       try {
-        args = memoryAddArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: MEMORY_ADD_ARG_KEYS,
+        });
+        args = memoryAddArgsSchema.parse(extracted);
       } catch (error) {
         return formatValidationError(error, MEMORY_ADD_TOOL_NAME);
       }
@@ -535,7 +571,10 @@ export function registerMemoryTools(
     async (rawArgs: unknown) => {
       let args: MemoryUpdateArgs;
       try {
-        args = memoryUpdateArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: MEMORY_UPDATE_ARG_KEYS,
+        });
+        args = memoryUpdateArgsSchema.parse(extracted);
       } catch (error) {
         return formatValidationError(error, MEMORY_UPDATE_TOOL_NAME);
       }
@@ -567,7 +606,10 @@ export function registerMemoryTools(
     async (rawArgs: unknown) => {
       let args: MemoryDeleteArgs;
       try {
-        args = memoryDeleteArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: MEMORY_DELETE_ARG_KEYS,
+        });
+        args = memoryDeleteArgsSchema.parse(extracted);
       } catch (error) {
         return formatValidationError(error, MEMORY_DELETE_TOOL_NAME);
       }

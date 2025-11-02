@@ -4,12 +4,25 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 
 import { EpisodicMemoryRepository } from '../../db/episodicRepository';
 import type { StoreConversationTurnResult } from '../../db/episodicRepository';
 import type { ConversationRole } from '../../db/schema';
+import { extractToolArgs } from './argUtils';
 
 const ROLE_VALUES = ['user', 'assistant', 'system', 'tool'] as [ConversationRole, ...ConversationRole[]];
 
 const isoDateSchema = z
   .string()
   .datetime({ offset: true, message: 'Expected ISO 8601 timestamp with offset' });
+
+const CONVERSATION_STORE_ARG_KEYS = [
+  'sessionId',
+  'role',
+  'content',
+  'userId',
+  'metadata',
+  'summary',
+  'embeddingText',
+  'occurredAt',
+  'tags',
+] as const;
 
 const conversationStoreArgsSchema = z
   .object({
@@ -118,7 +131,10 @@ export function registerConversationStoreTool(
       let args: ConversationStoreArgs;
 
       try {
-        args = conversationStoreArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: CONVERSATION_STORE_ARG_KEYS,
+        });
+        args = conversationStoreArgsSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse conversation_store input.';

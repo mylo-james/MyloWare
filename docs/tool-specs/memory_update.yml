@@ -1,0 +1,174 @@
+tool:
+  id: myloware.memory.memory_update.v1
+  name: memory_update
+  namespace: myloware.memory
+  version: '1.0.0'
+  description: >-
+    Updates an existing memory chunk, re-embedding content when modified and recording version history.
+    Maintains audit trail and automatically updates related memory links if relatedChunkIds are changed.
+  one_liner: 'Update an existing memory chunk with version tracking and optional re-embedding.'
+  invocation_context: >-
+    Use when correcting or enhancing existing memory content. Content changes trigger re-embedding.
+    At least one update field must be provided. Permission checks ensure actors can only update
+    memories they created (except system/operator).
+  agent_hint: 'User wants to correct or improve existing stored information.'
+  pattern: external_api
+  tags:
+    - memory
+    - update
+    - versioning
+    - runtime
+  availability:
+    - production
+    - staging
+  auth:
+    policy_notes: >-
+      Permission checks: System/operator can update any memory. Agents/integrations/users can only
+      update memories they created. Agents cannot update episodic memories.
+  constraints:
+    max_duration_seconds: 8
+    rate_limit_per_minute: 60
+    note: >-
+      At least one update field required. Content changes trigger re-embedding. Version number
+      increments automatically. History preserved (last 20 entries).
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      memoryId:
+        type: string
+        minLength: 1
+        description: 'ID of the memory chunk to update.'
+      content:
+        type: string
+        minLength: 1
+        maxLength: 2048
+        description: 'Updated content (triggers re-embedding if provided).'
+      title:
+        type: string
+        maxLength: 120
+        description: 'Updated title.'
+      summary:
+        type: string
+        maxLength: 280
+        description: 'Updated summary.'
+      tags:
+        type: array
+        maxItems: 10
+        items:
+          type: string
+          minLength: 1
+          maxLength: 40
+        description: 'Updated tags array.'
+      visibility:
+        type: string
+        enum:
+          - public
+          - team
+          - private
+        description: 'Updated visibility level.'
+      metadata:
+        type: object
+        description: 'Updated custom metadata (merged with existing).'
+      relatedChunkIds:
+        type: array
+        maxItems: 20
+        items:
+          type: string
+          minLength: 1
+        description: 'Updated related chunk IDs (replaces existing links).'
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: 'Updated confidence score.'
+      actor:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+              - system
+              - agent
+              - user
+              - integration
+              - operator
+          id:
+            type: string
+            minLength: 1
+          scopes:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              minLength: 1
+        required:
+          - type
+          - id
+        description: 'Actor making the update request.'
+      force:
+        type: boolean
+        description: 'Force update (for system/operator only).'
+    required:
+      - memoryId
+      - actor
+  output_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      memoryId:
+        type: string
+      memoryType:
+        type: string
+        enum:
+          - persona
+          - project
+          - semantic
+          - procedural
+          - episodic
+      promptKey:
+        type: string
+      status:
+        type: string
+        enum:
+          - updated
+      version:
+        type: integer
+        minimum: 1
+        description: 'New version number after update.'
+      contentChanged:
+        type: boolean
+        description: 'Whether content was modified (triggers re-embedding).'
+      updatedAt:
+        type: string
+        format: date-time
+    required:
+      - memoryId
+      - memoryType
+      - promptKey
+      - status
+      - version
+      - contentChanged
+      - updatedAt
+  versioning:
+    last_updated: '2025-11-02'
+    owner_team: memory_platform
+    contact: 'slack://#memory-platform'
+  examples:
+    - name: Update memory content
+      description: 'Update content and trigger re-embedding.'
+      input:
+        memoryId: 'memory-abc123'
+        content: 'To reset the database, run: npm run db:reset --force'
+        actor:
+          type: system
+          id: 'system-ops'
+      output:
+        memoryId: 'memory-abc123'
+        memoryType: procedural
+        promptKey: 'runtime::procedural::database-reset-procedure'
+        status: updated
+        version: 2
+        contentChanged: true
+        updatedAt: '2025-11-02T11:00:00Z'
+

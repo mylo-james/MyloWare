@@ -7,6 +7,9 @@ import {
   type PromptSummary,
 } from '../../db/repository';
 import { normaliseSlug } from '../../utils/slug';
+import { extractToolArgs } from './argUtils';
+
+const PROMPT_GET_ARG_KEYS = ['project_name', 'persona_name'] as const;
 
 const promptGetArgsSchema = z.object({
   project_name: z.string().trim().min(1, 'project_name must not be empty').optional(),
@@ -80,7 +83,10 @@ export function registerPromptGetTool(
       let args: PromptGetInput;
 
       try {
-        args = inputSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: PROMPT_GET_ARG_KEYS,
+        });
+        args = inputSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse prompt_get arguments.';

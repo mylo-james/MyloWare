@@ -261,6 +261,60 @@ describe('registerAdaptiveSearchTool', () => {
 
     expect(failure.content[0]?.text).toContain('orchestrator failure');
   });
+
+  it('extracts arguments from request envelopes', async () => {
+    const server = createMockServer();
+    const orchestrator = vi.fn().mockResolvedValue({
+      decision: {
+        decision: 'yes',
+        confidence: 0.6,
+        rationale: 'Proceed with results.',
+        safetyOverride: false,
+        metrics: {
+          knowledgeSufficiency: 0.5,
+          freshnessRisk: 0.3,
+          ambiguity: 0.4,
+        },
+      },
+      retrieved: true,
+      finalUtility: 0.6,
+      totalDurationMs: 12,
+      iterations: [
+        {
+          iteration: 1,
+          query: 'enveloped query',
+          searchMode: 'vector',
+          utility: 0.6,
+          durationMs: 12,
+          notes: [],
+          results: [],
+        },
+      ],
+      results: [],
+    } satisfies AdaptiveSearchResult);
+
+    registerAdaptiveSearchTool(server as unknown as McpServer, { orchestrator });
+    const handler = server.registerTool.mock.calls[0][2];
+
+    const envelope = {
+      sessionId: 'session-1',
+      requestInfo: {
+        input: {
+          query: 'enveloped query',
+        },
+      },
+      signal: new AbortController().signal,
+    };
+
+    const result = await handler(envelope);
+
+    expect(orchestrator).toHaveBeenCalledWith(
+      'enveloped query',
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(result.content[0]?.text).toContain('Adaptive search completed');
+  });
 });
 
 function createMockServer() {

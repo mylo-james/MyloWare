@@ -1,0 +1,121 @@
+tool:
+  id: myloware.memory.conversation_store.v1
+  name: conversation_store
+  namespace: myloware.memory
+  version: '1.0.0'
+  description: >-
+    Persists any conversation turn—user, assistant, system, or tool—into episodic memory with full
+    metadata. Automatically enriches entries with embeddings and returns IDs you can reuse for recall,
+    analytics, or chaining workflows. Provide your own sessionId to append to a thread or omit it to
+    spawn a fresh conversation on the fly.
+  one_liner: 'Store a conversation turn in episodic memory with automatic embedding generation.'
+  invocation_context: >-
+    Use after any meaningful interaction that should be remembered for future context retrieval.
+    Do not use for bulk imports; prefer batch ingestion scripts. Session IDs are auto-generated if omitted.
+  agent_hint: 'After user interaction or system message that should influence future responses.'
+  pattern: external_api
+  tags:
+    - memory
+    - conversation
+    - storage
+    - episodic
+  availability:
+    - production
+    - staging
+  constraints:
+    max_duration_seconds: 5
+    rate_limit_per_minute: 120
+    note: 'Tags array limited to 20 items. Content is trimmed and normalized.'
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      sessionId:
+        type: string
+        format: uuid
+        description: 'UUID of the conversation session. Auto-generated if omitted.'
+      role:
+        type: string
+        enum:
+          - user
+          - assistant
+          - system
+          - tool
+        description: 'Role of the speaker in this turn.'
+      content:
+        type: string
+        minLength: 1
+        description: 'The conversation turn content.'
+      userId:
+        type: string
+        minLength: 1
+        description: 'User identifier associated with this turn.'
+      metadata:
+        type: object
+        description: 'Additional metadata to attach to the turn.'
+      summary:
+        type: object
+        description: 'Structured summary object (e.g., with headline field).'
+      embeddingText:
+        type: string
+        minLength: 1
+        description: 'Alternative text to embed (uses content if omitted).'
+      occurredAt:
+        type: string
+        format: date-time
+        description: 'ISO 8601 timestamp when the turn occurred (uses current time if omitted).'
+      tags:
+        type: array
+        maxItems: 20
+        items:
+          type: string
+          minLength: 1
+        description: 'Tags for categorization (max 20).'
+    required:
+      - role
+      - content
+  output_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      sessionId:
+        type: string
+        format: uuid
+      turnId:
+        type: string
+      chunkId:
+        type: string
+      promptKey:
+        type: string
+      isNewSession:
+        type: boolean
+      storedAt:
+        type: string
+        format: date-time
+    required:
+      - sessionId
+      - turnId
+      - chunkId
+      - promptKey
+      - isNewSession
+      - storedAt
+  versioning:
+    last_updated: '2025-11-02'
+    owner_team: memory_platform
+    contact: 'slack://#memory-platform'
+  examples:
+    - name: Store user message
+      description: 'Store a user message in an existing session.'
+      input:
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+        role: user
+        content: 'What is the status of my project?'
+        userId: 'user-123'
+      output:
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+        turnId: 'turn-456'
+        chunkId: 'chunk-789'
+        promptKey: 'episodic::conversation-store'
+        isNewSession: false
+        storedAt: '2025-11-02T10:30:00Z'
+

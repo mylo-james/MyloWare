@@ -1,1485 +1,2323 @@
-# RAG Modernization Plan: From Static to Adaptive Agentic Memory
+# MCP Prompts: Code Review Remediation Plan
 
-**Date:** October 30, 2025  
-**Based On:** REVIEW.md + REVIEW-CODEX.md analysis  
-**Goal:** Transform current static RAG into adaptive agentic memory system  
-**Timeline:** 12 weeks (3 phases)
-
----
-
-## Executive Summary
-
-This plan transforms our B+ static RAG implementation into a production-grade adaptive agentic memory system aligned with 2024-2025 research standards. We'll build incrementally on our solid foundation (pgvector, OpenAI embeddings, MCP architecture) without requiring a complete rewrite.
-
-**Current State:** Static vector search with metadata filtering  
-**Target State:** Multi-component adaptive memory with hybrid search, episodic storage, and runtime learning
+**Date Created:** November 2, 2025  
+**Based On:** REVIEW-CODEX.md and review-claude.md  
+**Target Branch:** phase-1  
+**Execution Mode:** Sequential, step-by-step for AI agents
 
 ---
 
-## Phase 1: Foundation Enhancements (Weeks 1-4)
+## 📋 Overview
 
-### Milestone 1.1: Hybrid Search Implementation
+This plan addresses critical bugs, missing features, and technical debt identified in two comprehensive code reviews. Each task includes explicit, procedural instructions suitable for AI agents with limited reasoning capabilities.
 
-**Goal:** Add keyword search alongside vector similarity for better precision on technical terms and exact matches.
-
-#### Step 1.1.1: Add Full-Text Search Capabilities
-
-- [x] **Add tsvector column to schema**
-  - [x] Create migration `0002_add_fulltext_search.sql`
-  - [x] Add `textsearch tsvector` column to `prompt_embeddings` table
-  - [x] Add GIN index for full-text search: `CREATE INDEX idx_textsearch ON prompt_embeddings USING gin(textsearch)`
-  - [x] Add trigger to auto-update tsvector on insert/update:
-    ```sql
-    CREATE TRIGGER tsvector_update BEFORE INSERT OR UPDATE
-    ON prompt_embeddings FOR EACH ROW EXECUTE FUNCTION
-    tsvector_update_trigger(textsearch, 'pg_catalog.english', chunk_text, raw_markdown);
-    ```
-
-- [x] **Update schema types**
-  - [x] Add `textsearch` field to `PromptEmbedding` interface in `src/db/schema.ts`
-  - [x] Update Drizzle schema definition
-  - [x] Run migration and verify index creation
-
-- [x] **Test full-text search**
-  - [x] Write test query: `SELECT * FROM prompt_embeddings WHERE textsearch @@ to_tsquery('screenwriter & aismr')`
-  - [x] Verify results match expected prompts
-  - [x] Test ranking with `ts_rank(textsearch, query)`
-
-**Files to modify:**
-
-- `drizzle/0002_add_fulltext_search.sql` (new)
-- `src/db/schema.ts`
-- `drizzle.config.ts` (verify migration path)
-
-**Exit Criteria:** Full-text search returns relevant results for keyword queries
+**Total Tasks:** 55  
+**Estimated Completion:** 3-4 weeks
 
 ---
 
-#### Step 1.1.2: Implement BM25 Keyword Search Repository Method
+## ✅ Phase 1: Critical Bug Fixes (Week 1, Days 1-2) — COMPLETED
 
-- [x] **Add keyword search method to repository**
-  - [x] Create `keywordSearch(query: string, filters: MetadataFilters): Promise<SearchResult[]>` in `PromptEmbeddingsRepository`
-  - [x] Implement ts_query parsing from natural language query
-  - [x] Use `ts_rank_cd` for relevance scoring
-  - [x] Apply persona/project metadata filters
-  - [x] Return normalized results matching `SearchResult` interface
+### Task 1.1: Fix listWorkflowRuns .where(undefined) Bug ✅
 
-- [x] **Add configuration options**
-  - [x] Add `FULLTEXT_SEARCH_WEIGHTS` to config (A: 1.0, B: 0.4, C: 0.2, D: 0.1)
-  - [x] Add `FULLTEXT_MIN_SCORE` threshold (default: 0.1)
-  - [x] Make language configurable (default: 'english')
+**Priority:** CRITICAL  
+**File:** `src/db/operations/workflowRunRepository.ts`  
+**Issue:** Calling `.where(undefined)` causes runtime error when no filters provided
 
-- [x] **Write unit tests**
-  - [x] Test exact phrase matching
-  - [x] Test multi-word queries
-  - [x] Test stop word handling
-  - [x] Test with metadata filters
-  - [x] Test empty results handling
+**Steps:**
 
-**Files to modify:**
+- [x] 1.1.1 Open file `src/db/operations/workflowRunRepository.ts`
+- [x] 1.1.2 Locate the `listWorkflowRuns` method (around line 158)
+- [x] 1.1.3 Find the line `const whereClause = conditions.length > 0 ? and(...conditions) : undefined;` (line 177)
+- [x] 1.1.4 Find the query builder section starting at line 179
+- [x] 1.1.5 Replace lines 179-183 with this code:
 
-- `src/db/repository.ts`
-- `src/config/index.ts`
-- `src/db/repository.test.ts` (new tests)
+```typescript
+const query = this.db.select().from(schema.workflowRuns);
 
-**Exit Criteria:** Keyword search method passes all tests and returns ranked results
+const rows = whereClause
+  ? await query.where(whereClause).orderBy(desc(schema.workflowRuns.createdAt))
+  : await query.orderBy(desc(schema.workflowRuns.createdAt));
 
----
+return rows;
+```
 
-#### Step 1.1.3: Implement Reciprocal Rank Fusion (RRF)
+- [x] 1.1.6 Save the file
+- [x] 1.1.7 Run command: `npm test src/db/operations/workflowRunRepository.test.ts`
+- [x] 1.1.8 Verify test "returns all workflow runs when no filters provided" passes
+- [x] 1.1.9 Run command: `npm run build`
+- [x] 1.1.10 Verify build succeeds with no errors
 
-- [x] **Create RRF utility function**
-  - [x] Create `src/vector/hybridSearch.ts`
-  - [x] Implement RRF algorithm:
-    ```typescript
-    function reciprocalRankFusion(results: SearchResult[][], k: number = 60): SearchResult[];
-    ```
-  - [x] Formula: `score = sum(1 / (k + rank_i))` across all result lists
-  - [x] Handle duplicate results (merge by chunk_id)
-  - [x] Preserve metadata from highest-scoring source
+**Acceptance Criteria:**
 
-- [x] **Add configuration**
-  - [x] Add `HYBRID_RRF_K` parameter (default: 60)
-  - [x] Add `HYBRID_VECTOR_WEIGHT` (default: 0.6)
-  - [x] Add `HYBRID_KEYWORD_WEIGHT` (default: 0.4)
-
-- [x] **Write comprehensive tests**
-  - [x] Test with identical result sets (should equal input)
-  - [x] Test with disjoint result sets (should merge)
-  - [x] Test with overlapping results (should favor consensus)
-  - [x] Test empty input handling
-  - [x] Test single-source input
-
-**Files to create:**
-
-- `src/vector/hybridSearch.ts`
-- `src/vector/hybridSearch.test.ts`
-
-**Exit Criteria:** RRF correctly merges vector and keyword results with proper scoring
+- ✅ Query executes successfully with empty filters object
+- ✅ All existing tests pass
+- ✅ No TypeScript errors
 
 ---
 
-#### Step 1.1.4: Update Search Tool with Hybrid Mode
+### Task 1.2: Fix PATCH /api/workflow-runs/:id Error Handling — SUPERSEDED
 
-- [x] **Add hybrid search mode to promptSearchTool**
-  - [x] Add `searchMode: 'vector' | 'keyword' | 'hybrid'` parameter (default: 'hybrid')
-  - [x] Update input schema validation
-  - [x] Implement mode switching logic:
-    - Vector: existing cosine similarity search
-    - Keyword: new BM25 search
-    - Hybrid: both + RRF fusion
+**Priority:** CRITICAL  
+**File:** `src/server/routes/workflow-runs.ts`  
+**Issue:** Returns 500 for "not found" instead of 404
 
-- [x] **Update search execution**
-  - [x] For hybrid mode, run vector and keyword searches in parallel
-  - [x] Apply RRF to merge results
-  - [x] Filter by combined score threshold
-  - [x] Return top-k after fusion
+**NOTE:** This task was superseded by the typed error approach in Phase 3. Instead of returning null, we implemented `NotFoundError` which provides better type safety and consistency.
 
-- [x] **Update tool documentation**
-  - [x] Document searchMode parameter
-  - [x] Add usage examples for each mode
-  - [x] Document when to use each mode
+**Steps:**
 
-- [x] **Write integration tests**
-  - [x] Test all three modes with same query
-  - [x] Verify hybrid returns better results than either alone
-  - [x] Test with technical terms (should favor keyword)
-  - [x] Test with semantic queries (should favor vector)
+- [~] 1.2.1 Open file `src/db/operations/workflowRunRepository.ts`
+- [ ] 1.2.2 Locate the `updateWorkflowRun` method (around line 77)
+- [ ] 1.2.3 Check the return type - it currently returns `WorkflowRun` but should handle null
+- [ ] 1.2.4 Modify the method to return `WorkflowRun | null`:
 
-**Files to modify:**
+```typescript
+  async updateWorkflowRun(
+    id: string,
+    data: UpdateWorkflowRunData,
+  ): Promise<WorkflowRun | null> {
+```
 
-- `src/server/tools/promptSearchTool.ts`
-- `src/server/tools/promptSearchTool.test.ts`
+- [ ] 1.2.5 At the end of `updateWorkflowRun`, after the update query, change:
 
-**Exit Criteria:** Hybrid search demonstrably improves precision over vector-only
+```typescript
+if (!row) {
+  return null;
+}
 
----
+return row;
+```
 
-### Milestone 1.2: Query Intent Classification
+- [ ] 1.2.6 Save `src/db/operations/workflowRunRepository.ts`
+- [ ] 1.2.7 Open file `src/server/routes/workflow-runs.ts`
+- [ ] 1.2.8 Locate the PATCH handler (around line 112)
+- [ ] 1.2.9 Replace the try-catch block (lines 125-138) with:
 
-**Goal:** Automatically route queries to appropriate search modes and filters without manual specification.
+```typescript
+try {
+  const workflowRun = await workflowRunRepo.updateWorkflowRun(id, {
+    status: parsed.data.status,
+    currentStage: parsed.data.currentStage as never,
+    stages: parsed.data.stages as never,
+    output: parsed.data.output,
+    workflowDefinitionChunkId: parsed.data.workflowDefinitionChunkId ?? null,
+  });
 
-#### Step 1.2.1: Create Query Intent Classifier
+  if (!workflowRun) {
+    return sendError(reply, 404, 'NOT_FOUND', `Workflow run with id ${id} not found`);
+  }
 
-- [x] **Design intent taxonomy**
-  - [x] Define intents: `persona_lookup`, `project_lookup`, `combination_lookup`, `general_knowledge`, `workflow_step`, `example_request`
-  - [x] Map intents to filter strategies
-  - [x] Document intent → filter rules
+  void reply.status(200).send({ workflowRun });
+} catch (error) {
+  app.log.error(error, 'Failed to update workflow run');
+  return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to update workflow run');
+}
+```
 
-- [x] **Implement LLM-based classifier**
-  - [x] Create `src/vector/queryClassifier.ts`
-  - [x] Implement classifier function:
-    ```typescript
-    async function classifyQueryIntent(query: string): Promise<{
-      intent: QueryIntent;
-      extractedPersona?: string;
-      extractedProject?: string;
-      confidence: number;
-    }>;
-    ```
-  - [x] Use GPT-4o-mini for cost efficiency
-  - [x] Design classification prompt with few-shot examples
-  - [x] Parse structured output (JSON mode)
+- [ ] 1.2.10 Save the file
+- [ ] 1.2.11 Run command: `npm run build`
+- [ ] 1.2.12 Verify build succeeds
 
-- [x] **Add caching layer**
-  - [x] Implement in-memory LRU cache (max 1000 entries)
-  - [x] Cache key: hash of query string
-  - [x] TTL: 1 hour
-  - [x] Add cache hit metrics
+**Acceptance Criteria:**
 
-- [x] **Write tests**
-  - [x] Test persona intent: "What is the screenwriter persona?"
-  - [x] Test project intent: "Tell me about the AISMR project"
-  - [x] Test combination: "How does screenwriter work with AISMR?"
-  - [x] Test general: "What are the best practices for video generation?"
-  - [x] Test edge cases (empty query, very long query)
-
-**Files to create:**
-
-- `src/vector/queryClassifier.ts`
-- `src/vector/queryClassifier.test.ts`
-
-**Exit Criteria:** Classifier achieves >90% accuracy on test set of 50 queries
+- Updating non-existent workflow run returns 404
+- Updating existing workflow run returns 200
+- Other errors still return 500
 
 ---
 
-### Milestone 1.3: Episodic Memory Persistence (Weeks 3-4)
-
-**Goal:** Capture conversational turns in episodic storage so downstream tools can recall recent interactions.
-
-#### Step 1.3.1: Provision Episodic Schema
-
-- [x] **Create migration `0004_add_episodic_memory.sql`**
-  - [x] Define `conversation_role` enum
-  - [x] Create `conversation_turns` table with UUID keys and metadata JSONB
-  - [x] Add unique `(session_id, turn_index)` constraint plus supporting indexes
-  - [x] Register migration hash in `drizzle.__drizzle_migrations` and `_journal.json`
-- [x] **Verify deployment**
-  - [x] Run `npm run db:migrate` locally (no-op after manual apply)
-  - [x] Inspect table via `\d conversation_turns`
-  - [x] Document prod/staging rollout procedure
-
-#### Step 1.3.2: Wire Store Tool Output
-
-- [x] Ensure `conversation_store` fills in metadata defaults (`source`, `tags`)
-- [x] Normalize `storedAt` to ISO 8601 with offset to satisfy MCP validation
-- [x] Add structured metadata for request checksum / client identity (follow-up)
-
-#### Step 1.3.3: End-to-End Validation & Follow-ups
-
-- [x] Smoke-test with `ts-node` script calling `storeConversationTurn`
-- [x] Confirm n8n workflow uses longer HTTP timeout (15s) to avoid premature aborts
-- [x] Add automated regression covering repository insert + embedding write
-- [x] Backfill existing runs into episodic memory (pending size estimate)
-  - Implemented via `scripts/backfillRunsToEpisodic.ts` with `npm run episodic:backfill`.
-
-**Exit Criteria:** `conversation_store` reliably creates episodic chunks and recall benchmarks can read them end-to-end
-
----
-
-#### Step 1.2.2: Implement Automatic Filter Application
-
-- [x] **Create query enhancer**
-  - [x] Create `src/vector/queryEnhancer.ts`
-  - [x] Implement `enhanceQuery(query: string): Promise<EnhancedQuery>`
-  - [x] Extract persona/project from natural language:
-    - "screenwriter" → persona filter
-    - "aismr" → project filter
-  - [x] Normalize extracted terms to slugs
-  - [x] Validate against known personas/projects
-
-- [x] **Update search tool to use classifier**
-  - [x] Add `autoFilter: boolean` parameter (default: true)
-  - [x] If autoFilter=true and no explicit filters:
-    - Call queryClassifier
-    - Apply extracted filters
-    - Log auto-applied filters in response
-  - [x] If explicit filters provided, skip classification
-  - [x] Add `appliedFilters.auto: boolean` to output
-
-- [x] **Add fallback logic**
-  - [x] If classifier fails (error/timeout), proceed without filters
-  - [x] Log classification failures for monitoring
-  - [x] Add retry logic (max 1 retry with exponential backoff)
-
-- [x] **Write integration tests**
-  - [x] Test auto-filtering on persona query
-  - [x] Test auto-filtering on project query
-  - [x] Test override behavior (explicit filters take precedence)
-  - [x] Test fallback on classifier failure
-
-**Files to modify:**
-
-- `src/vector/queryEnhancer.ts` (new)
-- `src/server/tools/promptSearchTool.ts`
-- `src/server/tools/promptSearchTool.test.ts`
-
-**Exit Criteria:** Search tool automatically applies correct filters 85%+ of the time
-
----
-
-#### Step 1.2.3: Implement Search Mode Auto-Selection
-
-- [x] **Create mode selector**
-  - [x] Add `selectSearchMode(query: string, intent: QueryIntent): SearchMode`
-  - [x] Rules:
-    - Technical terms / IDs → keyword mode
-    - Semantic concepts → vector mode
-    - Default → hybrid mode
-  - [x] Use simple heuristics (presence of quotes, technical patterns)
-
-- [x] **Update search tool**
-  - [x] If `searchMode` not specified and `autoFilter=true`:
-    - Detect best mode from query
-    - Apply automatically
-    - Log selected mode in response
-  - [x] Add `appliedFilters.searchMode: 'auto' | 'manual'`
-
-- [x] **Add configuration**
-  - [x] `AUTO_MODE_ENABLED` (default: true)
-  - [x] `TECHNICAL_PATTERN_REGEX` (configurable patterns)
-  - [x] Mode selection weights/thresholds
-
-- [x] **Write tests**
-  - [x] Test keyword selection for technical queries
-  - [x] Test vector selection for conceptual queries
-  - [x] Test hybrid as default
-  - [x] Test manual override
-
-**Files to modify:**
-
-- `src/vector/queryEnhancer.ts`
-- `src/server/tools/promptSearchTool.ts`
-- `src/config/index.ts`
-
-**Exit Criteria:** Auto-selected mode matches optimal mode in 80%+ of test cases
-
----
-
-### Milestone 1.3: Temporal Weighting
-
-**Goal:** Boost recent content in search results to prioritize up-to-date information.
-
-#### Step 1.3.1: Add Temporal Decay Function
-
-- [x] **Implement decay algorithms**
-  - [x] Create `src/vector/temporalScoring.ts`
-  - [x] Implement exponential decay: `score * exp(-lambda * age_days)`
-  - [x] Implement linear decay: `score * max(0, 1 - age_days / max_age)`
-  - [x] Make decay function configurable
-
-- [x] **Add configuration**
-  - [x] `TEMPORAL_DECAY_ENABLED` (default: false for now)
-  - [x] `TEMPORAL_DECAY_FUNCTION` ('exponential' | 'linear' | 'none')
-  - [x] `TEMPORAL_DECAY_HALFLIFE_DAYS` (default: 90)
-  - [x] `TEMPORAL_DECAY_MAX_AGE_DAYS` (default: 365)
-
-- [x] **Write tests**
-  - [x] Test exponential decay formula
-  - [x] Test linear decay formula
-  - [x] Test edge cases (age = 0, age > max)
-  - [x] Test score preservation when disabled
-
-**Files to create:**
-
-- `src/vector/temporalScoring.ts`
-- `src/vector/temporalScoring.test.ts`
-
----
-
-#### Step 1.3.2: Update Repository Search to Apply Temporal Boost
-
-- [x] **Modify search query**
-  - [x] Calculate age in days: `EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400`
-  - [x] Apply decay formula in SQL:
-    ```sql
-    (1 - (embedding <=> embedding_literal)) *
-    EXP(-0.007 * EXTRACT(EPOCH FROM (NOW() - updated_at)) / 86400) AS similarity
-    ```
-  - [x] Make decay factor configurable
-  - [x] Only apply when `TEMPORAL_DECAY_ENABLED=true`
-
-- [x] **Add temporal parameters**
-  - [x] Add `applyTemporalDecay: boolean` to `SearchParameters`
-  - [x] Add `temporalDecayConfig` optional parameter
-  - [x] Default to config values if not specified
-
-- [x] **Test with real data**
-  - [x] Create test prompts with different ages
-  - [x] Verify newer prompts rank higher with same semantic similarity
-  - [x] Verify old prompts can still win with much higher similarity
-  - [x] Test disable mode (should behave as before)
-
-**Files to modify:**
-
-- `src/db/repository.ts`
-- `src/db/repository.test.ts`
-
-**Exit Criteria:** Temporal decay correctly boosts recent content without eliminating relevant old content
-
----
-
-#### Step 1.3.3: Expose Temporal Control in Search Tool
-
-- [x] **Add temporal parameters to search tool**
-  - [x] Add optional `temporalBoost: boolean` parameter
-  - [x] Add optional `temporalConfig` parameter
-  - [x] Pass through to repository search
-
-- [x] **Update documentation**
-  - [x] Document temporal boosting behavior
-  - [x] Provide examples of when to enable/disable
-  - [x] Document configuration options
-
-- [x] **Add to output metadata**
-  - [x] Include `temporalDecayApplied: boolean` in response
-  - [x] Include decay config used
-  - [x] Add age_days to each result (optional)
-
-**Files to modify:**
-
-- `src/server/tools/promptSearchTool.ts`
-
-**Exit Criteria:** Temporal boosting available and controllable via MCP tool
-
----
-
-## Phase 2: Memory Architecture Evolution (Weeks 5-8)
-
-### Milestone 2.1: Multi-Component Memory System
-
-**Goal:** Separate memory into distinct components (persona, project, episodic, semantic) with dedicated storage and routing.
-
-#### Step 2.1.1: Design Memory Component Architecture
-
-- [x] **Document memory taxonomy**
-  - [x] Create `docs/MEMORY_ARCHITECTURE.md`
-  - [x] Define memory types:
-    - **Persona Memory**: Identity, role, style, capabilities
-    - **Project Memory**: Project context, goals, specifications
-    - **Semantic Memory**: General knowledge, workflows, best practices
-    - **Episodic Memory**: Conversation history, user interactions (new)
-    - **Procedural Memory**: Workflow steps, action sequences (new)
-  - [x] Define routing rules for each type
-  - [x] Document cross-component relationships
-
-- [x] **Design database schema**
-  - [x] Option A: Separate tables per memory type
-  - [x] Option B: Single table with memory_type column + filtered indices
-  - [x] Option C: Separate databases (over-engineering)
-  - [x] **Decision:** Go with Option B for simplicity with dedicated indices
-
-- [x] **Create migration plan**
-  - [x] Map existing prompts to new memory types
-  - [x] Define data transformation logic
-  - [x] Plan zero-downtime migration strategy
-
-**Files to create:**
-
-- `docs/MEMORY_ARCHITECTURE.md`
-
-**Exit Criteria:** Memory architecture documented and reviewed
-
----
-
-#### Step 2.1.2: Create Memory Component Tables/Indices
-
-- [x] **Add memory_type to schema**
-  - [x] Create migration `0003_add_memory_components.sql`
-  - [x] Add `memory_type` enum: `persona | project | semantic | episodic | procedural`
-  - [x] Add `memory_type` column with default 'semantic'
-  - [x] Create partial indices per memory type:
-    ```sql
-    CREATE INDEX idx_persona_memory ON prompt_embeddings(updated_at)
-    WHERE memory_type = 'persona';
-    ```
-  - [x] Add GIN index on metadata per type for faster filtering
-
-- [x] **Update existing data**
-  - [x] Write data migration script
-  - [x] Classify existing prompts:
-    - `metadata.type = 'persona'` → memory_type = 'persona'
-    - `metadata.type = 'project'` → memory_type = 'project'
-    - `metadata.type = 'combination'` → memory_type = 'semantic'
-  - [x] Run migration in transaction with rollback
-
-- [x] **Update schema types**
-  - [x] Add `memoryType` field to schema.ts
-  - [x] Update repository types
-  - [x] Update ingestion types
-
-**Files to modify:**
-
-- `drizzle/0003_add_memory_components.sql` (new)
-- `src/db/schema.ts`
-- `scripts/migrateMemoryTypes.ts` (new)
-
-**Exit Criteria:** All prompts classified into memory types with proper indices
-
----
-
-#### Step 2.1.3: Implement Memory Component Repository
-
-- [x] **Create component-specific search methods**
-  - [x] `searchPersonaMemory(query, filters): Promise<SearchResult[]>`
-  - [x] `searchProjectMemory(query, filters): Promise<SearchResult[]>`
-  - [x] `searchSemanticMemory(query, filters): Promise<SearchResult[]>`
-  - [x] `searchEpisodicMemory(query, filters, timeRange?): Promise<SearchResult[]>`
-  - [x] Each method filters by memory_type automatically
-
-- [x] **Implement cross-component search**
-  - [x] `searchAllMemory(query, types: MemoryType[]): Promise<MemorySearchResult[]>`
-  - [x] Return results grouped by memory type
-  - [x] Apply type-specific ranking weights
-  - [x] Merge results with component attribution
-
-- [x] **Add memory type to search parameters**
-  - [x] Add `memoryTypes?: MemoryType[]` to SearchParameters
-  - [x] Filter query by memory types if specified
-  - [x] Default to all types if not specified
-
-**Files to modify:**
-
-- `src/db/repository.ts`
-- `src/db/repository.test.ts`
-
-**Exit Criteria:** Can search specific memory components independently
-
----
-
-#### Step 2.1.4: Create Memory Router
-
-- [x] **Implement routing logic**
-  - [x] Create `src/vector/memoryRouter.ts`
-  - [x] Implement `routeQuery(query: string, intent: QueryIntent): MemoryType[]`
-  - [x] Routing rules:
-    - "Who am I?" / "What's my role?" → persona
-    - "What is project X?" → project
-    - "How do I..." / "Best practices for..." → semantic
-    - "What did we discuss?" / "Yesterday I said..." → episodic
-    - "What are the steps for..." → procedural
-  - [x] Return ordered list of memory types to search
-
-- [x] **Implement multi-component query orchestration**
-  - [x] Create `orchestrateMemorySearch(query: string): Promise<MultiComponentResult>`
-  - [x] Classify query intent
-  - [x] Route to appropriate memory components
-  - [x] Execute searches in parallel
-  - [x] Merge and rank results
-  - [x] Return with component attribution
-
-- [x] **Add routing metrics**
-  - [x] Log routing decisions
-  - [x] Track search count per memory type
-  - [x] Measure cross-component query latency
-
-- [x] **Write tests**
-  - [x] Test persona query routing
-  - [x] Test project query routing
-  - [x] Test multi-component queries
-  - [x] Test fallback to all components
-
-**Files to create:**
-
-- `src/vector/memoryRouter.ts`
-- `src/vector/memoryRouter.test.ts`
-
-**Exit Criteria:** Router correctly identifies target memory components for 90%+ of queries
-
----
-
-#### Step 2.1.5: Update Search Tool with Memory Routing
-
-- [x] **Add memory-aware search mode**
-  - [x] Add `useMemoryRouting: boolean` parameter (default: false initially)
-  - [x] When enabled, use memoryRouter instead of single search
-  - [x] Return component-attributed results
-  - [x] Include routing decision in response metadata
-
-- [x] **Update output schema**
-  - [x] Add `memoryComponent: MemoryType` to each result
-  - [x] Add `routingDecision` to metadata
-  - [x] Add `componentsSearched: MemoryType[]`
-
-- [x] **Add gradual rollout control**
-  - [x] Feature flag: `MEMORY_ROUTING_ENABLED`
-  - [x] Percentage rollout: `MEMORY_ROUTING_ROLLOUT_PCT`
-  - [x] Allow per-request override
-
-- [x] **Write integration tests**
-  - [x] Test routing with persona queries
-  - [x] Test routing with project queries
-  - [x] Test multi-component result merging
-  - [x] Test fallback when routing disabled
-
-**Files to modify:**
-
-- `src/server/tools/promptSearchTool.ts`
-- `src/config/index.ts`
-
-**Exit Criteria:** Memory routing available behind feature flag, testable in production
-
----
-
-### Milestone 2.2: Episodic Memory System
-
-**Goal:** Store and retrieve conversation history to enable long-term dialogue coherence.
-
-#### Step 2.2.1: Design Episodic Memory Schema
-
-- [x] **Define conversation data model**
-  - [x] Create `docs/EPISODIC_MEMORY_DESIGN.md`
-  - [x] Design schema:
-    ```typescript
-    interface ConversationTurn {
-      id: uuid;
-      session_id: uuid;
-      user_id?: string;
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: timestamptz;
-      metadata: jsonb;
-    }
-    ```
-  - [x] Design indexing strategy (timestamp, session, user)
-  - [x] Plan embedding strategy (full turn vs. summary)
-
-- [x] **Create database migration**
-  - [x] Create `0004_add_episodic_memory.sql`
-  - [x] Create `conversation_turns` table
-  - [x] Add to `prompt_embeddings` or separate? **Decision: Add to prompt_embeddings with memory_type='episodic'**
-  - [x] Add session index, user index, timestamp index
-  - [x] Add vector index for conversation embeddings
-
-- [x] **Design retention policy**
-  - [x] Define TTL: keep 90 days, summarize and archive older
-  - [x] Plan summarization strategy
-  - [x] Define storage limits per user/session
-
-**Files to create:**
-
-- `docs/EPISODIC_MEMORY_DESIGN.md`
-- `drizzle/0004_add_episodic_memory.sql` (new)
-
-**Exit Criteria:** Episodic memory schema designed and migration created
-
----
-
-#### Step 2.2.2: Implement Conversation Storage
-
-- [x] **Create episodic memory repository**
-  - [x] Create `src/db/episodicRepository.ts`
-  - [x] Implement `storeConversationTurn(turn: ConversationTurn): Promise<void>`
-  - [x] Implement `getSessionHistory(sessionId: uuid): Promise<ConversationTurn[]>`
-  - [x] Implement `searchConversationHistory(query: string, filters): Promise<ConversationTurn[]>`
-  - [x] Use same vector search but filtered to memory_type='episodic'
-
-- [x] **Implement auto-embedding**
-  - [x] Embed conversation turn content on store
-  - [x] Generate contextual summary for metadata
-  - [x] Extract keywords/entities from conversation
-  - [x] Store with session context
-
-- [x] **Add session management**
-  - [x] Create session on first interaction
-  - [x] Track session start/end times
-  - [x] Associate turns with sessions
-  - [x] Support session retrieval by ID or time range
-
-- [x] **Write tests**
-  - [x] Test single turn storage
-  - [x] Test multi-turn conversation storage
-  - [x] Test session history retrieval
-  - [x] Test conversation search
-  - [x] Test embedding generation
-
-**Files to create:**
-
-- `src/db/episodicRepository.ts`
-- `src/db/episodicRepository.test.ts`
-
-**Exit Criteria:** Can store and retrieve conversation history with embeddings
-
----
-
-#### Step 2.2.3: Create Conversation Memory MCP Tool
-
-- [x] **Design tool interface**
-  - [x] Tool name: `conversation.remember`
-  - [x] Inputs:
-    - `query: string` - what to search for in history
-    - `sessionId?: uuid` - limit to specific session
-    - `timeRange?: { start, end }` - time window
-    - `limit?: number` - max results
-  - [x] Outputs:
-    - `turns: ConversationTurn[]` - matching conversation history
-    - `context: string` - summarized context
-    - `appliedFilters: object`
-
-- [x] **Implement tool**
-  - [x] Create `src/server/tools/conversationMemoryTool.ts`
-  - [x] Implement search logic using episodicRepository
-  - [x] Add relevance filtering
-  - [x] Generate context summary from results
-  - [x] Register with MCP server
-
-- [x] **Add context injection helper**
-  - [x] Create utility to format conversation history for prompts
-  - [x] Support different formats (chat, narrative, bullets)
-  - [x] Add token counting to avoid context overflow
-  - [x] Implement smart truncation (keep most relevant)
-
-- [x] **Write integration tests**
-  - [x] Test retrieval of specific conversation
-  - [x] Test semantic search over history
-  - [x] Test time range filtering
-  - [x] Test session isolation
-
-**Files to create:**
-
-- `src/server/tools/conversationMemoryTool.ts`
-- `src/server/tools/conversationMemoryTool.test.ts`
-
-**Exit Criteria:** Agents can search and retrieve conversation history via MCP
-
----
-
-#### Step 2.2.4: Add Conversation Logging to Agent Workflows
-
-- [x] **Create logging middleware**
-  - [x] Add conversation logging to MCP transport layer
-  - [x] Capture user messages and assistant responses
-  - [x] Extract session ID from request context
-  - [x] Log asynchronously (don't block requests)
-
-- [x] **Update n8n workflows**
-  - [x] Add conversation.store call after agent responses
-  - [x] Pass session ID through workflow context
-  - [x] Handle logging failures gracefully
-
-- [x] **Add opt-out mechanism**
-  - [x] Environment variable: `EPISODIC_MEMORY_ENABLED`
-  - [x] Per-user opt-out flag
-  - [x] Privacy controls
-
-- [x] **Implement summarization cron**
-  - [x] Create scheduled job to summarize old conversations
-  - [x] Run weekly, process conversations >30 days old
-  - [x] Replace detailed turns with summary embeddings
-  - [x] Archive original data
-
-**Files to modify:**
-
-- `src/server/httpTransport.ts`
-- `workflows/mylo-mcp-agent.workflow.json`
-- `scripts/summarizeEpisodicMemory.ts` (new)
-
-**Exit Criteria:** Conversations automatically logged and retrievable
-
----
-
-### Milestone 2.3: Memory Graph Implementation
-
-**Goal:** Create semantic links between related memories for graph traversal and cluster retrieval.
-
-#### Step 2.3.1: Design Memory Graph Schema
-
-- [x] **Define graph data model**
-  - [x] Create `docs/MEMORY_GRAPH_DESIGN.md`
-  - [x] Design node: existing prompt_embeddings rows
-  - [x] Design edges:
-    ```sql
-    CREATE TABLE memory_links (
-      id uuid PRIMARY KEY,
-      source_chunk_id text REFERENCES prompt_embeddings(chunk_id),
-      target_chunk_id text REFERENCES prompt_embeddings(chunk_id),
-      link_type text, -- 'similar', 'prerequisite', 'related', 'followup'
-      strength float,  -- 0-1 similarity score
-      created_at timestamptz
+### Task 1.3: Add Workflow Run API Tests ✅
+
+**Priority:** CRITICAL  
+**File:** `src/server/routes/workflow-runs.test.ts` (new file)
+
+**Steps:**
+
+- [x] 1.3.1 Create new file `src/server/routes/workflow-runs.test.ts`
+- [x] 1.3.2 Copy the following complete test file:
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+import { createServer } from '../../server';
+import { WorkflowRunRepository } from '../../db/operations/workflowRunRepository';
+import type { WorkflowRun } from '../../db/operations/schema';
+
+describe('Workflow Run Routes', () => {
+  let app: FastifyInstance;
+  let mockRepo: {
+    createWorkflowRun: ReturnType<typeof vi.fn>;
+    getWorkflowRunById: ReturnType<typeof vi.fn>;
+    updateWorkflowRun: ReturnType<typeof vi.fn>;
+    listWorkflowRuns: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(async () => {
+    mockRepo = {
+      createWorkflowRun: vi.fn(),
+      getWorkflowRunById: vi.fn(),
+      updateWorkflowRun: vi.fn(),
+      listWorkflowRuns: vi.fn(),
+    };
+
+    // Mock the repository
+    vi.spyOn(WorkflowRunRepository.prototype, 'createWorkflowRun').mockImplementation(
+      mockRepo.createWorkflowRun,
     );
-    ```
-  - [x] Define link types and semantics
-  - [x] Plan automatic vs. manual link creation
+    vi.spyOn(WorkflowRunRepository.prototype, 'getWorkflowRunById').mockImplementation(
+      mockRepo.getWorkflowRunById,
+    );
+    vi.spyOn(WorkflowRunRepository.prototype, 'updateWorkflowRun').mockImplementation(
+      mockRepo.updateWorkflowRun,
+    );
+    vi.spyOn(WorkflowRunRepository.prototype, 'listWorkflowRuns').mockImplementation(
+      mockRepo.listWorkflowRuns,
+    );
 
-- [x] **Create migration**
-  - [x] Create `0005_add_memory_graph.sql`
-  - [x] Create `memory_links` table
-  - [x] Add indices on source and target
-  - [x] Add index on link_type for filtering
+    app = await createServer();
+  });
 
-**Files to create:**
+  describe('GET /api/workflow-runs', () => {
+    it('should list workflow runs without filters', async () => {
+      const mockRuns: WorkflowRun[] = [
+        {
+          id: 'run-1',
+          projectId: 'aismr',
+          sessionId: 'session-1',
+          currentStage: 'idea_generation',
+          status: 'running',
+          stages: {},
+          input: {},
+          output: null,
+          workflowDefinitionChunkId: null,
+          createdAt: '2025-01-01T00:00:00Z',
+          updatedAt: '2025-01-01T00:00:00Z',
+        },
+      ];
 
-- `docs/MEMORY_GRAPH_DESIGN.md`
-- `drizzle/0005_add_memory_graph.sql`
+      mockRepo.listWorkflowRuns.mockResolvedValue(mockRuns);
 
-**Exit Criteria:** Memory graph schema defined and created
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/workflow-runs',
+      });
 
----
+      expect(response.statusCode).toBe(200);
+      expect(mockRepo.listWorkflowRuns).toHaveBeenCalledWith({});
+    });
 
-#### Step 2.3.2: Implement Automatic Link Generation
+    it('should list workflow runs with filters', async () => {
+      mockRepo.listWorkflowRuns.mockResolvedValue([]);
 
-- [x] **Create link detector**
-  - [x] Create `src/vector/linkDetector.ts`
-  - [x] Implement `generateCandidates(chunkId: string): Promise<LinkCandidate[]>`
-  - [x] Find similar chunks via cosine similarity
-  - [x] Threshold: similarity > 0.75 for 'similar' link
-  - [x] Threshold: similarity 0.5-0.75 for 'related' link
-  - [x] Filter out self-links
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/workflow-runs?status=running&projectId=aismr',
+      });
 
-- [x] **Add to ingestion pipeline**
-  - [x] After embedding new chunks, generate links
-  - [x] Run link generation asynchronously
-  - [x] Batch process to avoid N² complexity
-  - [x] Update existing chunks' links when new content added
+      expect(response.statusCode).toBe(200);
+      expect(mockRepo.listWorkflowRuns).toHaveBeenCalledWith({
+        status: ['running'],
+        projectId: 'aismr',
+      });
+    });
+  });
 
-- [x] **Implement link repository**
-  - [x] Create `src/db/linkRepository.ts`
-  - [x] `createLink(source, target, type, strength): Promise<void>`
-  - [x] `getLinkedChunks(chunkId): Promise<LinkedChunk[]>`
-  - [x] `findCluster(chunkId, depth): Promise<ChunkCluster>`
+  describe('PATCH /api/workflow-runs/:id', () => {
+    it('should return 404 when workflow run not found', async () => {
+      mockRepo.updateWorkflowRun.mockResolvedValue(null);
 
-- [x] **Write tests**
-  - [x] Test link generation for similar prompts
-  - [x] Test link filtering by threshold
-  - [x] Test bidirectional linking
-  - [x] Test cluster discovery
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/api/workflow-runs/non-existent-id',
+        payload: {
+          status: 'completed',
+        },
+      });
 
-**Files to create:**
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.error.code).toBe('NOT_FOUND');
+    });
 
-- `src/vector/linkDetector.ts`
-- `src/db/linkRepository.ts`
-- `src/db/linkRepository.test.ts`
+    it('should return 200 when workflow run updated successfully', async () => {
+      const mockRun: WorkflowRun = {
+        id: 'run-1',
+        projectId: 'aismr',
+        sessionId: 'session-1',
+        currentStage: 'idea_generation',
+        status: 'completed',
+        stages: {},
+        input: {},
+        output: null,
+        workflowDefinitionChunkId: null,
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+      };
 
-**Exit Criteria:** Links automatically generated between similar memories
+      mockRepo.updateWorkflowRun.mockResolvedValue(mockRun);
 
----
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/api/workflow-runs/run-1',
+        payload: {
+          status: 'completed',
+        },
+      });
 
-#### Step 2.3.3: Implement Graph Traversal Search
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.workflowRun.status).toBe('completed');
+    });
 
-- [x] **Create graph search algorithm**
-  - [x] Create `src/vector/graphSearch.ts`
-  - [x] Implement BFS graph traversal from seed chunk
-  - [x] Implement weighted graph walk (prioritize strong links)
-  - [x] Implement cluster expansion (get all chunks within N hops)
-  - [x] Add cycle detection safeguards
+    it('should return 500 on unexpected error', async () => {
+      mockRepo.updateWorkflowRun.mockRejectedValue(new Error('Database error'));
 
-- [x] **Add to search repository**
-  - [x] Implement `searchWithGraphExpansion(...)` wrapper
-  - [x] Seed with semantic vector results
-  - [x] Expand via memory links with scoring formula `(seed * 0.7) + (link * 0.3 / hop)`
-  - [x] Return ranked results annotated with graph path metadata
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/api/workflow-runs/run-1',
+        payload: {
+          status: 'completed',
+        },
+      });
 
-- [x] **Add graph search parameters**
-  - [x] `expandGraph: boolean` toggle in tool/repository
-  - [x] `maxHops: number` depth control (default 2)
-  - [x] `minLinkStrength: float` thresholding (default 0.45)
+      expect(response.statusCode).toBe(500);
+      const body = JSON.parse(response.body);
+      expect(body.error.code).toBe('INTERNAL_ERROR');
+    });
+  });
+});
+```
 
-- [x] **Write tests**
-  - [x] Test single-hop expansion
-  - [x] Test multi-hop expansion
-  - [x] Test cycle handling
-  - [x] Test weak link filtering
+- [x] 1.3.3 Save the file
+- [x] 1.3.4 Run command: `npm test workflow-runs.test.ts`
+- [x] 1.3.5 Verify all 10 tests pass (expanded coverage)
+- [x] 1.3.6 If tests fail, debug and fix issues
 
-**Files to create:**
+**Acceptance Criteria:**
 
-- `src/vector/graphSearch.ts`
-- `src/vector/graphSearch.test.ts`
-
-**Files to modify:**
-
-- `src/db/repository.ts`
-
-**Exit Criteria:** Graph traversal returns related memories through link relationships
-
----
-
-#### Step 2.3.4: Update Search Tool with Graph Expansion
-
-- [x] **Add graph expansion to search tool**
-  - [x] Add `expandGraph: boolean` parameter
-  - [x] Add `graphMaxHops: number` parameter (default: 2)
-  - [x] Pass configuration through to repository search
-  - [x] Include graph path context in serialized matches
-
-- [x] **Update output schema**
-  - [x] Add `graphContext` details (path, weights, hop count)
-  - [x] Add `graphExpansion` metadata (enabled, depth, min strength)
-
-- [x] **Add visualization support**
-  - [x] Return graph structure as JSON for visualization
-  - [x] Include nodes (chunks) and edges (links)
-  - [x] Add link types and strengths
-
-**Files to modify:**
-
-- `src/server/tools/promptSearchTool.ts`
-
-**Exit Criteria:** Search can discover related prompts via graph links
-
----
-
-## Phase 3: Adaptive RAG Implementation (Weeks 9-12)
-
-### Milestone 3.1: Adaptive Retrieval Controller
-
-**Goal:** Enable agents to decide when and how to retrieve information dynamically.
-
-#### Step 3.1.1: Design Adaptive Retrieval Framework
-
--
-- [x] **Create architecture document**
-  - [x] Create `docs/ADAPTIVE_RETRIEVAL.md`
-  - [x] Define retrieval decision workflow:
-    1. Agent receives query
-    2. Self-assess: "Do I need more information?"
-    3. If yes, formulate retrieval query
-    4. Execute search
-    5. Evaluate result utility
-    6. Decide: iterate, refine, or stop
-  - [x] Design confidence scoring
-  - [x] Plan iteration limits and termination conditions
-
-- [x] **Define retrieval strategies**
-  - [x] **Single-shot**: Traditional one-time search
-  - [x] **Iterative**: Multi-round with query refinement
-  - [x] **Hypothesis-driven**: Generate hypothetical query, search, validate
-  - [x] **Multi-hop**: Follow references across searches
-  - [x] **Fallback**: Try different search modes if initial fails
-
-**Files to create:**
-
-- `docs/ADAPTIVE_RETRIEVAL.md`
-
-**Exit Criteria:** Adaptive retrieval framework documented
+- ✅ All tests pass (10 tests total)
+- ✅ 404 error is tested
+- ✅ 200 success is tested
+- ✅ 500 error is tested
+- ✅ Empty filters are tested
+- ✅ Added GET /api/workflow-runs route with tests
 
 ---
 
-#### Step 3.1.2: Implement Retrieval Decision Agent
+## ⚠️ Phase 2: Apply Pending Migrations (Week 1, Day 3) — COMPLETED
 
-- [x] **Create retrieval decision module**
-  - [x] Create `src/vector/retrievalDecisionAgent.ts`
-  - [x] Implement `shouldRetrieve(context: AgentContext): Promise<RetrievalDecision>`
-  - [x] (openAI sdk) Use LLM to assess information need:
-    ```
-    Given query: {query}
-    Current knowledge: {summary}
-    Do you need external information? (yes/no/maybe)
-    If yes, what specific information would help?
-    ```
-  - [x] Return structured decision with confidence score
+### Task 2.1: Apply Operations Database Migrations ✅
 
-- [x] **Implement query formulation**
-  - [x] `formulateRetrievalQuery(query: string, context: QueryFormulationContext): Promise<string>`
-  - [x] Generate search query from agent's information need
-  - [x] Optimize for vector search (descriptive, semantic)
-  - [x] Generate multiple query variations if confidence low
+**Priority:** CRITICAL  
+**Issue:** HITL tables may not exist in database
 
-- [x] **Add utility evaluation**
-  - [x] `evaluateResultUtility(results: SearchResult[], query: string): number`
-  - [x] Score 0-1 based on relevance
-  - [x] Use LLM or heuristics (similarity threshold, result count)
-  - [x] Decide if refinement needed
+**Steps:**
 
-- [x] **Write tests**
-  - [x] Test decision on query with missing context
-  - [x] Test decision on query with sufficient context
-  - [x] Test query formulation quality
-  - [x] Test utility evaluation
+- [x] 2.1.1 Check if file `drizzle-operations/0003_add_hitl_tables.sql` exists
+- [x] 2.1.2 If it exists, run command: `npm run db:operations:migrate`
+- [x] 2.1.3 Check output for "Applied X migrations" message
+- [x] 2.1.4 If error occurs, read error message carefully
+- [x] 2.1.5 If error is "migration already applied", that's OK, continue
+- [x] 2.1.6 If error is "connection failed", check OPERATIONS_DATABASE_URL in .env
+- [x] 2.1.7 If error is "table already exists", that's OK, continue
+- [x] 2.1.8 Stage the migration file: `git add drizzle-operations/0003_add_hitl_tables.sql`
+- [x] 2.1.9 Stage the journal: `git add drizzle-operations/meta/_journal.json`
+- [x] 2.1.10 Verify staging: `git status` should show both files staged
 
-**Files to create:**
+**Acceptance Criteria:**
 
-- `src/vector/retrievalDecisionAgent.ts`
-- `src/vector/retrievalDecisionAgent.test.ts`
-
-**Exit Criteria:** Decision agent correctly identifies when retrieval needed
+- ✅ Migration files already committed
+- ✅ Tables `workflow_runs` and `hitl_approvals` exist in schema
+- ✅ Migration file is in git (already committed)
 
 ---
 
-#### Step 3.1.3: Implement Iterative Retrieval Loop
+### Task 2.2: Add Migration Check on Server Startup ✅
 
-- [x] **Create retrieval orchestrator**
-  - [x] Create `src/vector/retrievalOrchestrator.ts`
-  - [x] Implement `adaptiveSearch(query: string, context: AdaptiveSearchParams): Promise<AdaptiveSearchResult>`
-  - [x] Workflow:
-    1. Assess retrieval need
-    2. If needed, formulate query
-    3. Execute search
-    4. Evaluate utility
-    5. If utility low, refine and iterate (max 3 iterations)
-    6. Return aggregated results
+**Priority:** HIGH  
+**File:** `src/server.ts`  
+**Issue:** Server starts even with pending migrations
 
-- [x] **Implement query refinement**
-  - [x] `refineQuery(originalQuery: string, results: SearchResult[]): string`
-  - [x] Analyze gaps in results
-  - [x] Generate improved query
-  - [x] Try different search modes or filters
+**Steps:**
 
-- [x] **Add iteration tracking**
-  - [x] Track iteration count
-  - [x] Log refinement decisions
-  - [x] Measure cumulative latency
-  - [x] Limit max iterations (default: 3)
+- [x] 2.2.1 Create new file `src/db/migrations.ts`
+- [x] 2.2.2 Add the following code:
 
-- [x] **Implement result aggregation**
-  - [x] Merge results across iterations
-  - [x] Deduplicate by chunk_id
-  - [x] Rank by combined relevance
-  - [x] Track provenance (which iteration found each result)
+```typescript
+import { readdir } from 'fs/promises';
+import { join } from 'path';
+import { getDb } from './client';
+import { sql } from 'drizzle-orm';
 
-- [x] **Write tests**
-  - [x] Test single iteration (high utility)
-  - [x] Test multiple iterations (refinement)
-  - [x] Test iteration limit
-  - [x] Test result deduplication
+export async function checkPendingMigrations(): Promise<string[]> {
+  const db = getDb();
 
-**Files to create:**
+  try {
+    // Get applied migrations from database
+    const result = await db.execute(sql`
+      SELECT name FROM drizzle.__drizzle_migrations
+      ORDER BY created_at DESC
+    `);
 
-- `src/vector/retrievalOrchestrator.ts`
-- `src/vector/retrievalOrchestrator.test.ts`
+    const appliedMigrations = new Set(
+      (result.rows as Array<{ name: string }>).map((row) => row.name),
+    );
 
-**Exit Criteria:** Iterative retrieval successfully refines queries until utility threshold met
+    // Get migration files from filesystem
+    const migrationsDir = join(process.cwd(), 'drizzle');
+    const files = await readdir(migrationsDir);
+    const migrationFiles = files.filter((f) => f.endsWith('.sql'));
 
----
+    // Find pending migrations
+    const pending = migrationFiles.filter((f) => !appliedMigrations.has(f));
 
-#### Step 3.1.4: Create Adaptive Search MCP Tool
+    return pending;
+  } catch (error) {
+    console.error('Error checking migrations:', error);
+    return [];
+  }
+}
+```
 
-- [x] **Design tool interface**
-  - [x] Tool name: `prompts_search_adaptive`
-  - [x] Inputs:
-    - `query: string`
-    - `context?: string` - current agent knowledge
-    - `maxIterations?: number` - iteration limit
-    - `utilityThreshold?: number` - stop if exceeded
-  - [x] Outputs:
-    - `results: SearchResult[]`
-    - `iterations: IterationLog[]` - decision history
-    - `totalDuration: number`
-    - `finalUtility: number`
+- [x] 2.2.3 Save the file
+- [x] 2.2.4 Open `src/server.ts`
+- [x] 2.2.5 Add import at top: `import { checkPendingMigrations } from './db/migrations';`
+- [x] 2.2.6 Locate the `start()` function (around line 68)
+- [x] 2.2.7 After `const app = await createServer();` (line 69), add:
 
-- [x] **Implement tool**
-  - [x] Create `src/server/tools/adaptiveSearchTool.ts`
-  - [x] Use retrievalOrchestrator
-  - [x] Add timeout protection (max 30s)
-  - [x] Include detailed logging for debugging
-  - [x] Register with MCP server
+```typescript
+// Check for pending migrations
+if (!config.isTest) {
+  const pending = await checkPendingMigrations();
+  if (pending.length > 0) {
+    app.log.error({ pending }, 'Pending migrations detected');
+    app.log.error('Please run: npm run db:migrate');
+    process.exit(1);
+  }
+}
+```
 
-- [x] **Add monitoring**
-  - [x] Track adaptive search usage
-  - [x] Measure iteration distribution
-  - [x] Monitor latency P50/P95/P99
-  - [x] Alert on excessive iterations
+- [x] 2.2.8 Save the file
+- [x] 2.2.9 Run command: `npm run build`
+- [x] 2.2.10 Verify build succeeds
 
-- [x] **Write integration tests**
-  - [x] Test simple query (should not iterate)
-  - [x] Test complex query (should iterate)
-  - [x] Test timeout handling
-  - [x] Test error recovery
+**Acceptance Criteria:**
 
-**Files to create:**
-
-- `src/server/tools/adaptiveSearchTool.ts`
-- `src/server/tools/adaptiveSearchTool.test.ts`
-
-**Exit Criteria:** Adaptive search tool available via MCP with iteration control
+- ✅ Server checks for pending migrations on startup
+- ✅ Server exits with error if migrations pending
+- ✅ Test environment skips migration check
 
 ---
 
-### Milestone 3.2: Multi-Hop Search
+## 🔧 Phase 3: Standardize Error Handling (Week 1, Days 4-5) — COMPLETED
 
-**Goal:** Enable following references and relationships across multiple search steps.
+### Task 3.1: Create Standard Error Types ✅
 
-#### Step 3.2.1: Implement Reference Extraction
+**Priority:** CRITICAL  
+**File:** `src/types/errors.ts` (new file)
 
-- [x] **Create reference detector**
-  - [x] Create `src/vector/referenceExtractor.ts`
-  - [x] Extract references from search results:
-    - Persona names
-    - Project names
-    - Workflow step references
-    - External documentation links
-  - [x] Use regex + NLP (entity recognition)
-  - [x] Return structured reference list
+**Steps:**
 
-- [x] **Add reference resolution**
-  - [x] `resolveReference(ref: Reference): Promise<SearchResult[]>`
-  - [x] Look up referenced entity in appropriate memory component
-  - [x] Return full context for reference
+- [x] 3.1.1 Create new file `src/types/errors.ts`
+- [x] 3.1.2 Add the following code:
 
-- [x] **Write tests**
-  - [x] Test persona reference extraction
-  - [x] Test project reference extraction
-  - [x] Test reference resolution
+```typescript
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+    timestamp: string;
+    path: string;
+    requestId?: string;
+  };
+}
 
-**Files to create:**
+export class ApiError extends Error {
+  constructor(
+    public statusCode: number,
+    public code: string,
+    message: string,
+    public details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
-- `src/vector/referenceExtractor.ts`
-- `src/vector/referenceExtractor.test.ts`
+export class ValidationError extends ApiError {
+  constructor(message: string, details?: unknown) {
+    super(400, 'VALIDATION_ERROR', message, details);
+    this.name = 'ValidationError';
+  }
+}
 
-**Exit Criteria:** Can extract and resolve references from search results
+export class NotFoundError extends ApiError {
+  constructor(message: string) {
+    super(404, 'NOT_FOUND', message);
+    this.name = 'NotFoundError';
+  }
+}
 
----
+export class DatabaseError extends ApiError {
+  constructor(
+    message: string,
+    public cause?: Error,
+  ) {
+    super(503, 'DATABASE_ERROR', message);
+    this.name = 'DatabaseError';
+  }
+}
 
-#### Step 3.2.2: Implement Multi-Hop Search Algorithm
+export class WorkflowError extends ApiError {
+  constructor(
+    message: string,
+    public workflowId: string,
+    public stage: string,
+  ) {
+    super(500, 'WORKFLOW_ERROR', message, { workflowId, stage });
+    this.name = 'WorkflowError';
+  }
+}
+```
 
-- [x] **Create multi-hop searcher**
-  - [x] Create `src/vector/multiHopSearch.ts`
-  - [x] Implement `multiHopSearch(query: string, maxHops: number): Promise<MultiHopResult>`
-  - [x] Algorithm:
-    1. Initial search (hop 0)
-    2. Extract references from results
-    3. Search for each reference (hop 1)
-    4. Repeat up to maxHops
-    5. Aggregate all results with hop provenance
+- [x] 3.1.3 Save the file
+- [x] 3.1.4 Run command: `npm run build`
+- [x] 3.1.5 Verify no TypeScript errors
 
-- [x] **Add hop scoring**
-  - [x] Score decay per hop: `score / (hop + 1)`
-  - [x] Prioritize direct results over transitive
-  - [x] Track hop path for each result
+**Acceptance Criteria:**
 
-- [x] **Implement pruning**
-  - [x] Limit results per hop (e.g., top 5)
-  - [x] Skip low-relevance hops
-  - [x] Deduplicate across hops
-
-- [x] **Write tests**
-  - [x] Test single-hop search
-  - [x] Test two-hop search with references
-  - [x] Test hop limit enforcement
-  - [x] Test result deduplication
-
-**Files to create:**
-
-- `src/vector/multiHopSearch.ts`
-- `src/vector/multiHopSearch.test.ts`
-
-**Exit Criteria:** Multi-hop search follows references across prompts
-
----
-
-#### Step 3.2.3: Add Multi-Hop to Adaptive Search
-
-- [x] **Integrate multi-hop with adaptive search**
-  - [x] Add `enableMultiHop: boolean` to adaptive search
-  - [x] If enabled, apply multi-hop expansion after initial retrieval
-  - [x] Include hop information in results
-  - [x] Count hops toward iteration limit
-
-- [x] **Update adaptive search tool**
-  - [x] Add `maxHops: number` parameter
-  - [x] Add hop path to output
-  - [x] Document multi-hop behavior
-
-**Files to modify:**
-
-- `src/vector/retrievalOrchestrator.ts`
-- `src/server/tools/adaptiveSearchTool.ts`
-
-**Exit Criteria:** Adaptive search can follow multi-hop references
+- ✅ Error types are defined
+- ✅ All errors extend ApiError
+- ✅ Error codes are consistent
 
 ---
 
-### Milestone 3.3: Runtime Memory Addition
+### Task 3.2: Create Centralized Error Handler ✅
 
-**Goal:** Allow agents to store new knowledge during conversations.
+**Priority:** CRITICAL  
+**File:** `src/server/errorHandler.ts` (new file)
 
-#### Step 3.3.1: Design Runtime Memory API
+**Steps:**
 
-- [x] **Define memory write permissions**
-  - [x] Create `docs/RUNTIME_MEMORY_PERMISSIONS.md`
-  - [x] Define who can write to memory:
-    - System (always allowed)
-    - Agents (with restrictions)
-    - Users (with restrictions)
-  - [x] Define moderation requirements
-  - [x] Plan abuse prevention
+- [x] 3.2.1 Create new file `src/server/errorHandler.ts`
+- [x] 3.2.2 Add the following code:
 
-- [x] **Design memory addition API**
-  - [x] MCP tool: `memory_add`
-  - [x] Inputs:
-    - `content: string` - what to remember
-    - `memoryType: MemoryType` - where to store
-    - `metadata: object` - context
-    - `tags?: string[]` - categorization
-  - [x] Validation rules
-  - [x] Embedding generation
+```typescript
+import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import { ApiError, ValidationError, NotFoundError, DatabaseError } from '../types/errors';
+import type { ApiErrorResponse } from '../types/errors';
 
-**Files to create:**
+export function errorHandler(
+  error: FastifyError | ApiError | Error,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): void {
+  const errorResponse: ApiErrorResponse = {
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      requestId: request.id,
+    },
+  };
 
-- `docs/RUNTIME_MEMORY_PERMISSIONS.md`
+  let statusCode = 500;
 
-**Exit Criteria:** Runtime memory API designed with security controls
+  if (error instanceof ApiError) {
+    statusCode = error.statusCode;
+    errorResponse.error.code = error.code;
+    errorResponse.error.message = error.message;
+    if (error.details) {
+      errorResponse.error.details = error.details;
+    }
 
----
+    // Log level based on status code
+    if (statusCode >= 500) {
+      request.log.error({ err: error, requestId: request.id }, 'Server error');
+    } else if (statusCode >= 400) {
+      request.log.warn({ err: error, requestId: request.id }, 'Client error');
+    }
+  } else if ('statusCode' in error && typeof error.statusCode === 'number') {
+    // Fastify error
+    statusCode = error.statusCode;
+    errorResponse.error.code = error.code ?? 'FASTIFY_ERROR';
+    errorResponse.error.message = error.message;
+    request.log.error({ err: error, requestId: request.id }, 'Fastify error');
+  } else {
+    // Unknown error
+    errorResponse.error.message = error.message || 'Internal server error';
+    request.log.error({ err: error, requestId: request.id }, 'Unhandled error');
+  }
 
-#### Step 3.3.2: Implement Memory Addition Tool
+  void reply.status(statusCode).send(errorResponse);
+}
+```
 
-- [x] **Create memory writer**
-  - [x] Create `src/server/tools/memoryAddTool.ts`
-  - [x] Implement `addMemory(params: AddMemoryParams): Promise<MemoryId>`
-  - [x] Validate inputs
-  - [x] Generate embeddings
-  - [x] Store in appropriate memory component
-  - [x] Generate links to related memories
-  - [x] Return memory ID
+- [ ] 3.2.3 Save the file
+- [ ] 3.2.4 Open `src/server.ts`
+- [ ] 3.2.5 Add import: `import { errorHandler } from './server/errorHandler';`
+- [ ] 3.2.6 Locate `app.setErrorHandler` (line 40)
+- [ ] 3.2.7 Replace lines 40-44 with:
 
-- [x] **Add moderation layer**
-  - [x] Check content for harmful/inappropriate content
-  - [x] Use OpenAI moderation API
-  - [x] Reject or flag problematic content
-  - [x] Log moderation decisions
+```typescript
+app.setErrorHandler(errorHandler);
+```
 
-- [x] **Implement memory update**
-  - [x] Tool: `memory_update`
-  - [x] Allow modifying existing memories
-  - [x] Preserve version history
-  - [x] Re-generate embeddings if content changed
-  - [x] Update links
+- [x] 3.2.8 Save the file
+- [x] 3.2.9 Run command: `npm run build`
+- [x] 3.2.10 Verify build succeeds
 
-- [x] **Add memory deletion**
-  - [x] Tool: `memory_delete`
-  - [x] Soft delete (mark inactive)
-  - [x] Preserve for audit trail
-  - [x] Remove from search results
-  - [x] Cascade to links (mark orphaned)
+**Acceptance Criteria:**
 
-- [x] **Write tests**
-  - [x] Test valid memory addition
-  - [x] Test validation rejection
-  - [x] Test moderation filtering
-  - [x] Test memory update
-  - [x] Test memory deletion
-
-**Files to create:**
-
-- `src/server/tools/memoryAddTool.ts`
-- `src/server/tools/memoryAddTool.test.ts`
-
-**Exit Criteria:** Agents can add, update, and delete memories at runtime
-
----
-
-#### Step 3.3.3: Add Memory Addition to Agent Workflows
-
-- [x] **Update workflow to use memory_add**
-  - [x] Modify `mylo-mcp-bot.workflow.json`
-  - [x] Add memory_add call after learning new facts
-  - [x] Store project decisions as project memory
-  - [x] Store user preferences as episodic memory
-
-- [x] **Implement memory synthesis**
-  - [x] After conversation, synthesize key learnings
-  - [x] Use LLM to extract important facts
-  - [x] Store as semantic memory
-  - [x] Link to conversation (episodic memory)
-
-- [x] **Add memory review process**
-  - [x] Periodic review of agent-added memories
-  - [x] Human-in-the-loop approval for sensitive data
-  - [x] Dashboard for memory management
-
-**Files to modify:**
-
-- `workflows/mylo-mcp-agent.workflow.json`
-
-**Exit Criteria:** Agents automatically store new learnings during conversations
+- ✅ All errors use consistent format
+- ✅ Request ID included in error response
+- ✅ Timestamp included in error response
+- ✅ Appropriate HTTP status codes used
+- ✅ Added 9 comprehensive error handler tests
 
 ---
 
-### Milestone 3.4: Integration and Testing - SKIP
+### Task 3.3: Update Repository to Throw Typed Errors ✅
 
-**Goal:** Integrate all adaptive features and validate end-to-end.
+**Priority:** HIGH  
+**File:** `src/db/operations/workflowRunRepository.ts`
 
-#### Step 3.4.1: Feature Flag Management
+**Steps:**
 
-- [x] **Implement feature flag system**
-  - [x] Add configuration for all new features:
-    - `HYBRID_SEARCH_ENABLED`
-    - `MEMORY_ROUTING_ENABLED`
-    - `EPISODIC_MEMORY_ENABLED`
-    - `MEMORY_GRAPH_ENABLED`
-    - `ADAPTIVE_RETRIEVAL_ENABLED`
-    - `RUNTIME_MEMORY_ENABLED`
-  - [x] Support environment variables
-  - [x] Support runtime configuration
-  - [x] Add admin API to toggle flags
+- [x] 3.3.1 Open `src/db/operations/workflowRunRepository.ts`
+- [x] 3.3.2 Add import: `import { NotFoundError } from '../../types/errors';`
+- [x] 3.3.3 Locate method `getWorkflowRunById` (around line 49)
+- [x] 3.3.4 After the query, change the null check:
 
-- [ ] **Create gradual rollout plan**
-  - [ ] Phase 1: Enable hybrid search (50% traffic)
-  - [ ] Phase 2: Enable memory routing (25% traffic)
-  - [ ] Phase 3: Enable adaptive retrieval (10% traffic)
-  - [ ] Phase 4: Enable runtime memory (off by default, manual enable)
-  - [ ] Monitor each phase for issues
+```typescript
+if (!row) {
+  throw new NotFoundError(`Workflow run with id ${id} not found`);
+}
 
-**Files to modify:**
+return row;
+```
 
-- `src/config/index.ts`
+- [x] 3.3.5 Update the return type from `Promise<WorkflowRun | null>` to `Promise<WorkflowRun>`
+- [x] 3.3.6 Save the file
+- [x] 3.3.7 Open `src/server/routes/workflow-runs.ts`
+- [x] 3.3.8 Locate GET /api/workflow-runs/:id handler (line 87)
+- [x] 3.3.9 Remove the null check (lines 99-101) since error is now thrown
+- [x] 3.3.10 The error handler will catch NotFoundError automatically
+- [x] 3.3.11 Save the file
+- [x] 3.3.12 Run command: `npm test`
+- [x] 3.3.13 Fix any failing tests
 
----
+**Acceptance Criteria:**
 
-#### Step 3.4.2: Comprehensive Integration Testing - SKIP
-
-- [ ] **Create end-to-end test suite**
-  - [ ] Test full adaptive search workflow
-  - [ ] Test memory component routing
-  - [ ] Test episodic memory with conversations
-  - [ ] Test graph traversal across components
-  - [ ] Test runtime memory addition
-
-- [ ] **Performance testing**
-  - [ ] Benchmark search latency with all features enabled
-  - [ ] Load test: 100 concurrent searches
-  - [ ] Measure memory usage under load
-  - [ ] Test database connection pooling
-
-- [ ] **Failure testing**
-  - [ ] Test graceful degradation when features fail
-  - [ ] Test timeout handling
-  - [ ] Test partial result handling
-  - [ ] Test fallback to simpler search modes
-
-**Files to create:**
-
-- `src/test/integration/adaptiveRag.test.ts`
-- `src/test/performance/searchBenchmark.test.ts`
+- ✅ Repository throws NotFoundError instead of returning null
+- ✅ Route handler doesn't need null checks
+- ✅ 404 errors are handled consistently
+- ✅ Also updated `updateWorkflowRun` and `transitionStage` methods
 
 ---
 
-#### Step 3.4.3: Documentation and Training - update all documentation
+## 📊 Phase 4: Add Basic Observability (Week 2, Days 1-3)
 
-- [ ] **Update documentation**
-  - [ ] Update README.md with new features
-  - [ ] Create `docs/ADAPTIVE_RAG_GUIDE.md` - user guide
-  - [ ] Create `docs/MEMORY_COMPONENTS.md` - architecture guide
-  - [ ] Create `docs/API_REFERENCE.md` - complete API docs
-  - [ ] Add migration guide from old to new search tools
+### Task 4.1: Install Prometheus Client
 
-- [ ] **Create examples**
-  - [ ] Example: Basic hybrid search
-  - [ ] Example: Memory-routed search
-  - [ ] Example: Adaptive multi-hop search
-  - [ ] Example: Adding runtime memories
-  - [ ] Example: Conversation memory retrieval
+**Priority:** CRITICAL
 
-- [ ] **Update n8n workflow templates**
-  - [ ] Add adaptive search node examples
-  - [ ] Add memory addition workflows
-  - [ ] Add conversation logging templates
+**Steps:**
 
-**Files to create:**
+- [ ] 4.1.1 Run command: `npm install prom-client`
+- [ ] 4.1.2 Run command: `npm install --save-dev @types/prom-client` (if available)
+- [ ] 4.1.3 Verify installation: check package.json has prom-client
 
-- `docs/ADAPTIVE_RAG_GUIDE.md`
-- `docs/MEMORY_COMPONENTS.md`
-- `docs/API_REFERENCE.md`
-- `examples/adaptive-search.ts`
-- `examples/memory-addition.ts`
+**Acceptance Criteria:**
+
+- prom-client is installed
+- Package.json is updated
 
 ---
 
-#### Step 3.4.4: Monitoring and Observability
+### Task 4.2: Create Metrics Module
 
-- [ ] **Add metrics collection**
-  - [ ] Search latency per mode (vector, keyword, hybrid, adaptive)
-  - [ ] Retrieval decision outcomes (retrieve/skip)
-  - [ ] Iteration count distribution
-  - [ ] Memory component usage
-  - [ ] Cache hit rates
-  - [ ] Error rates
+**Priority:** CRITICAL  
+**File:** `src/server/metrics.ts` (new file)
 
-- [ ] **Create dashboards**
-  - [ ] Grafana dashboard: Search performance
-  - [ ] Grafana dashboard: Memory usage by component
-  - [ ] Grafana dashboard: Adaptive retrieval behavior
-  - [ ] Alert on high latency or error rates
+**Steps:**
 
-- [ ] **Add structured logging**
-  - [ ] Log adaptive search decisions
-  - [ ] Log memory routing decisions
-  - [ ] Log graph traversal paths
-  - [ ] Log runtime memory additions
+- [ ] 4.2.1 Create new file `src/server/metrics.ts`
+- [ ] 4.2.2 Add the following code:
 
-**Files to create:**
+```typescript
+import promClient from 'prom-client';
 
-- `src/monitoring/metrics.ts`
-- `dashboards/search-performance.json`
+// Register default metrics (memory, CPU, etc.)
+promClient.collectDefaultMetrics({ prefix: 'mcp_prompts_' });
 
----
+export const httpRequestDuration = new promClient.Histogram({
+  name: 'mcp_prompts_http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'] as const,
+  buckets: [0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10],
+});
 
-## Phase 4: Optimization and Production Readiness (Weeks 13-14)
+export const httpRequestTotal = new promClient.Counter({
+  name: 'mcp_prompts_http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'] as const,
+});
 
-### Final Polish
+export const dbQueryDuration = new promClient.Histogram({
+  name: 'mcp_prompts_db_query_duration_seconds',
+  help: 'Duration of database queries',
+  labelNames: ['query_name', 'status'] as const,
+  buckets: [0.001, 0.01, 0.1, 0.5, 1, 2, 5],
+});
 
-- [ ] **Performance optimization**
-  - [ ] Optimize vector search queries (consider HNSW if ivfflat is slow)
-  - [ ] Add query result caching (Redis or in-memory)
-  - [ ] Implement connection pooling optimization
-  - [ ] Add database query profiling
+export const vectorSearchDuration = new promClient.Histogram({
+  name: 'mcp_prompts_vector_search_duration_seconds',
+  help: 'Duration of vector searches',
+  labelNames: ['search_type', 'memory_type'] as const,
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+});
 
-- [ ] **Security hardening**
-  - [ ] Rate limiting on memory addition
-  - [ ] Input validation and sanitization
-  - [ ] SQL injection protection audit
-  - [ ] Access control for memory deletion
+export const hitlApprovalsTotal = new promClient.Counter({
+  name: 'mcp_prompts_hitl_approvals_total',
+  help: 'Total HITL approvals',
+  labelNames: ['stage', 'status'] as const,
+});
 
-- [ ] **Production deployment**
-  - [ ] Update Docker configurations
-  - [ ] Update environment variable documentation
-  - [ ] Create deployment runbook
-  - [ ] Set up monitoring alerts
-  - [ ] Plan zero-downtime migration
+export const embedBatchDuration = new promClient.Histogram({
+  name: 'mcp_prompts_embed_batch_duration_seconds',
+  help: 'Duration of OpenAI embedding batches',
+  labelNames: ['batch_size'] as const,
+  buckets: [0.1, 0.5, 1, 2, 5, 10],
+});
 
-- [ ] **Final testing**
-  - [ ] User acceptance testing
-  - [ ] Load testing at production scale
-  - [ ] Disaster recovery testing
-  - [ ] Rollback procedure testing
+export const metricsRegistry = promClient.register;
+```
 
----
+- [ ] 4.2.3 Save the file
+- [ ] 4.2.4 Run command: `npm run build`
+- [ ] 4.2.5 Verify build succeeds
 
-## Success Metrics
+**Acceptance Criteria:**
 
-### Technical Metrics
-
-- [ ] Search latency P95 < 500ms (adaptive search < 2s)
-- [ ] Hybrid search precision > vector-only by 15%
-- [ ] Memory routing accuracy > 90%
-- [ ] Adaptive retrieval reduces unnecessary searches by 30%
-- [ ] Graph expansion finds 20% more relevant content
-
-### Quality Metrics
-
-- [ ] Query intent classification accuracy > 90%
-- [ ] Episodic memory retrieval relevance > 0.8
-- [ ] Runtime memory approval rate > 95%
-- [ ] Zero data loss incidents
-- [ ] 99.9% uptime
-
-### User Experience
-
-- [ ] Agent response quality improvement (measured by user ratings)
-- [ ] Reduced need for query reformulation
-- [ ] Improved multi-turn conversation coherence
-- [ ] Better handling of complex, multi-part queries
+- Metrics are defined
+- Registry is exported
+- Default metrics are enabled
 
 ---
 
-## Risk Management
+### Task 4.3: Add Metrics Endpoint
 
-### High Risk Items
+**Priority:** CRITICAL  
+**File:** `src/server.ts`
 
-1. **Adaptive retrieval latency** - Could slow down all queries
-   - Mitigation: Aggressive timeouts, feature flags, caching
-2. **Memory component complexity** - Could confuse users
-   - Mitigation: Good defaults, clear documentation, gradual rollout
-3. **Runtime memory abuse** - Could pollute knowledge base
-   - Mitigation: Moderation, rate limits, approval workflows
+**Steps:**
 
-### Rollback Plan
+- [ ] 4.3.1 Open `src/server.ts`
+- [ ] 4.3.2 Add import: `import { metricsRegistry } from './server/metrics';`
+- [ ] 4.3.3 Locate health endpoint (line 63)
+- [ ] 4.3.4 After the health endpoint, add:
 
-- [ ] Keep old search tools available during transition
-- [ ] Feature flags allow instant disable of new features
-- [ ] Database migrations reversible (tested rollback)
-- [ ] Monitoring alerts trigger automatic rollback if error rate spikes
+```typescript
+app.get('/metrics', async (request, reply) => {
+  try {
+    const metrics = await metricsRegistry.metrics();
+    return reply.type('text/plain').send(metrics);
+  } catch (error) {
+    app.log.error({ err: error }, 'Failed to generate metrics');
+    return reply.status(500).send({ error: 'Failed to generate metrics' });
+  }
+});
+```
 
----
+- [ ] 4.3.5 Save the file
+- [ ] 4.3.6 Run command: `npm run build`
+- [ ] 4.3.7 Start server: `npm run dev`
+- [ ] 4.3.8 In another terminal, run: `curl http://localhost:3456/metrics`
+- [ ] 4.3.9 Verify metrics are returned in Prometheus format
+- [ ] 4.3.10 Stop the dev server (Ctrl+C)
 
-## Timeline Summary
+**Acceptance Criteria:**
 
-| Phase                 | Duration    | Key Deliverables                                  |
-| --------------------- | ----------- | ------------------------------------------------- |
-| Phase 1: Foundation   | Weeks 1-4   | Hybrid search, query intent, temporal weighting   |
-| Phase 2: Architecture | Weeks 5-8   | Memory components, episodic memory, memory graphs |
-| Phase 3: Adaptive RAG | Weeks 9-12  | Adaptive retrieval, multi-hop, runtime memory     |
-| Phase 4: Polish       | Weeks 13-14 | Optimization, security, production deployment     |
-
-**Total Duration:** 14 weeks  
-**Team Size:** 2-3 developers  
-**Effort:** ~400-600 engineering hours
-
----
-
-## Getting Started
-
-### Week 1 Sprint
-
-**Priority Tasks:**
-
-1. ✅ Review and approve this plan
-2. ✅ Create Phase 1 branch
-3. ✅ Set up feature flag infrastructure
-4. ✅ Implement Step 1.1.1: Add full-text search schema
-5. ✅ Implement Step 1.1.2: Add keyword search method
-6. ⬜ Daily standups to track progress
-
-**Success Criteria:**
-
-- Full-text search working in dev environment
-- First integration test passing
-- Team aligned on architecture
+- /metrics endpoint returns Prometheus format metrics
+- Endpoint is accessible without authentication
+- Default metrics (memory, CPU) are included
 
 ---
 
-## Conclusion
+### Task 4.4: Instrument HTTP Requests
 
-This plan transforms our static RAG system into a modern adaptive agentic memory system while maintaining backward compatibility and production stability. We build incrementally, test thoroughly, and deploy gradually behind feature flags.
+**Priority:** HIGH  
+**File:** `src/server.ts`
 
-**The journey from B+ to A+ starts with Week 1, Step 1.1.1. Let's ship it! 🚀**
+**Steps:**
+
+- [ ] 4.4.1 Open `src/server.ts`
+- [ ] 4.4.2 Add import: `import { httpRequestDuration, httpRequestTotal } from './server/metrics';`
+- [ ] 4.4.3 After `await app.register(cors, ...)` (line 22-38), add:
+
+```typescript
+// Request instrumentation
+app.addHook('onRequest', async (request) => {
+  (request as any).startTime = Date.now();
+});
+
+app.addHook('onResponse', async (request, reply) => {
+  const duration = (Date.now() - (request as any).startTime) / 1000;
+  const route = request.routerPath || request.url;
+  const labels = {
+    method: request.method,
+    route,
+    status_code: String(reply.statusCode),
+  };
+
+  httpRequestDuration.labels(labels).observe(duration);
+  httpRequestTotal.labels(labels).inc();
+});
+```
+
+- [ ] 4.4.4 Save the file
+- [ ] 4.4.5 Run command: `npm run build`
+- [ ] 4.4.6 Verify build succeeds
+
+**Acceptance Criteria:**
+
+- All HTTP requests are timed
+- Metrics include method, route, and status code
+- Request counts are tracked
+
+---
+
+### Task 4.5: Enhanced Health Check
+
+**Priority:** HIGH  
+**File:** `src/server.ts`
+
+**Steps:**
+
+- [ ] 4.5.1 Open `src/server.ts`
+- [ ] 4.5.2 Add imports:
+
+```typescript
+import { PromptEmbeddingsRepository } from './db/repository';
+import { OperationsRepository } from './db/operations/repository';
+```
+
+- [ ] 4.5.3 Locate the simple health endpoint (line 63): `app.get('/health', async () => ({ status: 'ok' }));`
+- [ ] 4.5.4 Replace it with:
+
+```typescript
+app.get('/health', async (request, reply) => {
+  const promptRepo = new PromptEmbeddingsRepository();
+  const opsRepo = config.operationsDatabaseUrl ? new OperationsRepository() : null;
+
+  const [dbCheck, opsDbCheck] = await Promise.all([
+    promptRepo.checkConnection(),
+    opsRepo ? opsRepo.checkConnection() : Promise.resolve({ status: 'disabled' as const }),
+  ]);
+
+  const healthy =
+    dbCheck.status === 'ok' && (opsDbCheck.status === 'ok' || opsDbCheck.status === 'disabled');
+
+  const response = {
+    status: healthy ? 'ok' : 'degraded',
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: dbCheck,
+      operationsDatabase: opsDbCheck,
+    },
+  };
+
+  return reply.status(healthy ? 200 : 503).send(response);
+});
+```
+
+- [ ] 4.5.5 Save the file
+- [ ] 4.5.6 Run command: `npm run build`
+- [ ] 4.5.7 Start server: `npm run dev`
+- [ ] 4.5.8 Run: `curl http://localhost:3456/health`
+- [ ] 4.5.9 Verify response includes database checks
+- [ ] 4.5.10 Stop the dev server
+
+**Acceptance Criteria:**
+
+- Health check tests both databases
+- Returns 503 if any database is down
+- Returns 200 if all systems operational
+- Includes timestamp in response
+
+---
+
+## 🔐 Phase 5: Add Rate Limiting (Week 2, Day 4)
+
+### Task 5.1: Install Rate Limit Plugin
+
+**Priority:** HIGH
+
+**Steps:**
+
+- [ ] 5.1.1 Run command: `npm install @fastify/rate-limit`
+- [ ] 5.1.2 Verify installation in package.json
+
+**Acceptance Criteria:**
+
+- @fastify/rate-limit is installed
+
+---
+
+### Task 5.2: Configure Rate Limiting
+
+**Priority:** HIGH  
+**File:** `src/server.ts`
+
+**Steps:**
+
+- [ ] 5.2.1 Open `src/server.ts`
+- [ ] 5.2.2 Add import: `import rateLimit from '@fastify/rate-limit';`
+- [ ] 5.2.3 After helmet registration (line 15-18), add:
+
+```typescript
+await app.register(rateLimit, {
+  max: config.http.rateLimitMax,
+  timeWindow: config.http.rateLimitWindowMs,
+  ban: 5, // Ban for 10 minutes after 5 violations
+  cache: 10000, // Maximum number of IPs to track
+});
+```
+
+- [ ] 5.2.4 Save the file
+- [ ] 5.2.5 Run command: `npm run build`
+- [ ] 5.2.6 Verify build succeeds
+
+**Acceptance Criteria:**
+
+- Rate limiting is enabled
+- Configuration uses existing config values
+- Ban is applied after repeated violations
+
+---
+
+### Task 5.3: Test Rate Limiting
+
+**Priority:** HIGH
+
+**Steps:**
+
+- [ ] 5.3.1 Start server: `npm run dev`
+- [ ] 5.3.2 In another terminal, run this script 110 times:
+
+```bash
+for i in {1..110}; do
+  curl -s http://localhost:3456/health > /dev/null
+  echo "Request $i"
+done
+```
+
+- [ ] 5.3.3 Verify that after ~100 requests, you get 429 Too Many Requests
+- [ ] 5.3.4 Wait 60 seconds
+- [ ] 5.3.5 Try again: `curl http://localhost:3456/health`
+- [ ] 5.3.6 Verify request succeeds after window expires
+- [ ] 5.3.7 Stop the dev server
+
+**Acceptance Criteria:**
+
+- Rate limiting triggers after configured max requests
+- Rate limit resets after time window
+- 429 status code returned when rate limited
+
+---
+
+## 🔄 Phase 6: CI/CD Pipeline (Week 2, Day 5)
+
+### Task 6.1: Create GitHub Actions Workflow
+
+**Priority:** CRITICAL  
+**File:** `.github/workflows/ci.yml` (new file)
+
+**Steps:**
+
+- [ ] 6.1.1 Create directory `.github/workflows`
+- [ ] 6.1.2 Create file `.github/workflows/ci.yml`
+- [ ] 6.1.3 Add the following code:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, phase-1, develop]
+  pull_request:
+    branches: [main, phase-1, develop]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MCP_API_KEY: test-key
+
+      - name: Build
+        run: npm run build
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run npm audit
+        run: npm audit --production --audit-level=moderate
+```
+
+- [ ] 6.1.4 Save the file
+- [ ] 6.1.5 Run command: `git add .github/workflows/ci.yml`
+- [ ] 6.1.6 Run command: `git commit -m "Add CI/CD pipeline"`
+- [ ] 6.1.7 Note: This will run on next push to GitHub
+
+**Acceptance Criteria:**
+
+- CI workflow is created
+- Tests run on every push and PR
+- PostgreSQL with pgvector is available
+- Linting and type checking are included
+
+---
+
+### Task 6.2: Add Repository Secrets
+
+**Priority:** CRITICAL
+
+**Steps:**
+
+- [ ] 6.2.1 Go to GitHub repository in browser
+- [ ] 6.2.2 Click Settings > Secrets and variables > Actions
+- [ ] 6.2.3 Click "New repository secret"
+- [ ] 6.2.4 Name: `OPENAI_API_KEY`
+- [ ] 6.2.5 Value: (paste your OpenAI API key)
+- [ ] 6.2.6 Click "Add secret"
+- [ ] 6.2.7 Verify secret appears in list
+
+**Acceptance Criteria:**
+
+- OPENAI_API_KEY secret is configured
+- Secret is accessible to GitHub Actions
+
+---
+
+## 🧪 Phase 7: Improve Test Coverage (Week 3, Days 1-2)
+
+### Task 7.1: Add Test Coverage Reporting
+
+**Priority:** HIGH  
+**File:** `package.json` and `vitest.config.ts`
+
+**Steps:**
+
+- [ ] 7.1.1 Run command: `npm install --save-dev @vitest/coverage-v8`
+- [ ] 7.1.2 Open `package.json`
+- [ ] 7.1.3 Find the "scripts" section
+- [ ] 7.1.4 After the "test" script, add:
+
+```json
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+```
+
+- [ ] 7.1.5 Save `package.json`
+- [ ] 7.1.6 Open `vitest.config.ts`
+- [ ] 7.1.7 Add coverage configuration:
+
+```typescript
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/**', 'dist/**', '**/*.test.ts', '**/*.config.ts', 'scripts/**'],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
+  },
+});
+```
+
+- [ ] 7.1.8 Save the file
+- [ ] 7.1.9 Run command: `npm run test:coverage`
+- [ ] 7.1.10 Review coverage report in terminal
+- [ ] 7.1.11 Open `coverage/index.html` in browser to see detailed report
+
+**Acceptance Criteria:**
+
+- Coverage command works
+- Coverage report is generated
+- HTML report is accessible
+- Thresholds are set
+
+---
+
+### Task 7.2: Add Error Handler Tests
+
+**Priority:** HIGH  
+**File:** `src/server/errorHandler.test.ts` (new file)
+
+**Steps:**
+
+- [ ] 7.2.1 Create file `src/server/errorHandler.test.ts`
+- [ ] 7.2.2 Add the following test suite:
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { errorHandler } from './errorHandler';
+import { ApiError, NotFoundError, ValidationError, DatabaseError } from '../types/errors';
+
+describe('errorHandler', () => {
+  let mockRequest: Partial<FastifyRequest>;
+  let mockReply: Partial<FastifyReply>;
+
+  beforeEach(() => {
+    mockRequest = {
+      url: '/test',
+      id: 'test-request-id',
+      log: {
+        error: vi.fn(),
+        warn: vi.fn(),
+        info: vi.fn(),
+      } as any,
+    };
+
+    mockReply = {
+      status: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+  });
+
+  it('should handle NotFoundError with 404 status', () => {
+    const error = new NotFoundError('Resource not found');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockReply.status).toHaveBeenCalledWith(404);
+    expect(mockReply.send).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        code: 'NOT_FOUND',
+        message: 'Resource not found',
+        requestId: 'test-request-id',
+        path: '/test',
+      }),
+    });
+  });
+
+  it('should handle ValidationError with 400 status', () => {
+    const error = new ValidationError('Invalid input', { field: 'email' });
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockReply.status).toHaveBeenCalledWith(400);
+    expect(mockReply.send).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid input',
+        details: { field: 'email' },
+      }),
+    });
+  });
+
+  it('should handle DatabaseError with 503 status', () => {
+    const error = new DatabaseError('Connection failed');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockReply.status).toHaveBeenCalledWith(503);
+    expect(mockReply.send).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        code: 'DATABASE_ERROR',
+        message: 'Connection failed',
+      }),
+    });
+  });
+
+  it('should handle generic Error with 500 status', () => {
+    const error = new Error('Unexpected error');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockReply.status).toHaveBeenCalledWith(500);
+    expect(mockReply.send).toHaveBeenCalledWith({
+      error: expect.objectContaining({
+        code: 'INTERNAL_ERROR',
+        message: 'Unexpected error',
+      }),
+    });
+  });
+
+  it('should include timestamp in error response', () => {
+    const error = new NotFoundError('Not found');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    const sendArg = (mockReply.send as any).mock.calls[0][0];
+    expect(sendArg.error.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+
+  it('should log server errors (5xx) as error level', () => {
+    const error = new ApiError(500, 'INTERNAL_ERROR', 'Server error');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockRequest.log!.error).toHaveBeenCalled();
+  });
+
+  it('should log client errors (4xx) as warn level', () => {
+    const error = new NotFoundError('Not found');
+
+    errorHandler(error, mockRequest as FastifyRequest, mockReply as FastifyReply);
+
+    expect(mockRequest.log!.warn).toHaveBeenCalled();
+  });
+});
+```
+
+- [ ] 7.2.3 Save the file
+- [ ] 7.2.4 Run command: `npm test errorHandler.test.ts`
+- [ ] 7.2.5 Verify all tests pass
+
+**Acceptance Criteria:**
+
+- Error handler is fully tested
+- All error types are covered
+- Logging behavior is verified
+- Status codes are correct
+
+---
+
+## 🔐 Phase 8: Security Improvements (Week 3, Days 3-4)
+
+### Task 8.1: Add Webhook Authentication
+
+**Priority:** HIGH  
+**File:** `src/services/hitl/webhookSigner.ts` (new file)
+
+**Steps:**
+
+- [ ] 8.1.1 Create file `src/services/hitl/webhookSigner.ts`
+- [ ] 8.1.2 Add the following code:
+
+```typescript
+import { createHmac } from 'crypto';
+
+export function signWebhookPayload(payload: string, secret: string): string {
+  return createHmac('sha256', secret).update(payload).digest('hex');
+}
+
+export function verifyWebhookSignature(
+  payload: string,
+  signature: string,
+  secret: string,
+): boolean {
+  const expectedSignature = signWebhookPayload(payload, secret);
+  return signature === expectedSignature;
+}
+```
+
+- [ ] 8.1.3 Save the file
+- [ ] 8.1.4 Open `src/config/index.ts`
+- [ ] 8.1.5 Add to envSchema (around line 6):
+
+```typescript
+  N8N_WEBHOOK_SECRET: z.string().optional(),
+```
+
+- [ ] 8.1.6 Save the file
+- [ ] 8.1.7 Open `src/services/hitl/HITLService.ts`
+- [ ] 8.1.8 Add import: `import { signWebhookPayload } from './webhookSigner';`
+- [ ] 8.1.9 Add import: `import { config } from '../../config';`
+- [ ] 8.1.10 Locate the `resumeWorkflow` method (around line 253)
+- [ ] 8.1.11 Before the fetch call, add:
+
+```typescript
+const body = JSON.stringify(data);
+const headers: Record<string, string> = {
+  'Content-Type': 'application/json',
+};
+
+if (config.N8N_WEBHOOK_SECRET) {
+  headers['X-Webhook-Signature'] = signWebhookPayload(body, config.N8N_WEBHOOK_SECRET);
+}
+```
+
+- [ ] 8.1.12 Update the fetch call to use the variables:
+
+```typescript
+const response = await fetch(`${n8nWebhookBase}/hitl/resume/${workflowRunId}`, {
+  method: 'POST',
+  headers,
+  body,
+});
+```
+
+- [ ] 8.1.13 Save the file
+- [ ] 8.1.14 Run command: `npm run build`
+- [ ] 8.1.15 Verify build succeeds
+
+**Acceptance Criteria:**
+
+- Webhook payloads are signed with HMAC-SHA256
+- Signature is sent in X-Webhook-Signature header
+- Signing is optional (works without secret)
+
+---
+
+### Task 8.2: Add Input Validation for JSONB Fields
+
+**Priority:** MEDIUM  
+**File:** `src/server/routes/api.ts`
+
+**Steps:**
+
+- [ ] 8.2.1 Open `src/server/routes/api.ts`
+- [ ] 8.2.2 Add a JSONB validation schema:
+
+```typescript
+const safeJsonbSchema = z.record(z.unknown()).refine((obj) => {
+  try {
+    const str = JSON.stringify(obj);
+    return str.length < 100000; // 100KB limit
+  } catch {
+    return false;
+  }
+}, 'JSONB field too large (max 100KB)');
+```
+
+- [ ] 8.2.3 Locate the `conversationStoreSchema` (around line 149)
+- [ ] 8.2.4 Update metadata and summary fields:
+
+```typescript
+  summary: safeJsonbSchema.optional().nullable(),
+  metadata: safeJsonbSchema.optional(),
+```
+
+- [ ] 8.2.5 Locate the `videoUpdateSchema` (around line 110)
+- [ ] 8.2.6 Update metadata field:
+
+```typescript
+  metadata: safeJsonbSchema.optional(),
+```
+
+- [ ] 8.2.7 Save the file
+- [ ] 8.2.8 Run command: `npm run build`
+- [ ] 8.2.9 Verify build succeeds
+
+**Acceptance Criteria:**
+
+- JSONB fields have size limits
+- Large payloads are rejected with validation error
+- 100KB limit prevents abuse
+
+---
+
+### Task 8.3: Add Security Headers
+
+**Priority:** MEDIUM  
+**File:** `src/server.ts`
+
+**Steps:**
+
+- [ ] 8.3.1 Open `src/server.ts`
+- [ ] 8.3.2 Locate helmet configuration (lines 15-18)
+- [ ] 8.3.3 Update with more security headers:
+
+```typescript
+await app.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+});
+```
+
+- [ ] 8.3.4 Save the file
+- [ ] 8.3.5 Run command: `npm run build`
+- [ ] 8.3.6 Verify build succeeds
+
+**Acceptance Criteria:**
+
+- CSP headers are set
+- HSTS is enabled
+- Security headers protect against common attacks
+
+---
+
+## 📚 Phase 9: API Documentation (Week 3, Day 5)
+
+### Task 9.1: Install OpenAPI Tools
+
+**Priority:** MEDIUM
+
+**Steps:**
+
+- [ ] 9.1.1 Run command: `npm install --save-dev @fastify/swagger @fastify/swagger-ui`
+- [ ] 9.1.2 Verify installation in package.json
+
+**Acceptance Criteria:**
+
+- Swagger packages are installed
+
+---
+
+### Task 9.2: Configure Swagger
+
+**Priority:** MEDIUM  
+**File:** `src/server.ts`
+
+**Steps:**
+
+- [ ] 9.2.1 Open `src/server.ts`
+- [ ] 9.2.2 Add imports:
+
+```typescript
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
+```
+
+- [ ] 9.2.3 After helmet registration (line 15-18), add:
+
+```typescript
+if (!config.isProduction) {
+  await app.register(swagger, {
+    openapi: {
+      info: {
+        title: 'MCP Prompts API',
+        description: 'RAG-based prompt management with HITL workflows',
+        version: '1.0.0',
+      },
+      servers: [
+        {
+          url: `http://${config.SERVER_HOST}:${config.SERVER_PORT}`,
+          description: 'Development server',
+        },
+      ],
+      tags: [
+        { name: 'workflows', description: 'Workflow run management' },
+        { name: 'hitl', description: 'Human-in-the-loop approvals' },
+        { name: 'prompts', description: 'Prompt search and retrieval' },
+        { name: 'videos', description: 'Video generation and tracking' },
+      ],
+    },
+  });
+
+  await app.register(swaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: false,
+    },
+  });
+}
+```
+
+- [ ] 9.2.4 Save the file
+- [ ] 9.2.5 Run command: `npm run build`
+- [ ] 9.2.6 Start server: `npm run dev`
+- [ ] 9.2.7 Open browser to `http://localhost:3456/docs`
+- [ ] 9.2.8 Verify Swagger UI loads
+- [ ] 9.2.9 Stop the dev server
+
+**Acceptance Criteria:**
+
+- Swagger UI is accessible at /docs
+- API documentation is auto-generated
+- Only available in non-production environments
+
+---
+
+### Task 9.3: Add OpenAPI Schema to Routes
+
+**Priority:** LOW  
+**File:** `src/server/routes/workflow-runs.ts`
+
+**Steps:**
+
+- [ ] 9.3.1 Open `src/server/routes/workflow-runs.ts`
+- [ ] 9.3.2 Update the GET /api/workflow-runs route to include schema:
+
+```typescript
+app.get(
+  '/api/workflow-runs',
+  {
+    schema: {
+      tags: ['workflows'],
+      description: 'List workflow runs with optional filters',
+      querystring: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Filter by status',
+          },
+          projectId: { type: 'string', description: 'Filter by project ID' },
+          sessionId: { type: 'string', description: 'Filter by session ID' },
+        },
+      },
+      response: {
+        200: {
+          description: 'Successful response',
+          type: 'object',
+          properties: {
+            workflowRuns: { type: 'array' },
+          },
+        },
+      },
+    },
+  },
+  async (request, reply) => {
+    // ... existing code
+  },
+);
+```
+
+- [ ] 9.3.3 Save the file
+- [ ] 9.3.4 Run command: `npm run build`
+- [ ] 9.3.5 Note: Add schemas to other routes as time permits
+
+**Acceptance Criteria:**
+
+- Route appears in Swagger UI
+- Parameters are documented
+- Response schema is defined
+
+---
+
+## 🔄 Phase 10: HITL Integration (Week 4)
+
+### Task 10.1: Verify NotificationService Implementation
+
+**Priority:** HIGH  
+**File:** `src/services/hitl/NotificationService.ts`
+
+**Steps:**
+
+- [ ] 10.1.1 Open `src/services/hitl/NotificationService.ts`
+- [ ] 10.1.2 Verify the file exists and contains complete implementation
+- [ ] 10.1.3 Verify `notify()` method exists
+- [ ] 10.1.4 Verify `notifySlack()` method exists
+- [ ] 10.1.5 If methods are missing, the file needs implementation - escalate
+- [ ] 10.1.6 Add environment variable to `.env` file:
+
+```
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+- [ ] 10.1.7 Save `.env`
+
+**Acceptance Criteria:**
+
+- NotificationService has all methods implemented
+- Slack webhook URL is configured
+- Service can be instantiated without errors
+
+---
+
+### Task 10.2: Test HITL Flow End-to-End
+
+**Priority:** HIGH
+
+**Steps:**
+
+- [ ] 10.2.1 Start the server: `npm run dev`
+- [ ] 10.2.2 Create a test workflow run:
+
+```bash
+curl -X POST http://localhost:3456/api/workflow-runs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "aismr",
+    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+    "input": {"test": true}
+  }'
+```
+
+- [ ] 10.2.3 Save the returned `workflowRun.id`
+- [ ] 10.2.4 Request HITL approval:
+
+```bash
+curl -X POST http://localhost:3456/api/hitl/request-approval \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workflowRunId": "YOUR_WORKFLOW_RUN_ID",
+    "stage": "idea_generation",
+    "content": {"ideas": ["Idea 1", "Idea 2"]},
+    "notifyChannels": ["slack"]
+  }'
+```
+
+- [ ] 10.2.5 Save the returned `approval.id`
+- [ ] 10.2.6 Check Slack for notification (if configured)
+- [ ] 10.2.7 List pending approvals:
+
+```bash
+curl http://localhost:3456/api/hitl/approvals?status=pending
+```
+
+- [ ] 10.2.8 Approve the request:
+
+```bash
+curl -X POST http://localhost:3456/api/hitl/approve/YOUR_APPROVAL_ID \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reviewedBy": "test-user",
+    "feedback": "Looks good"
+  }'
+```
+
+- [ ] 10.2.9 Verify approval succeeds
+- [ ] 10.2.10 Stop the dev server
+
+**Acceptance Criteria:**
+
+- Workflow run is created
+- HITL approval is requested
+- Notification is sent (or logged if Slack not configured)
+- Approval can be granted
+- Workflow status is updated
+
+---
+
+### Task 10.3: Create HITL Integration Tests
+
+**Priority:** MEDIUM  
+**File:** `src/test/integration/hitl-flow.test.ts` (new file)
+
+**Steps:**
+
+- [ ] 10.3.1 Create directory `src/test/integration` if it doesn't exist
+- [ ] 10.3.2 Create file `src/test/integration/hitl-flow.test.ts`
+- [ ] 10.3.3 Add the following test:
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+import { createServer } from '../../server';
+
+describe('HITL Integration Flow', () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = await createServer();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('should complete full HITL approval flow', async () => {
+    // 1. Create workflow run
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/workflow-runs',
+      payload: {
+        projectId: 'aismr',
+        sessionId: '550e8400-e29b-41d4-a716-446655440000',
+        input: { test: true },
+      },
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    const { workflowRun } = JSON.parse(createResponse.body);
+    const workflowRunId = workflowRun.id;
+
+    // 2. Request approval
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: '/api/hitl/request-approval',
+      payload: {
+        workflowRunId,
+        stage: 'idea_generation',
+        content: { ideas: ['Idea 1', 'Idea 2'] },
+        notifyChannels: ['slack'],
+      },
+    });
+
+    expect(approvalResponse.statusCode).toBe(201);
+    const { approval } = JSON.parse(approvalResponse.body);
+    expect(approval.status).toBe('pending');
+
+    // 3. List pending approvals
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/hitl/approvals?status=pending',
+    });
+
+    expect(listResponse.statusCode).toBe(200);
+    const { approvals } = JSON.parse(listResponse.body);
+    expect(approvals).toContainEqual(expect.objectContaining({ id: approval.id }));
+
+    // 4. Approve
+    const approveResponse = await app.inject({
+      method: 'POST',
+      url: `/api/hitl/approve/${approval.id}`,
+      payload: {
+        reviewedBy: 'test-user',
+        feedback: 'Approved in test',
+      },
+    });
+
+    expect(approveResponse.statusCode).toBe(200);
+
+    // 5. Verify approval status
+    const getApprovalResponse = await app.inject({
+      method: 'GET',
+      url: `/api/hitl/approvals/${approval.id}`,
+    });
+
+    expect(getApprovalResponse.statusCode).toBe(200);
+    const { approval: updatedApproval } = JSON.parse(getApprovalResponse.body);
+    expect(updatedApproval.status).toBe('approved');
+    expect(updatedApproval.reviewedBy).toBe('test-user');
+  });
+
+  it('should handle rejection flow', async () => {
+    // 1. Create workflow run
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/workflow-runs',
+      payload: {
+        projectId: 'aismr',
+        sessionId: '550e8400-e29b-41d4-a716-446655440001',
+        input: { test: true },
+      },
+    });
+
+    const { workflowRun } = JSON.parse(createResponse.body);
+
+    // 2. Request approval
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: '/api/hitl/request-approval',
+      payload: {
+        workflowRunId: workflowRun.id,
+        stage: 'idea_generation',
+        content: { ideas: ['Bad idea'] },
+      },
+    });
+
+    const { approval } = JSON.parse(approvalResponse.body);
+
+    // 3. Reject
+    const rejectResponse = await app.inject({
+      method: 'POST',
+      url: `/api/hitl/reject/${approval.id}`,
+      payload: {
+        reviewedBy: 'test-user',
+        feedback: 'Ideas not good enough',
+      },
+    });
+
+    expect(rejectResponse.statusCode).toBe(200);
+
+    // 4. Verify rejection
+    const getApprovalResponse = await app.inject({
+      method: 'GET',
+      url: `/api/hitl/approvals/${approval.id}`,
+    });
+
+    const { approval: updatedApproval } = JSON.parse(getApprovalResponse.body);
+    expect(updatedApproval.status).toBe('rejected');
+  });
+});
+```
+
+- [ ] 10.3.4 Save the file
+- [ ] 10.3.5 Run command: `npm test hitl-flow.test.ts`
+- [ ] 10.3.6 Verify tests pass
+
+**Acceptance Criteria:**
+
+- Integration tests cover full HITL flow
+- Approval flow is tested
+- Rejection flow is tested
+- Tests can run in CI
+
+---
+
+## 🚀 Phase 11: Final Cleanup and Documentation (Week 4, Final Days)
+
+### Task 11.1: Update README with New Features
+
+**Priority:** MEDIUM  
+**File:** `README.md`
+
+**Steps:**
+
+- [ ] 11.1.1 Open `README.md`
+- [ ] 11.1.2 Add a section about new features:
+
+```markdown
+## Recent Updates
+
+### Observability
+
+- Prometheus metrics endpoint at `/metrics`
+- Enhanced health check at `/health`
+- Request duration and count tracking
+- Database query instrumentation
+
+### Security
+
+- Rate limiting (configurable)
+- Webhook HMAC signing
+- Enhanced security headers
+- JSONB field validation
+
+### API Documentation
+
+- Swagger UI available at `/docs` (dev only)
+- OpenAPI 3.0 schema
+- Interactive API exploration
+
+### HITL (Human-in-the-Loop)
+
+- Request approval workflow
+- Slack notifications
+- Approval/rejection tracking
+- Workflow state management
+```
+
+- [ ] 11.1.3 Add environment variables section:
+
+```markdown
+## Environment Variables
+
+### Required
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `OPENAI_API_KEY` - OpenAI API key
+
+### Optional
+
+- `OPERATIONS_DATABASE_URL` - Separate DB for operations
+- `N8N_WEBHOOK_SECRET` - Secret for webhook signing
+- `SLACK_WEBHOOK_URL` - Slack incoming webhook URL
+- `HTTP_RATE_LIMIT_MAX` - Max requests per window (default: 100)
+- `HTTP_RATE_LIMIT_WINDOW_MS` - Rate limit window in ms (default: 60000)
+```
+
+- [ ] 11.1.4 Save the file
+
+**Acceptance Criteria:**
+
+- README documents new features
+- Environment variables are documented
+- Setup instructions are clear
+
+---
+
+### Task 11.2: Create Runbook
+
+**Priority:** LOW  
+**File:** `docs/RUNBOOK.md` (new file)
+
+**Steps:**
+
+- [ ] 11.2.1 Create file `docs/RUNBOOK.md`
+- [ ] 11.2.2 Add the following content:
+
+````markdown
+# MCP Prompts Runbook
+
+## Operational Procedures
+
+### Health Checks
+
+Check system health:
+
+```bash
+curl http://localhost:3456/health
+```
+````
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-11-02T12:00:00.000Z",
+  "checks": {
+    "database": { "status": "ok" },
+    "operationsDatabase": { "status": "ok" }
+  }
+}
+```
+
+### Metrics
+
+View Prometheus metrics:
+
+```bash
+curl http://localhost:3456/metrics
+```
+
+Key metrics to monitor:
+
+- `mcp_prompts_http_request_duration_seconds` - Request latency
+- `mcp_prompts_http_requests_total` - Request count
+- `mcp_prompts_db_query_duration_seconds` - Database performance
+- `mcp_prompts_hitl_approvals_total` - HITL activity
+
+### Common Issues
+
+#### Database Connection Failure
+
+**Symptoms:** `/health` returns 503, database checks fail
+
+**Solution:**
+
+1. Check DATABASE_URL is correct
+2. Verify PostgreSQL is running
+3. Check network connectivity
+4. Review database logs
+
+#### Rate Limiting
+
+**Symptoms:** Requests return 429 Too Many Requests
+
+**Solution:**
+
+1. Increase `HTTP_RATE_LIMIT_MAX` in environment
+2. Increase `HTTP_RATE_LIMIT_WINDOW_MS` for longer window
+3. Implement API key per-user rate limits
+
+#### Pending Migrations
+
+**Symptoms:** Server exits on startup with "Pending migrations detected"
+
+**Solution:**
+
+```bash
+npm run db:migrate
+npm run db:operations:migrate
+```
+
+#### HITL Webhook Failures
+
+**Symptoms:** Approvals created but workflows don't resume
+
+**Solution:**
+
+1. Check n8n webhook endpoint is accessible
+2. Verify N8N_WEBHOOK_SECRET matches on both ends
+3. Review n8n workflow wait node configuration
+4. Check server logs for webhook errors
+
+### Deployment Checklist
+
+- [ ] Run database migrations
+- [ ] Set all required environment variables
+- [ ] Run tests: `npm test`
+- [ ] Build: `npm run build`
+- [ ] Check health endpoint after deploy
+- [ ] Verify metrics endpoint accessible
+- [ ] Test HITL flow with one workflow
+- [ ] Monitor error rates for 1 hour
+
+### Rollback Procedure
+
+If deployment fails:
+
+1. Revert to previous git commit
+2. Rollback database migrations if needed
+3. Restart application
+4. Verify health check passes
+5. Investigate failure in staging environment
+
+````
+- [ ] 11.2.3 Save the file
+
+**Acceptance Criteria:**
+- Runbook documents common operations
+- Troubleshooting guide included
+- Deployment checklist provided
+
+---
+
+### Task 11.3: Run Full Test Suite
+
+**Priority:** HIGH
+
+**Steps:**
+- [ ] 11.3.1 Run command: `npm run lint`
+- [ ] 11.3.2 Verify no linting errors
+- [ ] 11.3.3 Run command: `npm run build`
+- [ ] 11.3.4 Verify build succeeds with no errors
+- [ ] 11.3.5 Run command: `npm test`
+- [ ] 11.3.6 Verify all tests pass
+- [ ] 11.3.7 Run command: `npm run test:coverage`
+- [ ] 11.3.8 Verify coverage meets thresholds (70%)
+- [ ] 11.3.9 Review coverage report
+- [ ] 11.3.10 If any tests fail, debug and fix before proceeding
+
+**Acceptance Criteria:**
+- No linting errors
+- Build succeeds
+- All tests pass
+- Coverage meets minimum thresholds
+
+---
+
+### Task 11.4: Git Commit and Push
+
+**Priority:** HIGH
+
+**Steps:**
+- [ ] 11.4.1 Run command: `git status`
+- [ ] 11.4.2 Review all changed files
+- [ ] 11.4.3 Run command: `git add -A`
+- [ ] 11.4.4 Run command: `git commit -m "feat: implement code review remediation
+
+- Fix listWorkflowRuns undefined where clause bug
+- Fix PATCH workflow-runs 404 error handling
+- Add comprehensive API tests
+- Standardize error handling with typed errors
+- Add Prometheus metrics and observability
+- Implement rate limiting
+- Add CI/CD pipeline with GitHub Actions
+- Enhance health checks
+- Add webhook HMAC authentication
+- Add API documentation with Swagger
+- Complete HITL integration testing
+- Update documentation and runbook
+
+Addresses issues from REVIEW-CODEX.md and review-claude.md"`
+- [ ] 11.4.5 Run command: `git push origin phase-1`
+- [ ] 11.4.6 Wait for CI to run on GitHub
+- [ ] 11.4.7 Check GitHub Actions tab
+- [ ] 11.4.8 Verify CI passes
+- [ ] 11.4.9 If CI fails, review logs and fix issues
+
+**Acceptance Criteria:**
+- All changes are committed
+- Commit message is descriptive
+- Code is pushed to remote
+- CI pipeline passes
+
+---
+
+## 📊 Completion Checklist
+
+### Critical Fixes ✅
+- [ ] listWorkflowRuns undefined bug fixed
+- [ ] PATCH workflow-runs 404 handling fixed
+- [ ] Workflow run API tests added
+- [ ] Pending migrations applied
+- [ ] Migration check on startup added
+
+### Error Handling ✅
+- [ ] Standard error types created
+- [ ] Centralized error handler implemented
+- [ ] Repository throws typed errors
+- [ ] Error handler tests added
+
+### Observability ✅
+- [ ] Prometheus client installed
+- [ ] Metrics module created
+- [ ] /metrics endpoint added
+- [ ] HTTP requests instrumented
+- [ ] Enhanced health check implemented
+
+### Security ✅
+- [ ] Rate limiting installed and configured
+- [ ] Webhook authentication added
+- [ ] JSONB field validation added
+- [ ] Security headers enhanced
+
+### CI/CD ✅
+- [ ] GitHub Actions workflow created
+- [ ] Repository secrets configured
+- [ ] CI runs on push and PR
+
+### Testing ✅
+- [ ] Test coverage reporting added
+- [ ] Error handler tests added
+- [ ] HITL integration tests added
+
+### Documentation ✅
+- [ ] API documentation with Swagger added
+- [ ] README updated
+- [ ] Runbook created
+
+### HITL Integration ✅
+- [ ] NotificationService verified
+- [ ] HITL flow tested end-to-end
+- [ ] Integration tests created
+
+### Final Steps ✅
+- [ ] Full test suite runs successfully
+- [ ] Code committed and pushed
+- [ ] CI pipeline passes
+
+---
+
+## 🎯 Success Criteria
+
+Upon completion of all tasks:
+
+1. **Code Quality**
+   - All tests pass
+   - No linting errors
+   - 70%+ code coverage
+   - TypeScript builds without errors
+
+2. **Functionality**
+   - HITL flow works end-to-end
+   - API is fully documented
+   - Health checks include database status
+   - Metrics are collected and exposed
+
+3. **Security**
+   - Rate limiting protects against abuse
+   - Webhooks are authenticated
+   - Input validation prevents oversized payloads
+   - Security headers are properly configured
+
+4. **Operations**
+   - CI/CD pipeline runs on every push
+   - Runbook documents common operations
+   - Migration check prevents bad deployments
+   - Monitoring is in place
+
+5. **Documentation**
+   - README explains new features
+   - API documentation is auto-generated
+   - Environment variables are documented
+   - Troubleshooting guide exists
+
+---
+
+## 📝 Notes for AI Agents
+
+### When Tasks Fail
+
+1. **Read error messages carefully** - They usually tell you exactly what's wrong
+2. **Check file paths** - Ensure you're editing the correct file
+3. **Verify imports** - Make sure all imports are correct
+4. **Run build after changes** - Always verify TypeScript compiles
+5. **Test incrementally** - Don't wait until the end to test
+
+### Common Pitfalls
+
+- **Don't skip tasks** - Each task builds on previous ones
+- **Don't modify unrelated code** - Stay focused on the task
+- **Don't commit without testing** - Always run tests before committing
+- **Don't ignore TypeScript errors** - Fix them immediately
+
+### Getting Help
+
+If stuck on a task:
+1. Re-read the task instructions
+2. Check the acceptance criteria
+3. Look at similar code in the codebase
+4. Review the error message for clues
+5. Escalate if truly blocked
+
+---
+
+## Phase Review
+
+### Phases 1-3 Implementation Summary
+
+**Completion Date:** November 2, 2025
+**Implementation Approach:** Consolidated typed error strategy
+**Test Results:** 19/19 tests passing
+
+#### What Was Implemented
+
+**Phase 1: Critical Bug Fixes**
+- ✅ Fixed `listWorkflowRuns` undefined bug (conditional where clause)
+- ✅ Added comprehensive workflow-runs API tests (10 tests)
+- ✅ Added GET /api/workflow-runs route (bonus - not in original plan)
+- ⚠️ Task 1.2 superseded by Phase 3 typed error approach
+
+**Phase 2: Migrations**
+- ✅ Verified HITL migration files exist and committed
+- ✅ Created `checkPendingMigrations()` function
+- ✅ Integrated migration check into server startup
+- ✅ Skips check in test environment
+
+**Phase 3: Error Handling**
+- ✅ Created 5 typed error classes (ApiError, NotFoundError, ValidationError, DatabaseError, WorkflowError)
+- ✅ Implemented centralized error handler with consistent response format
+- ✅ Updated repository to throw NotFoundError instead of returning null
+- ✅ Updated route handlers to remove null checks
+- ✅ Added 9 comprehensive error handler tests
+
+#### Improvements Over Original Plan
+
+1. **Better Error Approach**: Skipped null-return pattern (Task 1.2) and went directly to typed errors, avoiding rework
+2. **Enhanced Test Coverage**: 10 workflow tests (vs planned 4) and 9 error handler tests
+3. **Additional Route**: Implemented GET /api/workflow-runs for listing (missing from routes)
+4. **Consistent Error Format**: All errors include requestId, timestamp, path, and proper HTTP status codes
+
+#### Files Created
+- `src/types/errors.ts` - Typed error classes
+- `src/server/errorHandler.ts` - Centralized error handler
+- `src/server/errorHandler.test.ts` - Error handler tests (9 tests)
+- `src/server/routes/workflow-runs.test.ts` - Route tests (10 tests)
+- `src/db/migrations.ts` - Migration check utility
+
+#### Files Modified
+- `src/db/operations/workflowRunRepository.ts` - Conditional where clause + typed errors
+- `src/server/routes/workflow-runs.ts` - Removed null checks + added GET route
+- `src/server.ts` - Integrated error handler + migration check
+
+### Recommendations for Next Phases
+
+#### Phase 4: Observability (HIGH PRIORITY)
+
+The current implementation lacks monitoring. Before proceeding to Phase 4:
+
+1. **Install prom-client** - Already in config but not implemented
+2. **Key Metrics to Track**:
+   - HTTP request duration/count (by route, method, status)
+   - Database query duration
+   - Vector search duration
+   - HITL approval counts
+   - Error rates by type
+
+3. **Enhanced Health Check** - Should test both databases and return structured response
+
+#### Phase 5: HITL Integration (BLOCKED - NEEDS ATTENTION)
+
+NotificationService implementation is incomplete. Before Phase 10:
+
+1. **Verify NotificationService** - File exists but may need Slack integration
+2. **Test HITL Flow** - End-to-end with actual n8n webhooks
+3. **Add Webhook Signature** - Security enhancement from Phase 8
+
+#### Consolidation Opportunities
+
+**Error Handler Duplication**
+Multiple `sendError()` functions exist across route files:
+- `src/server/routes/api.ts`
+- `src/server/routes/hitl.ts`
+- `src/server/routes/workflow-runs.ts`
+
+**Recommendation**: Create shared error utilities or use centralized handler everywhere
+
+**Test Setup Patterns**
+Similar mock setup code in:
+- `src/server/routes/hitl.test.ts`
+- `src/server/routes/workflow-runs.test.ts`
+
+**Recommendation**: Create shared test utilities for Fastify app setup
+
+### Technical Debt Identified
+
+1. **Pre-existing TypeScript errors** - In `src/db/operations/schema.test.ts` (unrelated to our changes)
+2. **Missing GET route** - Now implemented, but indicates gaps in API documentation
+3. **OPERATIONS_DATABASE_URL** - Required for migrations but may not be configured in all environments
+
+### Next Steps Priority Order
+
+1. ✅ **Phases 1-3 Complete** - Error handling foundation is solid
+2. 🔴 **Phase 4 (Observability)** - CRITICAL before production
+3. 🟡 **Phase 5 (Rate Limiting)** - HIGH - Already configured, just needs registration
+4. 🟡 **Phase 6 (CI/CD)** - HIGH - Automate testing and prevent regressions
+5. 🟢 **Phase 7-9** - Can proceed in parallel with Phase 10 HITL work
+
+---
+
+**End of Plan**
+
+Total Tasks: 55 (3 phases completed: ~11 tasks)
+Estimated Time: 3-4 weeks
+Priority: CRITICAL fixes first, then HIGH, then MEDIUM/LOW
+
+---
+
+## Tools Documentation
+
+All MCP tools are documented with YAML specifications in [`docs/tool-specs/`](./tool-specs/). See the [Tool Specs README](./tool-specs/README.md) for:
+
+- Complete list of available tools
+- How to add new tool specs
+- How to update existing specs
+- Validation and maintenance guidelines
+
+Tool specifications follow the schema defined in [`docs/tool-description.schema.json`](./tool-description.schema.json) and can be validated using:
+
+```bash
+npm run validate:tool-specs
+````
+
+```
+
+```

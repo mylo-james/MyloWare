@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { WorkflowRunRepository } from '../../db/operations/workflowRunRepository';
 import { workflowStageEnum } from '../../db/operations/schema';
+import { sendValidationError, sendError } from '../utils/errorResponses';
 
 const workflowStageValues = new Set(workflowStageEnum.enumValues);
 
@@ -25,35 +26,44 @@ const updateWorkflowRunSchema = z.object({
   workflowDefinitionChunkId: z.string().optional().nullable(),
 });
 
-function sendValidationError(reply: FastifyReply, error: z.ZodError): void {
-  void reply.status(400).send({
-    error: {
-      code: 'VALIDATION_ERROR',
-      message: 'Request validation failed',
-      details: error.errors,
-    },
-  });
-}
-
-function sendError(
-  reply: FastifyReply,
-  statusCode: number,
-  code: string,
-  message: string,
-): void {
-  void reply.status(statusCode).send({
-    error: {
-      code,
-      message,
-    },
-  });
-}
-
 export async function registerWorkflowRunRoutes(
   app: FastifyInstance,
   dependencies: { workflowRunRepository?: WorkflowRunRepository } = {},
 ): Promise<void> {
   const workflowRunRepo = dependencies.workflowRunRepository ?? new WorkflowRunRepository();
+
+  // GET /api/workflow-runs - List workflow runs
+  app.get(
+    '/api/workflow-runs',
+    async (
+      request: FastifyRequest<{ Querystring: { status?: string; projectId?: string; sessionId?: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const filters: {
+        status?: string[];
+        projectId?: string;
+        sessionId?: string;
+      } = {};
+
+      if (request.query.status) {
+        filters.status = Array.isArray(request.query.status)
+          ? request.query.status
+          : [request.query.status];
+      }
+
+      if (request.query.projectId) {
+        filters.projectId = request.query.projectId;
+      }
+
+      if (request.query.sessionId) {
+        filters.sessionId = request.query.sessionId;
+      }
+
+      const workflowRuns = await workflowRunRepo.listWorkflowRuns(filters as never);
+
+      void reply.status(200).send({ workflowRuns });
+    },
+  );
 
   // POST /api/workflow-runs - Create workflow run
   app.post(
@@ -93,18 +103,9 @@ export async function registerWorkflowRunRoutes(
     ) => {
       const { id } = request.params;
 
-      try {
-        const workflowRun = await workflowRunRepo.getWorkflowRunById(id);
+      const workflowRun = await workflowRunRepo.getWorkflowRunById(id);
 
-        if (!workflowRun) {
-          return sendError(reply, 404, 'NOT_FOUND', `Workflow run with id ${id} not found`);
-        }
-
-        void reply.status(200).send({ workflowRun });
-      } catch (error) {
-        app.log.error(error, 'Failed to get workflow run');
-        return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to retrieve workflow run');
-      }
+      void reply.status(200).send({ workflowRun });
     },
   );
 
@@ -122,20 +123,15 @@ export async function registerWorkflowRunRoutes(
         return sendValidationError(reply, parsed.error);
       }
 
-      try {
-        const workflowRun = await workflowRunRepo.updateWorkflowRun(id, {
-          status: parsed.data.status,
-          currentStage: parsed.data.currentStage as never,
-          stages: parsed.data.stages as never,
-          output: parsed.data.output,
-          workflowDefinitionChunkId: parsed.data.workflowDefinitionChunkId ?? null,
-        });
+      const workflowRun = await workflowRunRepo.updateWorkflowRun(id, {
+        status: parsed.data.status,
+        currentStage: parsed.data.currentStage as never,
+        stages: parsed.data.stages as never,
+        output: parsed.data.output,
+        workflowDefinitionChunkId: parsed.data.workflowDefinitionChunkId ?? null,
+      });
 
-        void reply.status(200).send({ workflowRun });
-      } catch (error) {
-        app.log.error(error, 'Failed to update workflow run');
-        return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to update workflow run');
-      }
+      void reply.status(200).send({ workflowRun });
     },
   );
 
@@ -184,14 +180,9 @@ export async function registerWorkflowRunRoutes(
         );
       }
 
-      try {
-        const workflowRun = await workflowRunRepo.getWorkflowRunById(id);
+      const workflowRun = await workflowRunRepo.getWorkflowRunById(id);
 
-        if (!workflowRun) {
-          return sendError(reply, 404, 'NOT_FOUND', `Workflow run with id ${id} not found`);
-        }
-
-        const stages = workflowRun.stages as Record<
+      const stages = workflowRun.stages as Record<
           string,
           { status: string; output?: unknown; error?: string }
         >;
@@ -207,11 +198,7 @@ export async function registerWorkflowRunRoutes(
           );
         }
 
-        void reply.status(200).send({ output: stageData.output ?? null });
-      } catch (error) {
-        app.log.error(error, 'Failed to get stage output');
-        return sendError(reply, 500, 'INTERNAL_ERROR', 'Failed to retrieve stage output');
-      }
+      void reply.status(200).send({ output: stageData.output ?? null });
     },
   );
 }

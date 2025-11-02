@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:16.113Z",
-  "createdAt": "2025-10-16T05:23:17.280Z",
-  "id": "ljH4wBxJn069C282",
+  "updatedAt": "2025-11-02T02:03:21.012Z",
+  "createdAt": "2025-11-02T01:07:29.166Z",
+  "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
   "active": false,
   "isArchived": false,
@@ -23,7 +23,7 @@
       "typeVersion": 1.1,
       "position": [
         112,
-        -128
+        -160
       ],
       "id": "4fec7160-d643-4754-b2fe-902bd69ccb67",
       "name": "When Called"
@@ -41,7 +41,7 @@
       "typeVersion": 4.2,
       "position": [
         1456,
-        -128
+        -160
       ],
       "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
       "name": "Create a row"
@@ -55,7 +55,7 @@
       "typeVersion": 1,
       "position": [
         1008,
-        -128
+        -160
       ],
       "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
       "name": "Split Out"
@@ -114,7 +114,7 @@
       "typeVersion": 3.4,
       "position": [
         1232,
-        -128
+        -160
       ],
       "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
       "name": "Edit Fields1"
@@ -128,7 +128,7 @@
       "typeVersion": 4.2,
       "position": [
         336,
-        -128
+        -160
       ],
       "id": "2fe33b20-dde7-41a6-8cf1-e5f9a85080b3",
       "name": "Get Run (API)"
@@ -139,7 +139,7 @@
       "typeVersion": 1,
       "position": [
         112,
-        96
+        184
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
@@ -157,7 +157,7 @@
       "typeVersion": 4.2,
       "position": [
         336,
-        96
+        184
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
       "name": "Mark Run Failed (Ideas)"
@@ -242,7 +242,7 @@
       "typeVersion": 1.3,
       "position": [
         784,
-        -128
+        -160
       ],
       "id": "02614dfe-21eb-448e-bf19-c356030d31b1",
       "name": "Call 'Mylo_MCP_Bot'"
@@ -255,7 +255,7 @@
       "typeVersion": 2,
       "position": [
         560,
-        -128
+        -160
       ],
       "id": "0ba93b9e-d12c-43f4-939f-634f7755c448",
       "name": "Get Run"
@@ -267,8 +267,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1672,
-        -128
+        1680,
+        -160
       ],
       "id": "aggregate-ideas-node",
       "name": "Aggregate Ideas"
@@ -285,8 +285,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1888,
-        -128
+        1904,
+        -160
       ],
       "id": "request-hitl-approval",
       "name": "Request HITL Approval"
@@ -300,20 +300,20 @@
               "operation": "isNotEmpty"
             }
           ]
-        }
+        },
+        "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2104,
-        -128
+        2128,
+        -64
       ],
       "id": "Check Approval ID",
       "name": "Check Approval ID"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/hitl/approval/' + $json.approvalId }}",
         "options": {
           "timeout": 10000
@@ -322,8 +322,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2320,
-        -128
+        3024,
+        -232
       ],
       "id": "Get Approval Status",
       "name": "Get Approval Status"
@@ -338,13 +338,14 @@
               "operation": "equals"
             }
           ]
-        }
+        },
+        "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2536,
-        -128
+        3248,
+        -64
       ],
       "id": "Check If Approved",
       "name": "Check If Approved"
@@ -357,11 +358,12 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2318,
-        -8
+        2800,
+        -232
       ],
       "id": "Wait Before Polling",
-      "name": "Wait Before Polling"
+      "name": "Wait Before Polling",
+      "webhookId": "bc467ebb-e6ee-4347-9752-b111fbaf9ae2"
     },
     {
       "parameters": {
@@ -375,8 +377,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2104,
-        -248
+        2128,
+        -256
       ],
       "id": "Update Run Status Waiting",
       "name": "Update Run Status Waiting"
@@ -438,8 +440,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2752,
-        -128
+        3696,
+        -64
       ],
       "id": "Trigger Screenplay",
       "name": "Trigger Screenplay"
@@ -456,8 +458,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2968,
-        -128
+        3472,
+        -64
       ],
       "id": "Update Run Approved",
       "name": "Update Run Approved"
@@ -474,8 +476,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2536,
-        128
+        2800,
+        -40
       ],
       "id": "Update Run Rejected",
       "name": "Update Run Rejected"
@@ -487,8 +489,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2318,
-        128
+        2352,
+        -64
       ],
       "id": "Prepare Loop",
       "name": "Prepare Loop"
@@ -503,13 +505,14 @@
               "value2": 100
             }
           ]
-        }
+        },
+        "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2318,
-        248
+        2576,
+        -136
       ],
       "id": "Check Loop Limit",
       "name": "Check Loop Limit"
@@ -747,19 +750,61 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them",
-          "runId": "ed35928c-8028-48cd-8893-e3da53838bb0"
-        }
+  "meta": null,
+  "pinData": {},
+  "versionId": "75db2e0f-beb9-4dc8-947e-24c61afe13d9",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.166Z",
+      "createdAt": "2025-11-02T01:07:29.166Z",
+      "role": "workflow:owner",
+      "workflowId": "9tBbhRfA4149YH0f",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
+          }
+        ]
       }
-    ]
-  },
-  "versionId": "071694aa-3949-4b6a-8dc8-d57870fd6847",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

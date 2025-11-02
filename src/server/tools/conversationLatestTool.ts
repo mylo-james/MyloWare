@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import { EpisodicMemoryRepository } from '../../db/episodicRepository';
+import { extractToolArgs } from './argUtils';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 50;
+
+const CONVERSATION_LATEST_ARG_KEYS = ['sessionId', 'limit', 'order'] as const;
 
 const argsSchema = z
   .object({
@@ -72,7 +75,10 @@ export function registerConversationLatestTool(
       let args: ConversationLatestArgs;
 
       try {
-        args = argsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: CONVERSATION_LATEST_ARG_KEYS,
+        });
+        args = argsSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse conversation_latest arguments.';

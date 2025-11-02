@@ -6,6 +6,9 @@ import {
   type PromptSummary,
 } from '../../db/repository';
 import { normaliseSlugOptional } from '../../utils/slug';
+import { extractToolArgs } from './argUtils';
+
+const PROMPT_LIST_ARG_KEYS = ['persona', 'project', 'type'] as const;
 
 const promptListArgsSchema = z.object({
   persona: z.string().trim().optional(),
@@ -73,7 +76,10 @@ export function registerPromptListTool(
       let args: PromptListInput;
 
       try {
-        args = inputSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: PROMPT_LIST_ARG_KEYS,
+        });
+        args = inputSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse prompt_list arguments.';

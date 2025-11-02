@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:18.133Z",
-  "createdAt": "2025-10-26T14:21:00.710Z",
-  "id": "vmp9L5Bhin2jQCPC",
+  "updatedAt": "2025-11-02T02:03:21.553Z",
+  "createdAt": "2025-11-02T01:07:29.880Z",
+  "id": "85BRncHFFikG9FIE",
   "name": "Upload to TikTok",
   "active": false,
   "isArchived": false,
@@ -357,18 +357,61 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "pinData": {
-    "When Executed by Another Workflow": [
-      {
-        "json": {
-          "runId": "26412ffa-393c-479c-9bfc-07bcaeda9d2c"
-        }
+  "meta": null,
+  "pinData": {},
+  "versionId": "c7d6baf5-f9f6-463f-a02c-9ad9c59f25be",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.880Z",
+      "createdAt": "2025-11-02T01:07:29.880Z",
+      "role": "workflow:owner",
+      "workflowId": "85BRncHFFikG9FIE",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
+          }
+        ]
       }
-    ]
-  },
-  "versionId": "f58ddcdc-d2ec-4bfc-9f86-fa3e76e7ad90",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

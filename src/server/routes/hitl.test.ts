@@ -241,5 +241,30 @@ describe('HITL Routes', () => {
       expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
-});
 
+  describe('when HITL service unavailable', () => {
+    let unavailableApp: FastifyInstance;
+
+    beforeEach(async () => {
+      unavailableApp = fastify();
+      await registerHITLRoutes(unavailableApp);
+      await unavailableApp.ready();
+    });
+
+    afterEach(async () => {
+      await unavailableApp.close();
+    });
+
+    it('returns 503 for pending approvals', async () => {
+      const response = await unavailableApp.inject({
+        method: 'GET',
+        url: '/api/hitl/pending',
+      });
+
+      expect(response.statusCode).toBe(503);
+      const body = JSON.parse(response.body);
+      expect(body.error.code).toBe('HITL_SERVICE_UNAVAILABLE');
+      expect(body.error.message).toBe('HITL service is not configured.');
+    });
+  });
+});

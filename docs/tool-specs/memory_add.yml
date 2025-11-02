@@ -1,0 +1,191 @@
+tool:
+  id: myloware.memory.memory_add.v1
+  name: memory_add
+  namespace: myloware.memory
+  version: '1.0.0'
+  description: >-
+    Adds a new memory chunk to the adaptive memory store, generating embeddings and metadata automatically.
+    Includes moderation and permission checks before persisting the memory. Supports linking to related
+    chunks and automatic confidence scoring based on actor type.
+  one_liner: 'Create a new runtime memory chunk with automatic moderation and embedding generation.'
+  invocation_context: >-
+    Use when creating new knowledge that should be stored in the memory graph. The tool automatically
+    generates embeddings, applies moderation, and enforces permission policies based on actor type.
+    Do not use for conversation turns; use conversation_store instead.
+  agent_hint: 'User wants to store new information or knowledge that should be remembered.'
+  pattern: external_api
+  tags:
+    - memory
+    - storage
+    - moderation
+    - runtime
+  availability:
+    - production
+    - staging
+  auth:
+    policy_notes: >-
+      Permission checks enforced: System/operator can add any memory type. Agents cannot add episodic.
+      Integrations can only add project/semantic. Users can only add episodic. Moderation can be
+      overridden with force=true for system/operator actors.
+  constraints:
+    max_duration_seconds: 8
+    rate_limit_per_minute: 60
+    note: >-
+      Content limited to 2048 chars. Title required for non-episodic memories. SessionId required
+      for episodic memories. Tags limited to 10 items. Related chunks limited to 20.
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      content:
+        type: string
+        minLength: 1
+        maxLength: 2048
+        description: 'Memory content (1-2048 characters).'
+      memoryType:
+        type: string
+        enum:
+          - persona
+          - project
+          - semantic
+          - procedural
+          - episodic
+        description: 'Type of memory being stored.'
+      title:
+        type: string
+        maxLength: 120
+        description: 'Title for the memory (required for non-episodic memories).'
+      summary:
+        type: string
+        maxLength: 280
+        description: 'Brief summary (max 280 characters).'
+      tags:
+        type: array
+        maxItems: 10
+        items:
+          type: string
+          minLength: 1
+          maxLength: 40
+        description: 'Tags for categorization (max 10, each max 40 chars).'
+      source:
+        type: string
+        enum:
+          - agent
+          - user
+          - workflow
+          - system
+        description: 'Source of the memory (defaults based on actor type).'
+      visibility:
+        type: string
+        enum:
+          - public
+          - team
+          - private
+        description: 'Visibility level (defaults based on actor type).'
+      metadata:
+        type: object
+        description: 'Additional custom metadata.'
+      relatedChunkIds:
+        type: array
+        maxItems: 20
+        items:
+          type: string
+          minLength: 1
+        description: 'IDs of related memory chunks (max 20).'
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: 'Confidence score (defaults based on actor type).'
+      sessionId:
+        type: string
+        format: uuid
+        description: 'Session ID (required if memoryType is episodic).'
+      actor:
+        type: object
+        properties:
+          type:
+            type: string
+            enum:
+              - system
+              - agent
+              - user
+              - integration
+              - operator
+          id:
+            type: string
+            minLength: 1
+          scopes:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              minLength: 1
+        required:
+          - type
+          - id
+        description: 'Actor making the request (type and ID required).'
+      force:
+        type: boolean
+        description: 'Override moderation for system/operator actors.'
+    required:
+      - content
+      - memoryType
+      - actor
+  output_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      memoryId:
+        type: string
+      memoryType:
+        type: string
+        enum:
+          - persona
+          - project
+          - semantic
+          - procedural
+          - episodic
+      promptKey:
+        type: string
+      status:
+        type: string
+        enum:
+          - created
+      moderationStatus:
+        type: string
+        enum:
+          - accepted
+          - pending_review
+      createdAt:
+        type: string
+        format: date-time
+    required:
+      - memoryId
+      - memoryType
+      - promptKey
+      - status
+      - moderationStatus
+      - createdAt
+  versioning:
+    last_updated: '2025-11-02'
+    owner_team: memory_platform
+    contact: 'slack://#memory-platform'
+  examples:
+    - name: Add procedural memory
+      description: 'Store a procedural memory chunk.'
+      input:
+        content: 'To reset the database, run: npm run db:reset'
+        memoryType: procedural
+        title: 'Database Reset Procedure'
+        actor:
+          type: system
+          id: 'system-ops'
+      output:
+        memoryId: 'memory-abc123'
+        memoryType: procedural
+        promptKey: 'runtime::procedural::database-reset-procedure'
+        status: created
+        moderationStatus: accepted
+        createdAt: '2025-11-02T10:30:00Z'
+

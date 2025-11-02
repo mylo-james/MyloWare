@@ -4,6 +4,7 @@ import { NotificationService } from './NotificationService';
 import { WorkflowRunRepository } from '../../db/operations/workflowRunRepository';
 import { HITLRepository } from '../../db/operations/hitlRepository';
 import { EpisodicMemoryRepository } from '../../db/episodicRepository';
+import { NotFoundError } from '../../types/errors';
 import type { HITLApproval, WorkflowRun } from '../../db/operations/schema';
 
 describe('HITLService', () => {
@@ -115,7 +116,9 @@ describe('HITLService', () => {
     });
 
     it('throws error if workflow run not found', async () => {
-      mockWorkflowRunRepo.getWorkflowRunById.mockResolvedValue(null);
+      mockWorkflowRunRepo.getWorkflowRunById.mockRejectedValue(
+        new NotFoundError('Workflow run with id non-existent not found'),
+      );
 
       await expect(
         service.requestApproval({
@@ -123,7 +126,7 @@ describe('HITLService', () => {
           stage: 'idea_generation',
           content: {},
         }),
-      ).rejects.toThrow('not found');
+      ).rejects.toThrow(NotFoundError);
     });
   });
 

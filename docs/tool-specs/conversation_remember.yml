@@ -1,0 +1,200 @@
+tool:
+  id: myloware.memory.conversation_remember.v1
+  name: conversation_remember
+  namespace: myloware.memory
+  version: '1.0.0'
+  description: >-
+    Instantly pulls the most relevant past conversation turns using semantic search, session/user
+    filters, and time ranges. Choose chat, narrative, or bullet formatting so you can drop the recall
+    straight into a response plan. Perfect for grounding follow-up answers without manually paging
+    through history.
+  one_liner: 'Semantic search across episodic conversation memory with flexible formatting.'
+  invocation_context: >-
+    Use when you need to retrieve relevant past conversation context based on meaning, not just
+    recency. Use conversation_latest if you only need the most recent turns without semantic search.
+  agent_hint: 'User references past conversation details or asks follow-up questions.'
+  pattern: knowledge_base
+  tags:
+    - memory
+    - conversation
+    - search
+    - semantic
+    - episodic
+  availability:
+    - production
+    - staging
+  constraints:
+    max_duration_seconds: 4
+    rate_limit_per_minute: 60
+    max_items: 50
+    note: 'Default limit is 10, minSimilarity defaults to 0.25. Context formatted output limited to ~600 tokens.'
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      query:
+        type: string
+        minLength: 1
+        description: 'Semantic search query string.'
+      sessionId:
+        type: string
+        format: uuid
+        description: 'Filter results to a specific conversation session.'
+      userId:
+        type: string
+        minLength: 1
+        description: 'Filter results to a specific user.'
+      limit:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+        description: 'Maximum number of turns to return.'
+      minSimilarity:
+        type: number
+        minimum: 0
+        maximum: 1
+        default: 0.25
+        description: 'Minimum similarity score threshold (0-1).'
+      timeRange:
+        type: object
+        properties:
+          start:
+            type: string
+            format: date-time
+          end:
+            type: string
+            format: date-time
+        description: 'Filter turns by time range (ISO 8601 timestamps with timezone).'
+      format:
+        type: string
+        enum:
+          - chat
+          - narrative
+          - bullets
+        default: chat
+        description: 'Output format: chat (role: message), narrative (prose), or bullets (list).'
+    required:
+      - query
+  output_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      turns:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            sessionId:
+              type: string
+            userId:
+              type: string
+              nullable: true
+            role:
+              type: string
+              enum:
+                - user
+                - assistant
+                - system
+                - tool
+            turnIndex:
+              type: integer
+            content:
+              type: string
+            summary:
+              type: object
+              nullable: true
+            metadata:
+              type: object
+            createdAt:
+              type: string
+              nullable: true
+            updatedAt:
+              type: string
+              nullable: true
+            similarity:
+              type: number
+            chunkId:
+              type: string
+            promptKey:
+              type: string
+          required:
+            - id
+            - sessionId
+            - role
+            - similarity
+            - chunkId
+            - promptKey
+      context:
+        type: string
+        description: 'Formatted context string ready for use in prompts.'
+      appliedFilters:
+        type: object
+        properties:
+          query:
+            type: string
+          sessionId:
+            type: string
+            nullable: true
+          userId:
+            type: string
+            nullable: true
+          limit:
+            type: integer
+          minSimilarity:
+            type: number
+          format:
+            type: string
+          timeRange:
+            type: object
+            nullable: true
+            properties:
+              start:
+                type: string
+                nullable: true
+              end:
+                type: string
+                nullable: true
+        required:
+          - query
+          - sessionId
+          - userId
+          - limit
+          - minSimilarity
+          - format
+          - timeRange
+    required:
+      - turns
+      - context
+      - appliedFilters
+  versioning:
+    last_updated: '2025-11-02'
+    owner_team: memory_platform
+    contact: 'slack://#memory-platform'
+  examples:
+    - name: Search for project status discussion
+      description: 'Find conversation turns about project status.'
+      input:
+        query: 'project status update'
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+        format: chat
+      output:
+        turns:
+          - id: 'turn-123'
+            sessionId: '550e8400-e29b-41d4-a716-446655440000'
+            role: user
+            similarity: 0.85
+            chunkId: 'chunk-456'
+            promptKey: 'episodic::conversation'
+        context: 'User: What is the status of my project?\nAssistant: Your project is on track...'
+        appliedFilters:
+          query: 'project status update'
+          sessionId: '550e8400-e29b-41d4-a716-446655440000'
+          userId: null
+          limit: 10
+          minSimilarity: 0.25
+          format: chat
+          timeRange: null
+

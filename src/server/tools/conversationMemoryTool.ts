@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import { EpisodicMemoryRepository } from '../../db/episodicRepository';
 import type { ConversationTurnRecord, ConversationSearchResult } from '../../db/episodicRepository';
+import { extractToolArgs } from './argUtils';
 
 const FORMAT_VALUES = ['chat', 'narrative', 'bullets'] as const;
 type ContextFormat = (typeof FORMAT_VALUES)[number];
@@ -24,6 +25,16 @@ const timeRangeSchema = z
     },
     { message: 'timeRange.start must be earlier than or equal to timeRange.end' },
   );
+
+const CONVERSATION_MEMORY_ARG_KEYS = [
+  'query',
+  'sessionId',
+  'userId',
+  'limit',
+  'minSimilarity',
+  'timeRange',
+  'format',
+] as const;
 
 const conversationRememberArgsSchema = z.object({
   query: z.string().trim().min(1, 'query must not be empty'),
@@ -172,7 +183,10 @@ export function registerConversationMemoryTool(
       let args: ConversationMemoryInput;
 
       try {
-        args = conversationRememberArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: CONVERSATION_MEMORY_ARG_KEYS,
+        });
+        args = conversationRememberArgsSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error

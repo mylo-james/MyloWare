@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { config } from '../../config';
 import { HITLService } from '../../services/hitl/HITLService';
 import { workflowStageEnum } from '../../db/operations/schema';
+import { sendValidationError, sendError } from '../utils/errorResponses';
 
 const workflowStageValues = new Set(workflowStageEnum.enumValues);
 
@@ -37,38 +39,23 @@ const pendingApprovalsQuerySchema = z.object({
   project: z.string().trim().optional(),
 });
 
-function sendValidationError(reply: FastifyReply, error: z.ZodError): void {
-  void reply.status(400).send({
-    error: {
-      code: 'VALIDATION_ERROR',
-      message: 'Request validation failed',
-      details: error.errors,
-    },
-  });
-}
-
-function sendError(
-  reply: FastifyReply,
-  statusCode: number,
-  code: string,
-  message: string,
-): void {
-  void reply.status(statusCode).send({
-    error: {
-      code,
-      message,
-    },
-  });
-}
-
 export async function registerHITLRoutes(
   app: FastifyInstance,
-  dependencies: { hitlService?: HITLService } = {},
+  dependencies: { hitlService?: HITLService | null } = {},
 ): Promise<void> {
-  const hitlService = dependencies.hitlService ?? new HITLService();
+  const hitlService =
+    dependencies.hitlService !== undefined
+      ? dependencies.hitlService
+      : config.operationsDatabaseUrl
+        ? new HITLService()
+        : null;
 
   // GET /api/hitl/pending - List pending approvals
   app.get('/api/hitl/pending', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!ensureHitlAvailable(reply, hitlService)) {
+      return;
+    }
+
     const parsed = pendingApprovalsQuerySchema.safeParse(request.query);
 
     if (!parsed.success) {
@@ -92,6 +79,10 @@ export async function registerHITLRoutes(
   app.get(
     '/api/hitl/approval/:id',
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      if (!ensureHitlAvailable(reply, hitlService)) {
+        return;
+      }
+
       const { id } = request.params;
 
       try {
@@ -116,6 +107,10 @@ export async function registerHITLRoutes(
       request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
       reply: FastifyReply,
     ) => {
+      if (!ensureHitlAvailable(reply, hitlService)) {
+        return;
+      }
+
       const { id } = request.params;
       const parsed = approveRequestSchema.safeParse(request.body);
 
@@ -145,6 +140,10 @@ export async function registerHITLRoutes(
       request: FastifyRequest<{ Params: { id: string }; Body: unknown }>,
       reply: FastifyReply,
     ) => {
+      if (!ensureHitlAvailable(reply, hitlService)) {
+        return;
+      }
+
       const { id } = request.params;
       const parsed = rejectRequestSchema.safeParse(request.body);
 
@@ -173,6 +172,10 @@ export async function registerHITLRoutes(
       request: FastifyRequest<{ Body: unknown }>,
       reply: FastifyReply,
     ) => {
+      if (!ensureHitlAvailable(reply, hitlService)) {
+        return;
+      }
+
       const parsed = requestApprovalSchema.safeParse(request.body);
 
       if (!parsed.success) {
@@ -196,3 +199,20 @@ export async function registerHITLRoutes(
   );
 }
 
+function ensureHitlAvailable(
+  reply: FastifyReply,
+  service: HITLService | null,
+): service is HITLService {
+  if (service) {
+    return true;
+  }
+
+  void reply.status(503).send({
+    error: {
+      code: 'HITL_SERVICE_UNAVAILABLE',
+      message: 'HITL service is not configured.',
+    },
+  });
+
+  return false;
+}

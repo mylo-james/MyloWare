@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:16.950Z",
-  "createdAt": "2025-10-16T02:38:40.205Z",
-  "id": "4eaPRf4DiHKOvOrc",
+  "updatedAt": "2025-11-02T02:03:21.172Z",
+  "createdAt": "2025-11-02T01:12:17.645Z",
+  "id": "vhhDMoTeagMrrFyY",
   "name": "Load Persona",
   "active": false,
   "isArchived": false,
@@ -19,20 +19,16 @@
             {
               "name": "runId"
             }
-          ],
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+          ]
         }
       },
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1824,
-        -64
+        -96,
+        16
       ],
-      "id": "2c9f23b3-5d3c-4caa-9505-210c863d0c17",
+      "id": "f5b4d3c5-17e4-42d4-85e6-caced930d961",
       "name": "When Called"
     },
     {
@@ -42,25 +38,24 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1376,
-        -64
+        128,
+        16
       ],
-      "id": "f9e23d4d-6b2e-41f6-a989-5b9307dc0d7a",
+      "id": "38975401-7504-4c41-ba10-7ea2ab802b4f",
       "name": "Normalize Inputs"
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ (function() { const params = []; if ($json.projectSlug) { params.push('project=' + encodeURIComponent($json.projectSlug)); } if ($json.personaSlug) { params.push('persona=' + encodeURIComponent($json.personaSlug)); } return 'https://mcp-vector.mjames.dev/api/prompts/resolve?' + params.join('&'); })() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -960,
-        -64
+        352,
+        16
       ],
-      "id": "5f7b2cf6-62b3-4f37-8c94-7df76e3ebb8e",
+      "id": "987523d0-8925-4376-8d21-30e76e877369",
       "name": "Resolve Prompt"
     },
     {
@@ -70,10 +65,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -544,
-        -64
+        576,
+        16
       ],
-      "id": "8c545a6a-0ed1-4a66-b7e7-52f4322aa46c",
+      "id": "b2626783-131f-4e03-9c37-a0148ef519e0",
       "name": "Build Response"
     }
   ],
@@ -117,16 +112,60 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "personaId": "5b522eeb-32d8-4523-9d99-e2fe9df345c1",
-          "runId": "1"
-        }
+  "pinData": {},
+  "versionId": "a4dd799a-5823-461d-a0e1-5a7cf282571a",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:12:17.645Z",
+      "createdAt": "2025-11-02T01:12:17.645Z",
+      "role": "workflow:owner",
+      "workflowId": "vhhDMoTeagMrrFyY",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
+          }
+        ]
       }
-    ]
-  },
-  "versionId": "39511607-058c-42e8-b2f4-c6e789896c65",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

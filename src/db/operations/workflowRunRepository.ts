@@ -8,6 +8,7 @@ import type {
   WorkflowRunStatus,
   WorkflowStage,
 } from './schema';
+import { NotFoundError } from '../../types/errors';
 
 export interface CreateWorkflowRunData {
   id?: string;
@@ -66,14 +67,18 @@ export class WorkflowRunRepository {
     return row;
   }
 
-  async getWorkflowRunById(id: string): Promise<WorkflowRun | null> {
+  async getWorkflowRunById(id: string): Promise<WorkflowRun> {
     const [row] = await this.db
       .select()
       .from(schema.workflowRuns)
       .where(eq(schema.workflowRuns.id, id))
       .limit(1);
 
-    return row ?? null;
+    if (!row) {
+      throw new NotFoundError(`Workflow run with id ${id} not found`);
+    }
+
+    return row;
   }
 
   async updateWorkflowRun(
@@ -113,7 +118,7 @@ export class WorkflowRunRepository {
       .returning();
 
     if (!row) {
-      throw new Error(`Workflow run with id ${id} not found`);
+      throw new NotFoundError(`Workflow run with id ${id} not found`);
     }
 
     return row;
@@ -126,10 +131,6 @@ export class WorkflowRunRepository {
     output: unknown,
   ): Promise<void> {
     const workflowRun = await this.getWorkflowRunById(runId);
-
-    if (!workflowRun) {
-      throw new Error(`Workflow run with id ${runId} not found`);
-    }
 
     const currentStages = workflowRun.stages as Record<
       string,
@@ -176,11 +177,11 @@ export class WorkflowRunRepository {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const rows = await this.db
-      .select()
-      .from(schema.workflowRuns)
-      .where(whereClause)
-      .orderBy(desc(schema.workflowRuns.createdAt));
+    const query = this.db.select().from(schema.workflowRuns);
+
+    const rows = whereClause
+      ? await query.where(whereClause).orderBy(desc(schema.workflowRuns.createdAt))
+      : await query.orderBy(desc(schema.workflowRuns.createdAt));
 
     return rows;
   }

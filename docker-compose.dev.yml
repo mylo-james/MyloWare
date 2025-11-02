@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for n8n
+  n8n-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8n_dev_password
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n_dev_password
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_SECURE_COOKIE=false
+      - N8N_HOST=n8n.mjames.dev
+      - N8N_PROTOCOL=https
+      - N8N_PORT=5678
+      - WEBHOOK_URL=https://n8n.mjames.dev/
+      - N8N_EDITOR_BASE_URL=https://n8n.mjames.dev
+      # Connect to your MCP server
+      - MCP_API_URL=http://host.docker.internal:3456
+      # Telegram bot token (set in .env)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # OpenAI API key
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # n8n webhook base for HITL
+      - N8N_WEBHOOK_BASE=https://n8n.mjames.dev
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # Mount workflows directory for easy import
+      - ./workflows:/workflows:ro
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.prompts.yml run
+    depends_on:
+      n8n:
+        condition: service_started
+    volumes:
+      - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+      - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
+
+  # PostgreSQL for MCP server (vector database)
+  mcp-postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: mcp_prompts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - mcp_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  n8n_postgres_data:
+  n8n_data:
+  mcp_postgres_data:

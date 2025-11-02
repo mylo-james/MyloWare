@@ -20,6 +20,7 @@ import {
   type TemporalDecayOverrides,
 } from '../../db/repository';
 import { normaliseSlugOptional } from '../../utils/slug';
+import { extractToolArgs } from './argUtils';
 import type { QueryIntent, QueryClassification } from '../../vector/queryClassifier';
 
 const MEMORY_TYPE_VALUES = ['persona', 'project', 'semantic', 'episodic', 'procedural'] as const;
@@ -60,6 +61,22 @@ const routingDecisionSchema = z.object({
   durationMs: z.number().min(0).optional(),
   notes: z.array(z.string()).optional(),
 });
+
+const PROMPT_SEARCH_ARG_KEYS = [
+  'query',
+  'persona',
+  'project',
+  'limit',
+  'minSimilarity',
+  'searchMode',
+  'autoFilter',
+  'useMemoryRouting',
+  'expandGraph',
+  'graphMaxHops',
+  'graphMinLinkStrength',
+  'temporalBoost',
+  'temporalConfig',
+] as const;
 
 const promptSearchArgsSchema = z.object({
   query: z.string().trim().min(1, 'query must not be empty'),
@@ -488,7 +505,10 @@ export function registerPromptSearchTool(
       let args: PromptSearchInput;
 
       try {
-        args = inputSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: PROMPT_SEARCH_ARG_KEYS,
+        });
+        args = inputSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse prompt_search arguments.';

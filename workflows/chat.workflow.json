@@ -1,21 +1,32 @@
 {
+  "updatedAt": "2025-11-02T02:17:53.044Z",
+  "createdAt": "2025-11-02T01:09:00.910Z",
+  "id": "MhurGfQPUg5lWdXw",
+  "name": "Chat",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"],
+        "updates": [
+          "message"
+        ],
         "additionalFields": {
           "download": false
         }
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [-1024, 80],
+      "position": [
+        -1008,
+        112
+      ],
       "id": "1533169e-7b8e-4c80-910e-b5c93a17ef5a",
       "name": "Telegram Message Trigger",
       "webhookId": "55acc711-c248-4ac9-b6cd-e295c2d33f4b",
       "credentials": {
         "telegramApi": {
-          "id": "eC8lO0ynjt4o2RIL",
+          "id": "GPniCaPupOh6tYzX",
           "name": "Telegram account"
         }
       }
@@ -80,7 +91,10 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
-      "position": [-800, 80],
+      "position": [
+        -784,
+        112
+      ],
       "id": "b69072c1-2088-400d-b29b-1f6c92fac7c6",
       "name": "Detect Voice Message"
     },
@@ -92,13 +106,16 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [-576, -16],
+      "position": [
+        -560,
+        16
+      ],
       "id": "76bc73be-33ad-446d-a1fb-c0612c236217",
       "name": "Get Voice File",
       "webhookId": "e0769871-efe3-49da-81a5-2f88a6fdd33f",
       "credentials": {
         "telegramApi": {
-          "id": "eC8lO0ynjt4o2RIL",
+          "id": "GPniCaPupOh6tYzX",
           "name": "Telegram account"
         }
       }
@@ -111,12 +128,15 @@
       },
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
-      "position": [-352, -16],
+      "position": [
+        -336,
+        16
+      ],
       "id": "c8b89c06-ecfb-44f7-8408-97c1a23cb8e2",
       "name": "Transcribe Audio",
       "credentials": {
         "openAiApi": {
-          "id": "ddYuAnkE3FT5NJj3",
+          "id": "BPz7M5LEDbqEvdCZ",
           "name": "OpenAi account"
         }
       }
@@ -179,7 +199,10 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-128, -16],
+      "position": [
+        -112,
+        16
+      ],
       "id": "48710f57-4c51-4fe2-b6fc-caffc8560591",
       "name": "Set Voice Message"
     },
@@ -223,17 +246,23 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-128, 192],
+      "position": [
+        -112,
+        208
+      ],
       "id": "c3ebad8c-a3ce-47cf-9ca6-d651c7695694",
       "name": "Set Text Message"
     },
     {
       "parameters": {
-        "jsCode": "const { createHash } = require('crypto');\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction uuidFromString(input) {\n  const hash = createHash('sha1').update(String(input)).digest();\n  hash[6] = (hash[6] & 0x0f) | 0x50;\n  hash[8] = (hash[8] & 0x3f) | 0x80;\n  const hex = hash.toString('hex');\n  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;\n}\n\nfunction ensureUuid(candidate) {\n  if (typeof candidate === 'string') {\n    const normalized = candidate.trim();\n    if (UUID_PATTERN.test(normalized)) {\n      return normalized.toLowerCase();\n    }\n    if (normalized.length > 0) {\n      return uuidFromString(normalized);\n    }\n  }\n  throw new Error('Unable to derive session identifier for conversation turn.');\n}\n\nfunction safeNodeData(name) {\n  try {\n    const handle = $(name);\n    if (!handle) {\n      return null;\n    }\n    if (typeof handle.first === 'function') {\n      const firstItem = handle.first();\n      return firstItem?.json ?? null;\n    }\n    return handle.item?.json ?? null;\n  } catch (error) {\n    return null;\n  }\n}\n\nfunction firstNonEmpty(...values) {\n  for (const value of values) {\n    if (typeof value === 'string' && value.trim().length > 0) {\n      return value.trim();\n    }\n  }\n  return '';\n}\n\nconst telegramMessage = safeNodeData('Telegram Message Trigger')?.message ?? null;\nconst input = $json ?? {};\n\nlet text = firstNonEmpty(input.text, input.messageText, input.message);\nlet platform = input.platform ?? (telegramMessage ? 'telegram' : null);\nlet messageType = input.messageType ?? (telegramMessage?.voice ? 'voice' : 'text');\n\nlet chatId = input.chatId ?? telegramMessage?.chat?.id ?? null;\nif (chatId != null) {\n  chatId = String(chatId);\n}\n\nlet messageId = input.telegramMessageId ?? telegramMessage?.message_id ?? null;\nif (messageId != null) {\n  messageId = String(messageId);\n}\n\nlet userId = input.userId ?? null;\nif (!userId) {\n  if (platform === 'telegram' && telegramMessage?.from?.id != null) {\n    userId = `telegram:${telegramMessage.from.id}`;\n  } else if (chatId) {\n    userId = `${platform ?? 'unknown'}:${chatId}`;\n  } else if (messageId) {\n    userId = `${platform ?? 'unknown'}:${messageId}`;\n  }\n}\n\nif (!text) {\n  text = firstNonEmpty(telegramMessage?.text, telegramMessage?.caption, input.rawText);\n}\n\nconst attachments = [];\nif (telegramMessage?.voice) {\n  attachments.push({\n    type: 'telegram_voice',\n    fileId: telegramMessage.voice.file_id,\n    duration: telegramMessage.voice.duration ?? null,\n  });\n  if (messageType === 'text') {\n    messageType = 'voice';\n  }\n}\n\nif (!platform) {\n  platform = 'unknown';\n}\n\nconst timestamp = new Date().toISOString();\n\nlet sessionSeed = input.sessionId ?? null;\nif (!sessionSeed && chatId) {\n  sessionSeed = `${platform}:${chatId}`;\n} else if (!sessionSeed && messageId) {\n  sessionSeed = `${platform}:${messageId}`;\n}\n\nif (!sessionSeed) {\n  throw new Error('Unable to determine session identifier for conversation turn.');\n}\n\nconst sessionId = ensureUuid(sessionSeed);\n\nconst messageText = text.trim();\nconst contentForStore = messageText.length > 0 ? messageText : '(empty message)';\nconst memoryQuery = messageText.length > 0 ? messageText : messageType === 'voice' ? 'recent voice message transcription' : 'recent chat context';\n\nconst metadata = {\n  platform,\n  messageType,\n  chatId,\n  messageId,\n  workflow: 'chat',\n  timestamp,\n};\n\nif (attachments.length > 0) {\n  metadata.attachments = attachments;\n}\n\nconst conversationStorePayload = {\n  sessionId,\n  role: 'user',\n  content: contentForStore,\n  userId,\n  metadata,\n};\n\nif (messageText.length > 0) {\n  conversationStorePayload.embeddingText = messageText;\n}\n\nreturn {\n  json: {\n    platform,\n    messageType,\n    messageText,\n    memoryQuery,\n    chatId,\n    messageId,\n    userId,\n    sessionId,\n    timestamp,\n    attachments,\n    telegram: telegramMessage,\n    rawInput: input,\n    conversationStorePayload,\n  },\n};\n"
+        "jsCode": "const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nfunction toBytes(value) {\n  const str = String(value);\n  if (typeof Buffer !== 'undefined') {\n    return Buffer.from(str, 'utf8');\n  }\n  if (typeof TextEncoder !== 'undefined') {\n    return new TextEncoder().encode(str);\n  }\n  const bytes = [];\n  for (let i = 0; i < str.length; i++) {\n    let codePoint = str.charCodeAt(i);\n    if (codePoint >= 0xd800 && codePoint <= 0xdbff && i + 1 < str.length) {\n      const next = str.charCodeAt(i + 1);\n      if ((next & 0xfc00) === 0xdc00) {\n        i += 1;\n        codePoint = ((codePoint & 0x3ff) << 10) + (next & 0x3ff) + 0x10000;\n      }\n    }\n    if (codePoint < 0x80) {\n      bytes.push(codePoint);\n    } else if (codePoint < 0x800) {\n      bytes.push(0xc0 | (codePoint >> 6));\n      bytes.push(0x80 | (codePoint & 0x3f));\n    } else if (codePoint < 0x10000) {\n      bytes.push(0xe0 | (codePoint >> 12));\n      bytes.push(0x80 | ((codePoint >> 6) & 0x3f));\n      bytes.push(0x80 | (codePoint & 0x3f));\n    } else {\n      bytes.push(0xf0 | (codePoint >> 18));\n      bytes.push(0x80 | ((codePoint >> 12) & 0x3f));\n      bytes.push(0x80 | ((codePoint >> 6) & 0x3f));\n      bytes.push(0x80 | (codePoint & 0x3f));\n    }\n  }\n  return bytes;\n}\n\nfunction hashToBytes(value) {\n  const data = toBytes(value);\n  const state = new Uint32Array([\n    0x12345678,\n    0x9abcdef0,\n    0xfedcba98,\n    0x87654321,\n  ]);\n\n  for (let i = 0; i < data.length; i++) {\n    const byte = data[i];\n    const index = i % state.length;\n    state[index] = Math.imul(state[index] ^ byte ^ (i & 0xff), 2246822519);\n    state[index] = ((state[index] << 13) | (state[index] >>> 19)) >>> 0;\n    state[index] = (state[index] + state[(index + 1) % state.length]) >>> 0;\n  }\n\n  const bytes = new Uint8Array(16);\n  for (let i = 0; i < state.length; i++) {\n    bytes[i * 4] = (state[i] >>> 24) & 0xff;\n    bytes[i * 4 + 1] = (state[i] >>> 16) & 0xff;\n    bytes[i * 4 + 2] = (state[i] >>> 8) & 0xff;\n    bytes[i * 4 + 3] = state[i] & 0xff;\n  }\n  return bytes;\n}\n\nfunction uuidFromString(input) {\n  const bytes = hashToBytes(String(input));\n  bytes[6] = (bytes[6] & 0x0f) | 0x50;\n  bytes[8] = (bytes[8] & 0x3f) | 0x80;\n  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');\n  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;\n}\n\nfunction ensureUuid(candidate) {\n  if (typeof candidate === 'string') {\n    const normalized = candidate.trim();\n    if (UUID_PATTERN.test(normalized)) {\n      return normalized.toLowerCase();\n    }\n    if (normalized.length > 0) {\n      return uuidFromString(normalized);\n    }\n  }\n  throw new Error('Unable to derive session identifier for conversation turn.');\n}\n\nfunction safeNodeData(name) {\n  try {\n    const handle = $(name);\n    if (!handle) {\n      return null;\n    }\n    if (typeof handle.first === 'function') {\n      const firstItem = handle.first();\n      return firstItem?.json ?? null;\n    }\n    return handle.item?.json ?? null;\n  } catch (error) {\n    return null;\n  }\n}\n\nfunction firstNonEmpty(...values) {\n  for (const value of values) {\n    if (typeof value === 'string' && value.trim().length > 0) {\n      return value.trim();\n    }\n  }\n  return '';\n}\n\nconst telegramMessage = safeNodeData('Telegram Message Trigger')?.message ?? null;\nconst input = $json ?? {};\n\nlet text = firstNonEmpty(input.text, input.messageText, input.message);\nlet platform = input.platform ?? (telegramMessage ? 'telegram' : null);\nlet messageType = input.messageType ?? (telegramMessage?.voice ? 'voice' : 'text');\n\nlet chatId = input.chatId ?? telegramMessage?.chat?.id ?? null;\nif (chatId != null) {\n  chatId = String(chatId);\n}\n\nlet messageId = input.telegramMessageId ?? telegramMessage?.message_id ?? null;\nif (messageId != null) {\n  messageId = String(messageId);\n}\n\nlet userId = input.userId ?? null;\nif (!userId) {\n  if (platform === 'telegram' && telegramMessage?.from?.id != null) {\n    userId = `telegram:${telegramMessage.from.id}`;\n  } else if (chatId) {\n    userId = `${platform ?? 'unknown'}:${chatId}`;\n  } else if (messageId) {\n    userId = `${platform ?? 'unknown'}:${messageId}`;\n  }\n}\n\nif (!text) {\n  text = firstNonEmpty(telegramMessage?.text, telegramMessage?.caption, input.rawText);\n}\n\nconst attachments = [];\nif (telegramMessage?.voice) {\n  attachments.push({\n    type: 'telegram_voice',\n    fileId: telegramMessage.voice.file_id,\n    duration: telegramMessage.voice.duration ?? null,\n  });\n  if (messageType === 'text') {\n    messageType = 'voice';\n  }\n}\n\nif (!platform) {\n  platform = 'unknown';\n}\n\nconst timestamp = new Date().toISOString();\n\nlet sessionSeed = input.sessionId ?? null;\nif (!sessionSeed && chatId) {\n  sessionSeed = `${platform}:${chatId}`;\n} else if (!sessionSeed && messageId) {\n  sessionSeed = `${platform}:${messageId}`;\n}\n\nif (!sessionSeed) {\n  throw new Error('Unable to determine session identifier for conversation turn.');\n}\n\nconst sessionId = ensureUuid(sessionSeed);\n\nconst messageText = text.trim();\nconst contentForStore = messageText.length > 0 ? messageText : '(empty message)';\nconst memoryQuery = messageText.length > 0 ? messageText : messageType === 'voice' ? 'recent voice message transcription' : 'recent chat context';\n\nconst metadata = {\n  platform,\n  messageType,\n  chatId,\n  messageId,\n  workflow: 'chat',\n  timestamp,\n};\n\nif (attachments.length > 0) {\n  metadata.attachments = attachments;\n}\n\nconst conversationStorePayload = {\n  sessionId,\n  role: 'user',\n  content: contentForStore,\n  userId,\n  metadata,\n};\n\nif (messageText.length > 0) {\n  conversationStorePayload.embeddingText = messageText;\n}\n\nreturn {\n  json: {\n    platform,\n    messageType,\n    messageText,\n    memoryQuery,\n    chatId,\n    messageId,\n    userId,\n    sessionId,\n    timestamp,\n    attachments,\n    telegram: telegramMessage,\n    rawInput: input,\n    conversationStorePayload,\n  },\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [112, 80],
+      "position": [
+        112,
+        112
+      ],
       "id": "c20d5636-872d-4fdc-a7b5-2956690b717a",
       "name": "Normalize Chat Event"
     },
@@ -250,7 +279,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [336, 80],
+      "position": [
+        336,
+        112
+      ],
       "id": "1c4a4185-3956-4676-a902-83140cfa57fa",
       "name": "Store User Turn",
       "continueOnFail": true
@@ -261,7 +293,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [560, 80],
+      "position": [
+        560,
+        112
+      ],
       "id": "52ab6b43-3cdc-4462-a540-41ed9d4d9922",
       "name": "Assemble Agent Context"
     },
@@ -275,9 +310,13 @@
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [848, 80],
+      "position": [
+        -960,
+        352
+      ],
       "id": "de108ba0-ac47-4f93-abcf-b27e5bf09987",
-      "name": "AI Agent"
+      "name": "AI Agent",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -291,12 +330,15 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [784, 320],
+      "position": [
+        -1008,
+        576
+      ],
       "id": "50461772-7f1d-4c2c-a636-5d3c747ec735",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "ddYuAnkE3FT5NJj3",
+          "id": "BPz7M5LEDbqEvdCZ",
           "name": "OpenAi account"
         }
       }
@@ -310,13 +352,16 @@
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
-      "position": [912, 320],
+      "position": [
+        -880,
+        576
+      ],
       "id": "c7a8bd4d-c0cc-4656-b535-33fcf05d91e9",
       "name": "MCP Client",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -335,7 +380,9 @@
           "value": {
             "sessionId": "={{ $('Store User Turn').item.json.data.turn.sessionId }}"
           },
-          "matchingColumns": ["userInput"],
+          "matchingColumns": [
+            "userInput"
+          ],
           "schema": [
             {
               "id": "sessionId",
@@ -354,7 +401,10 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1040, 320],
+      "position": [
+        -752,
+        576
+      ],
       "id": "a3a55cf5-96ce-4d6c-80bd-fc3d5da319a9",
       "name": "AISMR Workflow"
     },
@@ -364,7 +414,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1248, 80],
+      "position": [
+        -544,
+        352
+      ],
       "id": "aefa282c-e031-4c6e-be12-5d3030e7c3d4",
       "name": "Prepare Assistant Store Request"
     },
@@ -381,7 +434,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1472, 80],
+      "position": [
+        -320,
+        352
+      ],
       "id": "3f8ea9e3-e992-44fa-a4cb-7204a0299f8c",
       "name": "Store Assistant Turn",
       "continueOnFail": true
@@ -392,7 +448,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1696, 80],
+      "position": [
+        -96,
+        352
+      ],
       "id": "f894ab04-2a1d-429f-a931-219632389f37",
       "name": "Finalize Response"
     },
@@ -404,13 +463,16 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1920, 80],
+      "position": [
+        128,
+        352
+      ],
       "id": "4bfc2a3e-82f2-4b09-8e18-c26036408fc8",
       "name": "Reply in Telegram",
       "webhookId": "b96b7a41-9806-455f-b72e-00aa638eda71",
       "credentials": {
         "telegramApi": {
-          "id": "eC8lO0ynjt4o2RIL",
+          "id": "GPniCaPupOh6tYzX",
           "name": "Telegram account"
         }
       },
@@ -602,33 +664,91 @@
       ]
     }
   },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
   "pinData": {
     "Telegram Message Trigger": [
       {
-        "update_id": 96972039,
-        "message": {
-          "message_id": 152,
-          "from": {
-            "id": 6559268788,
-            "is_bot": false,
-            "first_name": "Mylo",
-            "last_name": "James",
-            "language_code": "en"
-          },
-          "chat": {
-            "id": 6559268788,
-            "first_name": "Mylo",
-            "last_name": "James",
-            "type": "private"
-          },
-          "date": 1762027907,
-          "text": "Make an asmr video about puppies"
+        "json": {
+          "update_id": 96972043,
+          "message": {
+            "message_id": 156,
+            "from": {
+              "id": 6559268788,
+              "is_bot": false,
+              "first_name": "Mylo",
+              "last_name": "James",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 6559268788,
+              "first_name": "Mylo",
+              "last_name": "James",
+              "type": "private"
+            },
+            "date": 1762048699,
+            "text": "Test"
+          }
         }
       }
     ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "d47e04d370a1b43496c097b567956ffb03a57fcf0b3917656c3ea43ad368f887"
-  }
+  "versionId": "5f4bbf89-d4d6-4630-b006-e35c5bd5b2bf",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:09:00.910Z",
+      "createdAt": "2025-11-02T01:09:00.910Z",
+      "role": "workflow:owner",
+      "workflowId": "MhurGfQPUg5lWdXw",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

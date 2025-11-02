@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:17.680Z",
-  "createdAt": "2025-10-16T20:03:31.615Z",
-  "id": "qOgWNfGwMpWkPWjK",
+  "updatedAt": "2025-11-02T02:03:21.405Z",
+  "createdAt": "2025-11-02T01:07:29.817Z",
+  "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
   "active": false,
   "isArchived": false,
@@ -248,108 +248,61 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "pinData": {
-    "On Error": [
-      {
-        "json": {
-          "execution": {
-            "id": "4505",
-            "url": "https://crocs93.app.n8n.cloud/workflow/qOgWNfGwMpWkPWjK/executions/4505",
-            "error": {
-              "level": "warning",
-              "tags": {},
-              "description": "Expected to find the prompt in an input field called 'chatInput' (this is what the chat trigger node outputs). To use something else, change the 'Prompt' parameter",
-              "errorResponse": {
-                "level": "warning",
-                "tags": {},
-                "description": "Expected to find the prompt in an input field called 'chatInput' (this is what the chat trigger node outputs). To use something else, change the 'Prompt' parameter",
-                "timestamp": 1761773687413,
-                "context": {},
-                "functionality": "regular",
-                "name": "NodeOperationError",
-                "node": {
-                  "parameters": {
-                    "aiAgentStarterCallout": "",
-                    "preBuiltAgentsCallout": "",
-                    "promptType": "auto",
-                    "text": "={{ $json.chatInput }}",
-                    "hasOutputParser": true,
-                    "notice": "",
-                    "needsFallback": false,
-                    "options": {
-                      "systemMessage": "=You are an AI orchestrator that loads persona and project prompts from a vector database, then executes tasks according to their specifications.\n\n## Workflow Inputs\nYou receive:\n- **personaId**: {{$json.personaId}} (e.g., \"ideagenerator\", \"chat\", \"screenwriter\")\n- **projectId**: {{$json.projectId}} (e.g., \"aismr\")\n- **chatInput**: {{$json.chatInput}} (the user's request)\n- **outputSchema**: {{$json.outputSchema}} (JSON schema for structured output)\n\n## Step 1: Load Required Prompts\nUse the MCP tools to retrieve configuration. **IMPORTANT**: The tools return both text summaries AND structured content - you need the structured content for the actual prompt data.\n\n1. **Get the combination prompt first** (persona × project):\n   ```\n   prompt_get({\n     \"persona_name\": \"{{$json.personaId}}\",\n     \"project_name\": \"{{$json.projectId}}\"\n   })\n   ```\n\n2. **If no combination exists, get individual prompts**:\n   - Persona prompt: `prompt_get({\"persona_name\": \"{{$json.personaId}}\"})`\n   - Project prompt: `prompt_get({\"project_name\": \"{{$json.projectId}}\"})`\n\n3. **If prompts are missing**, search for alternatives:\n   ```\n   prompt_search({\n     \"query\": \"{{$json.personaId}} persona configuration\",\n     \"persona\": \"{{$json.personaId}}\",\n     \"limit\": 3\n   })\n   ```\n\n## Step 2: Extract the Actual Prompt Content\n**CRITICAL**: The MCP tools return structured data with the actual prompt content. Access it like this:\n- From `prompt_get`: Look for the `prompt.content` field in the tool response - this contains the full JSON prompt\n- From `prompt_search`: Use the `promptKey` from search results, then call `prompt_get` to get the full content\n- **Parse the JSON content** - it contains the complete agent configuration, not just metadata\n\n## Step 3: Process the Loaded Prompts\nOnce you have the actual prompt content (JSON):\n- **Parse the JSON structure** completely - especially `agent`, `persona`, `workflow`, and `session_posture` sections\n- **Extract the role, style, principles, and workflow steps**\n- **Note any specific formatting requirements, schemas, or guardrails**\n- **Identify any examples or templates provided**\n\n## Step 4: Execute the Task\n- **Adopt the persona** described in the loaded prompts\n- **Follow the workflow steps** exactly as documented in the prompt content\n- **Apply all guardrails and constraints** specified in the prompts\n- **Honor the output schema** provided in the workflow inputs\n- **Match the tone and style** defined in the persona configuration\n\n## Step 5: Format and Validate Output\n- **Structure your response** according to the provided JSON schema\n- **Ensure all required fields** are present and correctly formatted\n- **Follow any specific formatting rules** from the prompt configuration\n- **Validate against constraints** like count requirements, content types, etc.\n\n## Error Handling\nIf prompts fail to load or are incomplete:\n1. Report the specific missing component (persona/project/combination)\n2. List what was found vs. what was expected\n3. Show the actual tool responses you received\n4. Do not proceed with generic behavior - request clarification\n\n## Key Principles\n- **Access Full Content**: Don't rely on tool summaries - extract the actual prompt.content JSON\n- **Prompt Fidelity**: Execute exactly what the loaded prompts specify\n- **Schema Compliance**: Always match the required output format\n- **No Assumptions**: Only use information from loaded prompts, never from memory\n- **Explicit Workflow**: Follow documented steps in the prompt configurations\n- **Tool Mastery**: Use MCP tools correctly and access their structured responses"
-                    }
-                  },
-                  "type": "@n8n/n8n-nodes-langchain.agent",
-                  "typeVersion": 2.2,
-                  "position": [
-                    608,
-                    -64
-                  ],
-                  "id": "f852932f-a756-4e3b-8395-50d8b42f782e",
-                  "name": "AI Agent"
-                },
-                "messages": [],
-                "message": "No prompt specified",
-                "stack": "NodeOperationError: No prompt specified\n    at getPromptInputByType (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/utils/helpers.ts:93:9)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:214:18\n    at Array.map (<anonymous>)\n    at ExecuteContext.toolsAgentExecute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:211:31)\n    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/V2/AgentV2.node.ts:131:10)\n    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1093:8)\n    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1274:11)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1708:27\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2324:11",
-                "executionId": "4517",
-                "workflowId": "Cz7h4stqCFJ4qZ9I"
+  "meta": null,
+  "pinData": null,
+  "versionId": "63daf0a2-bae1-4343-a50b-5aa235f6f2c0",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.817Z",
+      "createdAt": "2025-11-02T01:07:29.817Z",
+      "role": "workflow:owner",
+      "workflowId": "UH0zBnpPyB8HHUKW",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
               },
-              "timestamp": 1761773687796,
-              "context": {},
-              "functionality": "regular",
-              "name": "NodeOperationError",
-              "node": {
-                "parameters": {
-                  "aiAgentStarterCallout": "",
-                  "preBuiltAgentsCallout": "",
-                  "promptType": "auto",
-                  "text": "={{ $json.chatInput }}",
-                  "hasOutputParser": true,
-                  "notice": "",
-                  "needsFallback": false,
-                  "options": {
-                    "systemMessage": "=You are an AI orchestrator that loads persona and project prompts from a vector database, then executes tasks according to their specifications.\n\n## Workflow Inputs\nYou receive:\n- **personaId**: {{$json.personaId}} (e.g., \"ideagenerator\", \"chat\", \"screenwriter\")\n- **projectId**: {{$json.projectId}} (e.g., \"aismr\")\n- **chatInput**: {{$json.chatInput}} (the user's request)\n- **outputSchema**: {{$json.outputSchema}} (JSON schema for structured output)\n\n## Step 1: Load Required Prompts\nUse the MCP tools to retrieve configuration. **IMPORTANT**: The tools return both text summaries AND structured content - you need the structured content for the actual prompt data.\n\n1. **Get the combination prompt first** (persona × project):\n   ```\n   prompt_get({\n     \"persona_name\": \"{{$json.personaId}}\",\n     \"project_name\": \"{{$json.projectId}}\"\n   })\n   ```\n\n2. **If no combination exists, get individual prompts**:\n   - Persona prompt: `prompt_get({\"persona_name\": \"{{$json.personaId}}\"})`\n   - Project prompt: `prompt_get({\"project_name\": \"{{$json.projectId}}\"})`\n\n3. **If prompts are missing**, search for alternatives:\n   ```\n   prompt_search({\n     \"query\": \"{{$json.personaId}} persona configuration\",\n     \"persona\": \"{{$json.personaId}}\",\n     \"limit\": 3\n   })\n   ```\n\n## Step 2: Extract the Actual Prompt Content\n**CRITICAL**: The MCP tools return structured data with the actual prompt content. Access it like this:\n- From `prompt_get`: Look for the `prompt.content` field in the tool response - this contains the full JSON prompt\n- From `prompt_search`: Use the `promptKey` from search results, then call `prompt_get` to get the full content\n- **Parse the JSON content** - it contains the complete agent configuration, not just metadata\n\n## Step 3: Process the Loaded Prompts\nOnce you have the actual prompt content (JSON):\n- **Parse the JSON structure** completely - especially `agent`, `persona`, `workflow`, and `session_posture` sections\n- **Extract the role, style, principles, and workflow steps**\n- **Note any specific formatting requirements, schemas, or guardrails**\n- **Identify any examples or templates provided**\n\n## Step 4: Execute the Task\n- **Adopt the persona** described in the loaded prompts\n- **Follow the workflow steps** exactly as documented in the prompt content\n- **Apply all guardrails and constraints** specified in the prompts\n- **Honor the output schema** provided in the workflow inputs\n- **Match the tone and style** defined in the persona configuration\n\n## Step 5: Format and Validate Output\n- **Structure your response** according to the provided JSON schema\n- **Ensure all required fields** are present and correctly formatted\n- **Follow any specific formatting rules** from the prompt configuration\n- **Validate against constraints** like count requirements, content types, etc.\n\n## Error Handling\nIf prompts fail to load or are incomplete:\n1. Report the specific missing component (persona/project/combination)\n2. List what was found vs. what was expected\n3. Show the actual tool responses you received\n4. Do not proceed with generic behavior - request clarification\n\n## Key Principles\n- **Access Full Content**: Don't rely on tool summaries - extract the actual prompt.content JSON\n- **Prompt Fidelity**: Execute exactly what the loaded prompts specify\n- **Schema Compliance**: Always match the required output format\n- **No Assumptions**: Only use information from loaded prompts, never from memory\n- **Explicit Workflow**: Follow documented steps in the prompt configurations\n- **Tool Mastery**: Use MCP tools correctly and access their structured responses"
-                  }
-                },
-                "type": "@n8n/n8n-nodes-langchain.agent",
-                "typeVersion": 2.2,
-                "position": [
-                  608,
-                  -64
-                ],
-                "id": "f852932f-a756-4e3b-8395-50d8b42f782e",
-                "name": "AI Agent"
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
               },
-              "messages": [],
-              "executionId": "4517",
-              "workflowId": "Cz7h4stqCFJ4qZ9I",
-              "message": "No prompt specified",
-              "stack": "NodeOperationError: No prompt specified\n    at getPromptInputByType (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/utils/helpers.ts:93:9)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:214:18\n    at Array.map (<anonymous>)\n    at ExecuteContext.toolsAgentExecute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/agents/ToolsAgent/V2/execute.ts:211:31)\n    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+n8n-nodes-langchain@file+packages+@n8n+nodes-langchain_22f59901f979c793064e516a96540f2f/node_modules/@n8n/n8n-nodes-langchain/nodes/agents/Agent/V2/AgentV2.node.ts:131:10)\n    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1093:8)\n    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1274:11)\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1708:27\n    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2324:11"
-            },
-            "lastNodeExecuted": "Call 'Mylo_MCP_Bot'",
-            "mode": "integrated"
-          },
-          "workflow": {
-            "id": "qOgWNfGwMpWkPWjK",
-            "name": "Screen Writer"
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
           }
-        }
+        ]
       }
-    ],
-    "When Called": [
-      {
-        "json": {
-          "userInput": "Create a viral ASMR video about magical animals. make the vibe verbose. Pick a familiar and showcase them",
-          "runId": "140b9873-9155-4019-8878-fec00981f660",
-          "projectId": "a372acc6-5b6a-46c5-835d-6e9859d5055c"
-        }
-      }
-    ]
-  },
-  "versionId": "c82ff0c6-7fb6-4f4f-89fa-c93ee833bd58",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

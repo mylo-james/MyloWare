@@ -9,6 +9,7 @@ import { embedTexts } from '../../vector/embedTexts';
 import { resolvePrompt } from '../tools/promptGetTool';
 import { searchPrompts } from '../tools/promptSearchTool';
 import { enhanceQuery as baseEnhanceQuery } from '../../vector/queryEnhancer';
+import { sendValidationError, sendError } from '../utils/errorResponses';
 import {
   featureFlagDefinitions,
   featureFlagNames,
@@ -564,32 +565,6 @@ export async function registerApiRoutes(
       const message = error instanceof Error ? error.message : 'Unexpected error updating video.';
       return sendError(reply, 500, 'VIDEO_UPDATE_ERROR', message);
     }
-  });
-}
-
-function sendValidationError(reply: FastifyReply, error: z.ZodError) {
-  return reply.status(400).send({
-    error: {
-      code: 'VALIDATION_ERROR',
-      message: 'Request validation failed.',
-      details: error.flatten(),
-    },
-  });
-}
-
-function sendError(
-  reply: FastifyReply,
-  statusCode: number,
-  code: string,
-  message: string,
-  details?: Record<string, unknown>,
-) {
-  return reply.status(statusCode).send({
-    error: {
-      code,
-      message,
-      ...(details ? { details } : {}),
-    },
   });
 }
 

@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:17.192Z",
-  "createdAt": "2025-10-28T23:40:45.212Z",
-  "id": "Cz7h4stqCFJ4qZ9I",
+  "updatedAt": "2025-11-02T02:03:21.253Z",
+  "createdAt": "2025-11-02T01:07:29.357Z",
+  "id": "7qSyk9RjD6HhPWNm",
   "name": "Mylo_MCP_Bot",
   "active": false,
   "isArchived": false,
@@ -17,7 +17,7 @@
       "typeVersion": 2.2,
       "position": [
         824,
-        -64
+        -160
       ],
       "id": "f852932f-a756-4e3b-8395-50d8b42f782e",
       "name": "AI Agent"
@@ -36,7 +36,7 @@
       "typeVersion": 1.2,
       "position": [
         768,
-        160
+        64
       ],
       "id": "7e99e3a7-94de-4bd1-8604-82facd4e54ff",
       "name": "OpenAI Chat Model",
@@ -58,7 +58,7 @@
       "typeVersion": 1.1,
       "position": [
         896,
-        160
+        64
       ],
       "id": "5822e6a6-7be6-4611-9bfb-da5f76a73ffb",
       "name": "MCP Client",
@@ -95,7 +95,7 @@
       "typeVersion": 1.1,
       "position": [
         320,
-        -64
+        -160
       ],
       "id": "f6a1e72e-51b7-4403-8792-cbba19b212b6",
       "name": "When Executed by Another Workflow"
@@ -109,7 +109,7 @@
       "typeVersion": 1.3,
       "position": [
         1024,
-        160
+        64
       ],
       "id": "32af173b-9fc1-4281-85b5-3a5158e9f189",
       "name": "Structured Output Parser"
@@ -122,7 +122,7 @@
       "typeVersion": 2,
       "position": [
         544,
-        -64
+        -160
       ],
       "id": "dde10b5b-4217-4d05-b91e-557833b0dff1",
       "name": "Prepare Session Context"
@@ -176,7 +176,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
+        1456,
         -256
       ],
       "id": "4b7273d4-9500-444b-af60-5a20850d95ab",
@@ -185,13 +185,13 @@
     {
       "parameters": {
         "mode": "passThrough",
-        "passThrough": "input1"
+        "options": {}
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2,
       "position": [
-        1408,
-        -192
+        1680,
+        -160
       ],
       "id": "bf72c809-872c-431e-bb31-114e555711b8",
       "name": "Combine Memory Context"
@@ -203,8 +203,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1632,
-        -192
+        1904,
+        -160
       ],
       "id": "c82024c1-735a-42a7-bee5-7fcffa37fb72",
       "name": "Prepare Memory Requests"
@@ -225,8 +225,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1856,
-        -192
+        2128,
+        -160
       ],
       "id": "97e94b45-4df6-4175-ae1a-a2bca375b50f",
       "name": "Call Memory Add",
@@ -371,31 +371,61 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "pinData": {
-    "When Executed by Another Workflow": [
-      {
-        "json": {
-          "runId": "11111111-1111-1111-1111-111111111111",
-          "sessionId": "b9dacc2f-1200-4f12-9c90-7b3654f36aa1",
-          "personaId": "ideagenerator",
-          "projectId": "aismr",
-          "chatId": "telegram:demo-channel",
-          "initiator": "automation",
-          "priority": "standard",
-          "attempt": 0,
-          "flags": [
-            "shadow-mode"
-          ],
-          "metadata": {
-            "trigger": "manual-test"
+  "meta": null,
+  "pinData": {},
+  "versionId": "a1188ce8-af4d-42ba-a64c-bfa4fa945f9f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.357Z",
+      "createdAt": "2025-11-02T01:07:29.357Z",
+      "role": "workflow:owner",
+      "workflowId": "7qSyk9RjD6HhPWNm",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
           }
-        }
+        ]
       }
-    ]
-  },
-  "versionId": "263e5478-ca16-4442-91e8-ef42d312b4e3",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

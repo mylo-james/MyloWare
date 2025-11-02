@@ -1,0 +1,128 @@
+tool:
+  id: myloware.memory.conversation_latest.v1
+  name: conversation_latest
+  namespace: myloware.memory
+  version: '1.0.0'
+  description: >-
+    Fetches the most recent conversation turns for a session without performing semantic search.
+    Perfect when you just need the latest context window before making a decision. Returns turns
+    in chronological order (ascending) or reverse chronological order (descending).
+  one_liner: 'Get the most recent conversation turns for a session.'
+  invocation_context: >-
+    Use when you need immediate context from the latest turns in a conversation session.
+    Do not use for semantic search across conversation history; use conversation_remember instead.
+  agent_hint: 'User references "recent messages" or "last few turns" in a conversation.'
+  pattern: structured_data_retrieval
+  tags:
+    - memory
+    - conversation
+    - retrieval
+    - episodic
+  availability:
+    - production
+    - staging
+  constraints:
+    max_duration_seconds: 2
+    rate_limit_per_minute: 120
+    max_items: 50
+    note: 'Default limit is 10 turns. Maximum allowed limit is 50.'
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      sessionId:
+        type: string
+        format: uuid
+        description: 'UUID of the conversation session.'
+      limit:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+        description: 'Maximum number of turns to return.'
+      order:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: desc
+        description: 'Order of results: asc for oldest first, desc for newest first.'
+    required:
+      - sessionId
+  output_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      turns:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            sessionId:
+              type: string
+            userId:
+              type: string
+              nullable: true
+            role:
+              type: string
+              enum:
+                - user
+                - assistant
+                - system
+                - tool
+            turnIndex:
+              type: integer
+              minimum: 0
+            content:
+              type: string
+            summary:
+              type: object
+              nullable: true
+            metadata:
+              type: object
+            createdAt:
+              type: string
+              nullable: true
+            updatedAt:
+              type: string
+              nullable: true
+      sessionId:
+        type: string
+      fetched:
+        type: integer
+      limit:
+        type: integer
+      order:
+        type: string
+        enum:
+          - asc
+          - desc
+    required:
+      - turns
+      - sessionId
+      - fetched
+      - limit
+      - order
+  versioning:
+    last_updated: '2025-11-02'
+    owner_team: memory_platform
+    contact: 'slack://#memory-platform'
+  examples:
+    - name: Get latest 10 turns
+      description: 'Fetch the 10 most recent turns in descending order.'
+      input:
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+      output:
+        turns:
+          - id: 'turn-123'
+            sessionId: '550e8400-e29b-41d4-a716-446655440000'
+            role: assistant
+            turnIndex: 9
+            content: 'Here is the response.'
+        sessionId: '550e8400-e29b-41d4-a716-446655440000'
+        fetched: 10
+        limit: 10
+        order: desc
+

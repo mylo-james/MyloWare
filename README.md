@@ -1,113 +1,296 @@
-# MCP Prompt Vector Server
+# MCP Prompts
 
-Self-hosted Model Context Protocol (MCP) server that indexes n8n prompts in PostgreSQL + pgvector and exposes semantic/metadata tools over HTTP or Cloudflare Tunnel.
+A Model Context Protocol (MCP) server providing prompt management, vector search, and workflow orchestration with Human-in-the-Loop (HITL) capabilities.
 
-## Prerequisites
+## Features
+
+- **Prompt Management**: Store, version, and retrieve prompts with semantic search
+- **Vector Search**: pgvector-powered similarity search with temporal decay
+- **Episodic Memory**: Conversation history with semantic retrieval
+- **Workflow Orchestration**: Multi-stage workflows with HITL approval gates
+- **Telegram Integration**: HITL notifications via Telegram
+- **Observability**: Prometheus metrics, health checks, structured logging
+- **Production Ready**: Rate limiting, typed errors, comprehensive testing, CI/CD
+
+## Quick Start
+
+### Local Development
+
+```bash
+# One-command setup
+./scripts/dev-setup.sh
+
+# Start the server
+npm run dev
+
+# Access services
+# - MCP Server: http://localhost:3456 (local) / https://mcp-vector.mjames.dev (tunnel)
+# - n8n: https://n8n.mjames.dev
+# - Metrics: http://localhost:3456/metrics
+```
+
+See [docs/LOCAL-DEVELOPMENT.md](docs/LOCAL-DEVELOPMENT.md) for full setup guide.
+
+### Production Deployment
+
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+export DATABASE_URL=postgresql://...
+export OPENAI_API_KEY=sk-...
+
+# Run migrations
+npm run db:migrate
+
+# Start server
+npm start
+```
+
+## Architecture
+
+```
+┌─────────────┐
+│  Telegram   │
+│   (User)    │
+└──────┬──────┘
+       │
+       v
+┌─────────────┐      ┌──────────────┐      ┌────────────────┐
+│     n8n     │─────>│  MCP Server  │─────>│   PostgreSQL   │
+│  Workflows  │<─────│   (Fastify)  │<─────│   + pgvector   │
+└─────────────┘      └──────────────┘      └────────────────┘
+                            │
+                            v
+                     ┌──────────────┐
+                     │   OpenAI     │
+                     │  (Embeddings)│
+                     └──────────────┘
+```
+
+## API Endpoints
+
+### MCP Tools (Model Context Protocol)
+
+- `POST /mcp` - Execute MCP tools via JSON-RPC
+  - `prompt_get` - Retrieve prompts by persona/project
+  - `prompts.search` - Semantic/keyword/hybrid search
+  - `conversation.remember` - Retrieve episodic memory
+  - `conversation.store` - Store conversation turns
+
+### REST API
+
+**Workflows**
+- `GET /api/workflow-runs` - List workflow runs
+- `POST /api/workflow-runs` - Create workflow run
+- `GET /api/workflow-runs/:id` - Get workflow run details
+- `PATCH /api/workflow-runs/:id` - Update workflow run
+
+**HITL (Human-in-the-Loop)**
+- `GET /api/hitl/pending` - List pending approvals
+- `GET /api/hitl/approval/:id` - Get approval details
+- `POST /api/hitl/approval/:id/approve` - Approve request
+- `POST /api/hitl/approval/:id/reject` - Reject request
+
+**System**
+- `GET /health` - Health check with database status
+- `GET /metrics` - Prometheus metrics
+
+See [docs/API.md](docs/API.md) for full API documentation.
+
+## Development
+
+### Prerequisites
 
 - Node.js 20+
-- npm 10+
-- PostgreSQL 16 with `vector` extension
-- Cloudflare account with existing zone (for tunnel + DNS)
-- `cloudflared` CLI installed locally
+- PostgreSQL 16 with pgvector extension
+- Docker & Docker Compose (for local development)
 
-## Installation
+### Setup
 
 ```bash
+# Install dependencies
 npm install
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your values
+vim .env
+
+# Start local services (PostgreSQL + n8n)
+docker compose -f docker-compose.dev.yml up -d
+
+# Run migrations
 npm run db:migrate
-npm run db:operations:migrate    # create runs/videos tables (optional but recommended)
+
+# Start development server (with hot reload)
+npm run dev
 ```
 
-Copy `.env.example` (if present) or set the required environment variables (`DATABASE_URL`, `OPENAI_API_KEY`, etc.). Defaults live in `src/config/index.ts`.
-
-### Operations Database (Runs & Videos)
-
-Set `OPERATIONS_DATABASE_URL` to a PostgreSQL connection string (e.g. Supabase) when you want the MCP server to surface workflow runs and generated videos. The schema migrations live in `drizzle-operations/`; apply them with `npm run db:operations:migrate`. When the variable is unset the operational tools are disabled, but the prompt vector store continues to work normally.
-
-## Developing
+### Testing
 
 ```bash
-npm run dev           # start Fastify HTTP transport (localhost:3456 by default)
-npm test              # run Vitest suite
-npm run lint          # eslint
-npm run scan:prompts  # preview prompt metadata
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test src/server/routes/workflow-runs.test.ts
+
+# Lint code
+npm run lint
+
+# Type check
+npm run type-check
+
+# Build
+npm run build
 ```
 
-## Cloudflare Tunnel
-
-The repository ships with a tunnel configuration (`cloudflared/config.prompts.yml`) that expects a tunnel named `mcp-vector` exposing the local server at `http://localhost:3456`.
-
-### 1. Authenticate cloudflared
+### Key Commands
 
 ```bash
-cloudflared tunnel login
-cp ~/.cloudflared/cert.pem cloudflared/cert.pem
+# Development
+npm run dev              # Start with hot reload
+npm run db:migrate       # Run migrations
+npm run db:studio        # Open Drizzle Studio
+
+# Testing
+npm test                 # Run tests
+npm run test:watch       # Watch mode
+npm run test:coverage    # With coverage
+
+# Production
+npm run build           # Build for production
+npm start               # Start production server
+
+# Utilities
+npm run lint            # Lint code
+npm run type-check      # TypeScript check
+npm run format          # Format with Prettier
 ```
 
-### 2. Generate tunnel credentials
+## Project Structure
+
+```
+mcp-prompts/
+├── src/
+│   ├── server/              # Fastify server
+│   │   ├── routes/          # API routes
+│   │   ├── tools/           # MCP tool implementations
+│   │   ├── metrics.ts       # Prometheus metrics
+│   │   └── errorHandler.ts # Centralized error handling
+│   ├── services/            # Business logic
+│   │   └── hitl/            # HITL service & notifications
+│   ├── db/                  # Database layer
+│   │   ├── repository.ts    # Vector/prompt repository
+│   │   ├── operations/      # Operations database
+│   │   └── migrations/      # SQL migrations
+│   ├── vector/              # Embeddings & search
+│   └── types/               # TypeScript types
+├── workflows/               # n8n workflow definitions
+├── docs/                    # Documentation
+├── drizzle/                 # Database migrations
+└── scripts/                 # Utility scripts
+```
+
+## Documentation
+
+- [Local Development Guide](docs/LOCAL-DEVELOPMENT.md)
+- [HITL Telegram Integration](docs/HITL-TELEGRAM.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Code Review - Claude](docs/review-claude.md)
+- [Code Review - Codex](docs/REVIEW-CODEX.md)
+- [Implementation Plan](docs/PLAN.md)
+
+## Configuration
+
+Key environment variables:
 
 ```bash
-npm run tunnel:credentials
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/db
+OPERATIONS_DATABASE_URL=postgresql://user:pass@host:5432/ops_db
+
+# OpenAI
+OPENAI_API_KEY=sk-proj-...
+
+# Telegram
+TELEGRAM_BOT_TOKEN=123456:ABC...
+
+# Server
+SERVER_PORT=3456
+SERVER_HOST=0.0.0.0
+NODE_ENV=production
+
+# Rate Limiting
+RATE_LIMIT_MAX=100
+RATE_LIMIT_WINDOW_MS=60000
+
+# n8n Integration
+N8N_WEBHOOK_BASE=https://n8n.mjames.dev
 ```
 
-This wraps `cloudflared tunnel create mcp-vector`, parses the credential path output by the CLI, and copies the JSON into `cloudflared/credentials/mcp-vector.json`. Use `npm run tunnel:credentials -- --force` to regenerate after deleting the existing file.
+See `.env.example` for all options.
 
-If the script cannot locate the credential path automatically, copy the tunnel JSON from `~/.cloudflared/` into the credentials directory manually.
+## Monitoring
 
-### 3. Configure DNS
+### Prometheus Metrics
 
-Map your hostname (e.g. `mcp-vector.mjames.dev`) to the tunnel:
+Available at `GET /metrics`:
+
+- `mcp_prompts_http_request_duration_seconds` - HTTP request latency
+- `mcp_prompts_http_requests_total` - Total HTTP requests
+- `mcp_prompts_db_query_duration_seconds` - Database query duration
+- `mcp_prompts_vector_search_duration_seconds` - Vector search latency
+- `mcp_prompts_hitl_approvals_total` - HITL approval counts
+
+### Health Check
 
 ```bash
-cloudflared tunnel route dns mcp-vector mcp-vector.mjames.dev
+curl http://localhost:3456/health | jq
+
+{
+  "status": "ok",
+  "timestamp": "2025-11-02T19:30:00.000Z",
+  "checks": {
+    "database": { "status": "ok" },
+    "operationsDatabase": { "status": "ok" }
+  }
+}
 ```
 
-Confirm the route is active:
+## CI/CD
 
-```bash
-cloudflared tunnel info mcp-vector
-```
+GitHub Actions workflow runs on every push/PR:
 
-### 4. Run the tunnel
+- ✅ Lint (ESLint)
+- ✅ Type check (TypeScript)
+- ✅ Tests (Vitest)
+- ✅ Build
+- ✅ Security audit
 
-```bash
-npm run tunnel
-```
+See `.github/workflows/ci.yml`
 
-The script validates the config, credentials, and origin certificate before launching `cloudflared tunnel run` with the project configuration.
+## Contributing
 
-## HTTP Transport Configuration
+1. Follow the development workflow [[memory:6094533]]
+2. Always pull main first
+3. Create a feature branch
+4. Follow red-green-refactor
+5. Ensure all tests pass
+6. Never skip husky hooks
+7. Create PR and verify CI passes
 
-Environment variables for the HTTP transport (defaults shown):
+## License
 
-| Variable                    | Description                                                         | Default   |
-| --------------------------- | ------------------------------------------------------------------- | --------- |
-| `SERVER_HOST`               | Bind host for Fastify server                                        | `0.0.0.0` |
-| `SERVER_PORT`               | Bind port                                                           | `3456`    |
-| `HTTP_RATE_LIMIT_MAX`       | Requests per IP per window                                          | `100`     |
-| `HTTP_RATE_LIMIT_WINDOW_MS` | Rate-limit window (ms)                                              | `60000`   |
-| `HTTP_REQUEST_TIMEOUT_MS`   | Request timeout for non-SSE requests                                | `15000`   |
-| `HTTP_ALLOWED_ORIGINS`      | Comma-separated list of allowed `Origin` values (empty = allow all) | _(empty)_ |
-| `HTTP_ALLOWED_HOSTS`        | Comma-separated list of allowed `Host` headers for MCP transport    | _(empty)_ |
-| `MCP_API_KEY`               | API key required in the `X-API-Key` header (unset disables auth)    | _(unset)_ |
+MIT
 
-Set `DEBUG_MCP_HTTP=true` to log normalized Accept headers while troubleshooting Cloudflare proxy behaviour.
+## Support
 
-### Authentication
-
-When `MCP_API_KEY` is set, every request to `/mcp` must include `X-API-Key: <value>`. Requests with missing or mismatched keys are rejected with HTTP 401 and the attempt is logged. Combine this with `HTTP_ALLOWED_ORIGINS` (CORS + origin validation) and `HTTP_ALLOWED_HOSTS` (transport-level host allowlist) for stricter perimeter security.
-
-## Deploying
-
-1. Run `npm run build`.
-2. Launch PostgreSQL + app stack (e.g. via `docker-compose.yml`).
-3. Start the tunnel (`npm run tunnel`) on the host or within the orchestrated stack.
-4. Verify health:
-   - `GET /health` → `{ "status": "ok" }`
-   - `GET /mcp` with `Accept: text/event-stream` to observe SSE stream.
-   - MCP resources: `prompt://info`, `status://health`.
-
-## Additional Resources
-
-- [PLAN.md](../PLAN.md) tracks project milestones.
-- `docs/` contains migration and prompt transformation notes.
+- Issues: [GitHub Issues](https://github.com/yourusername/mcp-prompts/issues)
+- Docs: [docs/](docs/)

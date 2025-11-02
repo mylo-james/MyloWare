@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2025-11-01T16:55:17.921Z",
-  "createdAt": "2025-10-16T21:21:59.756Z",
-  "id": "xXfy1EgFoH6EZU7v",
+  "updatedAt": "2025-11-02T02:03:21.478Z",
+  "createdAt": "2025-11-02T01:07:29.839Z",
+  "id": "hePBBi9MkuJN7Fpj",
   "name": "Upload file to Google Drive",
   "active": false,
   "isArchived": false,
@@ -369,18 +369,61 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "pinData": {
-    "When Called by Generate Video": [
-      {
-        "json": {
-          "runId": "71bcb4df-cdc5-4633-9722-3e249d569bca"
-        }
+  "meta": null,
+  "pinData": {},
+  "versionId": "da08567f-c797-454f-8028-6ab28ac96580",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.839Z",
+      "createdAt": "2025-11-02T01:07:29.839Z",
+      "role": "workflow:owner",
+      "workflowId": "hePBBi9MkuJN7Fpj",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-02T01:38:33.828Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-01",
+              "isPending": false
+            }
+          }
+        ]
       }
-    ]
-  },
-  "versionId": "14c7323d-3545-4e2c-bde9-869fa76398c7",
-  "triggerCount": 0
+    }
+  ],
+  "tags": []
 }

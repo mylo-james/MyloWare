@@ -3,15 +3,18 @@ export interface NotifyParams {
   message: string;
   link: string;
   data?: unknown;
+  telegramChatId?: string;
 }
 
 export class NotificationService {
   private slackWebhookUrl: string | null;
   private emailServiceApiKey: string | null;
+  private telegramBotToken: string | null;
 
   constructor() {
     this.slackWebhookUrl = process.env.SLACK_WEBHOOK_URL || null;
     this.emailServiceApiKey = process.env.EMAIL_SERVICE_API_KEY || null;
+    this.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || null;
   }
 
   async notify(params: NotifyParams): Promise<void> {
@@ -24,6 +27,9 @@ export class NotificationService {
           break;
         case 'email':
           promises.push(this.notifyEmail(params));
+          break;
+        case 'telegram':
+          promises.push(this.notifyTelegram(params));
           break;
         default:
           console.warn(`Unknown notification channel: ${channel}`);
@@ -87,6 +93,45 @@ export class NotificationService {
       message: params.message,
       link: params.link,
     });
+  }
+
+  private async notifyTelegram(params: NotifyParams): Promise<void> {
+    if (!this.telegramBotToken) {
+      console.warn('TELEGRAM_BOT_TOKEN not configured, skipping Telegram notification');
+      return;
+    }
+
+    if (!params.telegramChatId) {
+      console.warn('telegramChatId not provided, skipping Telegram notification');
+      return;
+    }
+
+    try {
+      const message = `${params.message}\n\nPlease reply with your decision to approve or reject this request.`;
+
+      const response = await fetch(
+        `https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: params.telegramChatId,
+            text: message,
+            parse_mode: 'Markdown',
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Telegram notification failed: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Failed to send Telegram notification:', error);
+      throw error;
+    }
   }
 }
 

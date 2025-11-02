@@ -10,6 +10,7 @@ import {
 } from '../../vector/retrievalOrchestrator';
 import { embedTexts } from '../../vector/embedTexts';
 import type { QueryIntent } from '../../vector/queryClassifier';
+import { extractToolArgs } from './argUtils';
 
 const INPUT_SEARCH_MODE_VALUES = ['vector', 'keyword', 'hybrid'] as const;
 const OUTPUT_SEARCH_MODE_VALUES = [...INPUT_SEARCH_MODE_VALUES, 'multi-hop'] as const;
@@ -28,6 +29,32 @@ const QUERY_INTENT_VALUES = [
 const isoDateSchema = z
   .string()
   .datetime({ offset: true, message: 'Expected ISO 8601 timestamp with offset' });
+
+const ADAPTIVE_SEARCH_ARG_KEYS = [
+  'query',
+  'summary',
+  'context',
+  'knownFacts',
+  'missingInformation',
+  'ambiguitySignals',
+  'safetyCritical',
+  'lastRetrievedAt',
+  'intent',
+  'persona',
+  'project',
+  'memoryTypes',
+  'keywords',
+  'temporalFocus',
+  'maxIterations',
+  'utilityThreshold',
+  'limit',
+  'minSimilarity',
+  'initialMode',
+  'searchModes',
+  'enableMultiHop',
+  'maxHops',
+  'multiHopMaxResultsPerHop',
+] as const;
 
 const adaptiveSearchArgsSchema = z
   .object({
@@ -204,6 +231,8 @@ export function registerAdaptiveSearchTool(
         'Supports iterative refinement, hybrid search modes, multi-hop expansion, and telemetry for each iteration.',
         'Use when a query may require multiple retrieval passes or confidence scoring.',
       ].join('\n'),
+      inputSchema: adaptiveSearchArgsSchema.shape,
+      outputSchema: adaptiveSearchOutputSchema.shape,
       annotations: {
         category: 'search',
       },
@@ -211,7 +240,10 @@ export function registerAdaptiveSearchTool(
     async (rawArgs: unknown) => {
       let args: AdaptiveSearchInput;
       try {
-        args = adaptiveSearchArgsSchema.parse(rawArgs ?? {});
+        const extracted = extractToolArgs(rawArgs, {
+          allowedKeys: ADAPTIVE_SEARCH_ARG_KEYS,
+        });
+        args = adaptiveSearchArgsSchema.parse(extracted);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse prompts_search_adaptive args.';
@@ -307,6 +339,7 @@ function buildErrorResponse(message: string, suggestions: string[]) {
         ].join('\n'),
       },
     ],
+    isError: true,
   };
 }
 
