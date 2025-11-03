@@ -4,62 +4,39 @@
 
 Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.json`:
 
+**Note**: This is the simplified schema - each idea is just a 2-word title, vibe description, and uniqueness check.
+
 ```json
 {
   "type": "array",
   "items": {
     "type": "object",
-    "required": [
-      "ideaTitle",
-      "hookDescriptor",
-      "environment",
-      "materials",
-      "motionPlan",
-      "whisperBeatPlan",
-      "loopMechanic",
-      "executionNotes",
-      "uniquenessEvidence"
-    ],
+    "required": ["ideaTitle", "vibe", "uniquenessCheck"],
     "properties": {
       "ideaTitle": {
-        "type": "string"
-      },
-      "hookDescriptor": {
         "type": "string",
-        "description": "Primary tactile hook; must not collide with exclusion lists."
+        "description": "Exactly 2 words (e.g., 'velvet puppy', 'void puppy')",
+        "pattern": "^[a-zA-Z]+ [a-zA-Z]+$"
       },
-      "environment": {
-        "type": "string"
-      },
-      "materials": {
-        "type": "string"
-      },
-      "motionPlan": {
+      "vibe": {
         "type": "string",
-        "description": "Camera move + subject motion; mention continuity and rhythm."
+        "description": "2-3 sentences describing atmosphere and mood for screenwriter"
       },
-      "whisperBeatPlan": {
-        "type": "string",
-        "description": "Explain what happens at 3.0s and how whisper integrates."
-      },
-      "loopMechanic": {
-        "type": "string"
-      },
-      "executionNotes": {
-        "type": "string",
-        "description": "Props, lighting, hand usage (≤2), audio treatment (no music)."
-      },
-      "uniquenessEvidence": {
+      "uniquenessCheck": {
         "type": "object",
         "properties": {
-          "session": {
-            "type": "string"
+          "exists": {
+            "type": "boolean"
           },
-          "archive": {
-            "type": "string"
+          "matchedVideos": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           },
-          "similarityScore": {
-            "type": "number"
+          "confidence": {
+            "type": "string",
+            "enum": ["exact", "fuzzy", "none"]
           }
         }
       }
@@ -67,6 +44,11 @@ Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.
   }
 }
 ```
+
+**Expected Output**: Array of exactly 12 idea objects, each with:
+- `ideaTitle`: Two-word title like "velvet puppy" or "void puppy"
+- `vibe`: 2-3 sentence description of mood/atmosphere for the screenwriter
+- `uniquenessCheck`: Result from `video_query` tool showing if idea already exists in videos table
 
 ---
 
