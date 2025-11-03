@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:34:41.989Z",
+  "updatedAt": "2025-11-03T19:37:50.997Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -147,7 +147,7 @@
       "typeVersion": 1,
       "position": [
         112,
-        184
+        192
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
@@ -167,7 +167,7 @@
       "typeVersion": 4.2,
       "position": [
         336,
-        184
+        192
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
       "name": "Mark Run Failed (Ideas)",
@@ -212,7 +212,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        840,
+        848,
         -160
       ],
       "id": "ai-agent-generate-ideas",
@@ -334,7 +334,7 @@
       "typeVersion": 4.2,
       "position": [
         3712,
-        -232
+        -240
       ],
       "id": "Get Approval Status",
       "name": "Get Approval Status"
@@ -370,7 +370,7 @@
       "typeVersion": 1.1,
       "position": [
         3488,
-        -232
+        -240
       ],
       "id": "Wait Before Polling",
       "name": "Wait Before Polling",
@@ -456,7 +456,7 @@
       "typeVersion": 4.2,
       "position": [
         3488,
-        -40
+        -48
       ],
       "id": "Update Run Rejected",
       "name": "Update Run Rejected",
@@ -497,7 +497,7 @@
       "typeVersion": 2.1,
       "position": [
         3264,
-        -136
+        -144
       ],
       "id": "Check Loop Limit",
       "name": "Check Loop Limit"
@@ -529,6 +529,7 @@
     },
     {
       "parameters": {
+        "schemaType": "manual",
         "jsonSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\n      \"ideaTitle\",\n      \"hookDescriptor\",\n      \"environment\",\n      \"materials\",\n      \"motionPlan\",\n      \"whisperBeatPlan\",\n      \"loopMechanic\",\n      \"executionNotes\",\n      \"uniquenessEvidence\"\n    ],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\"\n      },\n      \"hookDescriptor\": {\n        \"type\": \"string\",\n        \"description\": \"Primary tactile hook; must not collide with exclusion lists.\"\n      },\n      \"environment\": {\n        \"type\": \"string\"\n      },\n      \"materials\": {\n        \"type\": \"string\"\n      },\n      \"motionPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Camera move + subject motion; mention continuity and rhythm.\"\n      },\n      \"whisperBeatPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Explain what happens at 3.0s and how whisper integrates.\"\n      },\n      \"loopMechanic\": {\n        \"type\": \"string\"\n      },\n      \"executionNotes\": {\n        \"type\": \"string\",\n        \"description\": \"Props, lighting, hand usage (≤2), audio treatment (no music).\"\n      },\n      \"uniquenessEvidence\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"session\": {\n            \"type\": \"string\"\n          },\n          \"archive\": {\n            \"type\": \"string\"\n          },\n          \"similarityScore\": {\n            \"type\": \"number\"\n          }\n        }\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
@@ -839,6 +840,61 @@
       }
     ]
   },
-  "versionId": "be4fe765-e374-4428-af76-7b3ad32f72f5",
-  "triggerCount": 0
+  "versionId": "94e34af4-7f5c-488a-9244-c7b842a318f4",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.166Z",
+      "createdAt": "2025-11-02T01:07:29.166Z",
+      "role": "workflow:owner",
+      "workflowId": "9tBbhRfA4149YH0f",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-03T05:00:48.459Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-03",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

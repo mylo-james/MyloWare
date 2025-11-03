@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:34:42.133Z",
+  "updatedAt": "2025-11-03T19:36:30.585Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -247,6 +247,7 @@
     },
     {
       "parameters": {
+        "schemaType": "manual",
         "jsonSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"title\",\n    \"logline\",\n    \"timestamps\",\n    \"camera\",\n    \"materials\",\n    \"audio\",\n    \"handDiscipline\",\n    \"loopMechanic\",\n    \"validationSummary\"\n  ],\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"logline\": {\n      \"type\": \"string\"\n    },\n    \"timestamps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\"time\", \"action\", \"sensoryDetail\"],\n        \"properties\": {\n          \"time\": {\n            \"type\": \"string\",\n            \"pattern\": \"^\\\\d+\\\\.\\\\d+s$\"\n          },\n          \"action\": {\n            \"type\": \"string\"\n          },\n          \"sensoryDetail\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"camera\": {\n      \"type\": \"string\"\n    },\n    \"materials\": {\n      \"type\": \"string\"\n    },\n    \"audio\": {\n      \"type\": \"string\",\n      \"description\": \"Detail tactile foley, whisper integration, and confirmation of no music.\"\n    },\n    \"handDiscipline\": {\n      \"type\": \"string\",\n      \"description\": \"Explicit hand choreography ensuring ≤2 hands.\"\n    },\n    \"loopMechanic\": {\n      \"type\": \"string\"\n    },\n    \"validationSummary\": {\n      \"type\": \"object\",\n      \"required\": [\"timing\", \"hands\", \"audio\", \"loop\", \"notes\"],\n      \"properties\": {\n        \"timing\": {\n          \"type\": \"string\"\n        },\n        \"hands\": {\n          \"type\": \"string\"\n        },\n        \"audio\": {\n          \"type\": \"string\"\n        },\n        \"loop\": {\n          \"type\": \"string\"\n        },\n        \"notes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
@@ -398,6 +399,61 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "33af0614-3feb-4355-91ff-172afdcf6033",
-  "triggerCount": 0
+  "versionId": "8fbd749e-61f0-4e74-b551-827adde8139f",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.817Z",
+      "createdAt": "2025-11-02T01:07:29.817Z",
+      "role": "workflow:owner",
+      "workflowId": "UH0zBnpPyB8HHUKW",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-03T05:00:48.459Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-03",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }
