@@ -15,7 +15,7 @@
     "icon": "🌀🎬"
   },
   "workflow": {
-    "definition_of_success": "Deliver a single-shot AISMR screenplay with exact specs, tactile richness, and full validation evidence.",
+    "definition_of_success": "Deliver a single-shot AISMR screenplay from a 2-word idea title and vibe description, with exact specs (8s runtime, veo-3-fast best practices), tactile richness, and full validation evidence.",
     "execution_context": {
       "estimated_duration_seconds": "35-60",
       "tool_calls": [
@@ -160,14 +160,17 @@
       {
         "order": 5,
         "name": "Screenplay Drafting",
-        "instruction": "Write the screenplay with explicit timestamps, sensory detail, and compliance notes.",
+        "instruction": "Write the screenplay based on the 2-word idea title and vibe description. Expand the simple idea (e.g., 'velvet puppy') into a full 8-second AISMR screenplay using the vibe description for mood and atmosphere guidance. Include explicit timestamps, sensory detail, and compliance notes.",
         "outputs": [
           "screenplayDraft: structured object with fields defined in Output Schema.",
           "complianceNotes: summary referencing specs and mitigation plan."
         ],
         "notes": [
+          "The input 'idea' is a 2-word title (e.g., 'velvet puppy') - expand this creatively using the vibe description.",
+          "The input 'vibe' is 2-3 sentences describing mood/atmosphere - use this to guide the screenplay's tone and sensory details.",
           "Ensure whisper beat anchored exactly at 3.0s within ±0.05s tolerance.",
-          "State hand positions and movements to guarantee ≤2 hands visible."
+          "State hand positions and movements to guarantee ≤2 hands visible.",
+          "Follow veo-3-fast best practices: single shot, 8 seconds, 9:16 vertical format."
         ]
       },
       {

@@ -39,6 +39,16 @@ tool:
         type: string
         minLength: 1
         description: 'Persona name to filter by (slug-normalized).'
+      tags:
+        type: array
+        items:
+          type: string
+          minLength: 1
+        description: 'Optional array of metadata tags to narrow matches (e.g., mcp-native).'
+      tag:
+        type: string
+        minLength: 1
+        description: 'Single metadata tag alias for tags; treated as a one-element array.'
     oneOf:
       - required:
           - project_name
@@ -82,11 +92,17 @@ tool:
             nullable: true
           analyzedMatches:
             type: integer
+          tags:
+            type: array
+            nullable: true
+            items:
+              type: string
         required:
           - project
           - persona
           - strategy
           - analyzedMatches
+          - tags
       candidates:
         type: array
         items:
@@ -125,10 +141,46 @@ tool:
           persona: screenwriter
           strategy: persona_only
           analyzedMatches: 1
+          tags: null
         candidates:
           - promptKey: 'persona::screenwriter'
             metadata:
               persona:
                 - screenwriter
             updatedAt: '2025-10-15T12:00:00Z'
-
+    - name: Disambiguate with tags
+      description: 'Fetch the AISMR ideagenerator workflow constrained to the MCP-native variant.'
+      input:
+        project_name: 'aismr'
+        persona_name: 'ideagenerator'
+        tags:
+          - 'mcp-native'
+      output:
+        prompt:
+          promptKey: 'ideagenerator-aismr-v2'
+          content: '# AISMR Idea Generator Workflow · MCP Native ...'
+          metadata:
+            persona:
+              - ideagenerator
+            project:
+              - aismr
+            tags:
+              - mcp-native
+          updatedAt: '2025-11-01T00:00:00Z'
+        resolution:
+          project: aismr
+          persona: ideagenerator
+          strategy: exact
+          analyzedMatches: 1
+          tags:
+            - mcp-native
+        candidates:
+          - promptKey: 'ideagenerator-aismr-v2'
+            metadata:
+              persona:
+                - ideagenerator
+              project:
+                - aismr
+              tags:
+                - mcp-native
+            updatedAt: '2025-11-01T00:00:00Z'

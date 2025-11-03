@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T06:53:18.483Z",
+  "updatedAt": "2025-11-03T19:40:03.029Z",
   "createdAt": "2025-11-02T01:09:00.869Z",
   "id": "NGKqyspp66gDGVI0",
   "name": "AISMR",
@@ -246,27 +246,17 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($('Assemble Context').item.json.runId || '') }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 15000
-        }
+        "mode": "passThrough",
+        "options": {}
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
       "position": [
-        -416,
-        272
+        -320,
+        336
       ],
-      "id": "3b6ce9bf-8d90-46f5-8ebf-35649d8da033",
-      "name": "Get Run After Ideas",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
-        }
-      }
+      "id": "860967b8-8ae8-4b7d-928c-8377c5af29c5",
+      "name": "Merge: Ideas to Approval and Notification"
     },
     {
       "parameters": {
@@ -278,7 +268,7 @@
       "typeVersion": 1.2,
       "position": [
         -192,
-        272
+        400
       ],
       "id": "8aafc9ad-c253-4560-ae75-9458d1d7d9af",
       "name": "Progress: Ideas Generated",
@@ -342,6 +332,70 @@
     },
     {
       "parameters": {
+        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst chatId = $('Assemble Context').item.json.chatId;\n\nreturn {\n  json: {\n    runId,\n    chatId,\n    error: 'Failed to create HITL approval request',\n    status: 'failed',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        800
+      ],
+      "id": "handle-missing-approval-id",
+      "name": "Handle Missing Approval ID"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $json.runId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  status: 'failed',\n  error: $json.error,\n  failedAt: $json.timestamp\n} }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -192,
+        800
+      ],
+      "id": "mark-run-failed-no-approval-id",
+      "name": "Mark Run Failed (No Approval ID)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "❌ Failed to create approval request. Please try again.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        800
+      ],
+      "id": "notify-approval-failed",
+      "name": "Notify: Approval Failed",
+      "webhookId": "approval-failed-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
         "jsCode": "// Loop back to check approval status\nconst approvalId = $('Request HITL Approval').item.json.approval?.id;\nconst workflowRunId = $('Assemble Context').item.json.runId;\n\nreturn [{\n  json: {\n    approvalId,\n    workflowRunId,\n    loopCount: ($input.all().length > 0 && $input.item(0).json.loopCount ? $input.item(0).json.loopCount + 1 : 1),\n    maxLoops: 100\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
@@ -374,6 +428,70 @@
       ],
       "id": "8069fa07-c030-4080-830d-ddce903dd65c",
       "name": "Check Loop Limit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst chatId = $('Assemble Context').item.json.chatId;\nconst approvalId = $('Prepare Loop').item.json.approvalId;\n\nreturn {\n  json: {\n    runId,\n    chatId,\n    approvalId,\n    error: 'Approval timed out after 100 polling attempts',\n    status: 'timeout',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        800
+      ],
+      "id": "handle-approval-timeout",
+      "name": "Handle Approval Timeout"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $json.runId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  status: 'timeout',\n  error: $json.error,\n  timedOutAt: $json.timestamp\n} }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        272,
+        800
+      ],
+      "id": "mark-run-timeout",
+      "name": "Mark Run Timeout",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "⏰ Approval request timed out after 100 checks. Please start a new workflow.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        800
+      ],
+      "id": "notify-approval-timeout",
+      "name": "Notify: Approval Timeout",
+      "webhookId": "approval-timeout-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -420,7 +538,7 @@
           "string": [
             {
               "value1": "={{ $json.approval?.status }}",
-              "value2": "approved",
+              "value2": "rejected",
               "operation": "equals"
             }
           ]
@@ -433,12 +551,98 @@
         720,
         640
       ],
+      "id": "check-if-rejected",
+      "name": "Check If Rejected"
+    },
+    {
+      "parameters": {
+        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst chatId = $('Assemble Context').item.json.chatId;\nconst approvalId = $('Get Approval Status').item.json.approvalId || $('Prepare Loop').item.json.approvalId;\n\nreturn {\n  json: {\n    runId,\n    chatId,\n    approvalId,\n    error: 'User rejected the approval',\n    status: 'rejected',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        800
+      ],
+      "id": "handle-approval-rejection",
+      "name": "Handle Approval Rejection"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $json.runId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  status: 'rejected',\n  rejectedAt: $json.timestamp\n} }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        944,
+        800
+      ],
+      "id": "mark-run-rejected",
+      "name": "Mark Run Rejected",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "🚫 You rejected the idea selection. Workflow stopped.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        800
+      ],
+      "id": "notify-approval-rejected",
+      "name": "Notify: Approval Rejected",
+      "webhookId": "approval-rejected-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "GPniCaPupOh6tYzX",
+          "name": "Telegram account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.approval?.status }}",
+              "value2": "approved",
+              "operation": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [
+        944,
+        640
+      ],
       "id": "5d8d51b9-da1e-45aa-9b63-c568a52cb438",
       "name": "Check If Approved"
     },
     {
       "parameters": {
-        "jsCode": "// Extract selected idea and video ID from HITL approval\nconst approval = $('Get Approval Status').item.json.approval ?? {};\nconst selectedItem = approval.content?.selectedItem ?? null;\n\nconst runResponse = $('Get Run After Ideas').item?.json ?? {};\nconst runPayload =\n  runResponse.workflowRun ??\n  runResponse.data?.workflowRun ??\n  runResponse.data?.run ??\n  runResponse.run ??\n  runResponse;\n\nconst stageOutput = runPayload?.stages?.idea_generation?.output ?? null;\nconst candidateIdeas = [\n  Array.isArray(stageOutput?.ideas) ? stageOutput.ideas : null,\n  Array.isArray(runPayload?.output?.ideas) ? runPayload.output.ideas : null,\n  Array.isArray(runPayload?.result) ? runPayload.result : null\n];\nconst ideas = candidateIdeas.find(Array.isArray) ?? [];\n\n// Find the selected idea in the ideas array\nlet selectedIdea = selectedItem;\nlet videoId = null;\n\nif (selectedItem && selectedItem.ideaId) {\n  videoId = selectedItem.ideaId;\n} else if (selectedItem && selectedItem.idea) {\n  // Find matching idea from the ideas array\n  const matching = ideas.find((idea) => idea.idea === selectedItem.idea);\n  if (matching && matching.ideaId) {\n    videoId = matching.ideaId;\n    selectedIdea = matching;\n  }\n} else if (ideas.length > 0) {\n  // Fallback to first idea if no selection\n  selectedIdea = ideas[0];\n  videoId = selectedIdea.ideaId || selectedIdea.id;\n}\n\nreturn {\n  json: {\n    selectedIdea,\n    videoId,\n    runId: $('Assemble Context').item.json.runId,\n    chatId: $('Assemble Context').item.json.chatId,\n    userInput: $('Assemble Context').item.json.userInput\n  }\n};"
+        "jsCode": "// Extract selected idea from Generate Ideas workflow output\n// Generate Ideas now returns the approved idea directly after handling HITL\nconst generateIdeasOutput = $('Call Generate Ideas').item.json;\n\n// Generate Ideas returns: { ideas, selectedIdea, approvalId, userIdea, totalIdeas }\nconst selectedIdea = generateIdeasOutput.selectedIdea || null;\nconst ideas = generateIdeasOutput.ideas || [];\nconst approvalId = generateIdeasOutput.approvalId || null;\n\n// Extract videoId from selectedIdea\nlet videoId = null;\nif (selectedIdea) {\n  videoId = selectedIdea.videoId || selectedIdea.ideaId || null;\n} else if (ideas.length > 0) {\n  // Fallback to first idea if no selection\n  const firstIdea = ideas[0];\n  videoId = firstIdea.videoId || firstIdea.ideaId || null;\n}\n\nreturn {\n  json: {\n    selectedIdea: selectedIdea || (ideas.length > 0 ? ideas[0] : null),\n    selectedItem: selectedIdea?.ideaId || (ideas.length > 0 ? ideas[0]?.ideaId : null),\n    ideas: ideas,\n    approvalId: approvalId,\n    videoId: videoId,\n    idea: selectedIdea || (ideas.length > 0 ? ideas[0] : null),\n    runId: $('Assemble Context').item.json.runId,\n    chatId: $('Assemble Context').item.json.chatId,\n    userInput: $('Assemble Context').item.json.userInput\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -448,6 +652,20 @@
       ],
       "id": "6958060a-f053-4a05-a559-da08f62e2de2",
       "name": "Extract Selected Idea"
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        944
+      ],
+      "id": "aeed8a44-917e-4f7d-b960-cddbb2336042",
+      "name": "Merge: Screenplay to Video and Notification"
     },
     {
       "parameters": {
@@ -484,9 +702,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ $json.runId }}",
-            "userInput": "={{ $json.userInput }}",
-            "ideaId": "={{ $json.videoId }}"
+            "runId": "={{ $('Assemble Context').item.json.runId }}",
+            "userInput": "={{ $('Assemble Context').item.json.userInput }}",
+            "ideaId": "={{ $json.selectedItem }}",
+            "selectedIdea": {
+              "idea": "={{ $json.idea?.idea || $json.selectedIdea?.idea || '' }}",
+              "vibe": "={{ $json.idea?.vibe || $json.selectedIdea?.vibe || '' }}",
+              "description": "={{ $json.idea?.description || $json.selectedIdea?.description || '' }}"
+            }
           },
           "matchingColumns": [],
           "schema": [
@@ -534,6 +757,20 @@
       ],
       "id": "d405fc21-e5cb-424e-a345-6b88e57e7217",
       "name": "Call Screen Writer"
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        176,
+        944
+      ],
+      "id": "3c48aca5-8af6-4f58-8560-b8cd29adbb66",
+      "name": "Merge: Video to Edit and Notification"
     },
     {
       "parameters": {
@@ -612,6 +849,20 @@
     },
     {
       "parameters": {
+        "mode": "passThrough",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        944
+      ],
+      "id": "9c5b191a-e6d0-44b3-b92f-a0f70fa4872b",
+      "name": "Merge: Edit to Upload and Notification"
+    },
+    {
+      "parameters": {
         "chatId": "={{ $('Assemble Context').item.json.chatId }}",
         "text": "✂️ Video edited! Uploading...",
         "additionalFields": {}
@@ -673,6 +924,20 @@
       ],
       "id": "4a546256-b647-47d0-b9f7-7c895cf5eaf1",
       "name": "Call Edit AISMR"
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -512,
+        1344
+      ],
+      "id": "7abc3099-7ac2-4360-8764-9995136e0c88",
+      "name": "Merge: Upload to TikTok and Notification"
     },
     {
       "parameters": {
@@ -740,6 +1005,20 @@
     },
     {
       "parameters": {
+        "mode": "passThrough",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        1344
+      ],
+      "id": "643fb4b7-68f0-4148-a6b2-e123fee1e798",
+      "name": "Merge: TikTok to Complete and Notification"
+    },
+    {
+      "parameters": {
         "chatId": "={{ $('Assemble Context').item.json.chatId }}",
         "text": "📱 Uploaded! Posting to TikTok...",
         "additionalFields": {}
@@ -804,14 +1083,55 @@
     },
     {
       "parameters": {
+        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst videoId = $('Extract Selected Idea').item.json.videoId;\nconst tiktokUrl = $('Call Post to TikTok').item.json.videoUrl || \n                  $('Call Post to TikTok').item.json.url ||\n                  'Unknown';\nconst driveUrl = $('Call Upload to Google Drive').item.json.fileUrl ||\n                 $('Call Upload to Google Drive').item.json.webViewLink ||\n                 'Unknown';\n\nreturn {\n  json: {\n    runId,\n    status: 'completed',\n    completedAt: new Date().toISOString(),\n    output: {\n      videoId,\n      tiktokUrl,\n      driveUrl\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        1344
+      ],
+      "id": "prepare-completion-data",
+      "name": "Prepare Completion Data"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $json.runId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  status: $json.status,\n  completedAt: $json.completedAt,\n  output: $json.output\n} }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        1344
+      ],
+      "id": "mark-run-complete",
+      "name": "Mark Run Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "chatId": "={{ $('Assemble Context').item.json.chatId }}",
-        "text": "={{ '🎉 Your AISMR video is live: ' + ($json.tiktokUrl || $json.url || 'Check TikTok for your video!') }}",
+        "text": "={{ '🎉 Your AISMR video is live: ' + ($('Prepare Completion Data').item.json.output.tiktokUrl || 'Check TikTok for your video!') }}",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        288,
+        736,
         1344
       ],
       "id": "cd129976-36a4-48bd-972a-91e5861cbd5b",
@@ -875,7 +1195,7 @@
       "main": [
         [
           {
-            "node": "Get Run After Ideas",
+            "node": "Merge: Ideas to Approval and Notification",
             "type": "main",
             "index": 0
           }
@@ -937,9 +1257,14 @@
         ]
       ]
     },
-    "Get Run After Ideas": {
+    "Merge: Ideas to Approval and Notification": {
       "main": [
         [
+          {
+            "node": "Extract Selected Idea",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Progress: Ideas Generated",
             "type": "main",
@@ -950,13 +1275,7 @@
     },
     "Progress: Ideas Generated": {
       "main": [
-        [
-          {
-            "node": "Request HITL Approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Request HITL Approval": {
@@ -978,7 +1297,41 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Handle Missing Approval ID",
+            "type": "main",
+            "index": 0
+          }
         ]
+      ]
+    },
+    "Handle Missing Approval ID": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (No Approval ID)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (No Approval ID)": {
+      "main": [
+        [
+          {
+            "node": "Notify: Approval Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify: Approval Failed": {
+      "main": [
+        []
       ]
     },
     "Prepare Loop": {
@@ -1000,7 +1353,41 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Handle Approval Timeout",
+            "type": "main",
+            "index": 0
+          }
         ]
+      ]
+    },
+    "Handle Approval Timeout": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Timeout": {
+      "main": [
+        [
+          {
+            "node": "Notify: Approval Timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify: Approval Timeout": {
+      "main": [
+        []
       ]
     },
     "Wait Before Polling": {
@@ -1018,11 +1405,56 @@
       "main": [
         [
           {
+            "node": "Check If Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Rejected": {
+      "main": [
+        [
+          {
+            "node": "Handle Approval Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Check If Approved",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Handle Approval Rejection": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Rejected": {
+      "main": [
+        [
+          {
+            "node": "Notify: Approval Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify: Approval Rejected": {
+      "main": [
+        []
       ]
     },
     "Check If Approved": {
@@ -1056,18 +1488,28 @@
     },
     "Progress: Screenplay Ready": {
       "main": [
+        []
+      ]
+    },
+    "Call Screen Writer": {
+      "main": [
         [
           {
-            "node": "Call Generate Video",
+            "node": "Merge: Screenplay to Video and Notification",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call Screen Writer": {
+    "Merge: Screenplay to Video and Notification": {
       "main": [
         [
+          {
+            "node": "Call Generate Video",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Progress: Screenplay Ready",
             "type": "main",
@@ -1078,18 +1520,28 @@
     },
     "Progress: Video Generated": {
       "main": [
+        []
+      ]
+    },
+    "Call Generate Video": {
+      "main": [
         [
           {
-            "node": "Call Edit AISMR",
+            "node": "Merge: Video to Edit and Notification",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call Generate Video": {
+    "Merge: Video to Edit and Notification": {
       "main": [
         [
+          {
+            "node": "Call Edit AISMR",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Progress: Video Generated",
             "type": "main",
@@ -1100,18 +1552,28 @@
     },
     "Progress: Video Edited": {
       "main": [
+        []
+      ]
+    },
+    "Call Edit AISMR": {
+      "main": [
         [
           {
-            "node": "Call Upload to Google Drive",
+            "node": "Merge: Edit to Upload and Notification",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call Edit AISMR": {
+    "Merge: Edit to Upload and Notification": {
       "main": [
         [
+          {
+            "node": "Call Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Progress: Video Edited",
             "type": "main",
@@ -1122,18 +1584,28 @@
     },
     "Progress: Uploaded": {
       "main": [
+        []
+      ]
+    },
+    "Call Upload to Google Drive": {
+      "main": [
         [
           {
-            "node": "Call Post to TikTok",
+            "node": "Merge: Upload to TikTok and Notification",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Call Upload to Google Drive": {
+    "Merge: Upload to TikTok and Notification": {
       "main": [
         [
+          {
+            "node": "Call Post to TikTok",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Progress: Uploaded",
             "type": "main",
@@ -1144,20 +1616,52 @@
     },
     "Progress: Posting to TikTok": {
       "main": [
-        [
-          {
-            "node": "Final: Posted",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Call Post to TikTok": {
       "main": [
         [
           {
+            "node": "Merge: TikTok to Complete and Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: TikTok to Complete and Notification": {
+      "main": [
+        [
+          {
+            "node": "Prepare Completion Data",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Progress: Posting to TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Completion Data": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Complete": {
+      "main": [
+        [
+          {
+            "node": "Final: Posted",
             "type": "main",
             "index": 0
           }
@@ -1174,12 +1678,12 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "turnId": "a044a7b7-a2f0-439b-86cb-82191e8593c3"
+          "turnId": "52025361-366e-46ce-8740-0f20252cb88d"
         }
       }
     ]
   },
-  "versionId": "99c6dc42-8455-46b2-b592-888262eba499",
+  "versionId": "27fc2e80-b2b9-418b-afac-7e5ae79b2c47",
   "triggerCount": 0,
   "shared": [
     {
@@ -1203,7 +1707,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T06:40:51.365Z",
+              "updatedAt": "2025-11-03T05:00:48.459Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -1227,7 +1731,7 @@
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-02",
+              "lastActiveAt": "2025-11-03",
               "isPending": false
             }
           }

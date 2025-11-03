@@ -240,10 +240,11 @@ This document catalogs all MCP tools available in the system, extracted from sou
 
 **Input Schema**:
 - project_name (string, optional)
-- project_name (string, optional)
-- At least one must be provided
+- persona_name (string, optional)
+- tags (array of strings, optional)
+- At least one of project_name or persona_name must be provided
 
-**Output Schema**: prompt (object with promptKey, content, metadata, updatedAt or null), resolution (strategy, project, persona, analyzedMatches), candidates array
+**Output Schema**: prompt (object with promptKey, content, metadata, updatedAt or null), resolution (strategy, project, persona, analyzedMatches, tags), candidates array
 
 **Dependencies**: PromptEmbeddingsRepository
 
@@ -341,4 +342,3 @@ All tools have corresponding `.test.ts` files that provide:
 - Mocked dependencies
 
 See test files in `src/server/tools/*.test.ts` for detailed examples.
-

@@ -749,6 +749,22 @@ export class PromptEmbeddingsRepository {
       );
     }
 
+    if (Array.isArray(filters.tags) && filters.tags.length > 0) {
+      const uniqueTags = filters.tags
+        .map((tag) => tag.toLowerCase())
+        .filter((tag, index, self) => tag.length > 0 && self.indexOf(tag) === index);
+
+      for (const tag of uniqueTags) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements_text(COALESCE(${schema.promptEmbeddings.metadata}->'tags', '[]'::jsonb)) AS tag_elem(value)
+            WHERE tag_elem.value = ${tag}
+          )`,
+        );
+      }
+    }
+
     return conditions;
   }
 
@@ -813,6 +829,7 @@ export interface PromptLookupFilters {
   type?: string;
   persona?: string;
   project?: string;
+  tags?: string[];
 }
 
 interface ListPromptRow {

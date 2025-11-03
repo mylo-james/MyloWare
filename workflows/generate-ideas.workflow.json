@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:37:50.997Z",
+  "updatedAt": "2025-11-03T19:42:03.619Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -22,10 +22,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        112,
-        -160
+        -6240,
+        -96
       ],
-      "id": "4fec7160-d643-4754-b2fe-902bd69ccb67",
+      "id": "8df43fa0-c6fa-4744-a471-0f5dd30166b8",
       "name": "When Called"
     },
     {
@@ -40,10 +40,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1920,
-        -160
+        -4432,
+        -96
       ],
-      "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
+      "id": "4c83097b-61a1-43a3-ac1b-f6ba24b825f1",
       "name": "Create a row"
     },
     {
@@ -54,10 +54,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        1472,
-        -160
+        -4880,
+        -96
       ],
-      "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
+      "id": "bfd42c2b-d229-43ae-80c2-87e07ad2ac09",
       "name": "Split Out"
     },
     {
@@ -113,10 +113,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1696,
-        -160
+        -4656,
+        -96
       ],
-      "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
+      "id": "b87bc1d0-7b1f-402a-8ab6-965b14857f02",
       "name": "Edit Fields1"
     },
     {
@@ -129,10 +129,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        336,
-        -160
+        -6016,
+        -96
       ],
-      "id": "2fe33b20-dde7-41a6-8cf1-e5f9a85080b3",
+      "id": "e3986e1b-2324-4557-b69a-d61062321897",
       "name": "Get Run (API)",
       "credentials": {
         "httpHeaderAuth": {
@@ -146,10 +146,10 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        112,
-        192
+        -6240,
+        248
       ],
-      "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
+      "id": "31131e25-274b-479e-88ec-f037fe847d6e",
       "name": "On Error"
     },
     {
@@ -166,10 +166,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        336,
-        192
+        -6016,
+        248
       ],
-      "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
+      "id": "96853da5-92f3-4f02-a6f1-bc45da08828f",
       "name": "Mark Run Failed (Ideas)",
       "credentials": {
         "httpHeaderAuth": {
@@ -188,10 +188,10 @@
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
       "position": [
-        912,
-        64
+        -5440,
+        128
       ],
-      "id": "mcp-tools-ideas",
+      "id": "43d01e2f-6c19-42d1-9473-b7901c069d7b",
       "name": "MCP Tools",
       "credentials": {
         "httpHeaderAuth": {
@@ -206,16 +206,16 @@
         "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n\nOutput: Return an array of exactly 12 idea objects. Each object must include:\nideaTitle, hookDescriptor, environment, materials, motionPlan, whisperBeatPlan, loopMechanic, executionNotes, and uniquenessEvidence.\n"
+          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n\nOutput: Return an array of exactly 12 idea objects. Each must have:\n- ideaTitle (exactly 2 words like \"velvet puppy\")\n- vibe (2-3 sentences describing mood/atmosphere)\n- uniquenessCheck (verification from video_query tool)\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        848,
-        -160
+        -5512,
+        -96
       ],
-      "id": "ai-agent-generate-ideas",
+      "id": "64a026c0-85e8-4169-8195-8a9e4cfa5c82",
       "name": "AI Agent: Generate Ideas",
       "retryOnFail": false
     },
@@ -226,10 +226,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1248,
-        -160
+        -5104,
+        -96
       ],
-      "id": "parse-ideas-output",
+      "id": "5c903d75-4a9b-4302-9764-9e6b99d0fb8a",
       "name": "Parse Ideas Output"
     },
     {
@@ -239,10 +239,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        -160
+        -5792,
+        -96
       ],
-      "id": "0ba93b9e-d12c-43f4-939f-634f7755c448",
+      "id": "fa7869df-d71a-4a2c-a3bb-2852a9e2ca89",
       "name": "Get Run"
     },
     {
@@ -252,10 +252,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2144,
-        -160
+        -4208,
+        -96
       ],
-      "id": "aggregate-ideas-node",
+      "id": "29a8eda8-4059-4110-a61a-4e0e45918e41",
       "name": "Aggregate Ideas"
     },
     {
@@ -272,10 +272,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2368,
-        -160
+        -3984,
+        -96
       ],
-      "id": "update-run-ideas-complete",
+      "id": "a9cd19b6-71b6-4e9c-8237-82e9bb98fafa",
       "name": "Update Run Ideas Complete",
       "credentials": {
         "httpHeaderAuth": {
@@ -296,10 +296,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2592,
-        -160
+        -3760,
+        -96
       ],
-      "id": "request-hitl-approval",
+      "id": "da790c5f-bb7b-4602-8236-8e7198e11597",
       "name": "Request HITL Approval"
     },
     {
@@ -317,10 +317,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2816,
-        -64
+        -3536,
+        0
       ],
-      "id": "Check Approval ID",
+      "id": "c98c0525-65ce-4905-bb64-51c8a4d9a05a",
       "name": "Check Approval ID"
     },
     {
@@ -333,10 +333,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3712,
-        -240
+        -2640,
+        -168
       ],
-      "id": "Get Approval Status",
+      "id": "542a4e77-3952-4504-b5a4-0467598b3eb6",
       "name": "Get Approval Status"
     },
     {
@@ -355,10 +355,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        3936,
-        -64
+        -2416,
+        0
       ],
-      "id": "Check If Approved",
+      "id": "7d458bb0-a728-4b72-abe0-9739bbb49755",
       "name": "Check If Approved"
     },
     {
@@ -369,10 +369,10 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        3488,
-        -240
+        -2864,
+        -168
       ],
-      "id": "Wait Before Polling",
+      "id": "73c0b3a7-11a2-4f3d-a98c-4781bf3551d3",
       "name": "Wait Before Polling",
       "webhookId": "bc467ebb-e6ee-4347-9752-b111fbaf9ae2"
     },
@@ -390,10 +390,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2816,
-        -256
+        -3536,
+        -192
       ],
-      "id": "Update Run Status Waiting",
+      "id": "5b720c5e-5371-4222-9dbd-bcfd709201b6",
       "name": "Update Run Status Waiting",
       "credentials": {
         "httpHeaderAuth": {
@@ -409,10 +409,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4384,
-        -64
+        -1968,
+        0
       ],
-      "id": "prepare-workflow-output",
+      "id": "c0441158-ca26-46f8-94e4-3632ac9e5cde",
       "name": "Prepare Workflow Output"
     },
     {
@@ -429,10 +429,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4160,
-        -64
+        -2192,
+        0
       ],
-      "id": "Update Run Approved",
+      "id": "2a4b1217-6f7c-42bc-b152-ecd4e505410e",
       "name": "Update Run Approved",
       "credentials": {
         "httpHeaderAuth": {
@@ -455,10 +455,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3488,
-        -48
+        -2864,
+        24
       ],
-      "id": "Update Run Rejected",
+      "id": "ff4388e5-cd05-42c4-a6bc-9019f6a52a37",
       "name": "Update Run Rejected",
       "credentials": {
         "httpHeaderAuth": {
@@ -474,10 +474,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3040,
-        -64
+        -3312,
+        0
       ],
-      "id": "Prepare Loop",
+      "id": "91b0d7e4-bb31-4b6a-8a62-7ae3da0d2bc5",
       "name": "Prepare Loop"
     },
     {
@@ -496,10 +496,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        3264,
-        -144
+        -3088,
+        -72
       ],
-      "id": "Check Loop Limit",
+      "id": "9fa1a30b-257f-4c6f-b190-21052869ca1c",
       "name": "Check Loop Limit"
     },
     {
@@ -515,10 +515,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        784,
-        64
+        -5568,
+        128
       ],
-      "id": "openai-gpt4o-ideas",
+      "id": "8e232e23-5673-4a20-ac9e-1839d05a34c3",
       "name": "5-nano",
       "credentials": {
         "openAiApi": {
@@ -530,15 +530,15 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "jsonSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\n      \"ideaTitle\",\n      \"hookDescriptor\",\n      \"environment\",\n      \"materials\",\n      \"motionPlan\",\n      \"whisperBeatPlan\",\n      \"loopMechanic\",\n      \"executionNotes\",\n      \"uniquenessEvidence\"\n    ],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\"\n      },\n      \"hookDescriptor\": {\n        \"type\": \"string\",\n        \"description\": \"Primary tactile hook; must not collide with exclusion lists.\"\n      },\n      \"environment\": {\n        \"type\": \"string\"\n      },\n      \"materials\": {\n        \"type\": \"string\"\n      },\n      \"motionPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Camera move + subject motion; mention continuity and rhythm.\"\n      },\n      \"whisperBeatPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Explain what happens at 3.0s and how whisper integrates.\"\n      },\n      \"loopMechanic\": {\n        \"type\": \"string\"\n      },\n      \"executionNotes\": {\n        \"type\": \"string\",\n        \"description\": \"Props, lighting, hand usage (≤2), audio treatment (no music).\"\n      },\n      \"uniquenessEvidence\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"session\": {\n            \"type\": \"string\"\n          },\n          \"archive\": {\n            \"type\": \"string\"\n          },\n          \"similarityScore\": {\n            \"type\": \"number\"\n          }\n        }\n      }\n    }\n  }\n}"
+        "jsonSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\"ideaTitle\", \"vibe\", \"uniquenessCheck\"],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\",\n        \"description\": \"Exactly 2 words (e.g., 'velvet puppy', 'void puppy')\",\n        \"pattern\": \"^[a-zA-Z]+ [a-zA-Z]+$\"\n      },\n      \"vibe\": {\n        \"type\": \"string\",\n        \"description\": \"2-3 sentences describing atmosphere and mood for screenwriter\"\n      },\n      \"uniquenessCheck\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"exists\": {\n            \"type\": \"boolean\"\n          },\n          \"matchedVideos\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\"\n            }\n          },\n          \"confidence\": {\n            \"type\": \"string\",\n            \"enum\": [\"exact\", \"fuzzy\", \"none\"]\n          }\n        }\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        1040,
-        64
+        -5312,
+        128
       ],
-      "id": "154e9d58-e1e9-4da7-9484-59b70896dccf",
+      "id": "83094251-2b62-4449-8bcc-e585c4a81450",
       "name": "Structured Output Parser"
     }
   ],
@@ -596,11 +596,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Mark Run Failed (Ideas)": {
-      "main": [
-        []
       ]
     },
     "MCP Tools": {
@@ -683,11 +678,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Update Run Status Waiting": {
-      "main": [
-        []
       ]
     },
     "Check Approval ID": {
@@ -781,16 +771,6 @@
         ]
       ]
     },
-    "Prepare Workflow Output": {
-      "main": [
-        []
-      ]
-    },
-    "Update Run Rejected": {
-      "main": [
-        []
-      ]
-    },
     "5-nano": {
       "ai_languageModel": [
         [
@@ -840,7 +820,7 @@
       }
     ]
   },
-  "versionId": "94e34af4-7f5c-488a-9244-c7b842a318f4",
+  "versionId": "8dc472ad-46c7-4eea-a603-864999460446",
   "triggerCount": 0,
   "shared": [
     {

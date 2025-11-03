@@ -15,11 +15,11 @@
     "icon": "🌀💡"
   },
   "workflow": {
-    "definition_of_success": "Produce 12 AISMR concepts with verified uniqueness, feasibility notes, and validated constraints.",
+    "definition_of_success": "Produce 12 AISMR concepts with 2-word titles, vibe descriptions, and verified uniqueness via video table query.",
     "execution_context": {
       "estimated_duration_seconds": "25-45",
-      "tool_calls": ["conversation.remember", "prompts.search", "prompts_search_adaptive", "conversation.store"],
-      "critical_path_steps": [1, 2, 3, 5, 6, 7, 8]
+      "tool_calls": ["conversation.remember", "video_query", "conversation.store"],
+      "critical_path_steps": [1, 2, 3, 4, 5]
     },
     "inputs": [
       {
@@ -62,113 +62,57 @@
       },
       {
         "order": 2,
-        "name": "Archive Uniqueness Scan",
-        "instruction": "For each candidate descriptor family, query archive memory to detect duplicates.",
+        "name": "Video Table Uniqueness Check",
+        "instruction": "For each candidate 2-word idea, query the videos table to check if it already exists.",
         "tool": {
-          "name": "prompts.search",
+          "name": "video_query",
           "arguments": {
-            "project": "aismr",
-            "searchMode": "keyword",
-            "useMemoryRouting": true,
-            "limit": 15
+            "idea": "<candidate 2-word title>",
+            "projectId": "<projectId>",
+            "fuzzyMatch": true
           },
           "execution": {
-            "forEach": "candidateDescriptor",
-            "deriveQuery": "\"AISMR\" + <candidateDescriptor>"
+            "forEach": "candidateIdea",
+            "note": "Check each 2-word title candidate before finalizing"
           },
           "outputs": [
-            "archiveHits[candidate]: array of {chunkId, similarity, chunkText}",
-            "exclusionList.archive: add descriptors with similarity ≥ 0.85"
-          ]
+            "uniquenessCheck: {exists, matchedVideos[], confidence}",
+            "exclusionList.videos: add ideas where exists=true and confidence='exact'"
+          ],
+          "failure_handling": "If video_query fails, retry once. On persistent failure, proceed with warning but still check uniqueness."
         }
       },
       {
         "order": 3,
-        "name": "Pattern Discovery via Graph",
-        "instruction": "Explore winning adjacency patterns to inspire contrast.",
-        "tool": {
-          "name": "prompts.search",
-          "arguments": {
-            "project": "aismr",
-            "searchMode": "hybrid",
-            "useMemoryRouting": true,
-            "expandGraph": true,
-            "maxHops": 2,
-            "limit": 12
-          },
-          "query_template": "<userInput keywords> AISMR tactile concept",
-          "outputs": [
-            "patternInsights: list of materials/motions that worked in archive",
-            "patternCollisions: overlap with exclusion lists"
-          ]
-        }
+        "name": "Generate 2-Word Ideas with Vibes",
+        "instruction": "Generate at least 15 candidate 2-word ideas (e.g., 'velvet puppy', 'void puppy'). For each idea, create a 2-3 sentence vibe description that captures the atmosphere and mood for the screenwriter.",
+        "outputs": [
+          "draftIdeas: array of {ideaTitle (2 words), vibe (2-3 sentences)}",
+          "candidateCount: at least 15 to filter down to 12 unique ones"
+        ],
+        "notes": "Focus on evocative 2-word combinations. Each vibe should give screenwriter clear direction on mood and atmosphere."
       },
       {
         "order": 4,
-        "name": "Adaptive Inspiration (Conditional)",
-        "instruction": "If uniqueness remains uncertain or inspiration thin, run adaptive search.",
-        "tool": {
-          "name": "prompts_search_adaptive",
-          "arguments": {
-            "project": "aismr",
-            "query": "<userInput theme> tactile surreal remixes",
-            "maxIterations": 3,
-            "utilityThreshold": 0.6,
-            "expandGraph": true,
-            "temporalBoost": true
-          },
-          "exit_criteria": [
-            "Stop if utility improvement < 0.05 between iterations.",
-            "Record best iteration summary."
-          ],
-          "outputs": [
-            "adaptiveInsights: array of {iteration, utility, insight}",
-            "adaptiveStatus: 'skipped' | 'ran' | 'halted'"
-          ]
-        }
+        "name": "Filter to Unique 12",
+        "instruction": "Filter draft ideas down to exactly 12 unique ones. Prioritize ideas that passed video_query uniqueness check (exists=false). If needed, regenerate ideas that collide with existing videos.",
+        "outputs": [
+          "finalIdeas: exactly 12 idea objects ready for output",
+          "filteredCount: number of ideas removed due to collisions"
+        ],
+        "notes": "All 12 ideas must have uniquenessCheck data from video_query."
       },
       {
         "order": 5,
-        "name": "Draft Pool Creation",
-        "instruction": "Generate >12 internal drafts leveraging exclusion data; keep feasibility front-of-mind.",
+        "name": "Structured Output",
+        "instruction": "Return exactly 12 idea objects matching the Output Schema. Each must include ideaTitle (2 words), vibe (2-3 sentences), and uniquenessCheck from video_query.",
         "outputs": [
-          "draftIdeas: at least 15 candidate objects with descriptors, materials, environment, loop mechanic."
+          "ideas[12]: array of idea objects with ideaTitle, vibe, uniquenessCheck"
         ],
-        "notes": "Do not output yet; this is internal filtering stage."
+        "notes": "Do not include narrative commentary outside schema. Just return the array."
       },
       {
         "order": 6,
-        "name": "Validation Pass",
-        "instruction": "Re-run keyword checks on final 12 to confirm uniqueness and spec compliance.",
-        "tool": {
-          "name": "prompts.search",
-          "arguments": {
-            "project": "aismr",
-            "searchMode": "keyword",
-            "useMemoryRouting": true,
-            "limit": 10
-          },
-          "execution": {
-            "forEach": "finalIdea.descriptor"
-          },
-          "outputs": [
-            "validationLog: array of {ideaId, descriptor, similarity, actionTaken}"
-          ],
-          "failure_handling": "If similarity ≥ 0.85 persists after regeneration, HALT with `status:blocked.uniqueness`."
-        }
-      },
-      {
-        "order": 7,
-        "name": "Structured Output",
-        "instruction": "Return 12 validated ideas with full schema + aggregated uniqueness audit.",
-        "outputs": [
-          "ideas[12]: array of idea objects (fields listed in Output Schema).",
-          "uniquenessAudit: {sessionEvidence, archiveEvidence, adaptiveEvidence, finalStatus}"
-        ],
-        "notes": "Do not include narrative commentary outside schema."
-      },
-      {
-        "order": 8,
         "name": "Memory Writeback",
         "instruction": "Persist results and exclusions via conversation.store.",
         "tool": {
@@ -177,14 +121,13 @@
             "sessionId": "<sessionId>",
             "role": "assistant",
             "tags": ["ideas", "aismr", "batch"],
-            "content": "Generated AISMR idea set for <userInput>",
+            "content": "Generated 12 AISMR ideas with 2-word titles and vibes for <userInput>",
             "summary": {
               "count": 12,
               "exclusionList": {
                 "session": "<exclusionList.session>",
-                "archive": "<exclusionList.archive>"
+                "videos": "<exclusionList.videos>"
               },
-              "adaptiveStatus": "<adaptiveStatus>",
               "uniquenessValidated": true,
               "runId": "<runId>"
             }
@@ -194,9 +137,10 @@
     ],
     "validation_checklist": [
       "All mandatory tools executed or HALT issued.",
-      "Exclusion lists documented with descriptor roots.",
-      "Final output references AISMR specs (hands ≤2, whisper at 3.0s, runtime 8s, no music).",
-      "uniquenessAudit present with evidence from session + archive (+ adaptive if used).",
+      "Each idea has exactly 2 words in ideaTitle (e.g., 'velvet puppy').",
+      "Each idea has a 2-3 sentence vibe description.",
+      "Each idea has uniquenessCheck from video_query tool.",
+      "No duplicate ideas (all 12 are unique).",
       "Output contains exactly 12 ideas and matches expected schema."
     ]
   },
@@ -204,57 +148,32 @@
     "type": "array",
     "items": {
       "type": "object",
-      "required": [
-        "ideaTitle",
-        "hookDescriptor",
-        "environment",
-        "materials",
-        "motionPlan",
-        "whisperBeatPlan",
-        "loopMechanic",
-        "executionNotes",
-        "uniquenessEvidence"
-      ],
+      "required": ["ideaTitle", "vibe", "uniquenessCheck"],
       "properties": {
         "ideaTitle": {
-          "type": "string"
-        },
-        "hookDescriptor": {
           "type": "string",
-          "description": "Primary tactile hook; must not collide with exclusion lists."
+          "description": "Exactly 2 words (e.g., 'velvet puppy', 'void puppy')",
+          "pattern": "^[a-zA-Z]+ [a-zA-Z]+$"
         },
-        "environment": {
-          "type": "string"
-        },
-        "materials": {
-          "type": "string"
-        },
-        "motionPlan": {
+        "vibe": {
           "type": "string",
-          "description": "Camera move + subject motion; mention continuity and rhythm."
+          "description": "2-3 sentences describing atmosphere and mood for screenwriter"
         },
-        "whisperBeatPlan": {
-          "type": "string",
-          "description": "Explain what happens at 3.0s and how whisper integrates."
-        },
-        "loopMechanic": {
-          "type": "string"
-        },
-        "executionNotes": {
-          "type": "string",
-          "description": "Props, lighting, hand usage (≤2), audio treatment (no music)."
-        },
-        "uniquenessEvidence": {
+        "uniquenessCheck": {
           "type": "object",
           "properties": {
-            "session": {
-              "type": "string"
+            "exists": {
+              "type": "boolean"
             },
-            "archive": {
-              "type": "string"
+            "matchedVideos": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
             },
-            "similarityScore": {
-              "type": "number"
+            "confidence": {
+              "type": "string",
+              "enum": ["exact", "fuzzy", "none"]
             }
           }
         }

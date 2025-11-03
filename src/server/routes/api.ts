@@ -10,6 +10,7 @@ import { resolvePrompt } from '../tools/promptGetTool';
 import { searchPrompts } from '../tools/promptSearchTool';
 import { enhanceQuery as baseEnhanceQuery } from '../../vector/queryEnhancer';
 import { sendValidationError, sendError } from '../utils/errorResponses';
+import { normaliseSlug } from '../../utils/slug';
 import {
   featureFlagDefinitions,
   featureFlagNames,
@@ -22,10 +23,14 @@ import {
 const videoStatusValues = new Set(videoStatusEnum.enumValues);
 const runStatusValues = new Set(runStatusEnum.enumValues);
 
+const tagQuerySchema = z.union([z.string().trim(), z.array(z.string().trim())]).optional();
+
 const promptResolveQuerySchema = z
   .object({
     project: z.string().trim().optional(),
     persona: z.string().trim().optional(),
+    tags: tagQuerySchema,
+    tag: tagQuerySchema,
   })
   .superRefine((value, ctx) => {
     if (!value.project && !value.persona) {
@@ -36,6 +41,27 @@ const promptResolveQuerySchema = z
       });
     }
   });
+
+function normalizeQueryTags(tags?: string | string[], alias?: string | string[]): string[] {
+  const inputs = [tags, alias].filter((value): value is string | string[] => value !== undefined);
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const collected: string[] = [];
+
+  for (const entry of inputs) {
+    const values = Array.isArray(entry) ? entry : entry.split(',');
+    for (const raw of values) {
+      const slug = normaliseSlug(raw);
+      if (slug && !collected.includes(slug)) {
+        collected.push(slug);
+      }
+    }
+  }
+
+  return collected;
+}
 
 const promptSearchQuerySchema = z.object({
   q: z.string().trim().min(1, 'q is required'),
@@ -389,9 +415,11 @@ export async function registerApiRoutes(
     }
 
     try {
+      const tags = normalizeQueryTags(parsed.data.tags, parsed.data.tag);
       const result = await resolvePrompt(promptRepository, {
         project_name: parsed.data.project ?? undefined,
         persona_name: parsed.data.persona ?? undefined,
+        ...(tags.length > 0 ? { tags } : {}),
       });
 
       if (!result.prompt) {

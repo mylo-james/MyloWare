@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:36:30.585Z",
+  "updatedAt": "2025-11-03T19:42:56.505Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -56,7 +56,7 @@
       "typeVersion": 1,
       "position": [
         -800,
-        104
+        112
       ],
       "id": "e7643002-dae8-441f-be64-a2040255f6a8",
       "name": "On Error"
@@ -76,7 +76,7 @@
       "typeVersion": 4.2,
       "position": [
         -576,
-        104
+        112
       ],
       "id": "a477a4ea-efbd-4aba-af0a-bd0fb4f9dc27",
       "name": "Mark Run Failed (Scripts)",
@@ -143,13 +143,13 @@
         "text": "={{ $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Sloane, screenwriter for AISMR.\n\nIdentity: persona=\"screenwriter\", project=\"aismr\"\n\nGoal: Transform ideas into validated AISMR screenplays with exact timing and specs.\n\nBootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed.\n\nOutput: Return a single screenplay object with:\ntitle, logline, timestamps (array with time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary.\n"
+          "systemMessage": "=You are Sloane, screenwriter for AISMR.\n\nIdentity: persona=\"screenwriter\", project=\"aismr\"\n\nGoal: Transform 2-word ideas and vibe descriptions into validated AISMR screenplays (8s, veo-3-fast) with exact timing and specs.\n\nBootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed.\n\nInput: You receive a 2-word idea title (e.g., \"velvet puppy\") and a vibe description (2-3 sentences). Expand these into a full screenplay.\n\nOutput: Return a single screenplay object with:\ntitle, logline, timestamps (array with time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary.\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -72,
+        -80,
         -224
       ],
       "id": "cf709bc1-fdf7-48d5-a13a-72e5dee7e01c",
@@ -248,7 +248,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "jsonSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"title\",\n    \"logline\",\n    \"timestamps\",\n    \"camera\",\n    \"materials\",\n    \"audio\",\n    \"handDiscipline\",\n    \"loopMechanic\",\n    \"validationSummary\"\n  ],\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"logline\": {\n      \"type\": \"string\"\n    },\n    \"timestamps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\"time\", \"action\", \"sensoryDetail\"],\n        \"properties\": {\n          \"time\": {\n            \"type\": \"string\",\n            \"pattern\": \"^\\\\d+\\\\.\\\\d+s$\"\n          },\n          \"action\": {\n            \"type\": \"string\"\n          },\n          \"sensoryDetail\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"camera\": {\n      \"type\": \"string\"\n    },\n    \"materials\": {\n      \"type\": \"string\"\n    },\n    \"audio\": {\n      \"type\": \"string\",\n      \"description\": \"Detail tactile foley, whisper integration, and confirmation of no music.\"\n    },\n    \"handDiscipline\": {\n      \"type\": \"string\",\n      \"description\": \"Explicit hand choreography ensuring ≤2 hands.\"\n    },\n    \"loopMechanic\": {\n      \"type\": \"string\"\n    },\n    \"validationSummary\": {\n      \"type\": \"object\",\n      \"required\": [\"timing\", \"hands\", \"audio\", \"loop\", \"notes\"],\n      \"properties\": {\n        \"timing\": {\n          \"type\": \"string\"\n        },\n        \"hands\": {\n          \"type\": \"string\"\n        },\n        \"audio\": {\n          \"type\": \"string\"\n        },\n        \"loop\": {\n          \"type\": \"string\"\n        },\n        \"notes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  }\n}"
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"title\",\n    \"logline\",\n    \"timestamps\",\n    \"camera\",\n    \"materials\",\n    \"audio\",\n    \"handDiscipline\",\n    \"loopMechanic\",\n    \"validationSummary\"\n  ],\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\"\n    },\n    \"logline\": {\n      \"type\": \"string\"\n    },\n    \"timestamps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\"time\", \"action\", \"sensoryDetail\"],\n        \"properties\": {\n          \"time\": {\n            \"type\": \"string\",\n            \"pattern\": \"^\\\\d+\\\\.\\\\d+s$\"\n          },\n          \"action\": {\n            \"type\": \"string\"\n          },\n          \"sensoryDetail\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"camera\": {\n      \"type\": \"string\"\n    },\n    \"materials\": {\n      \"type\": \"string\"\n    },\n    \"audio\": {\n      \"type\": \"string\",\n      \"description\": \"Detail tactile foley, whisper integration, and confirmation of no music.\"\n    },\n    \"handDiscipline\": {\n      \"type\": \"string\",\n      \"description\": \"Explicit hand choreography ensuring ≤2 hands.\"\n    },\n    \"loopMechanic\": {\n      \"type\": \"string\"\n    },\n    \"validationSummary\": {\n      \"type\": \"object\",\n      \"required\": [\"timing\", \"hands\", \"audio\", \"loop\", \"notes\"],\n      \"properties\": {\n        \"timing\": {\n          \"type\": \"string\"\n        },\n        \"hands\": {\n          \"type\": \"string\"\n        },\n        \"audio\": {\n          \"type\": \"string\"\n        },\n        \"loop\": {\n          \"type\": \"string\"\n        },\n        \"notes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
@@ -399,7 +399,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "8fbd749e-61f0-4e74-b551-827adde8139f",
+  "versionId": "896241a0-b20e-4d83-92b7-df70f314c61f",
   "triggerCount": 0,
   "shared": [
     {

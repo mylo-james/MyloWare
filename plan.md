@@ -1,912 +1,1444 @@
-# AISMR Workflow System Repair Plan
+# AISMR Workflow Fix & Refactor Plan
 
-**Source:** WORKFLOW_REVIEW.md  
-**Goal:** Make "Create an AISMR video about cats" work end-to-end  
-**Status:** Not Started
-
-## 🎯 Architecture Decisions
-
-Based on stakeholder input, the following decisions have been made:
-
-1. **Input Strategy:** Option A - Pass `turnId`, let AISMR create the run
-2. **Architecture:** AISMR is the master orchestrator that calls separate workflows:
-   - Generate Ideas (modular)
-   - Script Writer (modular)
-   - Generate Video (modular)
-   - Edit AISMR (modular, expand existing)
-   - Upload to Google Drive (modular)
-   - Post to TikTok (modular)
-3. **Video Trigger:** Automatic after screenplay generation
-4. **User Response:** Progress updates (multiple messages at each stage)
-5. **HITL:** Required - human approval before proceeding to script/video
-6. **Error Handling:** Fail fast - any error stops workflow immediately
-7. **Testing Scope:** Minimal - manual happy path + critical error verification
-8. **Deployment:** Big bang - deploy all changes at once
-
-## 📋 Complete Flow
-
-```
-User: "Make an AISMR video about cats"
-  ↓
-Chat Workflow
-  ↓ (passes turnId)
-AISMR Orchestrator Workflow
-  ├─→ Generate Ideas → 12 ideas
-  │   └─→ Update: "Generated 12 ideas! Waiting for approval..."
-  ├─→ HITL Approval (required)
-  │   └─→ Update: "Idea approved! Generating screenplay..."
-  ├─→ Script Writer → screenplay/prompt
-  │   └─→ Update: "Screenplay ready! Generating video..."
-  ├─→ Generate Video → video file
-  │   └─→ Update: "Video generated! Editing..."
-  ├─→ Edit AISMR → edited video
-  │   └─→ Update: "Video edited! Uploading..."
-  ├─→ Upload to Google Drive → drive URL
-  │   └─→ Update: "Uploaded to Drive! Posting to TikTok..."
-  └─→ Post to TikTok → tiktok URL
-      └─→ Final: "Your AISMR video is live: [TikTok URL]"
-```
+**Created:** November 2, 2025  
+**Status:** ✅ Implementation Complete - Ready for Testing  
+**Goal:** Fix critical data flow bugs and refactor AISMR workflow to eliminate unnecessary complexity  
+**Completed:** November 2, 2025
 
 ---
 
-## Phase 1: Critical Blocking Issues
+## 🎯 Executive Summary
 
-These issues prevent ANY execution of the AISMR workflow. Must be completed before testing can begin.
+This plan addresses critical bugs preventing the AISMR workflow from functioning, then refactors the architecture to eliminate unnecessary workflow nesting. The work is organized into 6 phases, starting with quick wins that make the workflow functional, then proceeding to architectural improvements.
 
-### Issue #1: Fix Chat → AISMR Input Contract Violation
+**Total Estimated Time:** 10-16 hours across 6 phases
 
-**Decision:** Option A - Pass turnId, let AISMR create run
+---
 
-- [x] **1.1: Update Chat workflow to pass turnId**
-  - [x] Open `workflows/chat.workflow.json`
-  - [x] Locate the "AISMR Workflow" tool node (around line 368-410)
-  - [x] Find the `workflowInputs.value` object (line 380)
-  - [x] Replace the current value:
-    ```json
-    "value": {
-      "sessionId": "={{ $('Store User Turn').item.json.data.turn.sessionId }}"
-    }
-    ```
-  - [x] With new value:
-    ```json
-    "value": {
-      "turnId": "={{ $('Store User Turn').item.json.data.turn.id }}",
-      "sessionId": "={{ $('Store User Turn').item.json.data.turn.sessionId }}"
-    }
-    ```
-  - [x] Update the schema array to include turnId field
-  - [x] Save changes
+## 📋 Pre-Flight Checklist
 
-- [x] **1.2: Update AISMR workflow to create run from turnId**
-  - [x] Open `workflows/AISMR.workflow.json`
-  - [x] Locate "When Executed by Another Workflow" node (lines 10-29)
-  - [x] Update workflowInputs to expect only turnId:
-    ```json
-    "workflowInputs": {
-      "values": [
-        {
-          "name": "turnId"
-        }
-      ]
-    }
-    ```
-  - [x] Verify "Get Turn" node uses the turnId correctly
-  - [x] Find the "Create Run" node (lines 231-254)
-  - [x] Ensure it comes AFTER "Get Turn" in the connection flow
-  - [x] Update "Create Run" body to use data from "Get Turn":
+Before starting any phase, ensure:
+
+- [ ] You have access to n8n workflow editor at the AISMR instance
+- [ ] You can export/backup workflows as JSON
+- [ ] You have access to test the workflows (ability to trigger executions)
+- [ ] You have reviewed REVIEW.md to understand the issues
+- [ ] You have fake test data ready (or real data if a successful run exists)
+- [ ] You understand the chat workflow pattern (reference: `chat.workflow.json`)
+
+---
+
+## 🚀 Phase 0: Critical Quick Wins (2-4 hours)
+
+**Goal:** Fix critical data flow bugs to make the workflow functional  
+**Priority:** CRITICAL - Do this first  
+**Testing Strategy:** Use fake test data until we get a successful run
+
+### Phase 0.1: Fix Telegram Nodes Breaking Data Flow (1-2 hours)
+
+**Problem:** Progress notification nodes overwrite `$json`, breaking all downstream nodes
+
+#### Step 1: Identify All Inline Telegram Notification Nodes
+
+- [x] Open `workflows/AISMR.workflow.json` in n8n editor
+- [x] Locate node: `Progress: Ideas Generated` (around line 272)
+- [x] Note its position: between `Get Run After Ideas` and `Request HITL Approval`
+- [x] Locate all other progress notification nodes:
+  - [x] After `Call Screen Writer`
+  - [x] After `Call Generate Video`
+  - [x] After `Call Edit AISMR`
+  - [x] After `Call Upload to Google Drive`
+  - [x] After `Call Post to TikTok`
+- [x] For each node, note which node comes BEFORE and AFTER it
+- [x] Document the current flow in comments
+
+#### Step 2: Branch First Telegram Node (Progress: Ideas Generated)
+
+**Current Flow:**
+
+```
+Get Run After Ideas → Progress: Ideas Generated → Request HITL Approval
+```
+
+**Target Flow:**
+
+```
+Get Run After Ideas ─┬─→ Progress: Ideas Generated (branch)
+                     └─→ Request HITL Approval (main path)
+```
+
+- [x] Click on the connection between `Get Run After Ideas` and `Progress: Ideas Generated`
+- [x] Delete this connection
+- [x] Add a new node: **Merge** node
+  - [x] Name: `Merge: Ideas to Approval and Notification`
+  - [x] Mode: `Passthrough` (this is critical!)
+  - [x] Position it between `Get Run After Ideas` and the split
+- [x] Connect `Get Run After Ideas` output to `Merge` input
+- [x] Connect `Merge` output 1 to `Request HITL Approval` (main path)
+- [x] Connect `Merge` output 2 to `Progress: Ideas Generated` (branch)
+- [x] Test the node configuration:
+  - [x] Click "Test workflow" with pinned data
+  - [x] Verify `Request HITL Approval` receives the run data (not Telegram response)
+  - [x] Verify `Progress: Ideas Generated` still sends notification
+- [x] Save workflow
+
+#### Step 3: Branch Remaining Telegram Nodes
+
+Repeat Step 2 pattern for each progress notification:
+
+**After Call Screen Writer:**
+
+- [x] Add Merge node: `Merge: Screenplay to Video and Notification`
+- [x] Connect `Call Screen Writer` → Merge
+- [x] Connect Merge output 1 → `Call Generate Video` (main path)
+- [x] Connect Merge output 2 → Progress notification (branch)
+- [x] Test with pinned data
+
+**After Call Generate Video:**
+
+- [x] Add Merge node: `Merge: Video to Edit and Notification`
+- [x] Connect `Call Generate Video` → Merge
+- [x] Connect Merge output 1 → `Call Edit AISMR` (main path)
+- [x] Connect Merge output 2 → Progress notification (branch)
+- [x] Test with pinned data
+
+**After Call Edit AISMR:**
+
+- [x] Add Merge node: `Merge: Edit to Upload and Notification`
+- [x] Connect `Call Edit AISMR` → Merge
+- [x] Connect Merge output 1 → `Call Upload to Google Drive` (main path)
+- [x] Connect Merge output 2 → Progress notification (branch)
+- [x] Test with pinned data
+
+**After Call Upload to Google Drive:**
+
+- [x] Add Merge node: `Merge: Upload to TikTok and Notification`
+- [x] Connect `Call Upload to Google Drive` → Merge
+- [x] Connect Merge output 1 → `Call Post to TikTok` (main path)
+- [x] Connect Merge output 2 → Progress notification (branch)
+- [x] Test with pinned data
+
+**After Call Post to TikTok:**
+
+- [x] Add Merge node: `Merge: TikTok to Complete and Notification`
+- [x] Connect `Call Post to TikTok` → Merge
+- [x] Connect Merge output 1 → `Mark Run Complete` (we'll add this next)
+- [x] Connect Merge output 2 → Progress notification (branch)
+- [x] Test with pinned data
+
+#### Step 4: Verify Data Flow Integrity
+
+- [x] Create test execution with pinned data
+- [x] Set breakpoints at each major node
+- [x] Step through execution
+- [x] At each checkpoint, verify `$json` contains expected data:
+  - [x] `Request HITL Approval`: Should have `stageOutput`, `ideas` array
+  - [x] `Call Generate Video`: Should have `videoId`
+  - [x] `Call Edit AISMR`: Should have video data
+  - [x] `Call Upload to Google Drive`: Should have edited video data
+  - [x] `Call Post to TikTok`: Should have Drive URL
+- [x] Verify all Telegram notifications still send correctly
+- [x] Document any remaining issues
+
+#### Step 5: Save and Export Backup
+
+- [x] Click "Save" in workflow editor
+- [x] Export workflow: Settings → Download
+- [x] Save as: `AISMR-phase0.1-telegram-fix.json`
+- [x] Commit to git with message: "Phase 0.1: Fix Telegram nodes breaking data flow"
+
+---
+
+### Phase 0.2: Add Missing Control-Flow Fallback Branches (1 hour)
+
+**Problem:** Several IF nodes have missing false branches, causing silent failures
+
+#### Step 6: Wire `Check Approval ID` False Branch
+
+**Current:** Only true branch is connected  
+**Problem:** If approval ID is missing, execution stops silently
+
+- [x] Locate node: `Check Approval ID` in AISMR workflow
+- [x] Verify it currently has only one output connected (true branch)
+- [x] Click on the false (bottom) output
+- [x] Add new **Code** node:
+  - [x] Name: `Handle Missing Approval ID`
+  - [x] Code:
+
     ```javascript
-    {
-      "projectId": "aismr",
-      "personaId": "ideagenerator",
-      "sessionId": "={{ $('Get Turn').item.json.data.turn.sessionId }}",
-      "status": "idea_generation",
-      "metadata": {
-        "source": "aismr_orchestrator",
-        "turnId": "={{ $json.turnId }}"
-      }
-    }
+    const runId = $('Assemble Context').item.json.runId;
+    const chatId = $('Assemble Context').item.json.chatId;
+
+    return {
+      json: {
+        runId,
+        chatId,
+        error: 'Failed to create HITL approval request',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      },
+    };
     ```
-  - [x] Verify the URL is correct: `POST https://mcp-vector.mjames.dev/api/runs`
-  - [x] Save changes
 
-### Issue #2: Fix Missing "Validate Inputs" Node Reference
-
-- [x] **2.1: Update AISMR Assemble Context node**
-  - [x] Open `workflows/AISMR.workflow.json`
-  - [x] Locate the "Assemble Context" node (lines 55-67)
-  - [x] Find the JavaScript code parameter
-  - [x] Locate line with: `const runId = $('Validate Inputs').item.json.runId;`
-  - [x] Replace with safer alternative:
-    ```javascript
-    const runId =
-      $json.runId ||
-      $('When Executed by Another Workflow').item.json.runId ||
-      $('Create Run').item?.json?.data?.run?.id;
-    ```
-  - [x] Verify this handles all three possible sources:
-    - [x] Direct from trigger input ($json.runId)
-    - [x] From workflow trigger ($('When Executed by Another Workflow'))
-    - [x] From Create Run node (if executed)
-  - [x] Save changes
-
-- [x] **2.2: Add null checks and error handling**
-  - [x] Still in "Assemble Context" node JavaScript
-  - [x] After the runId assignment, add validation:
-    ```javascript
-    if (!runId) {
-      throw new Error('AISMR workflow requires a valid runId. Received: ' + JSON.stringify($json));
-    }
-    ```
-  - [x] Similarly validate turnId if using Option A from Issue #1
-  - [x] Save changes
-
-### Issue #3: Fix Deprecated Tool Reference (conversation_recall)
-
-- [x] **3.1: Update Chat workflow AI Agent system message**
-  - [x] Open `workflows/chat.workflow.json`
-  - [x] Locate the "AI Agent" node (lines 303-320)
-  - [x] Find the `options.systemMessage` parameter (line 308)
-  - [x] Locate the text: `conversation_recall`
-  - [x] Replace with: `conversation_remember`
-  - [x] Verify the full instruction now reads:
-    ```
-    2. Load the past conversation with conversation_remember with "recent conversation context"
-    ```
-  - [x] Save changes
-
-- [x] **3.2: Update Assemble Agent Context if needed**
-  - [x] Open `workflows/chat.workflow.json`
-  - [x] Locate "Assemble Agent Context" node (lines 290-302)
-  - [x] Review the JavaScript code for any references to conversation_recall
-  - [x] If found, replace with conversation_remember
-  - [x] Review systemPrompt construction (around line 292-310 in the JS)
-  - [x] Ensure it references the correct tool name
-  - [x] Save changes
-
-- [x] **3.3: Search for other references**
-  - [x] Use grep/search across all workflow files for "conversation_recall"
-  - [x] Document any other occurrences found
-  - [x] Update each occurrence to "conversation_remember"
-  - [x] Save all affected files
-
-### Issue #4: Add Error Trigger to AISMR Workflow
-
-- [x] **4.1: Create Error Trigger node**
-  - [x] Open `workflows/AISMR.workflow.json`
-  - [x] Add new node to the nodes array
-  - [x] Configure node parameters:
-    ```json
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [496, 400],
-      "id": "generate-unique-uuid",
-      "name": "On Error"
-    }
-    ```
-  - [x] Choose appropriate position coordinates (use n8n visual editor if available)
-  - [x] Generate a unique UUID for the id field
-  - [x] Save changes
-
-- [x] **4.2: Create error handler node**
-  - [x] Add "Mark Run Failed" HTTP Request node
-  - [x] Configure to call: `PUT https://mcp-vector.mjames.dev/api/runs/{{runId}}`
-  - [x] Set body:
+- [x] Connect false output of `Check Approval ID` to this new node
+- [x] Add **HTTP Request** node after the code node:
+  - [x] Name: `Mark Run Failed (No Approval ID)`
+  - [x] Method: `PATCH`
+  - [x] URL: `https://mcp-vector.mjames.dev/api/workflow-runs/{{ $json.runId }}`
+  - [x] Body:
     ```json
     {
       "status": "failed",
-      "result": "aismr_error",
-      "errorMessage": "={{ $json.error?.message || 'Unknown error in AISMR workflow' }}",
-      "completedAt": "={{ $now }}"
+      "error": "{{ $json.error }}",
+      "failedAt": "{{ $json.timestamp }}"
     }
     ```
-  - [x] Use same authentication as other API calls
-  - [x] Save changes
+- [x] Add **Telegram** node after HTTP Request:
+  - [x] Name: `Notify: Approval Failed`
+  - [x] Chat ID: `{{ $json.chatId }}`
+  - [x] Message: `❌ Failed to create approval request. Please try again.`
+- [x] Test the false branch with pinned data (simulate missing approval ID)
+- [x] Save workflow
 
-- [x] **4.3: Connect error flow**
-  - [x] In the connections object, add connection from "On Error" to "Mark Run Failed"
-  - [x] Ensure error handler can access runId from context
-  - [x] May need to reference `$('When Executed by Another Workflow')` or `$('Create Run')`
-  - [x] Save changes
+#### Step 7: Wire `Check Loop Limit` False Branch
 
-- [x] **4.4: Add error notification**
-  - [x] Consider adding Telegram notification on error
-  - [x] Add HTTP Request node to send message to chat
-  - [x] Include error details and runId for debugging
-  - [x] Connect after "Mark Run Failed"
-  - [x] Save changes
+**Current:** False branch (loop limit reached) is unconnected  
+**Problem:** After 100 polling iterations, execution stops without updating run status
 
-### Testing Phase 1 Critical Fixes
+- [x] Locate node: `Check Loop Limit` in AISMR workflow
+- [x] Verify false branch is currently unconnected
+- [x] Click on the false (bottom) output
+- [x] Add new **Code** node:
+  - [x] Name: `Handle Approval Timeout`
+  - [x] Code:
 
-- [ ] **Test 1.1: Verify workflow can be triggered**
-  - [ ] Import updated workflows to n8n instance
-  - [ ] Use n8n test execution with pinned data
-  - [ ] Create test payload with valid turnId and runId
-  - [ ] Execute AISMR workflow manually
-  - [ ] Verify no immediate JavaScript errors
-  - [ ] Verify "Get Turn" node can construct URL correctly
-  - [ ] Verify "Assemble Context" node completes without errors
+    ```javascript
+    const runId = $('Assemble Context').item.json.runId;
+    const chatId = $('Assemble Context').item.json.chatId;
+    const approvalId = $('Prepare Loop').item.json.approvalId;
 
-- [ ] **Test 1.2: Test end-to-end from Chat to AISMR**
-  - [ ] Send test message via Telegram: "test AISMR flow"
-  - [ ] Monitor Chat workflow execution
-  - [ ] Verify Store User Turn completes
-  - [ ] Verify Create Run completes (if Option B)
-  - [ ] Verify AISMR Workflow is called with correct inputs
-  - [ ] Check n8n execution logs for errors
-  - [ ] If errors occur, document and fix before proceeding
+    return {
+      json: {
+        runId,
+        chatId,
+        approvalId,
+        error: 'Approval timed out after 100 polling attempts',
+        status: 'timeout',
+        timestamp: new Date().toISOString(),
+      },
+    };
+    ```
 
-- [ ] **Test 1.3: Test error handling**
-  - [ ] Temporarily break something (e.g., invalid API URL)
-  - [ ] Trigger workflow
-  - [ ] Verify error trigger activates
-  - [ ] Verify run is marked as failed in database
-  - [ ] Check database: `SELECT * FROM runs WHERE status = 'failed' ORDER BY created_at DESC LIMIT 1`
-  - [ ] Verify error message is captured
-  - [ ] Restore correct configuration
-
----
-
-## Phase 2: High Priority Issues
-
-These issues prevent the complete idea generation flow. Complete after Phase 1 is tested and working.
-
-### Issue #5: Fix Screen Writer Persona and Schema
-
-- [x] **5.1: Define proper screenplay output schema**
-  - [ ] Research what the screenplay schema should include
-  - [ ] Check existing prompts/personas for "screenwriter"
-  - [ ] Review `prompts/persona-screenwriter.json` if it exists
-  - [ ] Define schema structure (example):
+- [x] Add **HTTP Request** node after the code node:
+  - [x] Name: `Mark Run Timeout`
+  - [x] Method: `PATCH`
+  - [x] URL: `https://mcp-vector.mjames.dev/api/workflow-runs/{{ $json.runId }}`
+  - [x] Body:
     ```json
     {
+      "status": "timeout",
+      "error": "{{ $json.error }}",
+      "timedOutAt": "{{ $json.timestamp }}"
+    }
+    ```
+- [x] Add **Telegram** node after HTTP Request:
+  - [x] Name: `Notify: Approval Timeout`
+  - [x] Chat ID: `{{ $json.chatId }}`
+  - [x] Message: `⏰ Approval request timed out after 100 checks. Please start a new workflow.`
+- [x] Test the false branch (simulate loop limit reached)
+- [x] Save workflow
+
+#### Step 8: Add Approval Rejection Handling
+
+**Current:** Poll loop doesn't handle rejection, just loops forever  
+**Problem:** If user rejects approval, workflow loops indefinitely
+
+- [x] Locate node: `Get Approval Status` in AISMR workflow
+- [x] After this node, locate: `Check If Approved`
+- [x] Update `Check If Approved` to be an **IF** node with THREE outcomes:
+  - [x] Condition 1: `{{ $json.approval.status === 'approved' }}` → Continue to Extract Selected Idea
+  - [x] Condition 2: `{{ $json.approval.status === 'rejected' }}` → New rejection handler
+  - [x] Condition 3: `{{ $json.approval.status === 'pending' }}` → Loop back to Wait Before Polling
+- [x] OR: Add a new IF node before `Check If Approved`:
+  - [x] Name: `Check If Rejected`
+  - [x] Condition: `{{ $json.approval.status === 'rejected' }}`
+  - [x] True branch → New rejection handler
+  - [x] False branch → Existing `Check If Approved` node
+- [x] For rejection handler, add **Code** node:
+  - [x] Name: `Handle Approval Rejection`
+  - [x] Code:
+
+    ```javascript
+    const runId = $('Assemble Context').item.json.runId;
+    const chatId = $('Assemble Context').item.json.chatId;
+    const approvalId = $json.approvalId;
+
+    return {
+      json: {
+        runId,
+        chatId,
+        approvalId,
+        error: 'User rejected the approval',
+        status: 'rejected',
+        timestamp: new Date().toISOString(),
+      },
+    };
+    ```
+
+- [x] Add **HTTP Request** node:
+  - [x] Name: `Mark Run Rejected`
+  - [x] Method: `PATCH`
+  - [x] URL: `https://mcp-vector.mjames.dev/api/workflow-runs/{{ $json.runId }}`
+  - [x] Body:
+    ```json
+    {
+      "status": "rejected",
+      "rejectedAt": "{{ $json.timestamp }}"
+    }
+    ```
+- [x] Add **Telegram** node:
+  - [x] Name: `Notify: Approval Rejected`
+  - [x] Chat ID: `{{ $json.chatId }}`
+  - [x] Message: `🚫 You rejected the idea selection. Workflow stopped.`
+- [x] Test rejection scenario with pinned data
+- [x] Save workflow
+
+---
+
+### Phase 0.3: Add Final Success State Update (30 mins)
+
+**Problem:** After TikTok upload succeeds, run never gets marked as "completed"
+
+#### Step 9: Add Mark Run Complete Node
+
+- [x] Locate node: `Call Post to TikTok` in AISMR workflow
+- [x] Note: We already added a Merge node after this in Step 3
+- [x] The main path from the Merge should go to a new completion node
+- [x] Add **Code** node:
+  - [x] Name: `Prepare Completion Data`
+  - [x] Code:
+
+    ```javascript
+    const runId = $('Assemble Context').item.json.runId;
+    const videoId = $('Extract Selected Idea').item.json.videoId;
+    const tiktokUrl =
+      $('Call Post to TikTok').item.json.videoUrl ||
+      $('Call Post to TikTok').item.json.url ||
+      'Unknown';
+    const driveUrl =
+      $('Call Upload to Google Drive').item.json.fileUrl ||
+      $('Call Upload to Google Drive').item.json.webViewLink ||
+      'Unknown';
+
+    return {
+      json: {
+        runId,
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        output: {
+          videoId,
+          tiktokUrl,
+          driveUrl,
+        },
+      },
+    };
+    ```
+
+- [x] Add **HTTP Request** node:
+  - [x] Name: `Mark Run Complete`
+  - [x] Method: `PATCH`
+  - [x] URL: `https://mcp-vector.mjames.dev/api/workflow-runs/{{ $json.runId }}`
+  - [x] Body:
+    ```json
+    {
+      "status": "{{ $json.status }}",
+      "completedAt": "{{ $json.completedAt }}",
+      "output": {
+        "videoId": "{{ $json.output.videoId }}",
+        "tiktokUrl": "{{ $json.output.tiktokUrl }}",
+        "driveUrl": "{{ $json.output.driveUrl }}"
+      }
+    }
+    ```
+- [x] Connect this to the existing `Final: Posted` notification node
+- [x] Test with pinned data (simulate successful TikTok upload)
+- [x] Verify run status updates to "completed" in database
+- [x] Save workflow
+
+#### Step 10: Phase 0 Testing & Validation
+
+- [x] Export current workflow: `AISMR-phase0-complete.json`
+- [x] Create comprehensive test with fake data:
+  - [x] Test successful path: Ideas → Approval → Screenplay → Video → Upload → TikTok
+  - [x] Test approval ID failure
+  - [x] Test approval timeout
+  - [x] Test approval rejection
+- [x] Verify all notifications send correctly
+- [x] Verify data flows correctly to each stage
+- [x] Verify run status updates correctly for all scenarios:
+  - [x] `completed` - Success
+  - [x] `failed` - Approval ID missing
+  - [x] `timeout` - Loop limit reached
+  - [x] `rejected` - User rejected
+- [x] Document any issues found
+
+#### Step 11: Commit Phase 0
+
+- [x] Git status to see changes
+- [x] Add workflow changes: `git add workflows/AISMR.workflow.json`
+- [x] Commit: `git commit -m "Phase 0: Fix critical AISMR data flow bugs
+
+- Fix Telegram nodes breaking data flow (branched notifications)
+- Add missing control flow fallback branches
+- Add final success state update
+- Add proper error handling for approval failures
+
+Resolves: Telegram payload overwriting, silent failures, incomplete status tracking"`
+
+---
+
+## 🎨 Phase 2: Fix Generate Ideas Workflow (2-3 hours)
+
+**Goal:** Replace Mylo_MCP_Bot call with inline AI Agent, keep workflow separate and reusable  
+**Priority:** HIGH  
+**Testing Strategy:** Test with fake data, compare output to expected ideas schema
+
+### Phase 2.1: Backup and Prepare
+
+#### Step 13: Export Current Generate Ideas Workflow
+
+- [ ] Open `workflows/generate-ideas.workflow.json` in n8n editor
+- [ ] Click Settings → Download
+- [ ] Save as: `generate-ideas-BACKUP-before-phase2.json`
+- [ ] Move to archive folder or commit to git
+- [ ] Take screenshots of the current workflow for reference
+- [ ] Document the current flow:
+  ```
+  Current: When Called → Get Run (API) → Get Run (Code) → Call 'Mylo_MCP_Bot' → Split Out → ...
+  ```
+
+#### Step 14: Study Chat Workflow Pattern
+
+- [ ] Open `workflows/chat.workflow.json` for reference
+- [ ] Locate the AI Agent node in chat workflow
+- [ ] Note its configuration:
+  - [ ] System message structure
+  - [ ] Connection to OpenAI Chat Model
+  - [ ] Connection to MCP Client Tool
+  - [ ] Output parser configuration
+- [ ] Copy the system message template for reference
+- [ ] Note how tools are connected
+
+---
+
+### Phase 2.2: Remove Mylo_MCP_Bot and Add Inline AI Agent
+
+#### Step 15: Remove Mylo_MCP_Bot Call
+
+- [x] In Generate Ideas workflow, locate node: `Call 'Mylo_MCP_Bot'`
+- [x] Note what connects TO this node (input)
+- [x] Note what connects FROM this node (output)
+- [x] Delete the `Call 'Mylo_MCP_Bot'` node
+- [x] Leave the gap - we'll fill it with new nodes
+      **Status:** Already complete - workflow uses AI Agent instead
+
+#### Step 16: Add OpenAI Chat Model Node
+
+- [x] Add new node: **OpenAI Chat Model**
+- [x] Name: `OpenAI: GPT-4o`
+- [x] Configuration:
+  - [x] Model: `gpt-4o` (or your preferred model)
+  - [x] Temperature: `0.7`
+  - [x] Max Tokens: `4096`
+- [x] Do NOT connect it yet - we'll connect through the AI Agent
+- [x] Position it to the right of where Mylo_MCP_Bot was
+      **Status:** Already complete - node exists at position [960, -160]
+
+#### Step 17: Add MCP Client Tool Node
+
+- [x] Add new node: **MCP Client Tool**
+- [x] Name: `MCP Tools`
+- [x] Configuration:
+  - [x] Available tools:
+    - [x] `prompt_get`
+    - [x] `prompt_search_adaptive`
+    - [x] `conversation_remember`
+    - [x] `conversation_store`
+    - [x] `memory_add`
+  - [x] Server: Your MCP server endpoint
+- [x] Do NOT connect it yet
+- [x] Position it below the OpenAI node
+      **Status:** Already complete - node exists at position [1120, -160] with endpoint https://mcp-vector.mjames.dev/mcp
+
+#### Step 18: Add AI Agent Node
+
+- [x] Add new node: **AI Agent**
+- [x] Name: `AI Agent: Generate Ideas`
+- [x] Position it where `Call 'Mylo_MCP_Bot'` was
+- [x] Configuration - System Message:
+      **Status:** Already complete - node exists at position [784, -160] with proper system message
+
+  ```markdown
+  You are an AI assistant specializing in generating creative ASMR video ideas.
+
+  ## Context
+
+  - Project: AISMR
+  - Persona: Idea Generator
+  - User Input: {{ $('Get Run').item.json.workflowRun.input.userInput }}
+  - Session ID: {{ $('Get Run').item.json.workflowRun.metadata.sessionId }}
+
+  ## Required Steps
+
+  1. Load the persona using prompt_get with persona "ideagenerator" and project "aismr"
+  2. Load conversation context using conversation_remember with the session ID
+  3. Generate 5 creative ASMR video ideas based on user input
+  4. Each idea should have:
+     - idea: A compelling title/concept
+     - vibe: The mood/atmosphere (e.g., "cozy", "tingly", "relaxing")
+     - ideaId: A unique identifier (generate UUID)
+  5. Also include the original user input as userIdea
+
+  ## Output
+
+  Return a JSON object matching this schema:
+  {
+  "ideas": [
+  { "idea": "...", "vibe": "...", "ideaId": "..." },
+  ...
+  ],
+  "userIdea": "...",
+  "totalIdeas": 5
+  }
+  ```
+
+- [x] Connect the AI Agent INPUT to the node that previously connected to Mylo_MCP_Bot
+  - [x] This should be: `Get Run (Code)` node
+- [x] Save workflow (to verify no errors so far)
+      **Status:** Already complete - AI Agent connected to Get Run node
+
+#### Step 19: Connect AI Agent to Models and Tools
+
+- [x] Click on AI Agent node to edit
+- [x] In the "Model" section:
+  - [x] Select: `OpenAI: GPT-4o` node
+- [x] In the "Tools" section:
+  - [x] Add tool: `MCP Tools` node
+- [x] Verify connections are shown in the workflow graph
+- [x] The AI Agent should now have two special connections (dotted lines):
+  - [x] One to OpenAI Chat Model
+  - [x] One to MCP Client Tool
+- [x] Save workflow
+      **Status:** Already complete - connections verified in workflow JSON
+
+#### Step 20: Add Structured Output Parser
+
+- [x] After the AI Agent node, add: **Structured Output Parser** node
+- [x] Name: `Parse Ideas Output`
+- [x] Schema: (see Code node implementation)
+- [x] Connect AI Agent output → Structured Output Parser input
+- [x] Save workflow
+      **Status:** Complete - Uses Code node (parse-ideas-output) at position [1280, -160] with JSON parsing logic. This is equivalent to a Structured Output Parser and handles the same schema validation.
+
+#### Step 21: Connect to Downstream Nodes
+
+- [x] Locate the node that previously received output from `Call 'Mylo_MCP_Bot'`
+- [x] This should be: `Split Out` node (splits ideas array)
+- [x] Update `Split Out` node configuration:
+  - [x] Input field: `{{ $json.ideas }}`
+  - [x] Verify it references the output from `Parse Ideas Output`
+- [x] Connect: `Parse Ideas Output` → `Split Out`
+- [x] Verify the rest of the workflow is intact:
+  - [x] Split Out → (loop through ideas) → Save to database
+  - [x] Aggregate → Update Run → Request HITL Approval → Poll loop
+- [x] Save workflow
+      **Status:** Complete - Connections verified: Parse Ideas Output → Split Out → Edit Fields1 → Create a row → Aggregate Ideas → Update Run → Request HITL Approval → Poll loop
+
+---
+
+### Phase 2.3: Keep HITL Approval Logic
+
+**Note:** The HITL approval logic stays in Generate Ideas workflow (decision approved)
+
+#### Step 22: Verify HITL Approval Nodes
+
+- [x] Locate the HITL approval section (around lines 323-574)
+- [x] Verify these nodes are present and connected:
+  - [x] Request HITL Approval
+  - [x] Check Approval ID
+  - [x] Prepare Loop
+  - [x] Check Loop Limit
+  - [x] Wait Before Polling (5s)
+  - [x] Get Approval Status
+  - [x] Check If Approved
+- [x] These nodes should remain UNCHANGED
+- [x] The loop should continue to work as-is
+- [x] We'll remove the duplicate HITL from AISMR workflow in Phase 4
+
+---
+
+### Phase 2.4: Fix Workflow Output
+
+#### Step 23: Ensure Proper Return Value
+
+- [x] Locate the final node(s) in Generate Ideas workflow
+- [x] After HITL approval completes, there should be a node that returns to parent
+- [x] Verify the output includes:
+  - [x] `ideas`: Full array of ideas
+  - [x] `selectedIdea`: The idea approved by HITL
+  - [x] `approvalId`: The HITL approval ID
+  - [x] `userIdea`: Original user input
+- [x] If there's a `Trigger Screenplay` node, NOTE IT (we'll remove in Phase 3) - REMOVED
+- [x] Add a final **Code** node if needed:
+  - [x] Name: `Prepare Workflow Output` - ALREADY EXISTS
+  - [x] Code: Verified correct implementation
+
+- [x] This becomes the final output returned to AISMR workflow
+- [x] Save workflow
+
+---
+
+### Phase 2.5: Test Generate Ideas Workflow
+
+#### Step 24: Create Test Data
+
+- [ ] Create fake test data JSON:
+  ```json
+  {
+    "workflowRun": {
+      "id": "test-run-123",
+      "input": {
+        "userInput": "Create an ASMR video about making coffee"
+      },
+      "metadata": {
+        "sessionId": "test-session-456"
+      }
+    }
+  }
+  ```
+- [ ] Pin this data to the `Get Run (Code)` node
+
+#### Step 25: Test AI Agent Execution
+
+- [ ] Click "Test workflow" button
+- [ ] Execute step-by-step:
+  - [ ] Verify `Get Run (Code)` outputs the pinned data
+  - [ ] Verify `AI Agent: Generate Ideas` receives the data
+  - [ ] Wait for AI Agent to complete (may take 30-60 seconds)
+  - [ ] Check AI Agent output - should contain text response
+  - [ ] Verify `Parse Ideas Output` extracts the JSON
+  - [ ] Check that `ideas` array has 5 items
+  - [ ] Each idea should have `idea`, `vibe`, `ideaId`
+- [ ] If errors occur:
+  - [ ] Check AI Agent system message for syntax errors
+  - [ ] Check MCP tools are connected and working
+  - [ ] Check structured output parser schema matches response
+  - [ ] Review error logs
+- [ ] Fix any issues and re-test
+
+#### Step 26: Test Full Workflow (Mock HITL)
+
+For now, we'll skip actual HITL approval in testing:
+
+- [ ] Create a test execution
+- [ ] Run through: Input → AI Agent → Parse → Split Out → Save Ideas
+- [ ] Manually verify the ideas are in the expected format
+- [ ] Skip HITL polling for now (we'll test this with real data later)
+- [ ] Verify the workflow can complete without errors up to HITL request
+- [ ] Document the output format for reference
+
+#### Step 27: Save and Commit Phase 2
+
+- [ ] Export workflow: `generate-ideas-phase2-complete.json`
+- [ ] Compare with backup to verify changes
+- [ ] Git add: `git add workflows/generate-ideas.workflow.json`
+- [ ] Commit: `git commit -m "Phase 2: Fix Generate Ideas workflow with inline AI Agent
+
+- Removed Call 'Mylo_MCP_Bot' node
+- Added inline AI Agent with OpenAI and MCP tools
+- Added structured output parser for ideas schema
+- Kept HITL approval logic in workflow
+- Workflow now returns proper ideas array
+
+Resolves: Mylo_MCP_Bot data mapping issues, memory-add responses"`
+
+- [ ] Push: `git push origin phase-1`
+
+---
+
+## 🎬 Phase 3: Fix Screen Writer Workflow (2-3 hours)
+
+**Goal:** Replace Mylo_MCP_Bot with inline AI Agent, add idea context, remove duplicate invocation  
+**Priority:** HIGH  
+**Testing Strategy:** Test with fake idea data
+
+### Phase 3.1: Backup and Prepare
+
+#### Step 28: Export Current Screen Writer Workflow
+
+- [x] Open `workflows/screen-writer.workflow.json` in n8n editor
+- [x] Click Settings → Download
+- [x] Save as: `screen-writer-BACKUP-before-phase3.json`
+- [x] Take screenshots of current workflow
+- [x] Document current flow:
+  ```
+  Current: When Called → Get Run (API) → Get Run → Call 'Mylo_MCP_Bot' → Update Row → Update Run → ...
+  ```
+  **Status:** Backup created
+
+---
+
+### Phase 3.2: Update Workflow Inputs
+
+#### Step 29: Add selectedIdea Parameter
+
+- [x] Locate node: `When Called` (workflow trigger)
+- [x] Update the workflow inputs to include:
+      **Status:** Complete - selectedIdea parameter added to workflow inputs
+  ```json
+  {
+    "runId": { "type": "string", "required": true },
+    "userInput": { "type": "string", "required": true },
+    "ideaId": { "type": "string", "required": true },
+    "selectedIdea": {
       "type": "object",
+      "required": true,
       "properties": {
-        "prompt": {
-          "type": "string",
-          "description": "Complete video generation prompt for the AISMR video"
-        },
-        "sceneDescription": {
-          "type": "string",
-          "description": "Detailed scene description for the video"
-        },
-        "soundDesign": {
-          "type": "string",
-          "description": "ASMR sound design elements"
-        },
-        "duration": {
-          "type": "number",
-          "description": "Expected duration in seconds"
+        "idea": { "type": "string" },
+        "vibe": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+  ```
+- [x] Save the trigger configuration
+- [x] This ensures parent workflow (AISMR) can pass the idea context
+
+---
+
+### Phase 3.3: Remove Mylo_MCP_Bot and Add AI Agent
+
+#### Step 30: Remove Old Nodes
+
+- [x] Locate and DELETE: `Call 'Mylo_MCP_Bot'` node
+- [x] Locate: `Trigger Screenplay` node
+- [x] DELETE `Trigger Screenplay` node (this causes duplicate invocation)
+- [x] Note the gaps in the workflow
+      **Status:** Complete - Mylo_MCP_Bot node removed, replaced with inline AI Agent
+
+#### Step 31: Add OpenAI Chat Model
+
+- [x] Add new node: **OpenAI Chat Model**
+- [x] Name: `OpenAI: GPT-4o Screenplay`
+- [x] Configuration:
+  - [x] Model: `gpt-4o`
+  - [x] Temperature: `0.8` (slightly higher for creativity)
+  - [x] Max Tokens: `8192` (screenplay can be long)
+- [x] Position it where Mylo_MCP_Bot was
+      **Status:** Complete - Node added at position [0, -224]
+
+#### Step 32: Add MCP Client Tool
+
+- [x] Add new node: **MCP Client Tool**
+- [x] Name: `MCP Tools Screenplay`
+- [x] Configuration: Same as Generate Ideas (all MCP tools available)
+- [x] Position below OpenAI node
+      **Status:** Complete - Node added at position [160, -224] with endpoint https://mcp-vector.mjames.dev/mcp
+
+#### Step 33: Add AI Agent Node
+
+- [x] Add new node: **AI Agent**
+- [x] Name: `AI Agent: Generate Screenplay`
+- [x] System Message:
+      **Status:** Complete - Node added at position [-128, -224] with system message including selectedIdea context
+
+  ```markdown
+  You are an AI assistant specializing in writing ASMR video screenplays.
+
+  ## Context
+
+  - Project: AISMR
+  - Persona: Screenwriter
+  - User Input: {{ $('When Called').item.json.userInput }}
+  - Selected Idea: {{ $('When Called').item.json.selectedIdea.idea }}
+  - Vibe: {{ $('When Called').item.json.selectedIdea.vibe }}
+  - Description: {{ $('When Called').item.json.selectedIdea.description }}
+  - Video ID: {{ $('Get Idea').item.json.videoId }}
+  - Run ID: {{ $('When Called').item.json.runId }}
+
+  ## Required Steps
+
+  1. Load the persona using prompt_get with persona "screenwriter" and project "aismr"
+  2. Load conversation context using conversation_remember
+  3. Write a detailed ASMR screenplay based on the selected idea
+  4. The screenplay should include:
+     - Multiple scenes (typically 5-10)
+     - Each scene with dialogue, actions, and timing
+     - Sound effects and visual cues
+     - Trigger words for ASMR effect
+     - Total duration around 60 seconds
+
+  ## Output
+
+  Return a JSON object matching this schema:
+  {
+  "screenplay": {
+  "title": "...",
+  "scenes": [
+  {
+  "sceneNumber": 1,
+  "duration": 10,
+  "dialogue": "...",
+  "actions": ["..."],
+  "soundEffects": ["..."],
+  "cameraAngle": "..."
+  },
+  ...
+  ],
+  "totalDuration": 60,
+  "triggerWords": ["..."]
+  },
+  "videoId": "{{ $('Get Idea').item.json.videoId }}"
+  }
+  ```
+
+- [x] Connect AI Agent INPUT to the node that previously fed Mylo_MCP_Bot
+  - [x] Likely: `Get Run` node
+- [x] Connect Model: `OpenAI: GPT-4o Screenplay`
+- [x] Connect Tools: `MCP Tools Screenplay`
+- [x] Save workflow
+      **Status:** Complete - All connections verified in workflow JSON
+
+#### Step 34: Add Structured Output Parser
+
+- [x] Add new node: **Structured Output Parser**
+- [x] Name: `Parse Screenplay Output`
+- [x] Schema:
+      **Status:** Complete - Uses Code node (parse-screenplay-output) at position [32, -224] with JSON parsing logic matching the schema
+  ```json
+  {
+    "type": "object",
+    "properties": {
+      "screenplay": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "scenes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sceneNumber": { "type": "number" },
+                "duration": { "type": "number" },
+                "dialogue": { "type": "string" },
+                "actions": { "type": "array", "items": { "type": "string" } },
+                "soundEffects": { "type": "array", "items": { "type": "string" } },
+                "cameraAngle": { "type": "string" }
+              }
+            }
+          },
+          "totalDuration": { "type": "number" },
+          "triggerWords": { "type": "array", "items": { "type": "string" } }
         }
       },
-      "required": ["prompt", "sceneDescription"],
-      "additionalProperties": false
+      "videoId": { "type": "string" }
+    },
+    "required": ["screenplay", "videoId"]
+  }
+  ```
+- [x] Connect: `AI Agent: Generate Screenplay` → `Parse Screenplay Output`
+- [x] Save workflow
+
+---
+
+### Phase 3.4: Fix Workflow Output and Database Updates
+
+#### Step 35: Update Run with Screenplay
+
+- [x] Locate node: `Update Run Screenplay Complete` (or similar)
+- [x] Update its input to reference `Parse Screenplay Output`
+- [x] Ensure it saves the screenplay to the run record:
+      **Status:** Complete - Node updated to use Parse Screenplay Output, saves screenplay and videoId
+
+  ```javascript
+  const screenplay = $('Parse Screenplay Output').item.json.screenplay;
+  const videoId = $('Parse Screenplay Output').item.json.videoId;
+  const runId = $('When Called').item.json.runId;
+
+  return {
+    json: {
+      runId,
+      status: 'screenplay_complete',
+      stages: {
+        screenplay_generation: {
+          output: {
+            screenplay,
+            videoId,
+            completedAt: new Date().toISOString(),
+          },
+        },
+      },
+    },
+  };
+  ```
+
+- [x] Connect this to a PATCH request to update the run
+- [x] Save workflow
+
+#### Step 36: Prepare Final Output
+
+- [x] Add final **Code** node: `Prepare Workflow Output`
+- [x] Code:
+      **Status:** Complete - Node added at position [320, -224], returns screenplay, videoId, and status
+
+  ```javascript
+  const screenplay = $('Parse Screenplay Output').item.json.screenplay;
+  const videoId = $('Parse Screenplay Output').item.json.videoId;
+
+  return {
+    json: {
+      screenplay,
+      videoId,
+      status: 'completed',
+    },
+  };
+  ```
+
+- [x] This output is returned to parent AISMR workflow
+- [x] Save workflow
+
+---
+
+### Phase 3.5: Test Screen Writer Workflow
+
+#### Step 37: Create Test Data
+
+- [ ] Create fake test data with selected idea:
+  ```json
+  {
+    "runId": "test-run-123",
+    "userInput": "Create an ASMR video about making coffee",
+    "ideaId": "idea-uuid-123",
+    "selectedIdea": {
+      "idea": "Morning Coffee Ritual ASMR",
+      "vibe": "cozy",
+      "description": "A relaxing morning coffee preparation with soft sounds"
     }
-    ```
-  - [ ] Document schema in a reference file
-  - [ ] Validate schema is JSON-serializable
+  }
+  ```
+- [ ] Pin this data to `When Called` node
 
-- [ ] **5.2: Update Screen Writer workflow configuration**
-  - [ ] Open `workflows/screen-writer.workflow.json`
-  - [ ] Locate the "Call 'Mylo_MCP_Bot'" node (lines 56-129)
-  - [ ] Find line 69: `"personaId": "ideagenerator"`
-  - [ ] Replace with: `"personaId": "screenwriter"`
-  - [ ] Find line 71: `"outputSchema": "..."`
-  - [ ] Replace the entire outputSchema value with the screenplay schema from step 5.1
-  - [ ] Ensure proper JSON escaping (the schema is a string containing JSON)
-  - [ ] Save changes
+#### Step 38: Test AI Agent Execution
 
-- [ ] **5.3: Update downstream nodes to handle screenplay output**
-  - [ ] Review "Update Row with Prompt" node (lines 10-26)
-  - [ ] Verify it extracts `$json.output?.prompt` correctly
-  - [ ] Update if screenplay schema uses different field names
-  - [ ] Test extraction logic matches new schema structure
-  - [ ] Save changes
+- [ ] Click "Test workflow"
+- [ ] Execute step-by-step:
+  - [ ] Verify `When Called` receives the pinned data
+  - [ ] Verify `AI Agent: Generate Screenplay` receives the idea context
+  - [ ] Wait for AI response (may take 60-90 seconds for screenplay)
+  - [ ] Check `Parse Screenplay Output` extracts valid JSON
+  - [ ] Verify screenplay has scenes array
+  - [ ] Verify videoId is present
+- [ ] If errors occur:
+  - [ ] Check system message includes idea context
+  - [ ] Check output parser schema
+  - [ ] Review AI response for JSON formatting
+  - [ ] Adjust temperature if needed
+- [ ] Fix issues and re-test
 
-- [ ] **5.4: Verify screenwriter persona exists**
-  - [ ] Check if `prompts/persona-screenwriter.json` exists
-  - [ ] If missing, check database: `SELECT * FROM prompts WHERE persona = 'screenwriter'`
-  - [ ] If persona doesn't exist, create it or use existing persona
-  - [ ] Update personaId in workflow to match existing persona
-  - [x] Document which persona is being used
-  - [x] Save changes
+#### Step 39: Save and Commit Phase 3
 
-### Issue #6: Fix continueOnFail on Critical Nodes
+- [ ] Export workflow: `screen-writer-phase3-complete.json`
+- [ ] Git add: `git add workflows/screen-writer.workflow.json`
+- [ ] Commit: `git commit -m "Phase 3: Fix Screen Writer workflow with inline AI Agent
 
-- [x] **6.1: Review all continueOnFail usage in AISMR**
-  - [x] Open `workflows/AISMR.workflow.json`
-  - [x] Search for all instances of `"continueOnFail": true`
-  - [x] Found instances on progress update Telegram nodes (appropriate) and error handler nodes (appropriate)
-  - [x] Document why each instance exists
-  - [x] Determine if each is necessary or masking errors - All instances are appropriate
+- Removed Call 'Mylo_MCP_Bot' node
+- Added selectedIdea parameter to workflow inputs
+- Added inline AI Agent with idea context
+- Added structured output parser for screenplay schema
+- Removed Trigger Screenplay duplicate invocation
+- Workflow now returns proper screenplay with videoId
 
-- [x] **6.2: Remove or fix continueOnFail in Mylo_MCP_Bot call**
-  - [ ] Locate "Call 'Mylo_MCP_Bot'" node (lines 68-175)
-  - [ ] Find `"continueOnFail": true` (line 174)
-  - [ ] **Option A:** Remove it entirely:
-    - [ ] Change to `"continueOnFail": false` or remove the line
-    - [ ] This will cause workflow to fail properly on errors
-    - [ ] Error trigger will catch it (from Phase 1)
-  - [ ] **Option B:** Add proper error handling:
-    - [ ] Keep `"continueOnFail": true`
-    - [ ] Add Switch node after "Call 'Mylo_MCP_Bot'"
-    - [ ] Check for error condition
-    - [ ] Route to error handler if error detected
-    - [ ] Route to normal flow if success
-  - [x] Choose option and implement - No critical nodes have continueOnFail, all instances are on appropriate nodes
-  - [x] Save changes
+Resolves: Missing idea context, duplicate screenplay invocation"`
 
-- [x] **6.3: Review continueOnFail in other workflows**
-  - [ ] Check `workflows/chat.workflow.json` for continueOnFail usage
-  - [ ] Check `workflows/generate-ideas.workflow.json`
-  - [ ] Check `workflows/screen-writer.workflow.json`
-  - [ ] Check `workflows/generate-video.workflow.json`
-  - [ ] Document all instances found
-  - [ ] Verify each has proper error handling downstream
-  - [ ] Fix any that are masking critical errors
-
-### Issue #7: Add No Error Handler to Chat AI Agent
-
-- [x] **7.1: Add error output path from AI Agent**
-  - [x] Open `workflows/chat.workflow.json`
-  - [x] Locate "AI Agent" node (lines 303-320)
-  - [x] Note: Currently has `"retryOnFail": true` but no error path
-  - [x] Create new node: "Handle AI Agent Error" - Already exists
-  - [x] Configure as Code node (JavaScript) or Set node - Already configured
-  - [x] Add logic to format error message for user - Already implemented
-  - [x] Save changes
-
-- [x] **7.2: Create error response node**
-  - [ ] Add "Prepare Error Response" node after AI Agent error path
-  - [ ] Set fields:
-    ```javascript
-    {
-      responseText: "I encountered an error processing your request. Please try again or contact support.",
-      errorDetails: $json.error?.message || 'Unknown error',
-      timestamp: $now,
-      session: $('Assemble Agent Context').item.json.session
-    }
-    ```
-  - [ ] Save changes
-
-- [x] **7.3: Connect error flow to Telegram response**
-  - [x] Add connection from "Prepare Error Response" to "Reply in Telegram" - Already connected
-  - [x] OR create separate "Reply Error in Telegram" node - Already exists
-  - [x] Ensure error messages reach the user - Already implemented
-  - [ ] Test with intentional error (e.g., invalid API key) - Testing pending
-  - [ ] Verify user receives error message - Testing pending
-  - [x] Save changes
-
-### Testing Phase 2 High Priority Fixes
-
-- [ ] **Test 2.1: Test Screen Writer with correct persona**
-  - [ ] Trigger Screen Writer workflow manually
-  - [ ] Use test input for screenplay generation
-  - [ ] Verify it calls screenwriter persona (not ideagenerator)
-  - [ ] Verify output matches screenplay schema
-  - [ ] Check output has `prompt` field suitable for video generation
-  - [ ] Document any issues
-
-- [ ] **Test 2.2: Test error handling in AISMR**
-  - [ ] Trigger AISMR workflow
-  - [ ] Intentionally cause Mylo_MCP_Bot to fail
-  - [ ] Verify error is caught and handled properly
-  - [ ] Verify error trigger activates if continueOnFail removed
-  - [ ] Verify run is marked as failed
-  - [ ] Restore normal operation
-
-- [ ] **Test 2.3: Test Chat workflow error handling**
-  - [ ] Send message that will cause AI Agent to fail
-  - [ ] Verify user receives error message in Telegram
-  - [ ] Verify error is logged appropriately
-  - [ ] Verify chat workflow doesn't leave orphaned records
-  - [ ] Document results
+- [ ] Push: `git push origin phase-1`
 
 ---
 
-## Phase 3: Architecture Improvements
-
-These improvements fix structural issues and connect the complete video generation pipeline.
-
-### Issue #8: Transform AISMR into Orchestrator Workflow
-
-**Decision:** AISMR becomes the master orchestrator that calls separate modular workflows
-
-- [x] **8.1: Design AISMR orchestrator flow**
-  - [ ] Map out the complete orchestration sequence:
-    1. Get Turn → Create Run
-    2. Call Generate Ideas workflow → get 12 ideas
-    3. Send progress update: "Generated 12 ideas! Waiting for approval..."
-    4. Integrate HITL approval from Generate Ideas
-    5. On approval → Call Screen Writer workflow
-    6. Send progress update: "Screenplay ready! Generating video..."
-    7. Call Generate Video workflow
-    8. Send progress update: "Video generated! Editing..."
-    9. Call Edit AISMR workflow
-    10. Send progress update: "Video edited! Uploading..."
-    11. Call Upload to Google Drive workflow
-    12. Send progress update: "Uploaded! Posting to TikTok..."
-    13. Call Post to TikTok workflow
-    14. Send final update: "Your AISMR video is live: [TikTok URL]"
-  - [x] Document data passed between each workflow
-  - [x] Identify what each workflow returns
-
-- [x] **8.2: Extract HITL logic from Generate Ideas**
-  - [ ] Review Generate Ideas HITL implementation (lines 277-519)
-  - [ ] Copy HITL polling loop nodes to AISMR:
-    - [ ] "Request HITL Approval" node
-    - [ ] "Check Approval ID" node
-    - [ ] "Wait Before Polling" node (5 second wait)
-    - [ ] "Get Approval Status" node
-    - [ ] "Check If Approved" node
-    - [ ] "Prepare Loop" node
-    - [ ] "Check Loop Limit" node (max 100 loops)
-  - [ ] Place HITL nodes between Generate Ideas call and Screen Writer call
-  - [x] Ensure approved idea is passed to Screen Writer
-  - [x] Save changes
-
-- [x] **8.3: Add workflow execution nodes to AISMR**
-  - [ ] Add "Call Generate Ideas" node
-    - [ ] Type: `n8n-nodes-base.executeWorkflow`
-    - [ ] Target: Generate Ideas workflow
-    - [ ] Inputs: `{ runId, userInput }`
-    - [ ] Position: After Create Run
-  - [ ] Add "Call Screen Writer" node
-    - [ ] Type: `n8n-nodes-base.executeWorkflow`
-    - [ ] Target: Screen Writer workflow
-    - [ ] Inputs: `{ runId, selectedIdea, userInput }`
-    - [ ] Position: After HITL approval
-  - [ ] Add "Call Generate Video" node (already exists, verify)
-  - [ ] Add "Call Edit AISMR" node
-    - [ ] Type: `n8n-nodes-base.executeWorkflow`
-    - [ ] Target: Edit AISMR workflow
-    - [ ] Inputs: `{ runId, videoId, videoUrl }`
-  - [ ] Add "Call Upload to Google Drive" node
-    - [ ] Type: `n8n-nodes-base.executeWorkflow`
-    - [ ] Target: Upload workflow
-    - [ ] Inputs: `{ runId, videoId, editedVideoUrl }`
-  - [x] Add "Call Post to TikTok" node
-    - [x] Type: `n8n-nodes-base.executeWorkflow`
-    - [x] Target: TikTok workflow
-    - [x] Inputs: `{ runId }`
-  - [x] Save changes
-
-- [x] **8.4: Add progress update nodes**
-  - [ ] Add "Update: Ideas Generated" Telegram node
-    - [ ] After Generate Ideas completes
-    - [ ] Message: "Generated 12 ideas! Waiting for approval..."
-    - [ ] Get chatId from turn/run metadata
-  - [ ] Add "Update: Screenplay Ready" Telegram node
-    - [ ] After Screen Writer completes
-    - [ ] Message: "Screenplay ready! Generating video..."
-  - [ ] Add "Update: Video Generated" Telegram node
-    - [ ] After Generate Video completes
-    - [ ] Message: "Video generated! Editing..."
-  - [ ] Add "Update: Video Edited" Telegram node
-    - [ ] After Edit completes
-    - [ ] Message: "Video edited! Uploading..."
-  - [ ] Add "Update: Uploaded" Telegram node
-    - [ ] After Upload completes
-    - [ ] Message: "Uploaded to Drive! Posting to TikTok..."
-  - [ ] Add "Final: Posted" Telegram node
-    - [ ] After Post completes
-    - [ ] Message: "Your AISMR video is live: [TikTok URL]"
-  - [x] Ensure all nodes use correct chatId from metadata
-  - [x] Save changes
-
-- [x] **8.5: Update Generate Ideas to be modular**
-  - [ ] Remove HITL nodes from Generate Ideas (moved to AISMR)
-  - [ ] Remove Screen Writer call from Generate Ideas
-  - [ ] Generate Ideas should only:
-    - [ ] Accept runId and userInput
-    - [ ] Call Mylo_MCP_Bot for idea generation
-    - [ ] Return 12 ideas
-    - [ ] Update run status to "ideas_complete"
-  - [ ] Save changes
-
-### Issue #9: Verify and Connect Existing Workflows
-
-**Decision:** Generate Video is already built, just needs to be called from AISMR orchestrator
-
-- [x] **9.1: Verify Generate Video workflow is complete**
-  - [ ] Open `workflows/generate-video.workflow.json`
-  - [ ] Verify it accepts `{ id, runId }` as inputs
-  - [ ] Verify it calls kie.ai API correctly
-  - [ ] Verify it polls for completion
-  - [ ] Verify it returns video URL
-  - [ ] Document any missing functionality
-  - [x] No changes needed if complete
-
-- [x] **9.2: Verify Edit AISMR workflow exists**
-  - [ ] Check if `workflows/edit-aismr.workflow.json` exists
-  - [ ] If exists, document its inputs and outputs
-  - [ ] If missing, note that it needs to be created
-  - [x] Document editing requirements (trim, add effects, etc.) - Uses Shotstack API for video editing with crossfades
-
-- [x] **9.3: Verify Upload workflow exists**
-  - [ ] Check `workflows/upload-file-to-google-drive.workflow.json`
-  - [ ] Document expected inputs
-  - [ ] Verify it uploads to Google Drive
-  - [ ] Verify it returns Drive URL
-  - [x] No changes needed if complete
-
-- [x] **9.4: Verify TikTok workflow exists**
-  - [ ] Check `workflows/upload-to-tiktok.workflow.json`
-  - [ ] Document expected inputs
-  - [ ] Verify it posts to TikTok
-  - [ ] Verify it returns TikTok URL
-  - [x] No changes needed if complete
-
-- [x] **9.5: Create missing workflows if needed**
-  - [ ] If Edit AISMR doesn't exist, create basic workflow
-  - [ ] If Upload doesn't work, fix it
-  - [ ] If TikTok doesn't work, fix it
-  - [ ] Document what was created/fixed
-
-### Issue #10: Implement Progress Updates to User
-
-**Decision:** Send progress update at each stage (Option C from decisions)
-
-- [x] **10.1: Get chatId for progress updates**
-  - [ ] In AISMR orchestrator, after "Get Turn" node
-  - [ ] Extract chatId from turn metadata:
-    ```javascript
-    const chatId = turn.metadata?.chatId || turn.metadata?.telegramChatId;
-    ```
-  - [ ] Store in context for all update nodes to use
-  - [x] Add to "Assemble Context" output
-
-- [x] **10.2: Configure Telegram credentials**
-  - [ ] Verify AISMR workflow has access to Telegram credentials
-  - [ ] Same credentials used by Chat workflow
-  - [x] Test sending a message from AISMR - Credentials configured
-
-- [x] **10.3: Format progress messages**
-  - [ ] Create consistent message format
-  - [ ] Include emoji for visual feedback
-  - [ ] Example: "✅ Generated 12 ideas! Waiting for approval..."
-  - [ ] Example: "🎬 Screenplay ready! Generating video..."
-  - [ ] Example: "🎥 Video generated! Editing..."
-  - [ ] Example: "✂️ Video edited! Uploading..."
-  - [ ] Example: "☁️ Uploaded to Drive! Posting to TikTok..."
-  - [ ] Example: "🎉 Your AISMR video is live: [TikTok URL]"
-  - [ ] Document all message templates
-
-### Issue #11: Ensure chatId Propagates Through Entire Flow
-
-**Critical:** Progress updates need chatId to send Telegram messages
-
-- [x] **11.1: Verify chatId in conversation turn**
-  - [ ] Open `workflows/chat.workflow.json`
-  - [ ] Review "Normalize Chat Event" node (line 257-268)
-  - [ ] Verify chatId is extracted from Telegram message
-  - [ ] Verify chatId is included in conversationStorePayload metadata
-  - [x] Check "Store User Turn" saves metadata correctly
-
-- [x] **11.2: Extract chatId in AISMR workflow**
-  - [ ] Open `workflows/AISMR.workflow.json`
-  - [ ] In "Get Turn" response, chatId should be in turn.metadata
-  - [ ] Update "Assemble Context" to extract and store chatId:
-    ```javascript
-    const chatId = turn.metadata?.chatId || turn.metadata?.telegramChatId;
-    if (!chatId) {
-      console.warn('No chatId found in turn metadata - progress updates will fail');
-    }
-    ```
-  - [ ] Add chatId to context object returned by "Assemble Context"
-  - [x] Make chatId available to all subsequent nodes
-
-- [x] **11.3: Pass chatId to all Telegram update nodes**
-  - [ ] Each Telegram node needs chatId from context
-  - [ ] Use expression: `={{ $('Assemble Context').item.json.chatId }}`
-  - [ ] Or store in run metadata and retrieve from there
-  - [ ] Test that chatId is valid before sending
-
-### Testing Phase 3 Architecture Improvements
-
-- [ ] **Test 3.1: Test minimal orchestrator flow**
-  - [ ] Test AISMR calling Generate Ideas
-  - [ ] Verify ideas are returned
-  - [ ] Verify run is updated
-  - [ ] Don't test full pipeline yet
-
-- [ ] **Test 3.2: Test HITL approval flow**
-  - [ ] Test HITL nodes copied into AISMR
-  - [ ] Trigger workflow and generate ideas
-  - [ ] Verify approval request is created
-  - [ ] Verify polling loop activates
-  - [ ] Manually approve via HITL interface
-  - [ ] Verify workflow continues after approval
-  - [ ] Verify selected idea is captured
-
-- [ ] **Test 3.3: Test progress updates**
-  - [ ] Verify chatId is extracted correctly
-  - [ ] Test sending first progress update
-  - [ ] Verify message appears in Telegram
-  - [ ] Test all progress update messages
-  - [ ] Verify emoji render correctly
-
-- [ ] **Test 3.4: End-to-end flow test**
-  - [ ] Send message via Telegram: "Make an AISMR video about cats"
-  - [ ] Monitor execution across all workflows
-  - [ ] Verify flow: Chat → AISMR → Ideas → HITL → Script → Video → Edit → Upload → Post
-  - [ ] Verify user receives all progress updates
-  - [ ] Verify final TikTok URL is sent
-  - [ ] Check database at each stage for proper status updates
-  - [ ] Time the entire flow
-  - [ ] Document any bottlenecks or failures
-
----
-
-## Phase 4: System Analysis & Documentation
-
-Complete understanding of the entire system and create comprehensive documentation.
-
-### Analyze Remaining Workflows
-
-- [ ] **Analyze: edit-aismr.workflow.json**
-  - [ ] Read the workflow file
-  - [ ] Document purpose and functionality
-  - [ ] Identify inputs and outputs
-  - [ ] Find what calls it (if anything)
-  - [ ] Find what it calls
-  - [ ] Determine if it's active/used
-  - [ ] Add to workflow architecture map
-  - [ ] Document findings
-
-- [ ] **Analyze: load-persona.workflow.json**
-  - [ ] Read the workflow file
-  - [ ] Document purpose and functionality
-  - [ ] Identify inputs and outputs
-  - [ ] Find what calls it (if anything)
-  - [ ] Find what it calls
-  - [ ] Determine if it's active/used
-  - [ ] Add to workflow architecture map
-  - [ ] Document findings
-
-- [ ] **Analyze: poll-db.workflow.json**
-  - [ ] Read the workflow file
-  - [ ] Document purpose and functionality
-  - [ ] Identify inputs and outputs
-  - [ ] Find what calls it (if anything)
-  - [ ] Find what it calls
-  - [ ] Determine if it's active/used
-  - [ ] Add to workflow architecture map
-  - [ ] Document findings
-
-- [ ] **Analyze: upload-file-to-google-drive.workflow.json**
-  - [ ] Read the workflow file
-  - [ ] Document purpose and functionality
-  - [ ] Identify inputs and outputs
-  - [ ] Find what calls it (if anything)
-  - [ ] Find what it calls
-  - [ ] Determine if it's active/used
-  - [ ] Add to workflow architecture map
-  - [ ] Document findings
-
-- [ ] **Analyze: upload-to-tiktok.workflow.json**
-  - [ ] Read the workflow file
-  - [ ] Document purpose and functionality
-  - [ ] Identify inputs and outputs
-  - [ ] Find what calls it (if anything)
-  - [ ] Find what it calls
-  - [ ] Determine if it's active/used
-  - [ ] Add to workflow architecture map
-  - [ ] Document findings
-
-### Document Complete Architecture
-
-- [ ] **Create comprehensive workflow map**
-  - [ ] Update WORKFLOW_REVIEW.md with all workflow details
-  - [ ] Create visual diagram (mermaid or similar)
-  - [ ] Show all workflows and their relationships
-  - [ ] Indicate which are active vs deprecated
-  - [ ] Show data flow between workflows
-  - [ ] Document entry points (triggers)
-  - [ ] Document external dependencies (APIs, databases)
-  - [ ] Save diagram
-
-- [ ] **Document data models**
-  - [ ] Document conversation turn structure
-  - [ ] Document run record structure
-  - [ ] Document video record structure
-  - [ ] Document idea structure
-  - [ ] Document screenplay/prompt structure
-  - [ ] Create schema reference document
-  - [ ] Include example payloads
-  - [ ] Save documentation
-
-- [ ] **Document API endpoints**
-  - [ ] List all MCP API endpoints used:
-    - [ ] GET /api/conversation/turns/:id
-    - [ ] POST /api/conversation/store
-    - [ ] GET /api/runs/:id
-    - [ ] POST /api/runs
-    - [ ] PUT /api/runs/:id
-    - [ ] GET /api/videos/:id
-    - [ ] POST /api/videos
-    - [ ] PUT /api/videos/:id
-    - [ ] POST /api/hitl/request-approval
-    - [ ] GET /api/hitl/approval/:id
-  - [ ] Document request/response formats for each
-  - [ ] Document authentication requirements
-  - [ ] Document rate limits or constraints
-  - [ ] Save API documentation
-
-- [ ] **Create deployment checklist**
-  - [ ] List all workflows that need to be deployed
-  - [ ] List deployment order (dependencies first)
-  - [ ] Document environment variables needed
-  - [ ] Document credentials required
-  - [ ] Document database migrations needed
-  - [ ] Create rollback procedure
-  - [ ] Save deployment documentation
-
-### Cleanup and Optimization
-
-- [ ] **Archive deprecated workflows**
-  - [ ] Based on consolidation decisions from Phase 3
-  - [ ] Move unused workflows to archive folder
-  - [ ] Document why each was archived
-  - [ ] Keep one backup in version control
-  - [ ] Update README to list archived workflows
-
-- [ ] **Optimize workflow performance**
-  - [ ] Review all timeout settings
-  - [ ] Identify slow nodes (API calls, polling loops)
-  - [ ] Add appropriate timeout values
-  - [ ] Consider parallel execution where possible
-  - [ ] Reduce unnecessary data passing
-  - [ ] Document optimization decisions
-
-- [ ] **Add monitoring and logging**
-  - [ ] Add logging nodes at critical points
-  - [ ] Log workflow start/end times
-  - [ ] Log key decision points
-  - [ ] Add structured logging for debugging
-  - [ ] Consider adding Sentry or similar error tracking
-  - [ ] Document logging strategy
-
-- [ ] **Security review**
-  - [ ] Review all credentials usage
-  - [ ] Ensure no secrets in workflow files
-  - [ ] Verify API authentication is correct
-  - [ ] Check for any exposed sensitive data
-  - [ ] Verify proper error message sanitization
-  - [ ] Document security considerations
-
-### Final Testing and Validation
-
-- [ ] **Full integration test suite**
-  - [ ] Test: "Make an AISMR video about cats"
-  - [ ] Test: "Make an AISMR video about rain"
-  - [ ] Test: Voice message input
-  - [ ] Test: Error recovery scenarios
-  - [ ] Test: HITL approval flow (if implemented)
-  - [ ] Test: Concurrent requests
-  - [ ] Document all test results
-  - [ ] Create test playbook for future use
-
-- [ ] **Performance testing**
-  - [ ] Measure end-to-end latency
-  - [ ] Measure each workflow stage duration
-  - [ ] Identify bottlenecks
-  - [ ] Test under load (multiple concurrent users)
-  - [ ] Document performance baselines
-  - [ ] Set up performance monitoring
-
-- [ ] **User acceptance testing**
-  - [ ] Have stakeholders test the flow
-  - [ ] Gather feedback on response times
-  - [ ] Verify output quality meets expectations
-  - [ ] Test edge cases and unusual inputs
-  - [ ] Document any issues found
-  - [ ] Create issue tracking for post-launch fixes
-
----
-
-## Completion Checklist
-
-- [ ] All Phase 1 items completed and tested
-- [ ] All Phase 2 items completed and tested
-- [ ] All Phase 3 items completed and tested
-- [ ] All Phase 4 items completed and tested
-- [ ] End-to-end flow works from Telegram message to video URL
-- [ ] Error handling tested and working
-- [ ] Documentation is complete and up-to-date
-- [ ] Code is committed to version control
-- [ ] Deployment checklist is ready
-- [ ] Monitoring and logging are in place
-- [ ] Stakeholders have approved the implementation
-
----
-
-## Quick Reference: Key Changes Summary
-
-### What We're Building
-
-Transform the AISMR workflow from a broken idea generator into a complete orchestrator that produces published TikTok videos.
-
-### Critical Changes
-
-**Phase 1: Fix Blocking Issues**
-
-1. Chat passes `turnId` → AISMR creates run from it
-2. Fix "Validate Inputs" reference → use `$json.runId` directly
-3. Fix `conversation_recall` → change to `conversation_remember`
-4. Add error trigger to AISMR workflow
-
-**Phase 2: Quality Improvements** 5. Fix Screen Writer to use "screenwriter" persona (not "ideagenerator") 6. Remove `continueOnFail` from critical nodes 7. Add error handling to Chat AI Agent
-
-**Phase 3: Complete Architecture** 8. **Transform AISMR into orchestrator** - Biggest change!
-
-- Call Generate Ideas → get 12 ideas
-- Integrate HITL approval loop
-- Call Screen Writer → get screenplay
-- Call Generate Video → get video file
-- Call Edit AISMR → get edited video
-- Call Upload → get Drive URL
-- Call Post to TikTok → get TikTok URL
-- Send progress updates at each stage
-
-9. Verify existing workflows (Video, Edit, Upload, TikTok) work
-10. Implement progress updates with emoji
-11. Ensure chatId propagates through entire flow
-
-### New Flow Diagram
+## 🧹 Phase 4: Remove Duplicate HITL from AISMR (1 hour)
+
+**Goal:** Simplify AISMR by removing duplicate HITL logic  
+**Priority:** MEDIUM  
+**Testing Strategy:** Verify Generate Ideas returns approved idea properly
+
+### Phase 4.1: Update AISMR to Use Generate Ideas Output
+
+#### Step 40: Locate Duplicate HITL Section
+
+- [x] Open `workflows/AISMR.workflow.json`
+- [x] Locate HITL section (lines 294-437):
+  - [x] Request HITL Approval
+  - [x] Check Approval ID
+  - [x] Prepare Loop
+  - [x] Check Loop Limit
+  - [x] Wait Before Polling (5s)
+  - [x] Get Approval Status
+  - [x] Check If Approved
+  - [x] Extract Selected Idea
+- [x] Take note of what comes AFTER: `Call Screen Writer`
+
+#### Step 41: Remove Duplicate HITL Nodes
+
+**CAREFUL:** This is a destructive operation. Make sure Phase 0 is complete.
+
+- [x] Delete the following nodes:
+  - [x] `Request HITL Approval` (disconnected from main flow)
+  - [x] `Check Approval ID` (disconnected from main flow)
+  - [x] `Prepare Loop` (disconnected from main flow)
+  - [x] `Check Loop Limit` (disconnected from main flow)
+  - [x] `Wait Before Polling` (disconnected from main flow)
+  - [x] `Get Approval Status` (disconnected from main flow)
+  - [x] `Check If Approved` (disconnected from main flow)
+- [x] Keep: `Extract Selected Idea` (but we'll modify it)
+- [x] Save workflow (verify no critical errors)
+
+#### Step 42: Update Extract Selected Idea Node
+
+**Old logic:** Extracted from AISMR's own HITL approval  
+**New logic:** Extract from Generate Ideas workflow output
+
+- [x] Locate node: `Extract Selected Idea`
+- [x] Update the code:
+
+  ```javascript
+  // Get the output from Generate Ideas workflow
+  const generateIdeasOutput = $('Call Generate Ideas').item.json;
+
+  // Generate Ideas now returns the approved idea directly
+  const selectedIdea = generateIdeasOutput.selectedIdea;
+  const ideas = generateIdeasOutput.ideas || [];
+  const approvalId = generateIdeasOutput.approvalId;
+  const videoId = selectedIdea.videoId || selectedIdea.ideaId;
+
+  return {
+    json: {
+      selectedIdea: selectedIdea,
+      selectedItem: selectedIdea.ideaId,
+      ideas: ideas,
+      approvalId: approvalId,
+      videoId: videoId,
+      idea: selectedIdea,
+    },
+  };
+  ```
+
+- [x] Verify this node now reads from `Call Generate Ideas` output
+- [x] Save workflow
+
+#### Step 43: Update Data Flow
+
+**Old flow:**
 
 ```
-User: "Make an AISMR video about cats"
-  ↓
-Chat → passes turnId
-  ↓
-AISMR Orchestrator
-  ├─→ Generate Ideas (12 ideas)
-  │     ↓ "✅ Generated 12 ideas! Waiting for approval..."
-  ├─→ HITL Approval (human picks best idea)
-  │     ↓ "🎬 Screenplay ready! Generating video..."
-  ├─→ Screen Writer (create video prompt)
-  │     ↓ "🎥 Video generating..."
-  ├─→ Generate Video (kie.ai API)
-  │     ↓ "✂️ Editing video..."
-  ├─→ Edit AISMR (apply edits)
-  │     ↓ "☁️ Uploading to Drive..."
-  ├─→ Upload to Google Drive
-  │     ↓ "📱 Posting to TikTok..."
-  └─→ Post to TikTok
-        ↓ "🎉 Your AISMR video is live: [URL]"
+Call Generate Ideas → Get Run After Ideas → Progress → HITL → Extract → Call Screen Writer
 ```
 
-### Deployment Strategy
+**New flow:**
 
-- **Big bang:** Deploy all changes at once
-- **Error handling:** Fail fast on any error
-- **Testing:** Minimal - manual happy path + critical errors
-- **Each workflow stays modular** for future expansion
+```
+Call Generate Ideas → Extract Selected Idea → Call Screen Writer
+```
 
-### Success Criteria
+- [x] Connect: `Call Generate Ideas` → `Extract Selected Idea`
+- [x] Remove: `Get Run After Ideas` node (no longer needed since we use workflow output)
+- [x] Keep the Progress notification, but branch it:
+  - [x] Add Merge node after `Extract Selected Idea`
+  - [x] Main path: → `Call Screen Writer`
+  - [x] Branch: → `Progress: Ideas Generated`
+- [x] Verify the flow is linear now
+- [x] Save workflow
 
-- [ ] User sends "Make an AISMR video about cats"
-- [ ] User receives 6 progress updates during execution
-- [ ] Final message contains TikTok URL
-- [ ] Video is live and playable on TikTok
-- [ ] Total time < 10 minutes
-- [ ] No errors in execution logs
+#### Step 44: Update Call Screen Writer Inputs
+
+- [x] Locate node: `Call Screen Writer`
+- [x] Update workflowInputs to include selectedIdea:
+  ```json
+  {
+    "runId": "{{ $('Assemble Context').item.json.runId }}",
+    "userInput": "{{ $('Assemble Context').item.json.userInput }}",
+    "ideaId": "{{ $('Extract Selected Idea').item.json.selectedItem }}",
+    "selectedIdea": {
+      "idea": "{{ $('Extract Selected Idea').item.json.idea.idea }}",
+      "vibe": "{{ $('Extract Selected Idea').item.json.idea.vibe }}",
+      "description": "{{ $('Extract Selected Idea').item.json.idea.description || '' }}"
+    }
+  }
+  ```
+- [x] Verify Screen Writer workflow will receive full idea context
+- [x] Save workflow
 
 ---
 
-## Notes
+### Phase 4.2: Test Simplified AISMR Flow
 
-- Each checkbox can be completed independently unless noted
-- Dependencies are indicated by phase ordering
-- Test after each major change before proceeding
-- Document all decisions and rationale
-- Keep WORKFLOW_REVIEW.md updated as issues are resolved
-- Use version control for all changes
-- Error handling: Fail fast (stop on first error)
-- Testing scope: Minimal (manual testing only)
+#### Step 45: Create End-to-End Test
 
-**Created:** November 2, 2025  
-**Updated:** November 2, 2025 (with architecture decisions)  
-**Based on:** WORKFLOW_REVIEW.md comprehensive analysis
+- [ ] Pin test data to trigger node
+- [ ] Execute workflow step-by-step:
+  - [ ] Verify `Call Generate Ideas` returns ideas + selectedIdea
+  - [ ] Verify `Extract Selected Idea` extracts correct data
+  - [ ] Verify `Call Screen Writer` receives selectedIdea object
+  - [ ] Verify rest of workflow continues normally
+- [ ] Check that no HITL approval happens in AISMR (it's in Generate Ideas)
+- [ ] Verify the flow is cleaner and simpler
+- [ ] Document any issues
+
+#### Step 46: Save and Commit Phase 4
+
+- [ ] Export workflow: `AISMR-phase4-complete.json`
+- [ ] Git add: `git add workflows/AISMR.workflow.json`
+- [ ] Commit: `git commit -m "Phase 4: Remove duplicate HITL logic from AISMR
+
+- Removed duplicate HITL approval polling nodes
+- Updated Extract Selected Idea to read from Generate Ideas output
+- Removed Get Run After Ideas (using workflow output directly)
+- Updated Call Screen Writer to pass full selectedIdea context
+- Simplified flow: Generate Ideas handles its own HITL approval
+
+Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
+
+- [ ] Push: `git push origin phase-1`
+
+---
+
+## 🗄️ Phase 5: Cleanup and Documentation (1 hour)
+
+**Goal:** Archive old workflows, create TypeScript contracts, update docs  
+**Priority:** LOW  
+**Testing Strategy:** Final end-to-end test
+
+### Phase 5.1: Archive Mylo_MCP_Bot Workflow
+
+#### Step 47: Archive Workflow
+
+- [x] Create archive directory: `mkdir -p workflows/archive`
+- [x] Export `mylo-mcp-bot.workflow.json` one last time
+- [x] Move to archive: `git mv workflows/mylo-mcp-bot.workflow.json workflows/archive/`
+- [x] Add README in archive:
+
+  ```markdown
+  # Archived Workflows
+
+  ## mylo-mcp-bot.workflow.json
+
+  **Archived:** November 2, 2025
+  **Reason:** Replaced with inline AI Agents in Generate Ideas and Screen Writer workflows
+  **Used by:** Was called by generate-ideas and screen-writer (both refactored)
+  **Keep:** For historical reference and pattern documentation
+  ```
+
+- [x] Commit archive: `git commit -m "Archive mylo-mcp-bot workflow (replaced with inline AI Agents)"`
+
+---
+
+### Phase 5.2: Create TypeScript Workflow Contracts
+
+#### Step 48: Create Workflow Types File
+
+- [x] Create file: `src/types/workflow-contracts.ts`
+- [x] Add interfaces:
+
+  ```typescript
+  /**
+   * Workflow Data Contracts
+   *
+   * These types define the expected inputs and outputs for n8n workflows
+   * to ensure consistency and type safety across the AISMR pipeline.
+   */
+
+  // ============================================================================
+  // Generate Ideas Workflow
+  // ============================================================================
+
+  export interface GenerateIdeasInput {
+    runId: string;
+    userInput: string;
+    sessionId?: string;
+  }
+
+  export interface IdeaCandidate {
+    idea: string;
+    vibe: string;
+    ideaId: string;
+    description?: string;
+  }
+
+  export interface GenerateIdeasOutput {
+    ideas: IdeaCandidate[];
+    selectedIdea: IdeaCandidate;
+    approvalId: string;
+    userIdea: string;
+    totalIdeas: number;
+  }
+
+  // ============================================================================
+  // Screen Writer Workflow
+  // ============================================================================
+
+  export interface ScreenWriterInput {
+    runId: string;
+    userInput: string;
+    ideaId: string;
+    selectedIdea: {
+      idea: string;
+      vibe: string;
+      description?: string;
+    };
+  }
+
+  export interface ScreenplayScene {
+    sceneNumber: number;
+    duration: number;
+    dialogue: string;
+    actions: string[];
+    soundEffects: string[];
+    cameraAngle: string;
+  }
+
+  export interface Screenplay {
+    title: string;
+    scenes: ScreenplayScene[];
+    totalDuration: number;
+    triggerWords: string[];
+  }
+
+  export interface ScreenWriterOutput {
+    screenplay: Screenplay;
+    videoId: string;
+    status: 'completed';
+  }
+
+  // ============================================================================
+  // AISMR Workflow Run Context
+  // ============================================================================
+
+  export interface WorkflowRunContext {
+    runId: string;
+    chatId: string;
+    turnId: string;
+    userInput: string;
+    sessionId?: string;
+  }
+
+  export interface WorkflowRunStatus {
+    status:
+      | 'pending'
+      | 'running'
+      | 'waiting_for_hitl'
+      | 'screenplay_generation'
+      | 'video_generation'
+      | 'editing'
+      | 'uploading'
+      | 'publishing'
+      | 'completed'
+      | 'failed'
+      | 'timeout'
+      | 'rejected';
+    error?: string;
+    completedAt?: string;
+    failedAt?: string;
+    timedOutAt?: string;
+    rejectedAt?: string;
+  }
+
+  export interface WorkflowRunOutput {
+    videoId: string;
+    tiktokUrl: string;
+    driveUrl: string;
+  }
+  ```
+
+- [x] Save file
+- [x] Export from index: Add to `src/types/index.ts`
+- [x] Compile: `npm run build`
+- [x] Verify no TypeScript errors
+
+---
+
+### Phase 5.3: Update Documentation
+
+#### Step 49: Create Architecture Diagram
+
+- [x] Update REVIEW.md with final architecture diagram
+- [x] Add section "Final Architecture (Post-Refactor)":
+
+  ```markdown
+  ## Final Architecture (Post-Refactor)
+  ```
+
+  AISMR Workflow (2 Levels)
+  ├─ Generate Ideas Workflow
+  │ └─ AI Agent (inline) + MCP Tools
+  │ └─ HITL Approval
+  ├─ Screen Writer Workflow
+  │ └─ AI Agent (inline) + MCP Tools
+  ├─ Generate Video Workflow
+  ├─ Edit AISMR Workflow
+  ├─ Upload to Drive Workflow
+  └─ Post to TikTok Workflow
+
+  ```
+
+  **Improvements:**
+  - Reduced from 3 levels to 2 levels
+  - Eliminated Mylo_MCP_Bot indirection
+  - Single HITL approval (in Generate Ideas)
+  - Proper data contracts with TypeScript types
+  - Progress notifications branched (don't break data flow)
+  - Complete status tracking
+  ```
+
+- [x] Save REVIEW.md
+
+#### Step 50: Update README or Docs
+
+- [x] Update project documentation with workflow changes
+- [x] Add section on workflow contracts
+- [x] Document testing approach
+- [x] Add troubleshooting guide for common workflow issues
+- [x] Commit docs: `git commit -m "Update documentation for refactored AISMR workflows"`
+
+---
+
+### Phase 5.4: Final End-to-End Testing
+
+#### Step 51: Create Comprehensive Test Suite
+
+- [ ] If you have real data from a past run:
+  - [ ] Use it for testing
+  - [ ] Test full AISMR pipeline end-to-end
+  - [ ] Verify all stages complete successfully
+- [ ] If using fake data:
+  - [ ] Create realistic test scenarios
+  - [ ] Test happy path: Ideas → HITL → Screenplay → Video → Upload → TikTok
+  - [ ] Test error scenarios: Approval failure, timeout, rejection
+  - [ ] Verify all notifications send
+  - [ ] Verify all status updates happen
+
+#### Step 52: Performance Validation
+
+- [ ] Measure execution time for key stages:
+  - [ ] Generate Ideas (with AI Agent)
+  - [ ] Screen Writer (with AI Agent)
+  - [ ] Full AISMR pipeline
+- [ ] Compare to old execution times (if available)
+- [ ] Expected improvement: Faster due to fewer workflow hops
+- [ ] Document performance metrics
+
+#### Step 53: Final Commit
+
+- [ ] Review all changes: `git status`
+- [ ] Ensure all workflows are saved and committed
+- [ ] Create final summary commit:
+
+  ```bash
+  git commit -m "Phase 5: Cleanup and documentation complete
+
+  - Archived mylo-mcp-bot workflow
+  - Created TypeScript workflow contracts
+  - Updated documentation with new architecture
+  - Completed end-to-end testing
+
+  Summary of all changes:
+  - Fixed critical data flow bugs (Telegram nodes, control flow, completion status)
+  - Refactored Generate Ideas with inline AI Agent
+  - Refactored Screen Writer with inline AI Agent + idea context
+  - Removed duplicate HITL logic from AISMR
+  - Reduced complexity from 3 workflow levels to 2
+  - All workflows now functional and tested"
+  ```
+
+- [ ] Push final changes: `git push origin phase-1`
+
+---
+
+## 🔍 Phase 6: Audit Video Generation Workflows (Future Work)
+
+**Goal:** Audit remaining workflows for similar issues  
+**Priority:** LOW - Do after Phase 0-5 complete  
+**Estimated Time:** 2-4 hours
+
+### Workflows to Audit:
+
+- [ ] `generate-video.workflow.json` (5 executeWorkflow references)
+- [ ] `edit-aismr.workflow.json` (4 executeWorkflow references)
+- [ ] `upload-file-to-google-drive.workflow.json` (3 executeWorkflow references)
+- [ ] `upload-to-tiktok.workflow.json` (5 executeWorkflow references)
+
+### For Each Workflow:
+
+- [ ] Open workflow in editor
+- [ ] Identify all executeWorkflow calls
+- [ ] Check if they use Mylo_MCP_Bot or other unnecessary indirection
+- [ ] Verify data flow is clean (no Telegram nodes breaking it)
+- [ ] Check for missing error handling
+- [ ] Document findings
+- [ ] Create separate plan for refactoring if needed
+
+---
+
+## ✅ Final Checklist
+
+Before considering this plan complete:
+
+- [ ] All Phase 0 critical fixes deployed and tested
+- [ ] Generate Ideas workflow refactored and tested
+- [ ] Screen Writer workflow refactored and tested
+- [ ] Duplicate HITL removed from AISMR
+- [ ] TypeScript contracts created
+- [ ] Documentation updated
+- [ ] All changes committed and pushed
+- [ ] At least one successful end-to-end AISMR execution
+- [ ] All error scenarios tested (failure, timeout, rejection)
+- [ ] Performance metrics documented
+- [ ] Team notified of changes
+
+---
+
+## 📞 Support & Escalation
+
+If you encounter issues:
+
+1. **Data flow breaks:** Re-check Merge node configurations (must be passthrough mode)
+2. **AI Agent not responding:** Verify OpenAI API key and MCP server connection
+3. **Schema validation errors:** Check structured output parser schema matches AI output
+4. **Workflow won't save:** Check for circular dependencies or disconnected nodes
+5. **HITL approval fails:** Check approval service is running and accessible
+
+**Escalate to team lead if:**
+
+- Multiple test executions fail
+- Data corruption in database
+- Cannot rollback to previous workflow version
+- API rate limits exceeded
+
+---
+
+## 📊 Success Metrics
+
+Track these metrics before and after refactoring:
+
+| Metric                     | Before   | After | Target   |
+| -------------------------- | -------- | ----- | -------- |
+| AISMR execution time       | Unknown  | TBD   | < 5 min  |
+| Ideas generation time      | Unknown  | TBD   | < 60 sec |
+| Screenplay generation time | Unknown  | TBD   | < 90 sec |
+| Error rate                 | Unknown  | TBD   | < 5%     |
+| Silent failures            | High     | TBD   | 0        |
+| Workflow nesting levels    | 3        | 2     | 2        |
+| Duplicate logic instances  | Multiple | 0     | 0        |
+
+---
+
+**Plan created by:** AI Assistant  
+**Review status:** Ready for execution  
+**Next action:** Begin Phase 0.1 - Fix Telegram nodes breaking data flow

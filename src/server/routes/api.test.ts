@@ -75,6 +75,54 @@ describe('registerApiRoutes', () => {
     const body = response.json();
     expect(body.data.prompt.promptKey).toBe('ideagenerator-aismr');
     expect(body.data.resolution.strategy).toBe('exact');
+    expect(body.data.resolution.tags).toBeNull();
+  });
+
+  it('resolves a prompt via /api/prompts/resolve with tags filter', async () => {
+    const summaries: PromptSummary[] = [
+      {
+        promptKey: 'ideagenerator-aismr',
+        metadata: {
+          persona: ['ideagenerator'],
+          project: ['aismr'],
+          type: 'combination',
+          tags: ['legacy'],
+        },
+        chunkCount: 2,
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        memoryType: 'semantic',
+      },
+      {
+        promptKey: 'ideagenerator-aismr-v2',
+        metadata: {
+          persona: ['ideagenerator'],
+          project: ['aismr'],
+          type: 'combination',
+          tags: ['mcp-native'],
+        },
+        chunkCount: 2,
+        updatedAt: '2025-02-01T00:00:00.000Z',
+        memoryType: 'semantic',
+      },
+    ];
+
+    promptRepository.listPrompts.mockImplementation(async (filters: PromptLookupFilters = {}) => {
+      if (filters.tags && filters.tags.includes('mcp-native')) {
+        return [summaries[1]];
+      }
+      return summaries;
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/prompts/resolve?project=aismr&persona=ideagenerator&tags=mcp-native',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.data.prompt.promptKey).toBe('ideagenerator-aismr-v2');
+    expect(body.data.resolution.strategy).toBe('exact');
+    expect(body.data.resolution.tags).toEqual(['mcp-native']);
   });
 
   it('returns 404 when prompt cannot be resolved', async () => {
@@ -412,6 +460,7 @@ function createPromptRepositoryMock(): PromptEmbeddingsRepositoryMock {
         persona?: string[];
         project?: string[];
         type?: string;
+        tags?: string[];
       };
       if (filters.persona && !(metadata.persona ?? []).includes(filters.persona)) {
         return false;
@@ -422,6 +471,10 @@ function createPromptRepositoryMock(): PromptEmbeddingsRepositoryMock {
       if (filters.type && metadata.type !== filters.type) {
         return false;
       }
+       if (filters.tags && filters.tags.length > 0) {
+         const tagSet = new Set(metadata.tags ?? []);
+         return filters.tags.every((tag) => tagSet.has(tag));
+       }
       return true;
     });
   });

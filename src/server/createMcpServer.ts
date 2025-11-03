@@ -7,6 +7,7 @@ import { registerConversationMemoryTool } from './tools/conversationMemoryTool';
 import { registerConversationStoreTool } from './tools/conversationStoreTool';
 import { registerConversationLatestTool } from './tools/conversationLatestTool';
 import { registerMemoryTools } from './tools/memoryAddTool';
+import { registerVideoQueryTool } from './tools/videoQueryTool';
 import { registerResources } from './resources';
 
 export async function createMcpServer(): Promise<McpServerType> {
@@ -26,6 +27,7 @@ export async function createMcpServer(): Promise<McpServerType> {
   registerConversationStoreTool(server);
   registerConversationLatestTool(server);
   registerMemoryTools(server);
+  registerVideoQueryTool(server);
   registerResources(server);
 
   return server;
