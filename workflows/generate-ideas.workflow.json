@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:32:08.989Z",
+  "updatedAt": "2025-11-03T19:34:41.989Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -206,7 +206,7 @@
         "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n"
+          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n\nOutput: Return an array of exactly 12 idea objects. Each object must include:\nideaTitle, hookDescriptor, environment, materials, motionPlan, whisperBeatPlan, loopMechanic, executionNotes, and uniquenessEvidence.\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -839,61 +839,6 @@
       }
     ]
   },
-  "versionId": "685d16f3-ca75-4f41-b918-d5c1e4465321",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:07:29.166Z",
-      "createdAt": "2025-11-02T01:07:29.166Z",
-      "role": "workflow:owner",
-      "workflowId": "9tBbhRfA4149YH0f",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T05:00:48.459Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "be4fe765-e374-4428-af76-7b3ad32f72f5",
+  "triggerCount": 0
 }
