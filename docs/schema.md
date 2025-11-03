@@ -304,8 +304,6 @@ CREATE TABLE videos (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 ```
 
 | Column          | Type         | Description                                                                              |
@@ -332,7 +330,6 @@ CREATE INDEX idx_videos_status ON videos(status);
 CREATE INDEX idx_videos_run ON videos(run_id);
 CREATE INDEX idx_videos_created ON videos(created_at DESC);
 CREATE INDEX idx_videos_project ON videos(project_id);
-CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 ```
 
 ## Metadata Structure

@@ -184,8 +184,29 @@ export class OperationsRepository {
       updatedAt: timestamp,
     };
 
-    const [row] = await this.db.insert(schema.videos).values(values).returning();
-    return row;
+    // Retry logic for foreign key constraint violations (race condition with parallel creates)
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const [row] = await this.db.insert(schema.videos).values(values).returning();
+        return row;
+      } catch (error) {
+        lastError = error;
+        // Check for foreign key violation (code 23503)
+        if (isForeignKeyViolation(error)) {
+          // Wait briefly for the run record to be committed, then retry
+          await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+          // Re-verify the run exists
+          await this.ensureRunRecord(data.runId, data.projectId);
+          continue;
+        }
+        // For other errors, throw immediately
+        throw error;
+      }
+    }
+
+    // If we exhausted retries, throw the last error
+    throw lastError;
   }
 
   async updateVideo(videoId: string, data: UpdateVideoData): Promise<Video | null> {
@@ -314,6 +335,11 @@ export class OperationsRepository {
       if (!isUniqueViolation(error)) {
         throw error;
       }
+      // Race condition: another request created the run. Verify it exists now.
+      const retryRun = await this.getRunById(runId);
+      if (!retryRun) {
+        throw new Error(`Run ${runId} should exist after unique violation but was not found`);
+      }
     }
   }
 }
@@ -321,5 +347,11 @@ export class OperationsRepository {
 function isUniqueViolation(error: unknown): boolean {
   return Boolean(
     error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505',
+  );
+}
+
+function isForeignKeyViolation(error: unknown): boolean {
+  return Boolean(
+    error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23503',
   );
 }

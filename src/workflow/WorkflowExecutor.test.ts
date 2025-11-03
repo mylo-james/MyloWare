@@ -214,7 +214,18 @@ describe('WorkflowExecutor', () => {
         title: 'Test',
         memoryType: 'procedural',
         project: ['aismr'],
-        workflow: { name: 'Test', description: 'Test', steps: [] },
+        workflow: {
+          name: 'Test',
+          description: 'Test',
+          steps: [
+            {
+              id: 'step1',
+              step: 1,
+              type: 'mcp_call',
+              mcp_call: { tool: 'prompts.search', params: { query: 'test' } },
+            },
+          ],
+        },
       });
 
       const resolved = executor.resolveVariables('${context.userInput}');
@@ -226,7 +237,18 @@ describe('WorkflowExecutor', () => {
         title: 'Test',
         memoryType: 'procedural',
         project: ['aismr'],
-        workflow: { name: 'Test', description: 'Test', steps: [] },
+        workflow: {
+          name: 'Test',
+          description: 'Test',
+          steps: [
+            {
+              id: 'step1',
+              step: 1,
+              type: 'mcp_call',
+              mcp_call: { tool: 'prompts.search', params: { query: 'test' } },
+            },
+          ],
+        },
       });
 
       const resolved = executor.resolveVariables(
@@ -322,4 +344,3 @@ describe('WorkflowExecutor', () => {
     });
   });
 });
-

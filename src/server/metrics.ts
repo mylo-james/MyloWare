@@ -30,12 +30,6 @@ export const vectorSearchDuration = new promClient.Histogram({
   buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
 });
 
-export const hitlApprovalsTotal = new promClient.Counter({
-  name: 'mcp_prompts_hitl_approvals_total',
-  help: 'Total HITL approvals',
-  labelNames: ['stage', 'status'] as const,
-});
-
 export const embedBatchDuration = new promClient.Histogram({
   name: 'mcp_prompts_embed_batch_duration_seconds',
   help: 'Duration of OpenAI embedding batches',
@@ -44,4 +38,3 @@ export const embedBatchDuration = new promClient.Histogram({
 });
 
 export const metricsRegistry = promClient.register;
-

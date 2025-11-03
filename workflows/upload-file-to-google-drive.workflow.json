@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T20:18:57.261Z",
+  "updatedAt": "2025-11-03T22:24:35.806Z",
   "createdAt": "2025-11-02T01:07:29.839Z",
   "id": "hePBBi9MkuJN7Fpj",
   "name": "Upload file to Google Drive",
@@ -387,6 +387,61 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "793b048a-12c7-4d79-9d2c-20401b22ceb2",
-  "triggerCount": 0
+  "versionId": "db0a84e9-5bde-4087-8504-df9de4b8fc33",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.839Z",
+      "createdAt": "2025-11-02T01:07:29.839Z",
+      "role": "workflow:owner",
+      "workflowId": "hePBBi9MkuJN7Fpj",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-03",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

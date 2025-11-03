@@ -154,9 +154,7 @@ Message your Telegram bot to test the flow:
 2. You'll see executions appear in real-time
 3. Click an execution to see the flow diagram
 
-### 3. Trigger HITL
 
-To test HITL approval flow:
 
 ```bash
 # Create a workflow run that requires approval
@@ -172,7 +170,6 @@ curl -X POST http://localhost:3456/api/workflow-runs \
   }'
 
 # Request approval
-curl -X POST http://localhost:3456/api/hitl/request \
   -H "Content-Type: application/json" \
   -d '{
     "workflowRunId": "WORKFLOW_RUN_ID_FROM_ABOVE",
@@ -191,10 +188,8 @@ Approve via API:
 
 ```bash
 # Get pending approvals
-curl http://localhost:3456/api/hitl/pending
 
 # Approve one
-curl -X POST http://localhost:3456/api/hitl/approval/APPROVAL_ID/approve \
   -H "Content-Type: application/json" \
   -d '{
     "reviewedBy": "test-user",
@@ -209,7 +204,6 @@ curl -X POST http://localhost:3456/api/hitl/approval/APPROVAL_ID/approve \
 
 ```bash
 # 1. Make code changes
-vim src/services/hitl/HITLService.ts
 
 # 2. Server auto-restarts (using npm run dev)
 
@@ -235,8 +229,6 @@ docker compose -f docker-compose.dev.yml exec n8n-postgres \
 # View workflow runs
 psql $DATABASE_URL -c "SELECT * FROM workflow_runs ORDER BY created_at DESC LIMIT 5;"
 
-# View HITL approvals
-psql $DATABASE_URL -c "SELECT * FROM hitl_approvals ORDER BY created_at DESC LIMIT 5;"
 ```
 
 ### Debugging n8n Workflows
@@ -361,7 +353,6 @@ Then commit the updated workflow file.
 │   n8n           │─────>│  MCP Server      │
 │   :5678         │      │  :3456           │
 │                 │<─────│                  │
-│ - Chat workflow │      │ - HITL API       │
 │ - AISMR workflow│      │ - Prompt storage │
 │ - Webhooks      │      │ - Vector search  │
 └────────┬────────┘      └────────┬─────────┘
@@ -373,7 +364,6 @@ Then commit the updated workflow file.
 │                 │      │                  │
 │ - Workflows     │      │ - Prompts        │
 │ - Executions    │      │ - Workflow runs  │
-│ - Credentials   │      │ - HITL approvals │
 └─────────────────┘      └──────────────────┘
 ```
 
@@ -381,7 +371,6 @@ Then commit the updated workflow file.
 
 Once you have local development working:
 
-1. **Test HITL flow end-to-end** via Telegram
 2. **Iterate on workflow design** in n8n UI
 3. **Add workflow tests** (see `workflows/README.md`)
 4. **Monitor metrics** at `/metrics` endpoint

@@ -46,34 +46,6 @@ function createMockDb() {
       updatedAt: '2025-01-01T00:00:00.000Z',
     },
   ]);
-  const selectWhere = vi.fn().mockReturnValue({ limit: selectLimit });
-  const selectFrom = vi.fn().mockReturnValue({ where: selectWhere });
-  const select = vi.fn().mockReturnValue({ from: selectFrom });
-
-  const updateReturning = vi.fn().mockResolvedValue([
-    {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      projectId: 'aismr',
-      sessionId: '123e4567-e89b-12d3-a456-426614174001',
-      currentStage: 'screenplay',
-      status: 'waiting_for_hitl',
-      stages: {
-        idea_generation: { status: 'completed', output: { ideas: [] } },
-        screenplay: { status: 'in_progress' },
-        video_generation: { status: 'pending' },
-        publishing: { status: 'pending' },
-      },
-      input: {},
-      output: null,
-      workflowDefinitionChunkId: null,
-      createdAt: '2025-01-01T00:00:00.000Z',
-      updatedAt: '2025-01-01T00:00:01.000Z',
-    },
-  ]);
-  const updateWhere = vi.fn().mockReturnValue({ returning: updateReturning });
-  const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
-  const update = vi.fn().mockReturnValue({ set: updateSet });
-
   const selectOrderBy = vi.fn().mockResolvedValue([
     {
       id: '123e4567-e89b-12d3-a456-426614174000',
@@ -94,20 +66,43 @@ function createMockDb() {
       updatedAt: '2025-01-01T00:00:00.000Z',
     },
   ]);
-  const selectFromOrderBy = vi.fn().mockReturnValue({ orderBy: selectOrderBy });
-  const selectFromWhere = vi.fn().mockReturnValue({
+  const selectWhere = vi.fn().mockReturnValue({
+    limit: selectLimit,
     orderBy: selectOrderBy,
-    where: vi.fn().mockReturnValue({ orderBy: selectOrderBy }),
   });
+  const selectFrom = vi.fn().mockReturnValue({
+    where: selectWhere,
+    orderBy: selectOrderBy,
+  });
+  const select = vi.fn().mockReturnValue({ from: selectFrom });
+
+  const updateReturning = vi.fn().mockResolvedValue([
+    {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      projectId: 'aismr',
+      sessionId: '123e4567-e89b-12d3-a456-426614174001',
+      currentStage: 'screenplay',
+      status: 'running',
+      stages: {
+        idea_generation: { status: 'completed', output: { ideas: [] } },
+        screenplay: { status: 'in_progress' },
+        video_generation: { status: 'pending' },
+        publishing: { status: 'pending' },
+      },
+      input: {},
+      output: null,
+      workflowDefinitionChunkId: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:01.000Z',
+    },
+  ]);
+  const updateWhere = vi.fn().mockReturnValue({ returning: updateReturning });
+  const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
+  const update = vi.fn().mockReturnValue({ set: updateSet });
 
   const mockDb = {
     insert,
-    select: vi.fn().mockImplementation((...args) => {
-      if (args.length === 0) {
-        return { from: selectFromWhere };
-      }
-      return { from: selectFrom };
-    }),
+    select,
     update,
   } as Record<string, unknown>;
 
@@ -185,12 +180,12 @@ describe('WorkflowRunRepository', () => {
       expect(result?.id).toBe(runId);
     });
 
-    it('returns null if workflow run not found', async () => {
+    it('throws when workflow run not found', async () => {
       spies.selectLimit.mockResolvedValueOnce([]);
 
-      const result = await repository.getWorkflowRunById('non-existent-id');
-
-      expect(result).toBeNull();
+      await expect(repository.getWorkflowRunById('non-existent-id')).rejects.toThrow(
+        'Workflow run with id non-existent-id not found',
+      );
     });
   });
 
@@ -198,7 +193,7 @@ describe('WorkflowRunRepository', () => {
     it('updates workflow run fields', async () => {
       const runId = '123e4567-e89b-12d3-a456-426614174000';
       const updates = {
-        status: 'waiting_for_hitl' as WorkflowRunStatus,
+        status: 'completed' as WorkflowRunStatus,
         currentStage: 'screenplay' as WorkflowStage,
       };
 
@@ -207,7 +202,7 @@ describe('WorkflowRunRepository', () => {
       expect(spies.update).toHaveBeenCalled();
       expect(spies.updateSet).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'waiting_for_hitl',
+          status: 'completed',
           currentStage: 'screenplay',
           updatedAt: expect.any(String),
         }),
@@ -288,4 +283,3 @@ describe('WorkflowRunRepository', () => {
     });
   });
 });
-

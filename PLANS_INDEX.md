@@ -11,11 +11,8 @@
 - Enhanced tool descriptions for self-discovery
 - Database reseeding with canonical prompts
 
-### 2. plan-hitl.md
 **Status**: 📋 SAVED FOR LATER  
-**Topic**: AI-powered HITL system with Telegram integration  
 **Key Features**:
-- Riley (HITL coordinator agent)
 - Dual-mode workflow (request + response)
 - n8n Wait node webhooks for pause/resume
 - Telegram inline keyboards + AI interpretation
@@ -32,7 +29,6 @@
 3. ✅ **video_query Tool** (DONE) - Global uniqueness checking
 4. ✅ **Schema Management System** (DONE) - Push/pull with n8n workflows
 5. 🔜 **Test Current System** - Validate idea generation and screenplay workflows work end-to-end
-6. 📋 **HITL System** (plan-hitl.md) - After core workflows validated
 
 ---
 
@@ -49,4 +45,3 @@
 **Next Session**:
 - Test idea generation workflow end-to-end
 - Test screenwriter workflow
-- Then implement HITL system if needed

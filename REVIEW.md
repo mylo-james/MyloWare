@@ -16,7 +16,6 @@ The AISMR workflow has **significant architectural complexity** with unnecessary
 2. ❌ **CRITICAL:** Progress notification nodes overwrite upstream payloads, breaking data flow
 3. ❌ **CRITICAL:** Mylo_MCP_Bot workflow ends on memory-add, not agent output
 4. ❌ **BAD:** Unnecessary workflow indirection through "Mylo MCP Bot"
-5. ❌ **BAD:** Duplicated HITL approval polling logic
 6. ⚠️ **ISSUE:** Data flow breaks between Generate Ideas and AISMR workflows
 7. ⚠️ **ISSUE:** Inconsistent session/run ID handling
 8. ⚠️ **ISSUE:** Missing control-flow fallbacks (approval failures, loop limits)
@@ -62,7 +61,6 @@ Progress notification nodes in the AISMR workflow sit **inline on the happy-path
 
 **Affected Nodes:**
 
-- `Progress: Ideas Generated` (Line 272) → Breaks `Request HITL Approval`
 - Progress nodes after `Call Screen Writer`, `Call Generate Video`, etc. → Break all subsequent workflow calls
 
 **Example from AISMR workflow:**
@@ -70,7 +68,6 @@ Progress notification nodes in the AISMR workflow sit **inline on the happy-path
 ```272:315:workflows/AISMR.workflow.json
       "name": "Progress: Ideas Generated",
       ...
-      "name": "Request HITL Approval",
 ```
 
 **What happens:**
@@ -78,12 +75,10 @@ Progress notification nodes in the AISMR workflow sit **inline on the happy-path
 1. `Get Run After Ideas` returns workflow run JSON with `stageOutput`, `ideas`, etc.
 2. `Progress: Ideas Generated` (Telegram node) sends notification
 3. Telegram node returns its own API response (message ID, chat ID, etc.)
-4. `Request HITL Approval` receives Telegram payload instead of run data
 5. Result: `stageOutput` resolves to `[]`, `userIdea` becomes empty, approval request fails
 
 **Impact:**
 
-- `Request HITL Approval` loses the generated ideas
 - `Call Generate Video` expects `videoId` from `$json` but gets Telegram metadata
 - `Final: Posted` expects `tiktokUrl` but gets Telegram metadata
 - Every stage after each notification node breaks
@@ -95,7 +90,6 @@ Progress notification nodes in the AISMR workflow sit **inline on the happy-path
 ```
 Get Run After Ideas
   ├─> Progress: Ideas Generated (branch)
-  └─> Request HITL Approval (main path)
 ```
 
 Use a `Merge` node in passthrough mode to branch notifications without breaking the main data flow.
@@ -207,13 +201,10 @@ Several control-flow branches are either missing or incomplete, leaving runs han
 
 ---
 
-### ❌ DUPLICATION ISSUE: HITL Approval Logic
 
-The HITL approval polling is implemented **TWICE** with identical logic:
 
 #### Location 1: Generate Ideas Workflow (Lines 323-574)
 
-- Request HITL Approval
 - Check Approval ID
 - Prepare Loop
 - Check Loop Limit
@@ -224,7 +215,6 @@ The HITL approval polling is implemented **TWICE** with identical logic:
 
 #### Location 2: AISMR Workflow (Lines 294-437)
 
-- Request HITL Approval
 - Check Approval ID
 - Prepare Loop
 - Check Loop Limit
@@ -389,7 +379,6 @@ Required Steps
 2. Fix Mylo_MCP_Bot ending on memory-add instead of agent output
 3. Eliminate Mylo_MCP_Bot indirection (use inline AI Agent)
 
-**HIGH (Should Fix):** 4. Add missing control-flow fallback branches 5. Add final success state update 6. Remove duplicate HITL polling logic
 
 **MEDIUM:** 7. Fix data flow handoffs (stop re-fetching from API) 8. Pass selected idea context to Screen Writer
 
@@ -407,12 +396,10 @@ Required Steps
 
 ```
 Before:
-Get Run After Ideas → Progress: Ideas Generated → Request HITL Approval
                        (overwrites $json!)
 
 After:
 Get Run After Ideas ─┬─> Progress: Ideas Generated (branch)
-                     └─> Request HITL Approval (main path, preserves $json)
 ```
 
 **Apply to all progress notification points:**
@@ -426,7 +413,6 @@ Get Run After Ideas ─┬─> Progress: Ideas Generated (branch)
 **Benefits:**
 
 - Fixes ALL data flow breaks in one pattern
-- Request HITL Approval gets actual ideas
 - Call Generate Video gets videoId
 - Final nodes get tiktokUrl
 - No need to refactor every downstream node
@@ -472,7 +458,6 @@ AISMR → Generate Ideas (with inline AI Agent) → Returns ideas array
    - MCP Client Tool node
 4. Set system message with idea generation instructions
 5. Use Structured Output Parser with ideas schema
-6. **Keep HITL approval logic in this workflow** (approved: gate expensive operations)
 7. Return approved idea + ideas array to parent AISMR workflow
 
 **Benefits:**
@@ -480,7 +465,6 @@ AISMR → Generate Ideas (with inline AI Agent) → Returns ideas array
 - Workflow stays reusable for future use cases
 - Eliminates data mapping issues
 - Receives proper ideas array (not memory responses)
-- HITL approval happens before spending money on screenplay
 - Follows chat workflow pattern
 - Removes one level of indirection
 
@@ -599,18 +583,12 @@ AISMR → Screen Writer (with inline AI Agent + idea context) → Returns screen
 
 ---
 
-### 6. **HIGH: Remove Duplicate HITL Polling Logic**
 
 **Current:**
 
-- HITL polling in Generate Ideas workflow ✅ (KEEP THIS - approved ideas before spending money)
-- HITL polling in AISMR workflow ❌ (REMOVE THIS - duplicate)
 
 **Recommended:**
 
-- Keep HITL logic in Generate Ideas workflow ONLY
-- Remove HITL polling from AISMR workflow
-- Generate Ideas returns approved idea after HITL
 - AISMR just calls Screen Writer with the approved idea
 
 **Why:**
@@ -730,7 +708,6 @@ AISMR Workflow (Orchestrator)
    │  - Receive: runId, userInput             │
    │  - AI Agent (INLINE with MCP tools)      │
    │  - Generate ideas array                   │
-   │  - HITL Approval Loop (approve ideas)    │
    │  - Return: ideas[], selectedIdea         │
    └───────────────────────────────────────────┘
 
@@ -770,12 +747,10 @@ AISMR Workflow (Orchestrator)
 
 - ✅ Generate Ideas + Screen Writer stay separate (reusable)
 - ✅ Both use inline AI Agents (no Mylo_MCP_Bot)
-- ✅ HITL stays in Generate Ideas (gate before expensive ops)
 - ✅ All progress notifications BRANCHED (don't break data flow)
 - ✅ Screen Writer receives full idea context
 - ✅ Final success state properly recorded
 - ✅ Reduced from 3 levels to 2 levels (AISMR → Ideas/Writer)
-- ✅ No duplicate HITL polling
 
 ---
 
@@ -790,7 +765,6 @@ These fixes provide immediate value with minimal risk:
 1. Identify all inline Telegram notification nodes
 2. Add `Merge` nodes in passthrough mode before each notification
 3. Route notifications as branches, not inline
-4. Test that `Request HITL Approval` receives correct ideas
 5. Test that `Call Generate Video` receives videoId
 
 **Step 2: Add Control Flow Fallbacks (1 hour)**
@@ -808,7 +782,6 @@ These fixes provide immediate value with minimal risk:
 
 **Expected Results:**
 
-- ✅ HITL approval works correctly with ideas
 - ✅ Video generation receives proper videoId
 - ✅ Users get notified on failures
 - ✅ Runs show proper completion status
@@ -830,7 +803,6 @@ These fixes provide immediate value with minimal risk:
 
 ### Phase 2: Fix Generate Ideas Workflow (2-3 hours)
 
-**Goal:** Make Generate Ideas work properly with inline AI Agent + keep HITL
 
 1. **Backup:** Export `generate-ideas.workflow.json` to archive
 2. **Remove:** Delete `Call 'Mylo_MCP_Bot'` node
@@ -840,7 +812,6 @@ These fixes provide immediate value with minimal risk:
    - MCP Client Tool node (with prompt_get, prompt_search_adaptive)
 5. **Configure:** System message with idea generation instructions
 6. **Add:** Structured Output Parser for ideas schema
-7. **Keep:** HITL approval polling logic (as-is)
 8. **Fix:** Return approved idea + ideas array properly
 9. **Test:** Call from AISMR with test data, verify ideas return correctly
 
@@ -889,13 +860,8 @@ These fixes provide immediate value with minimal risk:
 
 ---
 
-### Phase 4: Remove Duplicate HITL from AISMR (1 hour)
 
-**Goal:** Simplify AISMR by removing duplicate HITL logic
 
-1. **Identify:** HITL polling nodes in AISMR (lines 294-437)
-2. **Remove:** Delete duplicate HITL nodes:
-   - Request HITL Approval
    - Check Approval ID
    - Prepare Loop
    - Check Loop Limit
@@ -939,7 +905,6 @@ These fixes provide immediate value with minimal risk:
 
 ### After Phase 0 (Quick Wins):
 
-1. ✅ HITL approval receives correct ideas (not empty array)
 2. ✅ Video generation receives videoId (not Telegram metadata)
 3. ✅ Users notified on approval failures/timeouts
 4. ✅ Runs marked "completed" with artifacts on success
@@ -952,7 +917,6 @@ These fixes provide immediate value with minimal risk:
 2. ✅ Simplified debugging (single workflow to inspect)
 3. ✅ Easier modifications (all logic in one place)
 4. ✅ Consistent with chat workflow pattern
-5. ✅ Eliminated duplicate HITL polling logic
 6. ✅ Clear data flow (no re-fetching from API)
 7. ✅ Screen Writer receives full idea context
 8. ✅ No workflow indirection through Mylo_MCP_Bot
@@ -979,7 +943,6 @@ The AISMR workflow has **two categories of issues**:
 ### Architectural Complexity (Refactor When Ready)
 
 1. **3 levels of workflow nesting** → Should be 1 level
-2. **Duplicate HITL polling** → Should be in one place
 3. **Missing context passing** → Screen Writer lacks idea details
 4. **Data contract inconsistency** → Multiple fallback paths
 
@@ -1009,7 +972,6 @@ The AISMR workflow has **two categories of issues**:
 
 1. ✅ **DECIDED:** Archive Mylo_MCP_Bot in Phase 5 (only used by Ideas/Writer)
 2. ✅ **DECIDED:** Keep Generate Ideas/Screen Writer as separate workflows (plans for reuse)
-3. ✅ **DECIDED:** Keep HITL in Generate Ideas (approve before spending money on screenplay)
 4. ✅ **DECIDED:** Audit video generation workflows after Phase 5
 5. ✅ **DECIDED:** Create TypeScript interfaces for workflow data contracts
 
@@ -1025,7 +987,6 @@ The AISMR workflow has **two categories of issues**:
 
 ### Generate Ideas Workflow Double-Invocation Issue
 
-The `Generate Ideas` workflow has a `Trigger Screenplay` node that calls the Screen Writer workflow as soon as HITL approval completes. However, the parent AISMR workflow **also** calls Screen Writer after extracting the selected idea.
 
 **Result:** Screenplay generation may run twice, potentially:
 
@@ -1076,7 +1037,6 @@ The AISMR workflow's error handler is well-designed with multiple fallback paths
 AISMR Workflow (Level 1)
 ├─ Generate Ideas Workflow (Level 2)
 │  ├─ AI Agent (inline) + MCP Tools
-│  └─ HITL Approval (polling loop)
 ├─ Screen Writer Workflow (Level 2)
 │  └─ AI Agent (inline) + MCP Tools
 ├─ Generate Video Workflow
@@ -1088,11 +1048,9 @@ AISMR Workflow (Level 1)
 ### Improvements Made
 
 - ✅ **Reduced from 3 levels to 2 levels** - Eliminated Mylo_MCP_Bot indirection
-- ✅ **Single HITL approval** - HITL logic now only in Generate Ideas workflow
 - ✅ **Proper data contracts** - TypeScript types defined in `src/types/workflow-contracts.ts`
 - ✅ **Progress notifications branched** - Notifications no longer break data flow (using Merge nodes with passthrough mode)
 - ✅ **Complete status tracking** - All workflow stages update run status properly
-- ✅ **Removed duplicate logic** - Eliminated duplicate HITL polling from AISMR workflow
 - ✅ **Fixed data flow** - Generate Ideas returns `{ ideas, selectedIdea, approvalId, userIdea }` directly
 - ✅ **Proper error handling** - All failure paths have handlers (approval failure, timeout, rejection)
 
@@ -1109,4 +1067,3 @@ See `src/types/workflow-contracts.ts` for complete TypeScript definitions:
 - **Mylo_MCP_Bot workflow** archived to `workflows/archive/`
 - **Generate Ideas workflow** now uses inline AI Agent with MCP Tools
 - **Screen Writer workflow** now uses inline AI Agent with idea context
-- **AISMR workflow** simplified - removed duplicate HITL, uses Generate Ideas output directly

@@ -8,7 +8,7 @@ The system uses **RAG-driven workflows** where:
 - **Workflow definitions** are stored in RAG as procedural memory
 - **Project configurations** define project-specific requirements
 - **n8n workflows** load and execute these definitions dynamically
-- **HITL gates** provide quality control between stages
+- **Manual review gates** provide quality control between stages
 
 ## Step-by-Step Guide
 
@@ -174,7 +174,7 @@ If your project needs custom n8n workflow logic beyond the generic templates:
 2. Update workflow to:
    - Call MCP Bot with your `projectId`
    - Handle your project-specific outputs
-   - Include HITL approval gates
+   - Include manual approval gates where needed
 
 3. The MCP Bot will automatically:
    - Load your workflow definition from RAG
@@ -196,7 +196,7 @@ If your project needs custom n8n workflow logic beyond the generic templates:
 
 2. **Trigger your workflow via n8n** or directly via API
 
-3. **Check HITL approvals** at `/hitl` UI
+3. **Review approvals** via the workflow run details API
 
 4. **Verify outputs** match your `output_format`
 
@@ -338,7 +338,7 @@ Define validation rules in your workflow:
 - [ ] MCP Bot can find workflow definitions via search
 - [ ] Workflow executes all steps correctly
 - [ ] Validation rules work as expected
-- [ ] HITL gates trigger at correct stages
+- [ ] Manual review gates trigger at correct stages
 - [ ] Output matches `output_format` schema
 - [ ] Error handling works gracefully
 
@@ -378,4 +378,3 @@ Once your project is working:
 - See `REVIEW.md` for architecture overview
 - Check existing workflows in `prompts/workflows/`
 - Review example projects in `prompts/projects/`
-

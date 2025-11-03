@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying the complete HITL + RAG-driven workflow system.
+This guide covers deploying the complete RAG-driven workflow system end to end.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ This guide covers deploying the complete HITL + RAG-driven workflow system.
 -- Main database for prompts and embeddings
 CREATE DATABASE mcp_prompts;
 
--- Operations database for workflow runs and HITL
+-- Operations database for workflow runs
 CREATE DATABASE mcp_operations;
 ```
 
@@ -42,7 +42,6 @@ npm run db:operations:migrate
 This will create:
 - `prompt_embeddings` table (with vector support)
 - `workflow_runs` table (workflow state tracking)
-- `hitl_approvals` table (HITL approval tracking)
 - All necessary indexes
 
 ### 1.4 Verify Schema
@@ -51,7 +50,7 @@ This will create:
 -- Check tables exist
 SELECT table_name FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('prompt_embeddings', 'workflow_runs', 'hitl_approvals');
+AND table_name IN ('prompt_embeddings', 'workflow_runs');
 ```
 
 ## Step 2: Ingest Workflow Definitions
@@ -163,25 +162,18 @@ In n8n settings, configure:
 ### 5.3 Activate Workflows
 
 Activate these workflows in n8n:
-- `Generate Ideas` (with HITL)
-- `Screen Writer` (with HITL)
-- `Make Videos` (with HITL)
 - `Post Video`
 
-## Step 6: Deploy HITL UI
 
-The HITL UI is served statically from the Fastify server.
 
 ### Verify UI is Accessible
 
 ```bash
-curl http://localhost:3000/hitl
 # Should return HTML page
 ```
 
 ### Access UI
 
-Navigate to: `https://mcp-vector.mjames.dev/hitl`
 
 Features:
 - View pending approvals
@@ -193,14 +185,12 @@ Features:
 
 ### Slack Notifications
 
-If using Slack for HITL notifications:
 
 1. Create Slack webhook in Slack workspace
 2. Add `SLACK_WEBHOOK_URL` to `.env`
 3. Restart server
 
 Notifications will be sent when:
-- New HITL approval is requested
 - Approval status changes
 
 ### Email Notifications (Optional)
@@ -253,9 +243,7 @@ Trigger via n8n workflow or API:
 - n8n: Execute `Generate Ideas` workflow
 - API: Call workflow webhook
 
-### 9.3 Check HITL Approval
 
-1. Go to `/hitl` UI
 2. See pending approval for idea generation
 3. Approve/reject idea
 4. Workflow continues automatically
@@ -292,11 +280,7 @@ psql $DATABASE_URL -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
    ```
 3. Verify file paths match ingestion script expectations
 
-### HITL Approvals Not Appearing
 
-1. Check workflow run status: Should be `waiting_for_hitl`
-2. Check HITL repository: `SELECT * FROM hitl_approvals WHERE status = 'pending'`
-3. Verify API endpoint: `GET /api/hitl/pending`
 
 ### n8n Workflow Errors
 
@@ -314,7 +298,6 @@ psql $DATABASE_URL -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
 - [ ] Environment variables configured
 - [ ] Server running and healthy
 - [ ] n8n workflows deployed and active
-- [ ] HITL UI accessible
 - [ ] Notifications configured
 - [ ] End-to-end test completed
 - [ ] Monitoring set up
@@ -372,7 +355,5 @@ Configure rate limiting in `src/server/httpTransport.ts`:
 After deployment:
 1. Monitor error logs
 2. Track workflow completion rates
-3. Gather user feedback on HITL UI
 4. Iterate on workflow definitions based on results
 5. Add new projects following `ADDING_NEW_PROJECTS.md`
-

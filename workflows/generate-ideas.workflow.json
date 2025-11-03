@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T20:18:57.042Z",
+  "updatedAt": "2025-11-03T22:26:15.193Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -49,6 +49,8 @@
     {
       "parameters": {
         "fieldToSplitOut": "ideas",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "userIdea",
         "options": {}
       },
       "type": "n8n-nodes-base.splitOut",
@@ -67,13 +69,13 @@
             {
               "id": "460ccabd-86a2-4125-8a0d-7393263eed5a",
               "name": "idea",
-              "value": "={{ $json.idea }}",
+              "value": "={{ $json.ideas.ideaTitle }}",
               "type": "string"
             },
             {
               "id": "669d4c08-bc8e-44ef-8111-b41159f88225",
               "name": "vibe",
-              "value": "={{ $json.vibe }}",
+              "value": "={{ $json.ideas.vibe }}",
               "type": "string"
             },
             {
@@ -103,7 +105,7 @@
             {
               "id": "user-idea-field",
               "name": "user_idea",
-              "value": "={{ $json.userIdea || $json.user_idea || '' }}",
+              "value": "={{ $json.userIdea }}",
               "type": "string"
             }
           ]
@@ -147,7 +149,7 @@
       "typeVersion": 1,
       "position": [
         -6240,
-        256
+        240
       ],
       "id": "31131e25-274b-479e-88ec-f037fe847d6e",
       "name": "On Error"
@@ -167,7 +169,7 @@
       "typeVersion": 4.2,
       "position": [
         -6016,
-        256
+        240
       ],
       "id": "96853da5-92f3-4f02-a6f1-bc45da08828f",
       "name": "Mark Run Failed (Ideas)",
@@ -221,7 +223,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI Agent output to extract structured ideas\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    // If parsing fails, try to extract ideas from text\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { ideas: [], userIdea: rawOutput, totalIdeas: 0 };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\n// Ensure ideas array exists and has proper structure\nconst ideas = Array.isArray(parsed?.ideas) ? parsed.ideas : [];\nconst userIdea = parsed?.userIdea || $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '';\n\n// Ensure each idea has required fields\nconst normalizedIdeas = ideas.map((idea, index) => {\n  if (!idea.ideaId) {\n    // Generate a simple ID if missing\n    idea.ideaId = `idea-${Date.now()}-${index}`;\n  }\n  return {\n    idea: idea.idea || idea.title || `Idea ${index + 1}`,\n    vibe: idea.vibe || idea.mood || 'relaxing',\n    ideaId: idea.ideaId || `idea-${Date.now()}-${index}`,\n    description: idea.description || null\n  };\n});\n\nreturn {\n  json: {\n    ideas: normalizedIdeas,\n    userIdea: userIdea,\n    totalIdeas: normalizedIdeas.length,\n    rawOutput: rawOutput\n  }\n};"
+        "jsCode": "// Parse AI Agent output to extract structured ideas\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    // If parsing fails, try to extract ideas from text\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { ideas: [], userIdea: rawOutput, totalIdeas: 0 };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\nconst userIdea = parsed?.userIdea || $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '';\n\n// Ensure each idea has required fields\n\nreturn {\n  json: {\n    ideas: rawOutput,\n    userIdea: userIdea,\n    totalIdeas: rawOutput.length,\n\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -266,7 +268,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'running',\n  currentStage: 'idea_generation',\n  stages: {\n    idea_generation: {\n      status: 'in_progress',\n      output: $json.ideas\n    },\n    screenplay: { status: 'pending' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  },\n  output: {\n    idea_generation: {\n      ideas: $json.ideas,\n      userIdea: $json.userIdea,\n      totalIdeas: $json.totalIdeas\n    }\n  }\n}) }}",
+        "jsonBody": "={{ ({\\n  status: 'running',\\n  currentStage: 'screenplay',\\n  stages: {\\n    idea_generation: {\\n      status: 'completed',\\n      output: $json.ideas\\n    },\\n    screenplay: { status: 'running' },\\n    video_generation: { status: 'pending' },\\n    publishing: { status: 'pending' }\\n  },\\n  output: {\\n    stage: 'idea_generation',\\n    ideas: $json.ideas,\\n    userIdea: $json.userIdea,\\n    totalIdeas: $json.totalIdeas\\n  }\\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -286,221 +288,16 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://mcp-vector.mjames.dev/api/hitl/request-approval",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({\n  workflowRunId: $json.workflowRunId,\n  stage: 'idea_generation',\n  content: {\n    ideas: $json.ideas,\n    userIdea: $json.userIdea,\n    totalIdeas: $json.totalIdeas,\n  },\n  notifyChannels: ['slack']\n}) }}",
-        "options": {}
+        "jsCode": "const aggregateNode = $('Aggregate Ideas').item.json;\\nconst ideas = aggregateNode.ideas || [];\\nconst userIdea = aggregateNode.userIdea || '';\\nconst selectedIdea = ideas.length > 0 ? ideas[0] : null;\\n\\nreturn {\\n  json: {\\n    ideas,\\n    selectedIdea,\\n    userIdea,\\n    totalIdeas: ideas.length\\n  }\\n};"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         -3760,
         -96
       ],
-      "id": "da790c5f-bb7b-4602-8236-8e7198e11597",
-      "name": "Request HITL Approval"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.approval?.id }}",
-              "operation": "isNotEmpty"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.1,
-      "position": [
-        -3536,
-        0
-      ],
-      "id": "c98c0525-65ce-4905-bb64-51c8a4d9a05a",
-      "name": "Check Approval ID"
-    },
-    {
-      "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/hitl/approval/' + $json.approvalId }}",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -2640,
-        -176
-      ],
-      "id": "542a4e77-3952-4504-b5a4-0467598b3eb6",
-      "name": "Get Approval Status"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.approval?.status }}",
-              "value2": "approved",
-              "operation": "equals"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.1,
-      "position": [
-        -2416,
-        0
-      ],
-      "id": "7d458bb0-a728-4b72-abe0-9739bbb49755",
-      "name": "Check If Approved"
-    },
-    {
-      "parameters": {
-        "amount": 5000,
-        "unit": "milliseconds"
-      },
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        -2864,
-        -176
-      ],
-      "id": "73c0b3a7-11a2-4f3d-a98c-4781bf3551d3",
-      "name": "Wait Before Polling",
-      "webhookId": "bc467ebb-e6ee-4347-9752-b111fbaf9ae2"
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'waiting_for_hitl',\n  currentStage: 'idea_generation',\n  stages: {\n    idea_generation: {\n      status: 'waiting_for_hitl',\n      output: $('Aggregate Ideas').item.json.ideas\n    },\n    screenplay: { status: 'pending' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  },\n  output: {\n    stage: 'idea_generation',\n    ideas: $('Aggregate Ideas').item.json.ideas,\n    userIdea: $('Aggregate Ideas').item.json.userIdea,\n    totalIdeas: $('Aggregate Ideas').item.json.totalIdeas\n  }\n}) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -3536,
-        -192
-      ],
-      "id": "5b720c5e-5371-4222-9dbd-bcfd709201b6",
-      "name": "Update Run Status Waiting",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const approval = $('Get Approval Status').item.json.approval;\nconst ideas = $('Parse Ideas Output').item.json.ideas || $('Aggregate Ideas').item.json.ideas || [];\nconst userIdea = $('Parse Ideas Output').item.json.userIdea || $('Aggregate Ideas').item.json.userIdea || '';\nconst selectedItem = approval?.content?.selectedItem;\n\n// Find the selected idea from the ideas array\nlet selectedIdea = null;\nif (selectedItem) {\n  // selectedItem might be an ideaId string or an idea object\n  if (typeof selectedItem === 'string') {\n    selectedIdea = ideas.find(idea => idea.ideaId === selectedItem) || ideas[0];\n  } else if (typeof selectedItem === 'object' && selectedItem.ideaId) {\n    selectedIdea = ideas.find(idea => idea.ideaId === selectedItem.ideaId) || selectedItem;\n  } else {\n    selectedIdea = ideas[0];\n  }\n} else {\n  selectedIdea = ideas[0];\n}\n\nreturn {\n  json: {\n    ideas,\n    selectedIdea,\n    approvalId: approval?.id || null,\n    userIdea,\n    totalIdeas: ideas.length\n  }\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1968,
-        0
-      ],
       "id": "c0441158-ca26-46f8-94e4-3632ac9e5cde",
       "name": "Prepare Workflow Output"
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'running',\n  currentStage: 'screenplay',\n  stages: {\n    idea_generation: {\n      status: 'completed',\n      output: $('Aggregate Ideas').item.json.ideas\n    },\n    screenplay: { status: 'running' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  }\n}) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -2192,
-        0
-      ],
-      "id": "2a4b1217-6f7c-42bc-b152-ecd4e505410e",
-      "name": "Update Run Approved",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + $('Aggregate Ideas').item.json.workflowRunId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'needs_revision',\n  currentStage: 'idea_generation',\n  stages: {\n    idea_generation: {\n      status: 'needs_revision',\n      output: $('Aggregate Ideas').item.json.ideas\n    },\n    screenplay: { status: 'pending' },\n    video_generation: { status: 'pending' },\n    publishing: { status: 'pending' }\n  }\n}) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        -2864,
-        32
-      ],
-      "id": "ff4388e5-cd05-42c4-a6bc-9019f6a52a37",
-      "name": "Update Run Rejected",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Loop back to check approval status\nconst approvalId = $('Request HITL Approval').item.json.approval?.id;\nconst workflowRunId = $('Aggregate Ideas').item.json.workflowRunId;\n\nreturn [{\n  json: {\n    approvalId,\n    workflowRunId,\n    loopCount: ($input.all().length > 0 && $input.item(0).json.loopCount ? $input.item(0).json.loopCount + 1 : 1),\n    maxLoops: 100\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -3312,
-        0
-      ],
-      "id": "91b0d7e4-bb31-4b6a-8a62-7ae3da0d2bc5",
-      "name": "Prepare Loop"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            {
-              "value1": "={{ $json.loopCount }}",
-              "operation": "smaller",
-              "value2": 100
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.1,
-      "position": [
-        -3088,
-        -80
-      ],
-      "id": "9fa1a30b-257f-4c6f-b190-21052869ca1c",
-      "name": "Check Loop Limit"
     },
     {
       "parameters": {
@@ -664,113 +461,6 @@
         ]
       ]
     },
-    "Request HITL Approval": {
-      "main": [
-        [
-          {
-            "node": "Update Run Status Waiting",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Check Approval ID",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Approval ID": {
-      "main": [
-        [
-          {
-            "node": "Prepare Loop",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Approval Status": {
-      "main": [
-        [
-          {
-            "node": "Check If Approved",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check If Approved": {
-      "main": [
-        [
-          {
-            "node": "Update Run Approved",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Loop",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait Before Polling": {
-      "main": [
-        [
-          {
-            "node": "Get Approval Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Loop": {
-      "main": [
-        [
-          {
-            "node": "Check Loop Limit",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Loop Limit": {
-      "main": [
-        [
-          {
-            "node": "Wait Before Polling",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update Run Rejected",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Run Approved": {
-      "main": [
-        [
-          {
-            "node": "Prepare Workflow Output",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "5-nano": {
       "ai_languageModel": [
         [
@@ -782,23 +472,23 @@
         ]
       ]
     },
-    "Update Run Ideas Complete": {
-      "main": [
-        [
-          {
-            "node": "Request HITL Approval",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Structured Output Parser": {
       "ai_outputParser": [
         [
           {
             "node": "AI Agent: Generate Ideas",
             "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Ideas Complete": {
+      "main": [
+        [
+          {
+            "node": "Prepare Workflow Output",
+            "type": "main",
             "index": 0
           }
         ]
@@ -818,8 +508,167 @@
           "runId": "b1eb9288-14da-472f-8985-5440cc67cfca"
         }
       }
+    ],
+    "AI Agent: Generate Ideas": [
+      {
+        "json": {
+          "output": [
+            {
+              "ideaTitle": "void puppies",
+              "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "velvet puppies",
+              "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "water puppies",
+              "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "sunrise puppies",
+              "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "crystal puppies",
+              "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "shadow puppies",
+              "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "silk puppies",
+              "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "glass puppies",
+              "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "neon puppies",
+              "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "cosmic puppies",
+              "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "lunar puppies",
+              "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            },
+            {
+              "ideaTitle": "phantom puppies",
+              "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
+              "uniquenessCheck": {
+                "exists": false,
+                "confidence": "none"
+              }
+            }
+          ]
+        }
+      }
     ]
   },
-  "versionId": "2e9db12c-386f-4d83-9478-eea83da99222",
-  "triggerCount": 0
+  "versionId": "ca386e04-b99d-4cc6-a6d3-7e6c52827ab6",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-11-02T01:07:29.166Z",
+      "createdAt": "2025-11-02T01:07:29.166Z",
+      "role": "workflow:owner",
+      "workflowId": "9tBbhRfA4149YH0f",
+      "projectId": "31ZCiMO58nOfetfK",
+      "project": {
+        "updatedAt": "2025-11-02T01:05:08.411Z",
+        "createdAt": "2025-11-02T01:01:26.863Z",
+        "id": "31ZCiMO58nOfetfK",
+        "name": "Mylo James <mylo.james114@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "updatedAt": "2025-11-02T01:01:26.863Z",
+            "createdAt": "2025-11-02T01:01:26.863Z",
+            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+            "projectId": "31ZCiMO58nOfetfK",
+            "user": {
+              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "createdAt": "2025-11-02T01:01:26.032Z",
+              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
+              "email": "mylo.james114@gmail.com",
+              "firstName": "Mylo",
+              "lastName": "James",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
+                "personalization_survey_n8n_version": "1.117.3",
+                "companySize": "20-99",
+                "companyType": "saas",
+                "role": "customer-support",
+                "reportedSource": "other",
+                "reportedSourceOther": "f"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
+                "userActivatedAt": 1762065650829
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-03",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
 }

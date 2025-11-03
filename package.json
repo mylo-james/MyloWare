@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "db:migrate": "tsx scripts/runMigrations.ts",
     "db:operations:migrate": "tsx scripts/runOperationsMigrations.ts",
+    "db:operations:wipe": "tsx scripts/wipeOperationsDb.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "eslint .",
     "format": "prettier --write .",

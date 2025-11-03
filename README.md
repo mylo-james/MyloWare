@@ -1,14 +1,14 @@
 # MCP Prompts
 
-A Model Context Protocol (MCP) server providing prompt management, vector search, and workflow orchestration with Human-in-the-Loop (HITL) capabilities.
+A Model Context Protocol (MCP) server providing prompt management, vector search, and workflow orchestration for AI video ideation.
 
 ## Features
 
 - **Prompt Management**: Store, version, and retrieve prompts with semantic search
 - **Vector Search**: pgvector-powered similarity search with temporal decay
 - **Episodic Memory**: Conversation history with semantic retrieval
-- **Workflow Orchestration**: Multi-stage workflows with HITL approval gates
-- **Telegram Integration**: HITL notifications via Telegram
+- **Workflow Orchestration**: Multi-stage workflows with AI-driven approvals
+- **Telegram Integration**: Notifications for workflow progress
 - **Observability**: Prometheus metrics, health checks, structured logging
 - **Production Ready**: Rate limiting, typed errors, comprehensive testing, CI/CD
 
@@ -91,12 +91,6 @@ See [docs/DEPLOYMENT_SETUP.md](docs/DEPLOYMENT_SETUP.md) for detailed deployment
 - `POST /api/workflow-runs` - Create workflow run
 - `GET /api/workflow-runs/:id` - Get workflow run details
 - `PATCH /api/workflow-runs/:id` - Update workflow run
-
-**HITL (Human-in-the-Loop)**
-- `GET /api/hitl/pending` - List pending approvals
-- `GET /api/hitl/approval/:id` - Get approval details
-- `POST /api/hitl/approval/:id/approve` - Approve request
-- `POST /api/hitl/approval/:id/reject` - Reject request
 
 **System**
 - `GET /health` - Health check with database status
@@ -190,7 +184,6 @@ mcp-prompts/
 │   │   ├── metrics.ts       # Prometheus metrics
 │   │   └── errorHandler.ts # Centralized error handling
 │   ├── services/            # Business logic
-│   │   └── hitl/            # HITL service & notifications
 │   ├── db/                  # Database layer
 │   │   ├── repository.ts    # Vector/prompt repository
 │   │   ├── operations/      # Operations database
@@ -206,7 +199,6 @@ mcp-prompts/
 ## Documentation
 
 - [Local Development Guide](docs/LOCAL-DEVELOPMENT.md)
-- [HITL Telegram Integration](docs/HITL-TELEGRAM.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [Code Review - Claude](docs/review-claude.md)
 - [Code Review - Codex](docs/REVIEW-CODEX.md)
@@ -252,7 +244,6 @@ Available at `GET /metrics`:
 - `mcp_prompts_http_requests_total` - Total HTTP requests
 - `mcp_prompts_db_query_duration_seconds` - Database query duration
 - `mcp_prompts_vector_search_duration_seconds` - Vector search latency
-- `mcp_prompts_hitl_approvals_total` - HITL approval counts
 
 ### Health Check
 

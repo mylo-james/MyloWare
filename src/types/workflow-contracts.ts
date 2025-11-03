@@ -25,7 +25,6 @@ export interface IdeaCandidate {
 export interface GenerateIdeasOutput {
   ideas: IdeaCandidate[];
   selectedIdea: IdeaCandidate;
-  approvalId: string;
   userIdea: string;
   totalIdeas: number;
 }
@@ -83,7 +82,6 @@ export interface WorkflowRunStatus {
   status:
     | 'pending'
     | 'running'
-    | 'waiting_for_hitl'
     | 'screenplay_generation'
     | 'video_generation'
     | 'editing'
@@ -105,4 +103,3 @@ export interface WorkflowRunOutput {
   tiktokUrl: string;
   driveUrl: string;
 }
-

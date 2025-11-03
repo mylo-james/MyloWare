@@ -1,14 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  index,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const runStatusEnum = pgEnum('run_status', [
   'pending',
@@ -32,7 +23,6 @@ export const videoStatusEnum = pgEnum('video_status', [
 
 export const workflowRunStatusEnum = pgEnum('workflow_run_status', [
   'running',
-  'waiting_for_hitl',
   'completed',
   'failed',
   'needs_revision',
@@ -43,12 +33,6 @@ export const workflowStageEnum = pgEnum('workflow_stage', [
   'screenplay',
   'video_generation',
   'publishing',
-]);
-
-export const hitlApprovalStatusEnum = pgEnum('hitl_approval_status', [
-  'pending',
-  'approved',
-  'rejected',
 ]);
 
 export const runs = pgTable(
@@ -96,7 +80,6 @@ export const videos = pgTable(
     metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
   },
   (table) => ({
-    projectIdeaUniqueIdx: uniqueIndex('idx_videos_project_idea').on(table.projectId, table.idea),
     statusIdx: index('idx_videos_status').on(table.status),
     runIdx: index('idx_videos_run').on(table.runId),
     createdIdx: index('idx_videos_created').on(table.createdAt),
@@ -132,29 +115,6 @@ export const workflowRuns = pgTable(
   }),
 );
 
-export const hitlApprovals = pgTable(
-  'hitl_approvals',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    workflowRunId: uuid('workflow_run_id')
-      .notNull()
-      .references(() => workflowRuns.id, { onDelete: 'cascade' }),
-    stage: workflowStageEnum('stage').notNull(),
-    content: jsonb('content').notNull(),
-    status: hitlApprovalStatusEnum('status').notNull().default('pending'),
-    reviewedBy: text('reviewed_by'),
-    reviewedAt: timestamp('reviewed_at', { mode: 'string', withTimezone: true }),
-    feedback: text('feedback'),
-    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true }).defaultNow(),
-  },
-  (table) => ({
-    statusIdx: index('idx_hitl_approvals_status').on(table.status),
-    workflowRunIdx: index('idx_hitl_approvals_workflow_run').on(table.workflowRunId),
-    stageIdx: index('idx_hitl_approvals_stage').on(table.stage),
-    createdIdx: index('idx_hitl_approvals_created').on(table.createdAt),
-  }),
-);
-
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
 export type Video = typeof videos.$inferSelect;
@@ -163,8 +123,5 @@ export type RunStatus = (typeof runStatusEnum.enumValues)[number];
 export type VideoStatus = (typeof videoStatusEnum.enumValues)[number];
 export type WorkflowRun = typeof workflowRuns.$inferSelect;
 export type NewWorkflowRun = typeof workflowRuns.$inferInsert;
-export type HITLApproval = typeof hitlApprovals.$inferSelect;
-export type NewHITLApproval = typeof hitlApprovals.$inferInsert;
 export type WorkflowRunStatus = (typeof workflowRunStatusEnum.enumValues)[number];
 export type WorkflowStage = (typeof workflowStageEnum.enumValues)[number];
-export type HITLApprovalStatus = (typeof hitlApprovalStatusEnum.enumValues)[number];

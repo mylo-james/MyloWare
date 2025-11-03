@@ -3,17 +3,10 @@
   "dialect": "postgresql",
   "entries": [
     {
-      "idx": 3,
-      "version": "0003",
-      "when": 1733140800000,
-      "tag": "0003_add_hitl_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "0004",
-      "when": 1762201926000,
-      "tag": "0004_project_id_slug",
+      "idx": 1,
+      "version": "0001",
+      "when": 1762209760277,
+      "tag": "0001_initial_operations",
       "breakpoints": false
     }
   ]

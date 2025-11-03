@@ -42,7 +42,6 @@ Before starting any phase, ensure:
 
 - [x] Open `workflows/AISMR.workflow.json` in n8n editor
 - [x] Locate node: `Progress: Ideas Generated` (around line 272)
-- [x] Note its position: between `Get Run After Ideas` and `Request HITL Approval`
 - [x] Locate all other progress notification nodes:
   - [x] After `Call Screen Writer`
   - [x] After `Call Generate Video`
@@ -57,14 +56,12 @@ Before starting any phase, ensure:
 **Current Flow:**
 
 ```
-Get Run After Ideas → Progress: Ideas Generated → Request HITL Approval
 ```
 
 **Target Flow:**
 
 ```
 Get Run After Ideas ─┬─→ Progress: Ideas Generated (branch)
-                     └─→ Request HITL Approval (main path)
 ```
 
 - [x] Click on the connection between `Get Run After Ideas` and `Progress: Ideas Generated`
@@ -74,11 +71,9 @@ Get Run After Ideas ─┬─→ Progress: Ideas Generated (branch)
   - [x] Mode: `Passthrough` (this is critical!)
   - [x] Position it between `Get Run After Ideas` and the split
 - [x] Connect `Get Run After Ideas` output to `Merge` input
-- [x] Connect `Merge` output 1 to `Request HITL Approval` (main path)
 - [x] Connect `Merge` output 2 to `Progress: Ideas Generated` (branch)
 - [x] Test the node configuration:
   - [x] Click "Test workflow" with pinned data
-  - [x] Verify `Request HITL Approval` receives the run data (not Telegram response)
   - [x] Verify `Progress: Ideas Generated` still sends notification
 - [x] Save workflow
 
@@ -132,7 +127,6 @@ Repeat Step 2 pattern for each progress notification:
 - [x] Set breakpoints at each major node
 - [x] Step through execution
 - [x] At each checkpoint, verify `$json` contains expected data:
-  - [x] `Request HITL Approval`: Should have `stageOutput`, `ideas` array
   - [x] `Call Generate Video`: Should have `videoId`
   - [x] `Call Edit AISMR`: Should have video data
   - [x] `Call Upload to Google Drive`: Should have edited video data
@@ -173,7 +167,6 @@ Repeat Step 2 pattern for each progress notification:
       json: {
         runId,
         chatId,
-        error: 'Failed to create HITL approval request',
         status: 'failed',
         timestamp: new Date().toISOString(),
       },
@@ -550,21 +543,14 @@ Resolves: Telegram payload overwriting, silent failures, incomplete status track
 - [x] Connect: `Parse Ideas Output` → `Split Out`
 - [x] Verify the rest of the workflow is intact:
   - [x] Split Out → (loop through ideas) → Save to database
-  - [x] Aggregate → Update Run → Request HITL Approval → Poll loop
 - [x] Save workflow
-      **Status:** Complete - Connections verified: Parse Ideas Output → Split Out → Edit Fields1 → Create a row → Aggregate Ideas → Update Run → Request HITL Approval → Poll loop
 
 ---
 
-### Phase 2.3: Keep HITL Approval Logic
 
-**Note:** The HITL approval logic stays in Generate Ideas workflow (decision approved)
 
-#### Step 22: Verify HITL Approval Nodes
 
-- [x] Locate the HITL approval section (around lines 323-574)
 - [x] Verify these nodes are present and connected:
-  - [x] Request HITL Approval
   - [x] Check Approval ID
   - [x] Prepare Loop
   - [x] Check Loop Limit
@@ -573,7 +559,6 @@ Resolves: Telegram payload overwriting, silent failures, incomplete status track
   - [x] Check If Approved
 - [x] These nodes should remain UNCHANGED
 - [x] The loop should continue to work as-is
-- [x] We'll remove the duplicate HITL from AISMR workflow in Phase 4
 
 ---
 
@@ -582,11 +567,8 @@ Resolves: Telegram payload overwriting, silent failures, incomplete status track
 #### Step 23: Ensure Proper Return Value
 
 - [x] Locate the final node(s) in Generate Ideas workflow
-- [x] After HITL approval completes, there should be a node that returns to parent
 - [x] Verify the output includes:
   - [x] `ideas`: Full array of ideas
-  - [x] `selectedIdea`: The idea approved by HITL
-  - [x] `approvalId`: The HITL approval ID
   - [x] `userIdea`: Original user input
 - [x] If there's a `Trigger Screenplay` node, NOTE IT (we'll remove in Phase 3) - REMOVED
 - [x] Add a final **Code** node if needed:
@@ -636,15 +618,11 @@ Resolves: Telegram payload overwriting, silent failures, incomplete status track
   - [ ] Review error logs
 - [ ] Fix any issues and re-test
 
-#### Step 26: Test Full Workflow (Mock HITL)
 
-For now, we'll skip actual HITL approval in testing:
 
 - [ ] Create a test execution
 - [ ] Run through: Input → AI Agent → Parse → Split Out → Save Ideas
 - [ ] Manually verify the ideas are in the expected format
-- [ ] Skip HITL polling for now (we'll test this with real data later)
-- [ ] Verify the workflow can complete without errors up to HITL request
 - [ ] Document the output format for reference
 
 #### Step 27: Save and Commit Phase 2
@@ -657,7 +635,6 @@ For now, we'll skip actual HITL approval in testing:
 - Removed Call 'Mylo_MCP_Bot' node
 - Added inline AI Agent with OpenAI and MCP tools
 - Added structured output parser for ideas schema
-- Kept HITL approval logic in workflow
 - Workflow now returns proper ideas array
 
 Resolves: Mylo_MCP_Bot data mapping issues, memory-add responses"`
@@ -964,19 +941,14 @@ Resolves: Missing idea context, duplicate screenplay invocation"`
 
 ---
 
-## 🧹 Phase 4: Remove Duplicate HITL from AISMR (1 hour)
 
-**Goal:** Simplify AISMR by removing duplicate HITL logic  
 **Priority:** MEDIUM  
 **Testing Strategy:** Verify Generate Ideas returns approved idea properly
 
 ### Phase 4.1: Update AISMR to Use Generate Ideas Output
 
-#### Step 40: Locate Duplicate HITL Section
 
 - [x] Open `workflows/AISMR.workflow.json`
-- [x] Locate HITL section (lines 294-437):
-  - [x] Request HITL Approval
   - [x] Check Approval ID
   - [x] Prepare Loop
   - [x] Check Loop Limit
@@ -986,12 +958,10 @@ Resolves: Missing idea context, duplicate screenplay invocation"`
   - [x] Extract Selected Idea
 - [x] Take note of what comes AFTER: `Call Screen Writer`
 
-#### Step 41: Remove Duplicate HITL Nodes
 
 **CAREFUL:** This is a destructive operation. Make sure Phase 0 is complete.
 
 - [x] Delete the following nodes:
-  - [x] `Request HITL Approval` (disconnected from main flow)
   - [x] `Check Approval ID` (disconnected from main flow)
   - [x] `Prepare Loop` (disconnected from main flow)
   - [x] `Check Loop Limit` (disconnected from main flow)
@@ -1003,7 +973,6 @@ Resolves: Missing idea context, duplicate screenplay invocation"`
 
 #### Step 42: Update Extract Selected Idea Node
 
-**Old logic:** Extracted from AISMR's own HITL approval  
 **New logic:** Extract from Generate Ideas workflow output
 
 - [x] Locate node: `Extract Selected Idea`
@@ -1039,7 +1008,6 @@ Resolves: Missing idea context, duplicate screenplay invocation"`
 **Old flow:**
 
 ```
-Call Generate Ideas → Get Run After Ideas → Progress → HITL → Extract → Call Screen Writer
 ```
 
 **New flow:**
@@ -1088,7 +1056,6 @@ Call Generate Ideas → Extract Selected Idea → Call Screen Writer
   - [ ] Verify `Extract Selected Idea` extracts correct data
   - [ ] Verify `Call Screen Writer` receives selectedIdea object
   - [ ] Verify rest of workflow continues normally
-- [ ] Check that no HITL approval happens in AISMR (it's in Generate Ideas)
 - [ ] Verify the flow is cleaner and simpler
 - [ ] Document any issues
 
@@ -1096,15 +1063,11 @@ Call Generate Ideas → Extract Selected Idea → Call Screen Writer
 
 - [ ] Export workflow: `AISMR-phase4-complete.json`
 - [ ] Git add: `git add workflows/AISMR.workflow.json`
-- [ ] Commit: `git commit -m "Phase 4: Remove duplicate HITL logic from AISMR
 
-- Removed duplicate HITL approval polling nodes
 - Updated Extract Selected Idea to read from Generate Ideas output
 - Removed Get Run After Ideas (using workflow output directly)
 - Updated Call Screen Writer to pass full selectedIdea context
-- Simplified flow: Generate Ideas handles its own HITL approval
 
-Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
 
 - [ ] Push: `git push origin phase-1`
 
@@ -1233,7 +1196,6 @@ Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
     status:
       | 'pending'
       | 'running'
-      | 'waiting_for_hitl'
       | 'screenplay_generation'
       | 'video_generation'
       | 'editing'
@@ -1278,7 +1240,6 @@ Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
   AISMR Workflow (2 Levels)
   ├─ Generate Ideas Workflow
   │ └─ AI Agent (inline) + MCP Tools
-  │ └─ HITL Approval
   ├─ Screen Writer Workflow
   │ └─ AI Agent (inline) + MCP Tools
   ├─ Generate Video Workflow
@@ -1291,7 +1252,6 @@ Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
   **Improvements:**
   - Reduced from 3 levels to 2 levels
   - Eliminated Mylo_MCP_Bot indirection
-  - Single HITL approval (in Generate Ideas)
   - Proper data contracts with TypeScript types
   - Progress notifications branched (don't break data flow)
   - Complete status tracking
@@ -1319,7 +1279,6 @@ Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
   - [ ] Verify all stages complete successfully
 - [ ] If using fake data:
   - [ ] Create realistic test scenarios
-  - [ ] Test happy path: Ideas → HITL → Screenplay → Video → Upload → TikTok
   - [ ] Test error scenarios: Approval failure, timeout, rejection
   - [ ] Verify all notifications send
   - [ ] Verify all status updates happen
@@ -1352,7 +1311,6 @@ Resolves: Duplicate HITL polling, missing idea context to Screen Writer"`
   - Fixed critical data flow bugs (Telegram nodes, control flow, completion status)
   - Refactored Generate Ideas with inline AI Agent
   - Refactored Screen Writer with inline AI Agent + idea context
-  - Removed duplicate HITL logic from AISMR
   - Reduced complexity from 3 workflow levels to 2
   - All workflows now functional and tested"
   ```
@@ -1393,7 +1351,6 @@ Before considering this plan complete:
 - [ ] All Phase 0 critical fixes deployed and tested
 - [ ] Generate Ideas workflow refactored and tested
 - [ ] Screen Writer workflow refactored and tested
-- [ ] Duplicate HITL removed from AISMR
 - [ ] TypeScript contracts created
 - [ ] Documentation updated
 - [ ] All changes committed and pushed
@@ -1412,7 +1369,6 @@ If you encounter issues:
 2. **AI Agent not responding:** Verify OpenAI API key and MCP server connection
 3. **Schema validation errors:** Check structured output parser schema matches AI output
 4. **Workflow won't save:** Check for circular dependencies or disconnected nodes
-5. **HITL approval fails:** Check approval service is running and accessible
 
 **Escalate to team lead if:**
 

@@ -1,27 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import {
   workflowRuns,
-  hitlApprovals,
   workflowRunStatusEnum,
   workflowStageEnum,
-  hitlApprovalStatusEnum,
   type WorkflowRun,
-  type HITLApproval,
   type WorkflowRunStatus,
   type WorkflowStage,
-  type HITLApprovalStatus,
 } from './schema';
 
-describe('HITL Schema', () => {
+describe('Workflow Schema', () => {
   describe('Enums', () => {
     it('workflowRunStatusEnum has correct values', () => {
       const values = workflowRunStatusEnum.enumValues;
       expect(values).toContain('running');
-      expect(values).toContain('waiting_for_hitl');
       expect(values).toContain('completed');
       expect(values).toContain('failed');
       expect(values).toContain('needs_revision');
-      expect(values).toHaveLength(5);
+      expect(values).toHaveLength(4);
     });
 
     it('workflowStageEnum has correct values', () => {
@@ -32,45 +27,28 @@ describe('HITL Schema', () => {
       expect(values).toContain('publishing');
       expect(values).toHaveLength(4);
     });
-
-    it('hitlApprovalStatusEnum has correct values', () => {
-      const values = hitlApprovalStatusEnum.enumValues;
-      expect(values).toContain('pending');
-      expect(values).toContain('approved');
-      expect(values).toContain('rejected');
-      expect(values).toHaveLength(3);
-    });
   });
 
   describe('Table Schemas', () => {
     it('workflowRuns table exposes expected columns', () => {
       expect(workflowRuns).toBeDefined();
-      const columns = workflowRuns._.columns;
-      expect(columns).toHaveProperty('id');
-      expect(columns).toHaveProperty('projectId');
-      expect(columns).toHaveProperty('sessionId');
-      expect(columns).toHaveProperty('currentStage');
-      expect(columns).toHaveProperty('status');
-      expect(columns).toHaveProperty('stages');
-      expect(columns).toHaveProperty('input');
-      expect(columns).toHaveProperty('output');
-      expect(columns).toHaveProperty('workflowDefinitionChunkId');
-      expect(columns).toHaveProperty('createdAt');
-      expect(columns).toHaveProperty('updatedAt');
-    });
+      const requiredColumns = [
+        'id',
+        'projectId',
+        'sessionId',
+        'currentStage',
+        'status',
+        'stages',
+        'input',
+        'output',
+        'workflowDefinitionChunkId',
+        'createdAt',
+        'updatedAt',
+      ];
 
-    it('hitlApprovals table exposes expected columns', () => {
-      expect(hitlApprovals).toBeDefined();
-      const columns = hitlApprovals._.columns;
-      expect(columns).toHaveProperty('id');
-      expect(columns).toHaveProperty('workflowRunId');
-      expect(columns).toHaveProperty('stage');
-      expect(columns).toHaveProperty('content');
-      expect(columns).toHaveProperty('status');
-      expect(columns).toHaveProperty('reviewedBy');
-      expect(columns).toHaveProperty('reviewedAt');
-      expect(columns).toHaveProperty('feedback');
-      expect(columns).toHaveProperty('createdAt');
+      for (const column of requiredColumns) {
+        expect(workflowRuns).toHaveProperty(column);
+      }
     });
   });
 
@@ -96,31 +74,14 @@ describe('HITL Schema', () => {
       };
       expect(testRun).toBeDefined();
     });
-
-    it('HITLApproval type is defined', () => {
-      const testApproval: HITLApproval = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        workflowRunId: '123e4567-e89b-12d3-a456-426614174001',
-        stage: 'idea_generation',
-        content: { ideas: [] },
-        status: 'pending',
-        reviewedBy: null,
-        reviewedAt: null,
-        feedback: null,
-        createdAt: '2025-01-01T00:00:00Z',
-      };
-      expect(testApproval).toBeDefined();
-    });
-
     it('WorkflowRunStatus type accepts all enum values', () => {
       const statuses: WorkflowRunStatus[] = [
         'running',
-        'waiting_for_hitl',
         'completed',
         'failed',
         'needs_revision',
       ];
-      expect(statuses).toHaveLength(5);
+      expect(statuses).toHaveLength(4);
     });
 
     it('WorkflowStage type accepts all enum values', () => {
@@ -131,11 +92,6 @@ describe('HITL Schema', () => {
         'publishing',
       ];
       expect(stages).toHaveLength(4);
-    });
-
-    it('HITLApprovalStatus type accepts all enum values', () => {
-      const statuses: HITLApprovalStatus[] = ['pending', 'approved', 'rejected'];
-      expect(statuses).toHaveLength(3);
     });
   });
 });

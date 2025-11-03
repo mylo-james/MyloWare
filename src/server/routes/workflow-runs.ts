@@ -14,7 +14,7 @@ const createWorkflowRunSchema = z.object({
 });
 
 const updateWorkflowRunSchema = z.object({
-  status: z.enum(['running', 'waiting_for_hitl', 'completed', 'failed', 'needs_revision']).optional(),
+  status: z.enum(['running', 'completed', 'failed', 'needs_revision']).optional(),
   currentStage: z
     .string()
     .refine((value) => workflowStageValues.has(value as never), {

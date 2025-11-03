@@ -10,6 +10,7 @@ import { checkPendingMigrations } from './db/migrations';
 import { metricsRegistry, httpRequestDuration, httpRequestTotal } from './server/metrics';
 import { PromptEmbeddingsRepository } from './db/repository';
 import { OperationsRepository } from './db/operations/repository';
+import { runOperationsMigrations } from './db/operations/migrations';
 
 export async function createServer(): Promise<FastifyInstance> {
   const app = fastify({
@@ -76,20 +77,6 @@ export async function createServer(): Promise<FastifyInstance> {
   await registerMcpRoutes(app);
   await registerApiRoutes(app);
 
-  // Serve HITL UI
-  app.get('/hitl', async (request, reply) => {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    try {
-      const htmlPath = path.join(process.cwd(), 'public', 'hitl', 'index.html');
-      const html = await fs.readFile(htmlPath, 'utf-8');
-      return reply.type('text/html').send(html);
-    } catch (error) {
-      app.log.error({ err: error }, 'Failed to serve HITL UI');
-      return reply.status(404).send({ error: 'HITL UI not found' });
-    }
-  });
-
   app.get('/health', async (request, reply) => {
     const promptRepo = new PromptEmbeddingsRepository();
     const opsRepo = config.operationsDatabaseUrl ? new OperationsRepository() : null;
@@ -128,6 +115,17 @@ export async function createServer(): Promise<FastifyInstance> {
 }
 
 async function start(): Promise<void> {
+  if (config.operationsDatabaseUrl && !config.isTest) {
+    try {
+      console.log('[startup] Running operations migrations (project videos/runs schema)...');
+      await runOperationsMigrations(config.operationsDatabaseUrl);
+      console.log('[startup] Operations migrations complete.');
+    } catch (error) {
+      console.error('Failed to run operations migrations:', error);
+      process.exit(1);
+    }
+  }
+
   const app = await createServer();
 
   // Check for pending migrations

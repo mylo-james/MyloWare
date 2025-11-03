@@ -41,8 +41,6 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       # OpenAI API key
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      # n8n webhook base for HITL
-      - N8N_WEBHOOK_BASE=https://n8n.mjames.dev
     volumes:
       - n8n_data:/home/node/.n8n
       # Mount workflows directory for easy import

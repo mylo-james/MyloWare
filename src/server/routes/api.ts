@@ -246,17 +246,12 @@ export interface ApiRouteDependencies {
   embedTexts?: typeof embedTexts;
   enhanceQuery?: typeof baseEnhanceQuery;
   episodicRepository?: EpisodicMemoryRepository | null;
-  hitlService?: import('../../services/hitl/HITLService').HITLService;
 }
 
 export async function registerApiRoutes(
   app: FastifyInstance,
   dependencies: ApiRouteDependencies = {},
 ): Promise<void> {
-  // Register HITL routes
-  const { registerHITLRoutes } = await import('./hitl.js');
-  await registerHITLRoutes(app, { hitlService: dependencies.hitlService });
-
   // Register workflow-runs routes
   const { registerWorkflowRunRoutes } = await import('./workflow-runs.js');
   await registerWorkflowRunRoutes(app);
