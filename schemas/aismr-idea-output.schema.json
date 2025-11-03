@@ -1,0 +1,44 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "ideaTitle",
+      "vibe",
+      "uniquenessCheck"
+    ],
+    "properties": {
+      "ideaTitle": {
+        "type": "string",
+        "description": "Exactly 2 words following pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy', 'sunrise puppy')",
+        "pattern": "^[a-zA-Z]+ [a-zA-Z]+$"
+      },
+      "vibe": {
+        "type": "string",
+        "description": "2-3 sentences describing atmosphere and mood for screenwriter"
+      },
+      "uniquenessCheck": {
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          },
+          "matchedVideos": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "fuzzy",
+              "none"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

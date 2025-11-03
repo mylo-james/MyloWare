@@ -31,8 +31,10 @@
     "dev:status": "tsx scripts/manageDevStack.ts status",
     "dev:clean": "tsx scripts/manageDevStack.ts clean",
     "services:check": "tsx scripts/checkServices.ts",
-    "n8n:push": "tsx scripts/n8nSync.ts --push",
-    "n8n:pull": "tsx scripts/n8nSync.ts --pull",
+    "schemas:extract": "tsx scripts/extractSchemas.ts",
+    "schemas:inject": "tsx scripts/injectSchemas.ts",
+    "n8n:push": "npm run schemas:inject && tsx scripts/n8nSync.ts --push",
+    "n8n:pull": "tsx scripts/n8nSync.ts --pull && npm run schemas:extract",
     "validate:tool-specs": "tsx scripts/validateToolSpecs.ts"
   },
   "keywords": [],

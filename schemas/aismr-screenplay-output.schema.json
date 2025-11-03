@@ -1,0 +1,92 @@
+{
+  "type": "object",
+  "required": [
+    "title",
+    "logline",
+    "timestamps",
+    "camera",
+    "materials",
+    "audio",
+    "handDiscipline",
+    "loopMechanic",
+    "validationSummary"
+  ],
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "logline": {
+      "type": "string"
+    },
+    "timestamps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "time",
+          "action",
+          "sensoryDetail"
+        ],
+        "properties": {
+          "time": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+s$"
+          },
+          "action": {
+            "type": "string"
+          },
+          "sensoryDetail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "camera": {
+      "type": "string"
+    },
+    "materials": {
+      "type": "string"
+    },
+    "audio": {
+      "type": "string",
+      "description": "Detail tactile foley, whisper integration, and confirmation of no music."
+    },
+    "handDiscipline": {
+      "type": "string",
+      "description": "Explicit hand choreography ensuring ≤2 hands."
+    },
+    "loopMechanic": {
+      "type": "string"
+    },
+    "validationSummary": {
+      "type": "object",
+      "required": [
+        "timing",
+        "hands",
+        "audio",
+        "loop",
+        "notes"
+      ],
+      "properties": {
+        "timing": {
+          "type": "string"
+        },
+        "hands": {
+          "type": "string"
+        },
+        "audio": {
+          "type": "string"
+        },
+        "loop": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
