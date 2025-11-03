@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T06:56:17.296Z",
+  "updatedAt": "2025-11-03T18:56:49.617Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -40,7 +40,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1456,
+        1808,
         -160
       ],
       "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
@@ -48,13 +48,13 @@
     },
     {
       "parameters": {
-        "fieldToSplitOut": "output.ideas",
+        "fieldToSplitOut": "ideas",
         "options": {}
       },
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        1008,
+        1360,
         -160
       ],
       "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
@@ -113,7 +113,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1232,
+        1584,
         -160
       ],
       "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
@@ -180,77 +180,56 @@
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "7qSyk9RjD6HhPWNm",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/7qSyk9RjD6HhPWNm",
-          "cachedResultName": "Mylo_MCP_Bot"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "projectId",
-              "displayName": "projectId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "personaId",
-              "displayName": "personaId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "chatInput",
-              "displayName": "chatInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "outputSchema",
-              "displayName": "outputSchema",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "sessionId",
-              "displayName": "sessionId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
         "options": {}
       },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        32
+      ],
+      "id": "mcp-tools-ideas",
+      "name": "MCP Tools",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
+        "options": {
+          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
       "position": [
         784,
         -160
       ],
-      "id": "02614dfe-21eb-448e-bf19-c356030d31b1",
-      "name": "Call 'Mylo_MCP_Bot'"
+      "id": "ai-agent-generate-ideas",
+      "name": "AI Agent: Generate Ideas",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Agent output to extract structured ideas\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    // If parsing fails, try to extract ideas from text\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { ideas: [], userIdea: rawOutput, totalIdeas: 0 };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\n// Ensure ideas array exists and has proper structure\nconst ideas = Array.isArray(parsed?.ideas) ? parsed.ideas : [];\nconst userIdea = parsed?.userIdea || $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '';\n\n// Ensure each idea has required fields\nconst normalizedIdeas = ideas.map((idea, index) => {\n  if (!idea.ideaId) {\n    // Generate a simple ID if missing\n    idea.ideaId = `idea-${Date.now()}-${index}`;\n  }\n  return {\n    idea: idea.idea || idea.title || `Idea ${index + 1}`,\n    vibe: idea.vibe || idea.mood || 'relaxing',\n    ideaId: idea.ideaId || `idea-${Date.now()}-${index}`,\n    description: idea.description || null\n  };\n});\n\nreturn {\n  json: {\n    ideas: normalizedIdeas,\n    userIdea: userIdea,\n    totalIdeas: normalizedIdeas.length,\n    rawOutput: rawOutput\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -160
+      ],
+      "id": "parse-ideas-output",
+      "name": "Parse Ideas Output"
     },
     {
       "parameters": {
@@ -267,12 +246,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Aggregate all ideas from the previous items\nconst ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId = runData.run_id || runData.id || $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\nconst fallbackUserIdea = runData.metadata?.userIdea || runData.input?.userIdea || runData.input?.user_idea || '';\n\n// Collect all ideas from the split items\nfor (const item of $input.all()) {\n  if (item.json.idea) {\n    ideas.push({\n      idea: item.json.idea,\n      vibe: item.json.vibe,\n      ideaId: item.json.run_id || item.json.id,\n    });\n  }\n}\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: runData.user_idea || runData.userIdea || fallbackUserIdea,\n    totalIdeas: ideas.length,\n  }\n}];"
+        "jsCode": "// Aggregate all ideas from the previous items\nconst ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId = runData.run_id || runData.id || $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\n\n// Get ideas from Parse Ideas Output if available, otherwise from split items\nconst parsedOutput = $('Parse Ideas Output').item?.json;\nif (parsedOutput && Array.isArray(parsedOutput.ideas)) {\n  // Use ideas from parsed output\n  ideas.push(...parsedOutput.ideas);\n} else {\n  // Fallback: collect ideas from split items\n  for (const item of $input.all()) {\n    if (item.json.idea) {\n      ideas.push({\n        idea: item.json.idea,\n        vibe: item.json.vibe,\n        ideaId: item.json.run_id || item.json.id || item.json.ideaId,\n      });\n    }\n  }\n}\n\nconst userIdea = parsedOutput?.userIdea || runData.user_idea || runData.metadata?.userIdea || runData.input?.userIdea || runData.input?.user_idea || $('When Called').item.json.userInput || '';\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: userIdea,\n    totalIdeas: ideas.length,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1680,
+        2032,
         -160
       ],
       "id": "aggregate-ideas-node",
@@ -292,7 +271,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1904,
+        2256,
         -160
       ],
       "id": "update-run-ideas-complete",
@@ -316,7 +295,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1904,
+        2480,
         -160
       ],
       "id": "request-hitl-approval",
@@ -337,7 +316,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2128,
+        2704,
         -64
       ],
       "id": "Check Approval ID",
@@ -353,7 +332,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3024,
+        3600,
         -240
       ],
       "id": "Get Approval Status",
@@ -375,7 +354,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        3248,
+        3824,
         -64
       ],
       "id": "Check If Approved",
@@ -389,7 +368,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2800,
+        3376,
         -240
       ],
       "id": "Wait Before Polling",
@@ -410,7 +389,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2128,
+        2704,
         -256
       ],
       "id": "Update Run Status Waiting",
@@ -424,66 +403,16 @@
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "qOgWNfGwMpWkPWjK",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/qOgWNfGwMpWkPWjK",
-          "cachedResultName": "Screen Writer"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "userInput": "={{ $('Get Run').item.json.user_idea || $('Aggregate Ideas').item.json.userIdea }}",
-            "runId": "={{ $('Aggregate Ideas').item.json.workflowRunId }}",
-            "selectedIdea": "={{ $json.approval?.content?.selectedItem || $('Aggregate Ideas').item.json.ideas[0] }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "userInput",
-              "displayName": "userInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "selectedIdea",
-              "displayName": "selectedIdea",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {}
+        "jsCode": "const approval = $('Get Approval Status').item.json.approval;\nconst ideas = $('Parse Ideas Output').item.json.ideas || $('Aggregate Ideas').item.json.ideas || [];\nconst userIdea = $('Parse Ideas Output').item.json.userIdea || $('Aggregate Ideas').item.json.userIdea || '';\nconst selectedItem = approval?.content?.selectedItem;\n\n// Find the selected idea from the ideas array\nlet selectedIdea = null;\nif (selectedItem) {\n  // selectedItem might be an ideaId string or an idea object\n  if (typeof selectedItem === 'string') {\n    selectedIdea = ideas.find(idea => idea.ideaId === selectedItem) || ideas[0];\n  } else if (typeof selectedItem === 'object' && selectedItem.ideaId) {\n    selectedIdea = ideas.find(idea => idea.ideaId === selectedItem.ideaId) || selectedItem;\n  } else {\n    selectedIdea = ideas[0];\n  }\n} else {\n  selectedIdea = ideas[0];\n}\n\nreturn {\n  json: {\n    ideas,\n    selectedIdea,\n    approvalId: approval?.id || null,\n    userIdea,\n    totalIdeas: ideas.length\n  }\n};"
       },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        3696,
+        4272,
         -64
       ],
-      "id": "Trigger Screenplay",
-      "name": "Trigger Screenplay"
+      "id": "prepare-workflow-output",
+      "name": "Prepare Workflow Output"
     },
     {
       "parameters": {
@@ -499,7 +428,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3472,
+        4048,
         -64
       ],
       "id": "Update Run Approved",
@@ -525,7 +454,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2800,
+        3376,
         -48
       ],
       "id": "Update Run Rejected",
@@ -544,7 +473,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2352,
+        2928,
         -64
       ],
       "id": "Prepare Loop",
@@ -566,11 +495,36 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2576,
+        3152,
         -144
       ],
       "id": "Check Loop Limit",
       "name": "Check Loop Limit"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        32
+      ],
+      "id": "openai-gpt4o-ideas",
+      "name": "5-nano",
+      "credentials": {
+        "openAiApi": {
+          "id": "BPz7M5LEDbqEvdCZ",
+          "name": "OpenAi account"
+        }
+      }
     }
   ],
   "connections": {
@@ -634,7 +588,29 @@
         []
       ]
     },
-    "Call 'Mylo_MCP_Bot'": {
+    "MCP Tools": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Generate Ideas",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Generate Ideas": {
+      "main": [
+        [
+          {
+            "node": "Parse Ideas Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ideas Output": {
       "main": [
         [
           {
@@ -660,7 +636,7 @@
       "main": [
         [
           {
-            "node": "Call 'Mylo_MCP_Bot'",
+            "node": "AI Agent: Generate Ideas",
             "type": "main",
             "index": 0
           }
@@ -783,11 +759,16 @@
       "main": [
         [
           {
-            "node": "Trigger Screenplay",
+            "node": "Prepare Workflow Output",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Prepare Workflow Output": {
+      "main": [
+        []
       ]
     },
     "Update Run Rejected": {
@@ -795,9 +776,26 @@
         []
       ]
     },
-    "Trigger Screenplay": {
+    "5-nano": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Generate Ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Ideas Complete": {
       "main": [
-        []
+        [
+          {
+            "node": "Request HITL Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -811,12 +809,12 @@
       {
         "json": {
           "userInput": "Make an asmr video about puppies",
-          "runId": "4cb64122-824e-4054-bc48-3fb90a8e9972"
+          "runId": "b1eb9288-14da-472f-8985-5440cc67cfca"
         }
       }
     ]
   },
-  "versionId": "ab126ce9-4efa-405d-b166-88de1af0b0a3",
+  "versionId": "85398f28-11c9-40c3-b4ff-bc2092accca8",
   "triggerCount": 0,
   "shared": [
     {
@@ -840,7 +838,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T06:40:51.365Z",
+              "updatedAt": "2025-11-03T05:00:48.459Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -864,7 +862,7 @@
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-02",
+              "lastActiveAt": "2025-11-03",
               "isPending": false
             }
           }

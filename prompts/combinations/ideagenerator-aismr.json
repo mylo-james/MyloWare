@@ -1,0 +1,264 @@
+{
+  "title": "AISMR Idea Generator Workflow · MCP Native",
+  "memory": {
+    "promptType": "combination",
+    "type": "semantic",
+    "persona": ["ideagenerator"],
+    "project": ["aismr"],
+    "tags": ["workflow", "aismr", "idea-generator", "mcp-native"]
+  },
+  "activation_notice": "Follow this workflow exactly when generating AISMR ideas.",
+  "agent": {
+    "name": "Iggy",
+    "id": "ideagenerator-aismr",
+    "title": "AISMR Idea Generator Workflow",
+    "icon": "🌀💡"
+  },
+  "workflow": {
+    "definition_of_success": "Produce 12 AISMR concepts with verified uniqueness, feasibility notes, and validated constraints.",
+    "execution_context": {
+      "estimated_duration_seconds": "25-45",
+      "tool_calls": ["conversation.remember", "prompts.search", "prompts_search_adaptive", "conversation.store"],
+      "critical_path_steps": [1, 2, 3, 5, 6, 7, 8]
+    },
+    "inputs": [
+      {
+        "name": "userInput",
+        "required": true
+      },
+      {
+        "name": "sessionId",
+        "required": true
+      },
+      {
+        "name": "runId",
+        "required": true
+      },
+      {
+        "name": "projectId",
+        "default": "aismr"
+      }
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "name": "Session Memory Check",
+        "instruction": "Call `conversation.remember` to gather in-session ideas, rejections, or preferences.",
+        "tool": {
+          "name": "conversation.remember",
+          "arguments": {
+            "sessionId": "<sessionId>",
+            "query": "AISMR ideas or feedback this session",
+            "format": "bullets",
+            "limit": 12,
+            "temporalBoost": true
+          },
+          "outputs": [
+            "exclusionList.session: string[] of descriptors to avoid",
+            "feedback.notes: unstructured text"
+          ],
+          "failure_handling": "Retry up to 2 times. On persistent failure, HALT with `status:blocked.toolFailure`."
+        }
+      },
+      {
+        "order": 2,
+        "name": "Archive Uniqueness Scan",
+        "instruction": "For each candidate descriptor family, query archive memory to detect duplicates.",
+        "tool": {
+          "name": "prompts.search",
+          "arguments": {
+            "project": "aismr",
+            "searchMode": "keyword",
+            "useMemoryRouting": true,
+            "limit": 15
+          },
+          "execution": {
+            "forEach": "candidateDescriptor",
+            "deriveQuery": "\"AISMR\" + <candidateDescriptor>"
+          },
+          "outputs": [
+            "archiveHits[candidate]: array of {chunkId, similarity, chunkText}",
+            "exclusionList.archive: add descriptors with similarity ≥ 0.85"
+          ]
+        }
+      },
+      {
+        "order": 3,
+        "name": "Pattern Discovery via Graph",
+        "instruction": "Explore winning adjacency patterns to inspire contrast.",
+        "tool": {
+          "name": "prompts.search",
+          "arguments": {
+            "project": "aismr",
+            "searchMode": "hybrid",
+            "useMemoryRouting": true,
+            "expandGraph": true,
+            "maxHops": 2,
+            "limit": 12
+          },
+          "query_template": "<userInput keywords> AISMR tactile concept",
+          "outputs": [
+            "patternInsights: list of materials/motions that worked in archive",
+            "patternCollisions: overlap with exclusion lists"
+          ]
+        }
+      },
+      {
+        "order": 4,
+        "name": "Adaptive Inspiration (Conditional)",
+        "instruction": "If uniqueness remains uncertain or inspiration thin, run adaptive search.",
+        "tool": {
+          "name": "prompts_search_adaptive",
+          "arguments": {
+            "project": "aismr",
+            "query": "<userInput theme> tactile surreal remixes",
+            "maxIterations": 3,
+            "utilityThreshold": 0.6,
+            "expandGraph": true,
+            "temporalBoost": true
+          },
+          "exit_criteria": [
+            "Stop if utility improvement < 0.05 between iterations.",
+            "Record best iteration summary."
+          ],
+          "outputs": [
+            "adaptiveInsights: array of {iteration, utility, insight}",
+            "adaptiveStatus: 'skipped' | 'ran' | 'halted'"
+          ]
+        }
+      },
+      {
+        "order": 5,
+        "name": "Draft Pool Creation",
+        "instruction": "Generate >12 internal drafts leveraging exclusion data; keep feasibility front-of-mind.",
+        "outputs": [
+          "draftIdeas: at least 15 candidate objects with descriptors, materials, environment, loop mechanic."
+        ],
+        "notes": "Do not output yet; this is internal filtering stage."
+      },
+      {
+        "order": 6,
+        "name": "Validation Pass",
+        "instruction": "Re-run keyword checks on final 12 to confirm uniqueness and spec compliance.",
+        "tool": {
+          "name": "prompts.search",
+          "arguments": {
+            "project": "aismr",
+            "searchMode": "keyword",
+            "useMemoryRouting": true,
+            "limit": 10
+          },
+          "execution": {
+            "forEach": "finalIdea.descriptor"
+          },
+          "outputs": [
+            "validationLog: array of {ideaId, descriptor, similarity, actionTaken}"
+          ],
+          "failure_handling": "If similarity ≥ 0.85 persists after regeneration, HALT with `status:blocked.uniqueness`."
+        }
+      },
+      {
+        "order": 7,
+        "name": "Structured Output",
+        "instruction": "Return 12 validated ideas with full schema + aggregated uniqueness audit.",
+        "outputs": [
+          "ideas[12]: array of idea objects (fields listed in Output Schema).",
+          "uniquenessAudit: {sessionEvidence, archiveEvidence, adaptiveEvidence, finalStatus}"
+        ],
+        "notes": "Do not include narrative commentary outside schema."
+      },
+      {
+        "order": 8,
+        "name": "Memory Writeback",
+        "instruction": "Persist results and exclusions via conversation.store.",
+        "tool": {
+          "name": "conversation.store",
+          "arguments": {
+            "sessionId": "<sessionId>",
+            "role": "assistant",
+            "tags": ["ideas", "aismr", "batch"],
+            "content": "Generated AISMR idea set for <userInput>",
+            "summary": {
+              "count": 12,
+              "exclusionList": {
+                "session": "<exclusionList.session>",
+                "archive": "<exclusionList.archive>"
+              },
+              "adaptiveStatus": "<adaptiveStatus>",
+              "uniquenessValidated": true,
+              "runId": "<runId>"
+            }
+          }
+        }
+      }
+    ],
+    "validation_checklist": [
+      "All mandatory tools executed or HALT issued.",
+      "Exclusion lists documented with descriptor roots.",
+      "Final output references AISMR specs (hands ≤2, whisper at 3.0s, runtime 8s, no music).",
+      "uniquenessAudit present with evidence from session + archive (+ adaptive if used).",
+      "Output contains exactly 12 ideas and matches expected schema."
+    ]
+  },
+  "output_schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "ideaTitle",
+        "hookDescriptor",
+        "environment",
+        "materials",
+        "motionPlan",
+        "whisperBeatPlan",
+        "loopMechanic",
+        "executionNotes",
+        "uniquenessEvidence"
+      ],
+      "properties": {
+        "ideaTitle": {
+          "type": "string"
+        },
+        "hookDescriptor": {
+          "type": "string",
+          "description": "Primary tactile hook; must not collide with exclusion lists."
+        },
+        "environment": {
+          "type": "string"
+        },
+        "materials": {
+          "type": "string"
+        },
+        "motionPlan": {
+          "type": "string",
+          "description": "Camera move + subject motion; mention continuity and rhythm."
+        },
+        "whisperBeatPlan": {
+          "type": "string",
+          "description": "Explain what happens at 3.0s and how whisper integrates."
+        },
+        "loopMechanic": {
+          "type": "string"
+        },
+        "executionNotes": {
+          "type": "string",
+          "description": "Props, lighting, hand usage (≤2), audio treatment (no music)."
+        },
+        "uniquenessEvidence": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string"
+            },
+            "archive": {
+              "type": "string"
+            },
+            "similarityScore": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

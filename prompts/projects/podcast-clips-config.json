@@ -1,8 +1,18 @@
 {
-  "id": "podcast-clips",
   "title": "Podcast Clip Generator",
-  "project": ["podcast-clips"],
-  "memoryType": "project",
+  "memory": {
+    "promptType": "project",
+    "type": "project",
+    "persona": [],
+    "project": ["podcast-clips"],
+    "tags": ["project", "podcast", "clips", "extraction"]
+  },
+  "agent": {
+    "name": "Podcast Clip Generator",
+    "id": "podcast-clips",
+    "title": "Podcast Clip Generator",
+    "icon": "🎙️"
+  },
   "workflow": {
     "taskDescription": "Extract and enhance engaging clips from podcast transcripts with clear hooks and complete thoughts",
     "outputSchema": {

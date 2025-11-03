@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-02T05:56:58.777Z",
+  "updatedAt": "2025-11-03T18:31:40.746Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -9,10 +9,10 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('When Called').item.json.ideaId || '') }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('Parse Screenplay Output').item.json.videoId || $('When Called').item.json.ideaId || '') }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ prompt: $json.output?.prompt ?? null, status: 'script_gen' }) }}",
+        "jsonBody": "={{ ({ prompt: JSON.stringify($('Parse Screenplay Output').item.json.screenplay), status: 'script_gen' }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -32,7 +32,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const run = $('Get Run').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = { ...clone(stages.screenplay), status: 'completed', output: $json.output ?? {} };\n  const videoStage = { ...clone(stages.video_generation), status: 'running' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  const mergedOutput = { ...(run.output ?? {}), screenplay: $json.output ?? {} };\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "jsonBody": "={{ (() => {\n  const run = $('Get Run').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplay = $('Parse Screenplay Output').item.json.screenplay;\n  const videoId = $('Parse Screenplay Output').item.json.videoId;\n  const screenplayStage = { ...clone(stages.screenplay), status: 'completed', output: { screenplay, videoId, completedAt: new Date().toISOString() } };\n  const videoStage = { ...clone(stages.video_generation), status: 'running' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  const mergedOutput = { ...(run.output ?? {}), screenplay: screenplay };\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -89,77 +89,84 @@
     },
     {
       "parameters": {
-        "workflowId": {
+        "model": {
           "__rl": true,
-          "value": "Cz7h4stqCFJ4qZ9I",
+          "value": "gpt-4o",
           "mode": "list",
-          "cachedResultUrl": "/workflow/Cz7h4stqCFJ4qZ9I",
-          "cachedResultName": "Mylo_MCP_Bot"
+          "cachedResultName": "gpt-4o"
         },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "projectId": "={{ $json.metadata.projectSlug }}",
-            "personaId": "screenwriter",
-            "chatInput": "={{ $('When Called').item.json.userInput }}",
-            "outputSchema": "\"{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{\\\"prompt\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Complete video generation prompt for the AISMR video\\\"},\\\"sceneDescription\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"Detailed scene description for the video\\\"},\\\"soundDesign\\\":{\\\"type\\\":\\\"string\\\",\\\"description\\\":\\\"ASMR sound design elements\\\"},\\\"duration\\\":{\\\"type\\\":\\\"number\\\",\\\"description\\\":\\\"Expected duration in seconds\\\"}},\\\"required\\\":[\\\"prompt\\\",\\\"sceneDescription\\\"],\\\"additionalProperties\\\":false}\""
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "projectId",
-              "displayName": "projectId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "personaId",
-              "displayName": "personaId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "chatInput",
-              "displayName": "chatInput",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "outputSchema",
-              "displayName": "outputSchema",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 8192
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -224
+      ],
+      "id": "8f0e2f17-555d-4248-ad2a-bd655adc1f38",
+      "name": "OpenAI: GPT-4o Screenplay",
+      "credentials": {
+        "openAiApi": {
+          "id": "BPz7M5LEDbqEvdCZ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
         "options": {}
       },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        -224
+      ],
+      "id": "283c3293-da81-48bd-9409-b837413975d4",
+      "name": "MCP Tools Screenplay",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When Called').item.json.userInput || '' }}",
+        "options": {
+          "systemMessage": "=You are Sloane, screenwriter for AISMR.\n\nIdentity: persona=\"screenwriter\", project=\"aismr\"\n\nGoal: Transform ideas into validated AISMR screenplays with exact timing and specs.\n\nBootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
       "position": [
         -128,
         -224
       ],
-      "id": "e257fe26-af65-41fc-a40b-3369e612792b",
-      "name": "Call 'Mylo_MCP_Bot'"
+      "id": "cf709bc1-fdf7-48d5-a13a-72e5dee7e01c",
+      "name": "AI Agent: Generate Screenplay",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Agent output to extract structured screenplay\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { screenplay: { title: 'Untitled', scenes: [], totalDuration: 60, triggerWords: [] }, videoId: $('When Called').item.json.ideaId };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\n// Ensure screenplay structure exists\nconst screenplay = parsed?.screenplay || {\n  title: parsed?.title || 'Untitled Screenplay',\n  scenes: Array.isArray(parsed?.scenes) ? parsed.scenes : [],\n  totalDuration: parsed?.totalDuration || parsed?.duration || 60,\n  triggerWords: Array.isArray(parsed?.triggerWords) ? parsed.triggerWords : []\n};\n\n// Ensure videoId is present\nconst videoId = parsed?.videoId || $('When Called').item.json.ideaId || null;\n\n// Normalize scenes array\nconst normalizedScenes = screenplay.scenes.map((scene, index) => ({\n  sceneNumber: scene.sceneNumber || index + 1,\n  duration: scene.duration || 10,\n  dialogue: scene.dialogue || '',\n  actions: Array.isArray(scene.actions) ? scene.actions : [],\n  soundEffects: Array.isArray(scene.soundEffects) ? scene.soundEffects : [],\n  cameraAngle: scene.cameraAngle || 'medium'\n}));\n\nreturn {\n  json: {\n    screenplay: {\n      ...screenplay,\n      scenes: normalizedScenes\n    },\n    videoId: videoId,\n    rawOutput: rawOutput\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -224
+      ],
+      "id": "89633ab0-4675-4538-957f-e570657e7b8c",
+      "name": "Parse Screenplay Output"
     },
     {
       "parameters": {
@@ -173,6 +180,9 @@
             },
             {
               "name": "ideaId"
+            },
+            {
+              "name": "selectedIdea"
             }
           ]
         }
@@ -220,6 +230,19 @@
       ],
       "id": "cb662e81-2d63-4813-9680-7cd8c7c493ee",
       "name": "Get Run"
+    },
+    {
+      "parameters": {
+        "jsCode": "const screenplay = $('Parse Screenplay Output').item.json.screenplay;\nconst videoId = $('Parse Screenplay Output').item.json.videoId;\n\nreturn {\n  json: {\n    screenplay,\n    videoId,\n    status: 'completed'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -224
+      ],
+      "id": "ecb396b5-82ee-4f13-9379-8cd31782803d",
+      "name": "Prepare Workflow Output"
     }
   ],
   "connections": {
@@ -235,6 +258,17 @@
       ]
     },
     "Update Run Screenplay Complete": {
+      "main": [
+        [
+          {
+            "node": "Prepare Workflow Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Workflow Output": {
       "main": [
         []
       ]
@@ -253,17 +287,6 @@
     "Mark Run Failed (Scripts)": {
       "main": [
         []
-      ]
-    },
-    "Call 'Mylo_MCP_Bot'": {
-      "main": [
-        [
-          {
-            "node": "Update Row with Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
       ]
     },
     "When Called": {
@@ -292,7 +315,51 @@
       "main": [
         [
           {
-            "node": "Call 'Mylo_MCP_Bot'",
+            "node": "AI Agent: Generate Screenplay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: GPT-4o Screenplay": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Generate Screenplay",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tools Screenplay": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Generate Screenplay",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Generate Screenplay": {
+      "main": [
+        [
+          {
+            "node": "Parse Screenplay Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Screenplay Output": {
+      "main": [
+        [
+          {
+            "node": "Update Row with Prompt",
             "type": "main",
             "index": 0
           }
@@ -306,7 +373,7 @@
   "staticData": null,
   "meta": null,
   "pinData": null,
-  "versionId": "3ecd5363-9703-4aea-931a-8df02e14d57d",
+  "versionId": "61500e4a-bfca-413d-9471-26389b3912ff",
   "triggerCount": 0,
   "shared": [
     {
@@ -330,7 +397,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-02T06:40:51.365Z",
+              "updatedAt": "2025-11-03T05:00:48.459Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
@@ -354,7 +421,7 @@
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2025-11-02",
+              "lastActiveAt": "2025-11-03",
               "isPending": false
             }
           }

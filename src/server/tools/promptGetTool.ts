@@ -9,11 +9,15 @@ import {
 import { normaliseSlug } from '../../utils/slug';
 import { extractToolArgs } from './argUtils';
 
-const PROMPT_GET_ARG_KEYS = ['project_name', 'persona_name'] as const;
+const PROMPT_GET_ARG_KEYS = ['project_name', 'persona_name', 'tags', 'tag'] as const;
+
+const tagInputSchema = z.union([z.string().trim(), z.array(z.string().trim())]).optional();
 
 const promptGetArgsSchema = z.object({
   project_name: z.string().trim().min(1, 'project_name must not be empty').optional(),
   persona_name: z.string().trim().min(1, 'persona_name must not be empty').optional(),
+  tags: tagInputSchema,
+  tag: tagInputSchema,
 });
 
 const inputSchema = promptGetArgsSchema.superRefine((value, ctx) => {
@@ -46,6 +50,7 @@ const outputSchema = z.object({
     persona: z.string().nullable(),
     strategy: z.enum(['exact', 'persona_only', 'project_only']).nullable(),
     analyzedMatches: z.number(),
+    tags: z.array(z.string()).nullable(),
   }),
   candidates: z.array(candidateSchema),
 });
@@ -71,7 +76,20 @@ export function registerPromptGetTool(
       description: [
         'Fetch the canonical prompt document—complete with markdown content and metadata—for a given persona or project.',
         'Pass persona_name, project_name, or both to disambiguate overlapping prompts, and receive resolution diagnostics along the way.',
-        'Ideal for loading an AI Agent persona’s system prompt before answering a user.',
+        'Ideal for loading an AI Agent persona\'s system prompt before answering a user.',
+        '',
+        '## Resolution Strategy',
+        'The tool resolves prompts in this priority order:',
+        '1. BOTH parameters → COMBINATION prompt (complete workflow with persona + project)',
+        '2. persona only → GENERIC persona (persona behavior without project-specific workflow)',
+        '3. project only → PROJECT specs (project configuration without persona behavior)',
+        '',
+        'For task execution with project context, ALWAYS provide both parameters to get the complete workflow.',
+        '',
+        '## Examples',
+        '- Complete workflow: persona_name="ideagenerator", project_name="aismr" → loads ideagenerator-aismr.json',
+        '- Generic persona: persona_name="chat" → loads persona-chat.json',
+        '- Project only: project_name="aismr" → loads project-aismr.json (specs only)',
       ].join('\n'),
       inputSchema: promptGetArgsSchema.shape,
       outputSchema: outputSchema.shape,
@@ -86,6 +104,21 @@ export function registerPromptGetTool(
         const extracted = extractToolArgs(rawArgs, {
           allowedKeys: PROMPT_GET_ARG_KEYS,
         });
+        if ('tag' in extracted) {
+          const rawTag = extracted.tag;
+          delete extracted.tag;
+          if (rawTag !== undefined) {
+            const tagValues = Array.isArray(rawTag) ? rawTag : [rawTag];
+            if (extracted.tags === undefined) {
+              extracted.tags = tagValues;
+            } else {
+              const existing = Array.isArray(extracted.tags)
+                ? extracted.tags
+                : [extracted.tags];
+              extracted.tags = [...existing, ...tagValues];
+            }
+          }
+        }
         args = inputSchema.parse(extracted);
       } catch (error) {
         const message =
@@ -188,6 +221,7 @@ async function resolvePrompt(
 ): Promise<ResolutionSuccess | ResolutionFailure> {
   const project = normaliseSlug(args.project_name);
   const persona = normaliseSlug(args.persona_name);
+  const tags = normalizeTagFilters(args.tags, args.tag);
 
   const filters: PromptLookupFilters = {};
   if (project) {
@@ -195,6 +229,9 @@ async function resolvePrompt(
   }
   if (persona) {
     filters.persona = persona;
+  }
+  if (tags.length > 0) {
+    filters.tags = tags;
   }
 
   const candidates = await repository.listPrompts(filters);
@@ -210,16 +247,18 @@ async function resolvePrompt(
         project,
         persona,
         'exact',
+        tags,
       );
     }
 
     if (matches.length > 1) {
       return buildFailure(
-        `Multiple prompts match project "${project}" and persona "${persona}". Specify additional metadata to disambiguate.`,
+        `Multiple prompts match project "${project}" and persona "${persona}". Specify additional metadata such as tags to disambiguate.`,
         matches,
         project,
         persona,
         'exact',
+        tags,
       );
     }
 
@@ -231,13 +270,14 @@ async function resolvePrompt(
         project,
         persona,
         'exact',
+        tags,
       );
     }
 
     return {
       prompt,
       message: `Prompt resolved for project "${project}" and persona "${persona}".`,
-      resolution: buildResolution(project, persona, 'exact', candidates.length),
+      resolution: buildResolution(project, persona, 'exact', candidates.length, tags),
       candidates: toCandidateSummaries(candidates),
     };
   }
@@ -254,6 +294,7 @@ async function resolvePrompt(
         null,
         persona,
         'persona_only',
+        tags,
       );
     }
 
@@ -264,6 +305,7 @@ async function resolvePrompt(
         null,
         persona,
         'persona_only',
+        tags,
       );
     }
 
@@ -275,13 +317,14 @@ async function resolvePrompt(
         null,
         persona,
         'persona_only',
+        tags,
       );
     }
 
     return {
       prompt,
       message: `Prompt resolved for persona "${persona}".`,
-      resolution: buildResolution(null, persona, 'persona_only', candidates.length),
+      resolution: buildResolution(null, persona, 'persona_only', candidates.length, tags),
       candidates: toCandidateSummaries(candidates),
     };
   }
@@ -298,6 +341,7 @@ async function resolvePrompt(
         project,
         null,
         'project_only',
+        tags,
       );
     }
 
@@ -308,6 +352,7 @@ async function resolvePrompt(
         project,
         null,
         'project_only',
+        tags,
       );
     }
 
@@ -319,13 +364,14 @@ async function resolvePrompt(
         project,
         null,
         'project_only',
+        tags,
       );
     }
 
     return {
       prompt,
       message: `Prompt resolved for project "${project}".`,
-      resolution: buildResolution(project, null, 'project_only', candidates.length),
+      resolution: buildResolution(project, null, 'project_only', candidates.length, tags),
       candidates: toCandidateSummaries(candidates),
     };
   }
@@ -337,6 +383,7 @@ async function resolvePrompt(
     project,
     persona,
     null,
+    tags,
   );
 }
 
@@ -429,17 +476,42 @@ function getMetadataArray(
   return [];
 }
 
+function normalizeTagFilters(
+  tags: string | string[] | undefined,
+  legacyTag?: string | string[],
+): string[] {
+  const inputs = [tags, legacyTag].filter((value): value is string | string[] => value !== undefined);
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const collected: string[] = [];
+
+  for (const entry of inputs) {
+    const values = Array.isArray(entry) ? entry : entry.split(',');
+    for (const value of values) {
+      const slug = typeof value === 'string' ? normaliseSlug(value) : null;
+      if (slug && !collected.includes(slug)) {
+        collected.push(slug);
+      }
+    }
+  }
+
+  return collected;
+}
+
 function buildFailure(
   message: string,
   candidates: PromptSummary[],
   project: string | null,
   persona: string | null,
   strategy: PromptGetOutput['resolution']['strategy'],
+  tags: string[],
 ): ResolutionFailure {
   return {
     prompt: null,
     message,
-    resolution: buildResolution(project, persona, strategy, candidates.length),
+    resolution: buildResolution(project, persona, strategy, candidates.length, tags),
     candidates: toCandidateSummaries(candidates),
   };
 }
@@ -449,12 +521,14 @@ function buildResolution(
   persona: string | null,
   strategy: PromptGetOutput['resolution']['strategy'],
   analyzedMatches: number,
+  tags: string[],
 ): PromptGetOutput['resolution'] {
   return {
     project,
     persona,
     strategy,
     analyzedMatches,
+    tags: tags.length > 0 ? tags : null,
   };
 }
 

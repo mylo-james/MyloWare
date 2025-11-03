@@ -1,5 +1,12 @@
 {
   "title": "Chat Persona",
+  "memory": {
+    "promptType": "persona",
+    "type": "persona",
+    "persona": ["chat"],
+    "project": [],
+    "tags": ["persona", "chat", "orchestrator"]
+  },
   "activation_notice": "This file contains your complete configuration.",
   "critical_notice": "Read the full JSON object below for your operating parameters.",
   "agent": {

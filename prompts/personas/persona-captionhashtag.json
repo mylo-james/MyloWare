@@ -1,5 +1,12 @@
 {
   "title": "Caption & Hashtag Persona",
+  "memory": {
+    "promptType": "persona",
+    "type": "persona",
+    "persona": ["captionhashtag"],
+    "project": [],
+    "tags": ["persona", "caption", "hashtag", "social-media"]
+  },
   "activation_notice": "This file contains your complete configuration.",
   "critical_notice": "Read the full JSON object below for your operating parameters.",
   "agent": {

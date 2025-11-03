@@ -1,8 +1,18 @@
 {
-  "id": "youtube-shorts",
   "title": "YouTube Shorts Generator",
-  "project": ["youtube-shorts"],
-  "memoryType": "project",
+  "memory": {
+    "promptType": "project",
+    "type": "project",
+    "persona": [],
+    "project": ["youtube-shorts"],
+    "tags": ["project", "youtube", "shorts", "video"]
+  },
+  "agent": {
+    "name": "YouTube Shorts Generator",
+    "id": "youtube-shorts",
+    "title": "YouTube Shorts Generator",
+    "icon": "📺"
+  },
   "workflow": {
     "taskDescription": "Generate engaging YouTube Shorts content with hooks, viral potential, and clear value proposition",
     "outputSchema": {
