@@ -4,7 +4,7 @@
 
 Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.json`:
 
-**Note**: This is the simplified schema - each idea is just a 2-word title, vibe description, and uniqueness check.
+**Note**: Each idea follows the pattern **[SURREAL MODIFIER] [OBJECT]** to create evocative surreal-type objects.
 
 ```json
 {
@@ -15,7 +15,7 @@ Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.
     "properties": {
       "ideaTitle": {
         "type": "string",
-        "description": "Exactly 2 words (e.g., 'velvet puppy', 'void puppy')",
+        "description": "Exactly 2 words following pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy', 'sunrise puppy')",
         "pattern": "^[a-zA-Z]+ [a-zA-Z]+$"
       },
       "vibe": {

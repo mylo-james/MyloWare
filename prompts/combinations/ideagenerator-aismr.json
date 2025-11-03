@@ -15,7 +15,7 @@
     "icon": "🌀💡"
   },
   "workflow": {
-    "definition_of_success": "Produce 12 AISMR concepts with 2-word titles, vibe descriptions, and verified uniqueness via video table query.",
+    "definition_of_success": "Produce 12 AISMR concepts with 2-word titles ([surreal modifier] + [object]), vibe descriptions, and verified uniqueness via video table query. Display surreal-type objects that are evocative and visually interesting.",
     "execution_context": {
       "estimated_duration_seconds": "25-45",
       "tool_calls": ["conversation.remember", "video_query", "conversation.store"],
@@ -83,13 +83,19 @@
       },
       {
         "order": 3,
-        "name": "Generate 2-Word Ideas with Vibes",
-        "instruction": "Generate at least 15 candidate 2-word ideas (e.g., 'velvet puppy', 'void puppy'). For each idea, create a 2-3 sentence vibe description that captures the atmosphere and mood for the screenwriter.",
+        "name": "Generate Surreal 2-Word Ideas with Vibes",
+        "instruction": "Generate at least 15 candidate 2-word ideas following the pattern: [SURREAL MODIFIER] + [OBJECT]. The first word should be a surreal/evocative modifier (e.g., void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic). The second word should be the object from user input or a tactile object (e.g., puppy, book, sphere, hand, cloud). Examples: 'void puppy', 'velvet puppy', 'water puppy', 'sunrise puppy', 'crystal book', 'shadow sphere'. For each idea, create a 2-3 sentence vibe description that captures the surreal atmosphere and mood for the screenwriter.",
         "outputs": [
-          "draftIdeas: array of {ideaTitle (2 words), vibe (2-3 sentences)}",
+          "draftIdeas: array of {ideaTitle (surreal modifier + object), vibe (2-3 sentences)}",
           "candidateCount: at least 15 to filter down to 12 unique ones"
         ],
-        "notes": "Focus on evocative 2-word combinations. Each vibe should give screenwriter clear direction on mood and atmosphere."
+        "notes": [
+          "Pattern: [SURREAL MODIFIER] [OBJECT]",
+          "Surreal modifiers: void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, liquid, ethereal, frozen, phantom, prismatic, etc.",
+          "Objects: Based on user input or tactile items (puppy, sphere, book, hand, cloud, leaf, shell, mirror, etc.)",
+          "The goal is to display surreal-type objects that are evocative and visually interesting.",
+          "Each vibe should describe the surreal atmosphere created by the modifier + object combination."
+        ]
       },
       {
         "order": 4,
@@ -136,10 +142,12 @@
     ],
     "validation_checklist": [
       "All mandatory tools executed or HALT issued.",
-      "Each idea has exactly 2 words in ideaTitle (e.g., 'velvet puppy').",
-      "Each idea has a 2-3 sentence vibe description.",
+      "Each idea follows pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy').",
+      "First word is a surreal/evocative modifier (void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, etc.).",
+      "Second word is the object from user input or a tactile object.",
+      "Each idea has a 2-3 sentence vibe description that captures the surreal atmosphere.",
       "Each idea has uniquenessCheck from video_query tool.",
-      "No duplicate ideas (all 12 are unique).",
+      "No duplicate ideas (all 12 are unique globally).",
       "Output contains exactly 12 ideas and matches expected schema."
     ]
   },
@@ -151,7 +159,7 @@
       "properties": {
         "ideaTitle": {
           "type": "string",
-          "description": "Exactly 2 words (e.g., 'velvet puppy', 'void puppy')",
+          "description": "Exactly 2 words following pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy', 'sunrise puppy')",
           "pattern": "^[a-zA-Z]+ [a-zA-Z]+$"
         },
         "vibe": {
