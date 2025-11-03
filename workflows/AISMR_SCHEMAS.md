@@ -47,9 +47,12 @@ Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.
 
 **Expected Output**: Array of exactly 12 idea objects, each with:
 
-- `ideaTitle`: Two-word title like "velvet puppy" or "void puppy"
-- `vibe`: 2-3 sentence description of mood/atmosphere for the screenwriter
-- `uniquenessCheck`: Result from `video_query` tool showing if idea already exists in videos table
+- `ideaTitle`: Two-word title following pattern **[SURREAL MODIFIER] [OBJECT]**
+  - Surreal modifiers: void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, liquid, ethereal, frozen, phantom, prismatic, etc.
+  - Objects: From user input or tactile items (puppy, sphere, book, hand, cloud, leaf, shell, mirror, etc.)
+  - Examples: "void puppy", "velvet puppy", "water puppy", "sunrise puppy", "crystal book"
+- `vibe`: 2-3 sentence description of the surreal atmosphere and mood for the screenwriter
+- `uniquenessCheck`: Result from `video_query` tool showing if idea already exists globally (across all projects)
 
 ---
 
