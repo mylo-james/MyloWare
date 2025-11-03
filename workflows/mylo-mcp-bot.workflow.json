@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:40:03.904Z",
+  "updatedAt": "2025-11-03T19:59:11.675Z",
   "createdAt": "2025-11-02T01:07:29.357Z",
   "id": "7qSyk9RjD6HhPWNm",
   "name": "Mylo_MCP_Bot",
@@ -373,7 +373,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "d06f2656-f436-4cbc-83bd-2fce8bf5b555",
+  "versionId": "82d495f5-100a-4e56-a71d-7bf862a83576",
   "triggerCount": 0,
   "shared": [
     {

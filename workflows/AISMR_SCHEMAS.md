@@ -46,6 +46,7 @@ Copy this into the "Structured Output Parser" node for `generate-ideas.workflow.
 ```
 
 **Expected Output**: Array of exactly 12 idea objects, each with:
+
 - `ideaTitle`: Two-word title like "velvet puppy" or "void puppy"
 - `vibe`: 2-3 sentence description of mood/atmosphere for the screenwriter
 - `uniquenessCheck`: Result from `video_query` tool showing if idea already exists in videos table

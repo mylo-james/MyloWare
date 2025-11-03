@@ -7,7 +7,7 @@ const VIDEO_QUERY_ARG_KEYS = ['idea', 'projectId', 'fuzzyMatch'] as const;
 
 const videoQueryArgsSchema = z.object({
   idea: z.string().trim().min(1, 'idea must not be empty'),
-  projectId: z.string().trim().min(1, 'projectId must not be empty'),
+  projectId: z.string().trim().min(1, 'projectId must not be empty (use UUID, not slug)'),
   fuzzyMatch: z.boolean().optional(),
 });
 
@@ -133,9 +133,13 @@ export function registerVideoQueryTool(
         '- Exact match: Check if exact idea title exists',
         '- Fuzzy match: Find similar ideas (same words, partial matches)',
         '',
+        '## IMPORTANT: projectId Format',
+        'projectId must be a UUID (e.g., "550e8400-e29b-41d4-a716-446655440000"), NOT a slug like "aismr".',
+        'The videos table stores project_id as UUID. You must obtain the UUID from the workflow context.',
+        '',
         '## Examples',
-        '- Check exact: {idea: "velvet puppy", projectId: "aismr", fuzzyMatch: false}',
-        '- Check fuzzy: {idea: "velvet puppy", projectId: "aismr", fuzzyMatch: true}',
+        '- Check exact: {idea: "velvet puppy", projectId: "550e8400-e29b-41d4-a716-446655440000", fuzzyMatch: false}',
+        '- Check fuzzy: {idea: "velvet puppy", projectId: "550e8400-e29b-41d4-a716-446655440000", fuzzyMatch: true}',
       ].join('\n'),
       inputSchema: videoQueryArgsSchema.shape,
       outputSchema: outputSchema.shape,
@@ -159,7 +163,7 @@ export function registerVideoQueryTool(
 
         const suggestions = [
           'Ensure idea is a non-empty string (2-word title)',
-          'Ensure projectId is a non-empty string (project slug or UUID)',
+          'Ensure projectId is a UUID (NOT a slug like "aismr") - get it from workflow context',
           'fuzzyMatch must be true or false if provided',
         ];
 
@@ -245,10 +249,13 @@ export function registerVideoQueryTool(
                 '',
                 '💡 Possible causes:',
                 '  • Database connection issue',
-                '  • Invalid projectId format',
+                '  • Invalid projectId format (must be UUID, not slug like "aismr")',
                 '  • Permission error accessing videos table',
                 '',
-                'Try again or proceed without uniqueness checking.',
+                'If you passed a slug like "aismr", you need to pass the project UUID instead.',
+                'Get the project UUID from the workflow context (runData.project_id).',
+                '',
+                'Try again with correct projectId or proceed without uniqueness checking.',
               ].join('\n'),
             },
           ],

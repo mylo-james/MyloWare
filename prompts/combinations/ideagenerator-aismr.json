@@ -63,23 +63,23 @@
       {
         "order": 2,
         "name": "Video Table Uniqueness Check",
-        "instruction": "For each candidate 2-word idea, query the videos table to check if it already exists.",
+        "instruction": "For each candidate 2-word idea, query the videos table to check if it already exists. Use the project UUID from the workflow input, NOT the slug.",
         "tool": {
           "name": "video_query",
           "arguments": {
             "idea": "<candidate 2-word title>",
-            "projectId": "<projectId>",
+            "projectId": "<workflow projectId UUID (from runData.project_id, NOT the slug 'aismr')>",
             "fuzzyMatch": true
           },
           "execution": {
             "forEach": "candidateIdea",
-            "note": "Check each 2-word title candidate before finalizing"
+            "note": "Check each 2-word title candidate before finalizing. CRITICAL: projectId must be UUID, not slug."
           },
           "outputs": [
             "uniquenessCheck: {exists, matchedVideos[], confidence}",
             "exclusionList.videos: add ideas where exists=true and confidence='exact'"
           ],
-          "failure_handling": "If video_query fails, retry once. On persistent failure, proceed with warning but still check uniqueness."
+          "failure_handling": "If video_query fails with 'Invalid projectId format', you likely passed 'aismr' instead of the UUID. Get the UUID from workflow context. On persistent failure, proceed with warning but still check uniqueness."
         }
       },
       {

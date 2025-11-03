@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:42:03.619Z",
+  "updatedAt": "2025-11-03T20:02:48.748Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -147,7 +147,7 @@
       "typeVersion": 1,
       "position": [
         -6240,
-        248
+        256
       ],
       "id": "31131e25-274b-479e-88ec-f037fe847d6e",
       "name": "On Error"
@@ -167,7 +167,7 @@
       "typeVersion": 4.2,
       "position": [
         -6016,
-        248
+        256
       ],
       "id": "96853da5-92f3-4f02-a6f1-bc45da08828f",
       "name": "Mark Run Failed (Ideas)",
@@ -212,7 +212,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -5512,
+        -5520,
         -96
       ],
       "id": "64a026c0-85e8-4169-8195-8a9e4cfa5c82",
@@ -334,7 +334,7 @@
       "typeVersion": 4.2,
       "position": [
         -2640,
-        -168
+        -176
       ],
       "id": "542a4e77-3952-4504-b5a4-0467598b3eb6",
       "name": "Get Approval Status"
@@ -370,7 +370,7 @@
       "typeVersion": 1.1,
       "position": [
         -2864,
-        -168
+        -176
       ],
       "id": "73c0b3a7-11a2-4f3d-a98c-4781bf3551d3",
       "name": "Wait Before Polling",
@@ -456,7 +456,7 @@
       "typeVersion": 4.2,
       "position": [
         -2864,
-        24
+        32
       ],
       "id": "ff4388e5-cd05-42c4-a6bc-9019f6a52a37",
       "name": "Update Run Rejected",
@@ -497,7 +497,7 @@
       "typeVersion": 2.1,
       "position": [
         -3088,
-        -72
+        -80
       ],
       "id": "9fa1a30b-257f-4c6f-b190-21052869ca1c",
       "name": "Check Loop Limit"
@@ -530,7 +530,7 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "jsonSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\"ideaTitle\", \"vibe\", \"uniquenessCheck\"],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\",\n        \"description\": \"Exactly 2 words (e.g., 'velvet puppy', 'void puppy')\",\n        \"pattern\": \"^[a-zA-Z]+ [a-zA-Z]+$\"\n      },\n      \"vibe\": {\n        \"type\": \"string\",\n        \"description\": \"2-3 sentences describing atmosphere and mood for screenwriter\"\n      },\n      \"uniquenessCheck\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"exists\": {\n            \"type\": \"boolean\"\n          },\n          \"matchedVideos\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\"\n            }\n          },\n          \"confidence\": {\n            \"type\": \"string\",\n            \"enum\": [\"exact\", \"fuzzy\", \"none\"]\n          }\n        }\n      }\n    }\n  }\n}"
+        "inputSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\"ideaTitle\", \"vibe\", \"uniquenessCheck\"],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\",\n        \"description\": \"Exactly 2 words (e.g., 'velvet puppy', 'void puppy')\",\n        \"pattern\": \"^[a-zA-Z]+ [a-zA-Z]+$\"\n      },\n      \"vibe\": {\n        \"type\": \"string\",\n        \"description\": \"2-3 sentences describing atmosphere and mood for screenwriter\"\n      },\n      \"uniquenessCheck\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"exists\": {\n            \"type\": \"boolean\"\n          },\n          \"matchedVideos\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\"\n            }\n          },\n          \"confidence\": {\n            \"type\": \"string\",\n            \"enum\": [\"exact\", \"fuzzy\", \"none\"]\n          }\n        }\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
@@ -820,7 +820,7 @@
       }
     ]
   },
-  "versionId": "8dc472ad-46c7-4eea-a603-864999460446",
+  "versionId": "7e231397-629a-47f2-9881-df9b9fe86e23",
   "triggerCount": 0,
   "shared": [
     {
