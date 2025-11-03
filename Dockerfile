@@ -21,6 +21,8 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY drizzle ./drizzle
+COPY drizzle-operations ./drizzle-operations
 COPY cloudflared ./cloudflared
 RUN npm prune --omit=dev
 EXPOSE 3456
