@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T19:06:10.923Z",
+  "updatedAt": "2025-11-03T19:32:08.989Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -40,7 +40,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1808,
+        1920,
         -160
       ],
       "id": "88c5da56-2b87-4730-8c05-e1a43e0593b4",
@@ -54,7 +54,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        1360,
+        1472,
         -160
       ],
       "id": "e9bc985f-35c5-4386-bac8-7e829190c931",
@@ -113,7 +113,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1584,
+        1696,
         -160
       ],
       "id": "37597c0b-cd23-40f8-b02b-d0df53f74ff6",
@@ -147,7 +147,7 @@
       "typeVersion": 1,
       "position": [
         112,
-        192
+        184
       ],
       "id": "7ca6304e-0e68-4a29-a720-aa70746d8ad1",
       "name": "On Error"
@@ -167,7 +167,7 @@
       "typeVersion": 4.2,
       "position": [
         336,
-        192
+        184
       ],
       "id": "58fab1dd-6de5-4830-b95d-7a166a159941",
       "name": "Mark Run Failed (Ideas)",
@@ -188,8 +188,8 @@
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
       "position": [
-        928,
-        32
+        912,
+        64
       ],
       "id": "mcp-tools-ideas",
       "name": "MCP Tools",
@@ -204,6 +204,7 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
+        "hasOutputParser": true,
         "options": {
           "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas with validated uniqueness.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n"
         }
@@ -211,7 +212,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        784,
+        840,
         -160
       ],
       "id": "ai-agent-generate-ideas",
@@ -225,7 +226,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1136,
+        1248,
         -160
       ],
       "id": "parse-ideas-output",
@@ -251,7 +252,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2032,
+        2144,
         -160
       ],
       "id": "aggregate-ideas-node",
@@ -271,7 +272,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2256,
+        2368,
         -160
       ],
       "id": "update-run-ideas-complete",
@@ -295,7 +296,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2480,
+        2592,
         -160
       ],
       "id": "request-hitl-approval",
@@ -316,7 +317,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        2704,
+        2816,
         -64
       ],
       "id": "Check Approval ID",
@@ -332,8 +333,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3600,
-        -240
+        3712,
+        -232
       ],
       "id": "Get Approval Status",
       "name": "Get Approval Status"
@@ -354,7 +355,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        3824,
+        3936,
         -64
       ],
       "id": "Check If Approved",
@@ -368,8 +369,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        3376,
-        -240
+        3488,
+        -232
       ],
       "id": "Wait Before Polling",
       "name": "Wait Before Polling",
@@ -389,7 +390,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2704,
+        2816,
         -256
       ],
       "id": "Update Run Status Waiting",
@@ -408,7 +409,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4272,
+        4384,
         -64
       ],
       "id": "prepare-workflow-output",
@@ -428,7 +429,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4048,
+        4160,
         -64
       ],
       "id": "Update Run Approved",
@@ -454,8 +455,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3376,
-        -48
+        3488,
+        -40
       ],
       "id": "Update Run Rejected",
       "name": "Update Run Rejected",
@@ -473,7 +474,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2928,
+        3040,
         -64
       ],
       "id": "Prepare Loop",
@@ -495,8 +496,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.1,
       "position": [
-        3152,
-        -144
+        3264,
+        -136
       ],
       "id": "Check Loop Limit",
       "name": "Check Loop Limit"
@@ -515,7 +516,7 @@
       "typeVersion": 1.2,
       "position": [
         784,
-        32
+        64
       ],
       "id": "openai-gpt4o-ideas",
       "name": "5-nano",
@@ -525,6 +526,19 @@
           "name": "OpenAi account"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsonSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\n      \"ideaTitle\",\n      \"hookDescriptor\",\n      \"environment\",\n      \"materials\",\n      \"motionPlan\",\n      \"whisperBeatPlan\",\n      \"loopMechanic\",\n      \"executionNotes\",\n      \"uniquenessEvidence\"\n    ],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\"\n      },\n      \"hookDescriptor\": {\n        \"type\": \"string\",\n        \"description\": \"Primary tactile hook; must not collide with exclusion lists.\"\n      },\n      \"environment\": {\n        \"type\": \"string\"\n      },\n      \"materials\": {\n        \"type\": \"string\"\n      },\n      \"motionPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Camera move + subject motion; mention continuity and rhythm.\"\n      },\n      \"whisperBeatPlan\": {\n        \"type\": \"string\",\n        \"description\": \"Explain what happens at 3.0s and how whisper integrates.\"\n      },\n      \"loopMechanic\": {\n        \"type\": \"string\"\n      },\n      \"executionNotes\": {\n        \"type\": \"string\",\n        \"description\": \"Props, lighting, hand usage (≤2), audio treatment (no music).\"\n      },\n      \"uniquenessEvidence\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"session\": {\n            \"type\": \"string\"\n          },\n          \"archive\": {\n            \"type\": \"string\"\n          },\n          \"similarityScore\": {\n            \"type\": \"number\"\n          }\n        }\n      }\n    }\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        64
+      ],
+      "id": "154e9d58-e1e9-4da7-9484-59b70896dccf",
+      "name": "Structured Output Parser"
     }
   ],
   "connections": {
@@ -797,6 +811,17 @@
           }
         ]
       ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: Generate Ideas",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -814,7 +839,7 @@
       }
     ]
   },
-  "versionId": "a92fbd25-a4ef-4cae-8ece-7a81a86f24c2",
+  "versionId": "685d16f3-ca75-4f41-b918-d5c1e4465321",
   "triggerCount": 0,
   "shared": [
     {
