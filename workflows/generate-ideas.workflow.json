@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T18:56:49.617Z",
+  "updatedAt": "2025-11-03T19:06:10.923Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -188,7 +188,7 @@
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
       "position": [
-        944,
+        928,
         32
       ],
       "id": "mcp-tools-ideas",
@@ -216,7 +216,7 @@
       ],
       "id": "ai-agent-generate-ideas",
       "name": "AI Agent: Generate Ideas",
-      "retryOnFail": true
+      "retryOnFail": false
     },
     {
       "parameters": {
@@ -514,7 +514,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        768,
+        784,
         32
       ],
       "id": "openai-gpt4o-ideas",
@@ -814,7 +814,7 @@
       }
     ]
   },
-  "versionId": "85398f28-11c9-40c3-b4ff-bc2092accca8",
+  "versionId": "a92fbd25-a4ef-4cae-8ece-7a81a86f24c2",
   "triggerCount": 0,
   "shared": [
     {
