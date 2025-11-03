@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:24:35.081Z",
+  "updatedAt": "2025-11-03T23:16:40.242Z",
   "createdAt": "2025-11-02T01:07:29.234Z",
   "id": "XILT3npSi1rA1azF",
   "name": "Generate Video",
@@ -115,7 +115,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n  const videoResponse = $json?.data?.video ?? {};\n  const videoUrl = videoResponse.videoLink ?? $json.videoLink ?? null;\n  const videoId = videoResponse.id ?? $('Get Idea').item?.json?.ideaId ?? $('When Called').item.json.id;\n  const videoStage = {\n    ...clone(stages.video_generation),\n    status: 'completed',\n    output: {\n      ideaId: videoId,\n      idea: $('Get Idea').item?.json?.idea ?? null,\n      videoUrl,\n      status: videoResponse.status ?? $json.status ?? null\n    }\n  };\n  const mergedOutput = {\n    ...(run.output ?? {}),\n    video_generation: {\n      ideaId: videoId,\n      idea: $('Get Idea').item?.json?.idea ?? null,\n      videoUrl,\n      status: videoResponse.status ?? $json.status ?? null\n    }\n  };\n  return {\n    status: 'running',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: { ...publishingStage, status: 'in_progress' }\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const run = $('Get a row').item?.json ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const publishingStage = clone(stages.publishing); if (!publishingStage.status) { publishingStage.status = 'pending'; } const videoResponse = $json?.data?.video ?? {}; const videoUrl = videoResponse.videoLink ?? $json.videoLink ?? null; const videoId = videoResponse.id ?? $('Get Idea').item?.json?.ideaId ?? $('When Called').item.json.id; const videoStage = { ...clone(stages.video_generation), status: 'completed', output: { ideaId: videoId, idea: $('Get Idea').item?.json?.idea ?? null, videoUrl, status: videoResponse.status ?? $json.status ?? null } }; const mergedOutput = { ...(run.output ?? {}), video_generation: { ideaId: videoId, idea: $('Get Idea').item?.json?.idea ?? null, videoUrl, status: videoResponse.status ?? $json.status ?? null } }; return { status: 'running', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: { ...publishingStage, status: 'in_progress' } }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -141,7 +141,7 @@
         "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/\\n/g, '\\\\n').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\",\n  \"model\": \"{{ $json.model }}\",\n  \"aspectRatio\": \"{{ $json.aspect_ratio }}\",\n  \"generationType\": \"TEXT_2_VIDEO\",\n  \"seconds\": \"{{ $json.seconds }}\"\n}",
+        "jsonBody": "={ \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/ /g, '\\ ').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\", \"model\": \"{{ $json.model }}\", \"aspectRatio\": \"{{ $json.aspect_ratio }}\", \"generationType\": \"TEXT_2_VIDEO\", \"seconds\": \"{{ $json.seconds }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -336,7 +336,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = {\n    ...clone(stages.video_generation),\n    status: 'failed',\n    error: {\n      message: $json.error?.message ?? 'Video generation workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  return {\n    status: 'failed',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: {\n      ...(run.output ?? {}),\n      video_generation: {\n        error: {\n          message: $json.error?.message ?? 'Video generation workflow failed.',\n          stack: $json.error?.stack ?? null,\n          lastNode: $json.execution?.lastNodeExecuted ?? null\n        }\n      }\n    }\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const run = $('Get a row').item?.json ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = { ...clone(stages.video_generation), status: 'failed', error: { message: $json.error?.message ?? 'Video generation workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; const publishingStage = clone(stages.publishing); if (!publishingStage.status) { publishingStage.status = 'pending'; } return { status: 'failed', currentStage: 'video_generation', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), video_generation: { error: { message: $json.error?.message ?? 'Video generation workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -362,7 +362,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const run = $('Get a row').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = { ...clone(stages.video_generation), status: 'in_progress' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: run.output ?? {}\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const run = $('Get a row').item?.json ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = { ...clone(stages.video_generation), status: 'in_progress' }; const publishingStage = clone(stages.publishing); if (!publishingStage.status) { publishingStage.status = 'pending'; } return { status: 'running', currentStage: 'video_generation', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: run.output ?? {} };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -651,7 +651,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "8442f2e0-87ac-419f-92fd-0da63068a177",
+  "versionId": "6d991903-5f5f-40dd-9f85-615b599b0fc8",
   "triggerCount": 0,
   "shared": [
     {
@@ -675,7 +675,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

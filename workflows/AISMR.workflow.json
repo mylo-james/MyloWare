@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:24:34.924Z",
+  "updatedAt": "2025-11-03T23:16:39.809Z",
   "createdAt": "2025-11-02T01:09:00.869Z",
   "id": "NGKqyspp66gDGVI0",
   "name": "AISMR",
@@ -20,7 +20,7 @@
       "typeVersion": 1.1,
       "position": [
         -672,
-        -16
+        64
       ],
       "id": "86f8f799-7dea-440c-af6d-792234085b4f",
       "name": "When Executed by Another Workflow"
@@ -38,7 +38,7 @@
       "typeVersion": 4.2,
       "position": [
         -448,
-        -16
+        64
       ],
       "id": "e866efd4-a577-4d6e-9ce7-fba652758619",
       "name": "Get Turn",
@@ -57,7 +57,7 @@
       "typeVersion": 2,
       "position": [
         -224,
-        -16
+        64
       ],
       "id": "43ce582c-259e-4a06-b8fc-d958453c200f",
       "name": "Extract ChatId"
@@ -69,8 +69,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        464,
-        -16
+        448,
+        64
       ],
       "id": "3c04b647-0f6d-4c93-86b8-9391be86488c",
       "name": "Assemble Context"
@@ -121,8 +121,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -640,
-        272
+        672,
+        64
       ],
       "id": "db0ccb9f-ffc7-47f8-8304-c376074b1465",
       "name": "Call Generate Ideas"
@@ -135,7 +135,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  projectId: 'aismr',\n  sessionId:\n    $('Get Turn').item.json?.data?.turn?.sessionId ??\n    $('Get Turn').item.json?.turn?.sessionId ??\n    $('Get Turn').item.json?.sessionId,\n  input: {\n    source: 'aismr_orchestrator',\n    personaId: 'ideagenerator',\n    turnId: $json.turnId,\n    chatId: $('Extract ChatId').item?.json?.chatId ?? null,\n    userInput: $('Extract ChatId').item?.json?.userInput ?? null,\n    turn: $('Extract ChatId').item?.json?.turn ?? null\n  }\n}) }}",
+        "jsonBody": "={{ ({ projectId: 'aismr', sessionId: $('Get Turn').item.json?.data?.turn?.sessionId ?? $('Get Turn').item.json?.turn?.sessionId ?? $('Get Turn').item.json?.sessionId, input: { source: 'aismr_orchestrator', personaId: 'ideagenerator', turnId: $json.turnId, chatId: $('Extract ChatId').item?.json?.chatId ?? null, userInput: $('Extract ChatId').item?.json?.userInput ?? null, turn: $('Extract ChatId').item?.json?.turn ?? null }\n}) }}",
         "options": {
           "timeout": 15000
         }
@@ -143,8 +143,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        16,
-        -16
+        0,
+        64
       ],
       "id": "36e8933c-c428-41bb-bed2-1b12d63bff74",
       "name": "Create Run",
@@ -162,8 +162,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        240,
-        -16
+        224,
+        64
       ],
       "id": "9119cb8c-7560-49d5-8e5d-9c5e7c90a21e",
       "name": "Store RunId"
@@ -173,7 +173,7 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        -656,
+        -672,
         -256
       ],
       "id": "153fa465-d283-44e6-a75c-3d69f46b4ed6",
@@ -186,7 +186,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -432,
+        -448,
         -256
       ],
       "id": "bc8e852a-0abc-49ae-a565-8094b57c700c",
@@ -200,7 +200,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'failed',\n  output: {\n    code: 'aismr_error',\n    message: $json.errorMessage ?? 'Unknown error in AISMR workflow',\n    stack: $json.errorStack ?? null,\n    lastNode: $json.lastNodeExecuted ?? null,\n    executionId: $json.executionId ?? null\n  }\n}) }}",
+        "jsonBody": "={{ ({ status: 'failed', output: { code: 'aismr_error', message: $json.errorMessage ?? 'Unknown error in AISMR workflow', stack: $json.errorStack ?? null, lastNode: $json.lastNodeExecuted ?? null, executionId: $json.executionId ?? null }\n}) }}",
         "options": {
           "timeout": 15000
         }
@@ -208,7 +208,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -208,
+        -224,
         -256
       ],
       "id": "efbe3368-c972-49de-8fb2-60acee6a6c36",
@@ -230,7 +230,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        32,
+        0,
         -256
       ],
       "id": "78023a13-4970-4772-84be-fb2543ac132d",
@@ -252,8 +252,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        -320,
-        336
+        896,
+        64
       ],
       "id": "860967b8-8ae8-4b7d-928c-8377c5af29c5",
       "name": "Merge: Ideas to Notifications"
@@ -267,8 +267,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -192,
-        400
+        1120,
+        -32
       ],
       "id": "8aafc9ad-c253-4560-ae75-9458d1d7d9af",
       "name": "Progress: Ideas Generated",
@@ -288,8 +288,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -624,
-        944
+        1120,
+        160
       ],
       "id": "6958060a-f053-4a05-a559-da08f62e2de2",
       "name": "Extract Selected Idea"
@@ -302,8 +302,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        -288,
-        944
+        1568,
+        160
       ],
       "id": "aeed8a44-917e-4f7d-b960-cddbb2336042",
       "name": "Merge: Screenplay to Video and Notification"
@@ -317,8 +317,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -176,
-        944
+        1792,
+        64
       ],
       "id": "e7b6e05f-f6d4-47c0-b483-5b7ae67e692f",
       "name": "Progress: Screenplay Ready",
@@ -393,8 +393,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -400,
-        944
+        1344,
+        160
       ],
       "id": "d405fc21-e5cb-424e-a345-6b88e57e7217",
       "name": "Call Screen Writer"
@@ -407,8 +407,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        176,
-        944
+        2016,
+        256
       ],
       "id": "3c48aca5-8af6-4f58-8560-b8cd29adbb66",
       "name": "Merge: Video to Edit and Notification"
@@ -422,8 +422,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        288,
-        944
+        2240,
+        160
       ],
       "id": "5f3e9ecf-d809-41a5-8561-a6986b256198",
       "name": "Progress: Video Generated",
@@ -482,8 +482,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        64,
-        944
+        1792,
+        256
       ],
       "id": "193c0696-c1a3-43d2-afdf-4ee96f644b28",
       "name": "Call Generate Video"
@@ -496,8 +496,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        624,
-        944
+        2464,
+        352
       ],
       "id": "9c5b191a-e6d0-44b3-b92f-a0f70fa4872b",
       "name": "Merge: Edit to Upload and Notification"
@@ -511,8 +511,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        736,
-        944
+        2688,
+        256
       ],
       "id": "43e8572a-7b81-4912-9694-3c80220b182d",
       "name": "Progress: Video Edited",
@@ -560,8 +560,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        512,
-        944
+        2240,
+        352
       ],
       "id": "4a546256-b647-47d0-b9f7-7c895cf5eaf1",
       "name": "Call Edit AISMR"
@@ -574,8 +574,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        -512,
-        1344
+        2912,
+        448
       ],
       "id": "7abc3099-7ac2-4360-8764-9995136e0c88",
       "name": "Merge: Upload to TikTok and Notification"
@@ -589,8 +589,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        -400,
-        1344
+        3136,
+        352
       ],
       "id": "31586e50-93e5-499d-bd91-185be7f5f5ea",
       "name": "Progress: Uploaded",
@@ -638,8 +638,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -624,
-        1344
+        2688,
+        448
       ],
       "id": "d104df5f-994f-4833-933b-d37886e1c8a6",
       "name": "Call Upload to Google Drive"
@@ -652,8 +652,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        -48,
-        1344
+        3360,
+        544
       ],
       "id": "643fb4b7-68f0-4148-a6b2-e123fee1e798",
       "name": "Merge: TikTok to Complete and Notification"
@@ -667,8 +667,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        64,
-        1344
+        3584,
+        448
       ],
       "id": "29debd31-91e3-45d2-a66f-a25bc3511eff",
       "name": "Progress: Posting to TikTok",
@@ -716,8 +716,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -176,
-        1344
+        3136,
+        544
       ],
       "id": "04b44a5b-6ad0-44c3-a29e-5a24e4e447a4",
       "name": "Call Post to TikTok"
@@ -729,8 +729,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        288,
-        1344
+        3584,
+        640
       ],
       "id": "prepare-completion-data",
       "name": "Prepare Completion Data"
@@ -743,7 +743,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  status: $json.status,\n  completedAt: $json.completedAt,\n  output: $json.output\n} }}",
+        "jsonBody": "={{ { status: $json.status, completedAt: $json.completedAt, output: $json.output\n} }}",
         "options": {
           "timeout": 15000
         }
@@ -751,8 +751,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        512,
-        1344
+        3808,
+        640
       ],
       "id": "mark-run-complete",
       "name": "Mark Run Complete",
@@ -772,8 +772,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        736,
-        1344
+        4032,
+        640
       ],
       "id": "cd129976-36a4-48bd-972a-91e5861cbd5b",
       "name": "Final: Posted",
@@ -1092,12 +1092,12 @@
     "When Executed by Another Workflow": [
       {
         "json": {
-          "turnId": "52025361-366e-46ce-8740-0f20252cb88d"
+          "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43"
         }
       }
     ]
   },
-  "versionId": "2b6f7261-df14-49db-b260-b126112111e8",
+  "versionId": "5638841e-1cdb-4bd9-a475-b8b2c486b474",
   "triggerCount": 0,
   "shared": [
     {
@@ -1121,7 +1121,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

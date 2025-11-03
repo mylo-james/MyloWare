@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:26:15.193Z",
+  "updatedAt": "2025-11-03T23:17:20.289Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -34,7 +34,7 @@
         "url": "https://mcp-vector.mjames.dev/api/videos",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  runId: $json.run_id,\n  projectId: $json.project_id,\n  idea: $json.idea,\n  userIdea: $json.user_idea ?? null,\n  vibe: $json.vibe ?? null,\n  status: $json.status ?? 'idea_gen',\n  prompt: $json.prompt ?? null,\n  startedAt: $json.started_at ?? null,\n  metadata: { source: 'idea-generator' }\n}) }}",
+        "jsonBody": "={{ ({ runId: $json.run_id, projectId: $json.project_id, idea: $json.idea, userIdea: $json.user_idea ?? null, vibe: $json.vibe ?? null, status: $json.status ?? 'idea_gen', prompt: $json.prompt ?? null, startedAt: $json.started_at ?? null, metadata: { source: 'idea-generator' }\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -162,7 +162,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'failed',\n  stages: {\n    idea_generation: {\n      status: 'failed',\n      error: {\n        message: $json.error?.message ?? 'Idea generation workflow failed.',\n        stack: $json.error?.stack ?? null,\n        lastNode: $json.execution?.lastNodeExecuted ?? null\n      }\n    }\n  },\n  output: {\n    stage: 'idea_generation',\n    error: {\n      message: $json.error?.message ?? 'Idea generation workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  }\n}) }}",
+        "jsonBody": "={{ ({ status: 'failed', stages: { idea_generation: { status: 'failed', error: { message: $json.error?.message ?? 'Idea generation workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } }, output: { stage: 'idea_generation', error: { message: $json.error?.message ?? 'Idea generation workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -208,7 +208,7 @@
         "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Iggy, idea generator for AISMR.\n\nIdentity: persona=\"ideagenerator\", project=\"aismr\"\n\nGoal: Generate 12 unique AISMR video ideas displaying surreal-type objects.\n\nBootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness.\n\nPattern: Each idea must be [SURREAL MODIFIER] [OBJECT]\n- First word: surreal modifier (void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, etc.)\n- Second word: object from user input or tactile item (puppy, sphere, book, hand, cloud, etc.)\n- Examples: \"void puppy\", \"velvet puppy\", \"water puppy\", \"sunrise puppy\", \"crystal book\"\n\nOutput: Return an array of exactly 12 idea objects. Each must have:\n- ideaTitle (exactly 2 words following [SURREAL MODIFIER] [OBJECT] pattern)\n- vibe (2-3 sentences describing the surreal atmosphere)\n- uniquenessCheck (verification from video_query tool)\n"
+          "systemMessage": "=You are Iggy, idea generator for AISMR. Identity: persona=\"ideagenerator\", project=\"aismr\" Goal: Generate 12 unique AISMR video ideas displaying surreal-type objects. Bootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness. Pattern: Each idea must be [SURREAL MODIFIER] [OBJECT]\n- First word: surreal modifier (void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, etc.)\n- Second word: object from user input or tactile item (puppy, sphere, book, hand, cloud, etc.)\n- Examples: \"void puppy\", \"velvet puppy\", \"water puppy\", \"sunrise puppy\", \"crystal book\" Output: Return an array of exactly 12 idea objects. Each must have:\n- ideaTitle (exactly 2 words following [SURREAL MODIFIER] [OBJECT] pattern)\n- vibe (2-3 sentences describing the surreal atmosphere)\n- uniquenessCheck (verification from video_query tool)"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -268,7 +268,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\\n  status: 'running',\\n  currentStage: 'screenplay',\\n  stages: {\\n    idea_generation: {\\n      status: 'completed',\\n      output: $json.ideas\\n    },\\n    screenplay: { status: 'running' },\\n    video_generation: { status: 'pending' },\\n    publishing: { status: 'pending' }\\n  },\\n  output: {\\n    stage: 'idea_generation',\\n    ideas: $json.ideas,\\n    userIdea: $json.userIdea,\\n    totalIdeas: $json.totalIdeas\\n  }\\n}) }}",
+        "jsonBody": "={{ ({ status: 'running', currentStage: 'screenplay', stages: { idea_generation: { status: 'completed', output: $json.ideas ?? [] }, screenplay: { status: 'running' }, video_generation: { status: 'pending' }, publishing: { status: 'pending' } }, output: { stage: 'idea_generation', ideas: $json.ideas ?? [], userIdea: $json.userIdea ?? '', totalIdeas: Number.isFinite($json.totalIdeas) ? $json.totalIdeas : ($json.ideas ? $json.ideas.length : 0) } }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -288,7 +288,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const aggregateNode = $('Aggregate Ideas').item.json;\\nconst ideas = aggregateNode.ideas || [];\\nconst userIdea = aggregateNode.userIdea || '';\\nconst selectedIdea = ideas.length > 0 ? ideas[0] : null;\\n\\nreturn {\\n  json: {\\n    ideas,\\n    selectedIdea,\\n    userIdea,\\n    totalIdeas: ideas.length\\n  }\\n};"
+        "jsCode": "const aggregateNode = $('Aggregate Ideas').item.json; const ideas = aggregateNode.ideas || []; const userIdea = aggregateNode.userIdea || ''; const selectedIdea = ideas.length > 0 ? ideas[0] : null; return { json: { ideas, selectedIdea, userIdea, totalIdeas: ideas.length } };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -505,7 +505,7 @@
       {
         "json": {
           "userInput": "Make an asmr video about puppies",
-          "runId": "b1eb9288-14da-472f-8985-5440cc67cfca"
+          "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad"
         }
       }
     ],
@@ -612,9 +612,576 @@
           ]
         }
       }
+    ],
+    "Create a row": [
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "e11e0cae-1500-4b3c-baaf-4da46af4c4af",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "void puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.969+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.278+00",
+              "updatedAt": "2025-11-03 23:06:40.278+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "9a9e9f2a-57a8-4311-afbe-180866fedc7a",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "velvet puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.992+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.269+00",
+              "updatedAt": "2025-11-03 23:06:40.269+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "1cda0726-b69d-4b78-ad17-e75e5a659203",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "water puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.995+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.219+00",
+              "updatedAt": "2025-11-03 23:06:40.219+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "8478948c-7f4a-4f88-a93d-0a358bee281b",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "sunrise puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.996+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.166+00",
+              "updatedAt": "2025-11-03 23:06:40.166+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "07fa3328-fcce-4fbd-b36b-d9b7ca9ee47a",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "crystal puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.997+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.259+00",
+              "updatedAt": "2025-11-03 23:06:40.259+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "b1cf7e53-c274-46fd-89e7-87946b80b069",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "shadow puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.998+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.263+00",
+              "updatedAt": "2025-11-03 23:06:40.263+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "d0f76cd1-e378-4a3e-b154-34a76a8a91cf",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "silk puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:39.999+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.202+00",
+              "updatedAt": "2025-11-03 23:06:40.202+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "06a5311a-83a9-481d-ad01-9c09a2a23990",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "glass puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:40+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.256+00",
+              "updatedAt": "2025-11-03 23:06:40.256+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "f0aa7eba-914b-4e0e-83bb-6fbab2e7151e",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "neon puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:40.001+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.285+00",
+              "updatedAt": "2025-11-03 23:06:40.285+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "ef2a90e3-32e6-4c26-8c59-402b1b0bc61d",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "cosmic puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:40.004+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.239+00",
+              "updatedAt": "2025-11-03 23:06:40.239+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "b68f1e13-049c-4c83-8083-c98a2fab29c3",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "lunar puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:40.006+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.283+00",
+              "updatedAt": "2025-11-03 23:06:40.283+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "data": {
+            "video": {
+              "id": "1db19480-d1a2-4be4-a67f-04e7d715f7b0",
+              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+              "projectId": "aismr",
+              "idea": "phantom puppies",
+              "userIdea": "Make an asmr video about puppies",
+              "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
+              "prompt": null,
+              "videoLink": null,
+              "status": "idea_gen",
+              "errorMessage": null,
+              "startedAt": "2025-11-03 23:06:40.008+00",
+              "completedAt": null,
+              "createdAt": "2025-11-03 23:06:40.267+00",
+              "updatedAt": "2025-11-03 23:06:40.267+00",
+              "metadata": {
+                "source": "idea-generator"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "Update Run Ideas Complete": [
+      {
+        "json": {
+          "workflowRun": {
+            "id": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
+            "projectId": "aismr",
+            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+            "currentStage": "screenplay",
+            "status": "running",
+            "stages": {
+              "publishing": {
+                "status": "pending"
+              },
+              "screenplay": {
+                "status": "running"
+              },
+              "idea_generation": {
+                "output": [
+                  {
+                    "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
+                    "ideaTitle": "void puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
+                    "ideaTitle": "velvet puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
+                    "ideaTitle": "water puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
+                    "ideaTitle": "sunrise puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
+                    "ideaTitle": "crystal puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
+                    "ideaTitle": "shadow puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
+                    "ideaTitle": "silk puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
+                    "ideaTitle": "glass puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
+                    "ideaTitle": "neon puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
+                    "ideaTitle": "cosmic puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
+                    "ideaTitle": "lunar puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  },
+                  {
+                    "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
+                    "ideaTitle": "phantom puppies",
+                    "uniquenessCheck": {
+                      "exists": false,
+                      "confidence": "none"
+                    }
+                  }
+                ],
+                "status": "completed"
+              },
+              "video_generation": {
+                "status": "pending"
+              }
+            },
+            "input": {
+              "turn": {
+                "id": "74de981a-22d8-4d02-9cf3-6371af33302f",
+                "role": "user",
+                "userId": "telegram:6559268788",
+                "content": "Make an asmr video about puppies",
+                "summary": null,
+                "metadata": {
+                  "chatId": "6559268788",
+                  "preview": "Make an asmr video about puppies",
+                  "keywords": [
+                    "make",
+                    "asmr",
+                    "video",
+                    "about",
+                    "puppies"
+                  ],
+                  "platform": "telegram",
+                  "workflow": "chat",
+                  "messageId": "156",
+                  "timestamp": "2025-11-03T22:50:08.811Z",
+                  "messageType": "text"
+                },
+                "createdAt": "2025-11-03 22:50:08.898595+00",
+                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+                "turnIndex": 20,
+                "updatedAt": "2025-11-03 22:50:08.898595+00"
+              },
+              "chatId": "6559268788",
+              "source": "aismr_orchestrator",
+              "turnId": "74de981a-22d8-4d02-9cf3-6371af33302f",
+              "personaId": "ideagenerator",
+              "userInput": "Make an asmr video about puppies"
+            },
+            "output": {
+              "ideas": [
+                {
+                  "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
+                  "ideaTitle": "void puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
+                  "ideaTitle": "velvet puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
+                  "ideaTitle": "water puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
+                  "ideaTitle": "sunrise puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
+                  "ideaTitle": "crystal puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
+                  "ideaTitle": "shadow puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
+                  "ideaTitle": "silk puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
+                  "ideaTitle": "glass puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
+                  "ideaTitle": "neon puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
+                  "ideaTitle": "cosmic puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
+                  "ideaTitle": "lunar puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                },
+                {
+                  "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
+                  "ideaTitle": "phantom puppies",
+                  "uniquenessCheck": {
+                    "exists": false,
+                    "confidence": "none"
+                  }
+                }
+              ],
+              "stage": "idea_generation",
+              "userIdea": "Make an asmr video about puppies",
+              "totalIdeas": 12
+            },
+            "workflowDefinitionChunkId": null,
+            "createdAt": "2025-11-03 22:50:18.924+00",
+            "updatedAt": "2025-11-03 23:16:48.095+00"
+          }
+        }
+      }
     ]
   },
-  "versionId": "ca386e04-b99d-4cc6-a6d3-7e6c52827ab6",
+  "versionId": "c426944f-f6c2-4e93-b65c-9009fc27577a",
   "triggerCount": 0,
   "shared": [
     {
@@ -638,7 +1205,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

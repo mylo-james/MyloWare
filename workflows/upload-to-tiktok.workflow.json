@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:24:35.827Z",
+  "updatedAt": "2025-11-03T23:16:40.411Z",
   "createdAt": "2025-11-02T01:07:29.880Z",
   "id": "85BRncHFFikG9FIE",
   "name": "Upload to TikTok",
@@ -68,7 +68,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const getNodeData = (name) => {\n    try {\n      return $(name).item?.json ?? null;\n    } catch (error) {\n      return null;\n    }\n  };\n  const run = getNodeData('Get a row') ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = clone(stages.video_generation);\n  if (!videoStage.status) { videoStage.status = 'completed'; }\n  const publishingStage = clone(stages.publishing);\n  const tiktokUrl = $json.response?.url ?? $json.data?.url ?? null;\n  const publishingOutput = {\n    ...(publishingStage?.output ?? {}),\n    tiktokUrl,\n    platform: 'tiktok'\n  };\n  const updatedPublishingStage = {\n    ...publishingStage,\n    status: 'completed',\n    output: publishingOutput\n  };\n  const mergedOutput = {\n    ...(run.output ?? {}),\n    publishing: {\n      ...(run.output?.publishing ?? {}),\n      tiktokUrl,\n      platform: 'tiktok'\n    }\n  };\n  return {\n    status: 'completed',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: updatedPublishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = clone(stages.publishing); const tiktokUrl = $json.response?.url ?? $json.data?.url ?? null; const publishingOutput = { ...(publishingStage?.output ?? {}), tiktokUrl, platform: 'tiktok' }; const updatedPublishingStage = { ...publishingStage, status: 'completed', output: publishingOutput }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), tiktokUrl, platform: 'tiktok' } }; return { status: 'completed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: updatedPublishingStage }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -105,7 +105,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const getNodeData = (name) => {\n    try {\n      return $(name).item?.json ?? null;\n    } catch (error) {\n      return null;\n    }\n  };\n  const run = getNodeData('Get a row') ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = clone(stages.video_generation);\n  if (!videoStage.status) { videoStage.status = 'completed'; }\n  const publishingStage = {\n    ...clone(stages.publishing),\n    status: 'failed',\n    error: {\n      message: $json.error?.message ?? 'TikTok upload workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  };\n  return {\n    status: 'failed',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: {\n      ...(run.output ?? {}),\n      publishing: {\n        ...(run.output?.publishing ?? {}),\n        error: {\n          message: $json.error?.message ?? 'TikTok upload workflow failed.',\n          stack: $json.error?.stack ?? null,\n          lastNode: $json.execution?.lastNodeExecuted ?? null\n        }\n      }\n    }\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = { ...clone(stages.publishing), status: 'failed', error: { message: $json.error?.message ?? 'TikTok upload workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; return { status: 'failed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), error: { message: $json.error?.message ?? 'TikTok upload workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -148,7 +148,7 @@
         "text": "=Video Idea: Your Month, Your ",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "={{ $('Call \\'Load Persona\\'').item.json.prompt_text }}\n\nHere's all the information we used to make this video.\n\n{{ $json }}"
+          "systemMessage": "={{ $('Call \\'Load Persona\\'').item.json.prompt_text }} Here's all the information we used to make this video. {{ $json }}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -457,7 +457,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "b22db0be-6f4f-4901-86d4-53f57a5d8be2",
+  "versionId": "37c8d090-c21e-4e24-b510-34db3df69b18",
   "triggerCount": 0,
   "shared": [
     {
@@ -481,7 +481,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

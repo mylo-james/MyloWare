@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:27:54.107Z",
+  "updatedAt": "2025-11-03T23:16:40.102Z",
   "createdAt": "2025-11-02T01:09:00.910Z",
   "id": "MhurGfQPUg5lWdXw",
   "name": "Chat",
@@ -305,7 +305,7 @@
         "promptType": "define",
         "text": "={{ $json.message.text }}",
         "options": {
-          "systemMessage": "=You are Casey, conversational orchestrator.\n\nIdentity: persona=\"chat\", project=null\n\nGoal: Help users with context-aware responses.\n\nBootstrap: Load your configuration, recall conversation context, then respond.\nUse your tools as needed.\n"
+          "systemMessage": "=You are Casey, conversational orchestrator. Identity: persona=\"chat\", project=null Goal: Help users with context-aware responses. Bootstrap: Load your configuration, recall conversation context, then respond.\nUse your tools as needed."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -756,7 +756,7 @@
       }
     ]
   },
-  "versionId": "6dff0875-1a7e-440a-8f72-d3bd738671ba",
+  "versionId": "516de92c-bd3d-44b3-99b4-139861373242",
   "triggerCount": 1,
   "shared": [
     {
@@ -780,7 +780,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

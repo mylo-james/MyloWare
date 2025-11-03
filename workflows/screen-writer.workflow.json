@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:24:35.780Z",
+  "updatedAt": "2025-11-03T23:16:40.322Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -32,7 +32,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const run = $('Get Run').item?.json ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplay = $('Parse Screenplay Output').item.json.screenplay;\n  const videoId = $('Parse Screenplay Output').item.json.videoId;\n  const screenplayStage = { ...clone(stages.screenplay), status: 'completed', output: { screenplay, videoId, completedAt: new Date().toISOString() } };\n  const videoStage = { ...clone(stages.video_generation), status: 'running' };\n  const publishingStage = clone(stages.publishing);\n  if (!publishingStage.status) { publishingStage.status = 'pending'; }\n\n  const mergedOutput = { ...(run.output ?? {}), screenplay: screenplay };\n\n  return {\n    status: 'running',\n    currentStage: 'video_generation',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const run = $('Get Run').item?.json ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplay = $('Parse Screenplay Output').item.json.screenplay; const videoId = $('Parse Screenplay Output').item.json.videoId; const screenplayStage = { ...clone(stages.screenplay), status: 'completed', output: { screenplay, videoId, completedAt: new Date().toISOString() } }; const videoStage = { ...clone(stages.video_generation), status: 'running' }; const publishingStage = clone(stages.publishing); if (!publishingStage.status) { publishingStage.status = 'pending'; } const mergedOutput = { ...(run.output ?? {}), screenplay: screenplay }; return { status: 'running', currentStage: 'video_generation', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -69,7 +69,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({\n  status: 'failed',\n  stages: {\n    idea_generation: ($('Get Run').item.json.stages?.idea_generation ?? { status: 'completed' }),\n    screenplay: {\n      status: 'failed',\n      error: {\n        message: $json.error?.message ?? 'Screenwriter workflow failed.',\n        stack: $json.error?.stack ?? null,\n        lastNode: $json.execution?.lastNodeExecuted ?? null\n      }\n    },\n    video_generation: ($('Get Run').item.json.stages?.video_generation ?? { status: 'pending' }),\n    publishing: ($('Get Run').item.json.stages?.publishing ?? { status: 'pending' })\n  },\n  output: {\n    stage: 'screenplay',\n    error: {\n      message: $json.error?.message ?? 'Screenwriter workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  }\n}) }}",
+        "jsonBody": "={{ ({ status: 'failed', stages: { idea_generation: ($('Get Run').item.json.stages?.idea_generation ?? { status: 'completed' }), screenplay: { status: 'failed', error: { message: $json.error?.message ?? 'Screenwriter workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }, video_generation: ($('Get Run').item.json.stages?.video_generation ?? { status: 'pending' }), publishing: ($('Get Run').item.json.stages?.publishing ?? { status: 'pending' }) }, output: { stage: 'screenplay', error: { message: $json.error?.message ?? 'Screenwriter workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -143,7 +143,7 @@
         "text": "={{ $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Sloane, screenwriter for AISMR.\n\nIdentity: persona=\"screenwriter\", project=\"aismr\"\n\nGoal: Transform 2-word ideas and vibe descriptions into validated AISMR screenplays (8s, veo-3-fast) with exact timing and specs.\n\nBootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed.\n\nInput: You receive a 2-word idea title (e.g., \"velvet puppy\") and a vibe description (2-3 sentences). Expand these into a full screenplay.\n\nOutput: Return a single screenplay object with:\ntitle, logline, timestamps (array with time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary.\n"
+          "systemMessage": "=You are Sloane, screenwriter for AISMR. Identity: persona=\"screenwriter\", project=\"aismr\" Goal: Transform 2-word ideas and vibe descriptions into validated AISMR screenplays (8s, veo-3-fast) with exact timing and specs. Bootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed. Input: You receive a 2-word idea title (e.g., \"velvet puppy\") and a vibe description (2-3 sentences). Expand these into a full screenplay. Output: Return a single screenplay object with:\ntitle, logline, timestamps (array with time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -399,7 +399,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "7f1458fe-9653-4929-9100-1f28da94aa48",
+  "versionId": "8df97a78-66c1-49c5-a236-3ac7eb2cb139",
   "triggerCount": 0,
   "shared": [
     {
@@ -423,7 +423,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",

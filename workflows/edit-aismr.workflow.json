@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T22:24:35.024Z",
+  "updatedAt": "2025-11-03T23:16:40.186Z",
   "createdAt": "2025-11-02T01:07:28.641Z",
   "id": "uLwOn2FpGtS7DiqE",
   "name": "Edit_AISMR",
@@ -239,7 +239,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const getNodeData = (name) => {\n    try {\n      return $(name).item?.json ?? null;\n    } catch (error) {\n      return null;\n    }\n  };\n  const run = getNodeData('Normalize Run') ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = clone(stages.video_generation);\n  if (!videoStage.status) { videoStage.status = 'completed'; }\n  const publishingStage = {\n    ...clone(stages.publishing),\n    status: 'failed',\n    error: {\n      message: $json.error?.message ?? 'Editing workflow failed.',\n      stack: $json.error?.stack ?? null,\n      lastNode: $json.execution?.lastNodeExecuted ?? null\n    }\n  };\n  return {\n    status: 'failed',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: {\n      ...(run.output ?? {}),\n      publishing: {\n        ...(run.output?.publishing ?? {}),\n        error: {\n          message: $json.error?.message ?? 'Editing workflow failed.',\n          stack: $json.error?.stack ?? null,\n          lastNode: $json.execution?.lastNodeExecuted ?? null\n        }\n      }\n    }\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = { ...clone(stages.publishing), status: 'failed', error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; return { status: 'failed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -265,7 +265,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => {\n  const getNodeData = (name) => {\n    try {\n      return $(name).item?.json ?? null;\n    } catch (error) {\n      return null;\n    }\n  };\n  const run = getNodeData('Normalize Run') ?? {};\n  const stages = run.stages ?? {};\n  const clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n  const ideaStage = clone(stages.idea_generation);\n  if (!ideaStage.status) { ideaStage.status = 'completed'; }\n  const screenplayStage = clone(stages.screenplay);\n  if (!screenplayStage.status) { screenplayStage.status = 'completed'; }\n  const videoStage = clone(stages.video_generation);\n  if (!videoStage.status) { videoStage.status = 'completed'; }\n  const editUrl = $json.response?.url ?? null;\n  const publishingStage = {\n    ...clone(stages.publishing),\n    status: 'in_progress',\n    output: {\n      ...(clone(stages.publishing)?.output ?? {}),\n      editUrl\n    }\n  };\n  const mergedOutput = {\n    ...(run.output ?? {}),\n    publishing: {\n      ...(run.output?.publishing ?? {}),\n      editUrl\n    }\n  };\n  return {\n    status: 'running',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: mergedOutput\n  };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const editUrl = $json.response?.url ?? null; const publishingStage = { ...clone(stages.publishing), status: 'in_progress', output: { ...(clone(stages.publishing)?.output ?? {}), editUrl } }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), editUrl } }; return { status: 'running', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -437,7 +437,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "c48ec394-0846-40d6-8de7-776b715ec74f",
+  "versionId": "cf2486c2-a3d4-482a-a986-626781768c21",
   "triggerCount": 0,
   "shared": [
     {
@@ -461,7 +461,7 @@
             "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
             "projectId": "31ZCiMO58nOfetfK",
             "user": {
-              "updatedAt": "2025-11-03T22:31:48.680Z",
+              "updatedAt": "2025-11-03T23:05:06.805Z",
               "createdAt": "2025-11-02T01:01:26.032Z",
               "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
               "email": "mylo.james114@gmail.com",
