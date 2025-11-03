@@ -1,32 +1,41 @@
-# HITL Agent System Plan
+# HITL Agent System Plan - Riley (Dual-Mode)
 
-**Goal**: Create an AI agent that interprets Telegram responses to determine approval/rejection and extract feedback
+**Goal**: Create ONE workflow with TWO triggers that handles both request formatting AND response interpretation
 
-**User Experience**:
-- User receives HITL notification in Telegram (inline buttons OR text message)
-- User can click ✅ Approve button OR type any response ("looks good!", "change the third one to be darker", "reject - too similar")
-- HITL agent analyzes the response and:
-  - Determines: approve vs reject
-  - Extracts: which items to change and how
-  - Sends: approval/rejection to workflow via API
+**Riley's Job**:
+- **Mode 1 (Request)**: Format content for user review → send to Telegram with buttons
+- **Mode 2 (Response)**: Interpret user response → call HITL API → resume workflow
 
 ---
 
 ## Architecture
 
+### Flow 1: Request Approval (Workflow → Telegram)
 ```
-Telegram User Response
+Original Workflow (generate-ideas)
       ↓
-Telegram Webhook (n8n)
+Execute: hitl-review.workflow (Mode 1)
+  - Input: content to review, workflowRunId, stage
+  - AI formats nice message
+  - Sends to Telegram with ✅/❌ buttons
+  - Exits (doesn't wait)
       ↓
-HITL Agent Workflow (new)
-  - AI analyzes intent
-  - Extracts feedback
-  - Calls HITL API
+User sees Telegram message
+```
+
+### Flow 2: Process Response (Telegram → Workflow)
+```
+User clicks button OR types response
       ↓
-HITL API (approve/reject)
+Telegram → Webhook: hitl-review.workflow (Mode 2)
+  - Input: userMessage, approvalId, callbackData
+  - AI determines approve vs reject
+  - AI extracts feedback
+  - Calls HITL API (approve/reject)
       ↓
-Resume Original Workflow
+HITL API updates DB
+      ↓
+Original workflow resumes (webhook)
 ```
 
 ---
@@ -183,104 +192,155 @@ await fetch(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, 
 
 ---
 
-## Phase 3: Create HITL Agent n8n Workflow (60 min)
+## Phase 3: Create Dual-Mode HITL Workflow (90 min)
 
 ### Create `workflows/hitl-review.workflow.json`
 
-**Trigger**: Webhook `/webhook/hitl-response/:approvalId`
+**Two Triggers**:
+1. **Execute Workflow Trigger** - Called by other workflows to REQUEST approval
+2. **Webhook Trigger** - Called by Telegram to PROCESS user response
 
-**Nodes**:
+**Node Flow**:
 
-1. **Webhook Trigger**
-   - Path: `/webhook/hitl-response/:approvalId`
+### 1. Execute Workflow Trigger (Request Mode)
+   - Inputs: `workflowRunId`, `stage`, `content`, `telegramChatId`, `projectId`
+   - When this trigger fires → Request Mode
+
+### 2. Webhook Trigger (Response Mode)
+   - Path: `/webhook/hitl-response`
    - Method: POST
-   - Receives: `{ userMessage, telegramChatId, callbackData }`
+   - Body: `{ approvalId, userMessage, telegramChatId, callbackData }`
+   - When this trigger fires → Response Mode
 
-2. **Get Approval Details**
-   - HTTP Request: `GET /api/hitl/approval/:approvalId`
-   - Extract: approval content, workflowRunId, stage, projectId
+### 3. Detect Mode
+   - If node: Check if `approvalId` is present
+   - If present → Response Mode (process user answer)
+   - If not present → Request Mode (send to user)
 
-3. **HITL Review Agent (AI)**
-   - Persona: hitl-reviewer
+### 4A. REQUEST MODE Branch
+
+**4A.1. Create HITL Approval Record**
+   - HTTP Request: `POST /api/hitl/request-approval`
+   - Body: `{ workflowRunId, stage, content }`
+   - Returns: `{ approval: { id, ... } }`
+
+**4A.2. Riley Formats Message (AI Agent)**
+   - Persona: hitl-reviewer (request mode)
+   - Input: content to review, projectId, stage
+   - System Message:
+     ```
+     You are Riley, HITL review coordinator.
+     
+     Identity: persona="hitl-reviewer", project=null
+     
+     Goal: Format content for human review in Telegram.
+     
+     Input: Content that needs approval (ideas, screenplay, etc.)
+     
+     Task: Create a clear, concise message presenting the content for review.
+     Include what the user is approving and any context they need.
+     
+     Output: Return a formatted message string suitable for Telegram (markdown).
+     ```
+   - Output: Formatted message string
+
+**4A.3. Send to Telegram with Buttons**
+   - Telegram node: Send message
+   - Text: Riley's formatted message
+   - Inline keyboard:
+     ```json
+     {
+       "inline_keyboard": [[
+         { "text": "✅ Approve", "callback_data": "approve:{{ approvalId }}" },
+         { "text": "❌ Reject (type why)", "callback_data": "reject:{{ approvalId }}" }
+       ]]
+     }
+     ```
+
+**4A.4. Exit**
+   - Return approval ID to calling workflow
+
+### 4B. RESPONSE MODE Branch
+
+**4B.1. Get Approval Details**
+   - HTTP Request: `GET /api/hitl/approval/{{ approvalId }}`
+   - Returns: approval content, workflowRunId, stage
+
+**4B.2. Determine Response Type**
+   - If node: Is it a callback (button click)?
+   - Callback data format: "approve:abc-123" or "reject:abc-123"
+   - If callback → Extract decision directly
+   - If text message → Send to AI for interpretation
+
+**4B.3. Riley Interprets Response (AI Agent - only if text)**
+   - Persona: hitl-reviewer (response mode)
+   - Input: userMessage, originalContent
    - System Message:
      ```
      You are Riley, HITL review interpreter.
      
      Identity: persona="hitl-reviewer", project=null
      
-     Goal: Analyze user responses to determine approval/rejection and extract feedback.
-     
-     Bootstrap: Load your workflow and analyze the message.
+     Goal: Interpret user's response to determine approval/rejection and extract feedback.
      
      Input:
-     - userMessage: User's Telegram response
+     - userMessage: What the user typed
      - originalContent: What they're reviewing
      
-     Output: Return decision (approve/reject), confidence, and structured feedback.
+     Task: Determine if they're approving or rejecting.
+     Extract specific feedback if rejecting (which items, what changes).
+     
+     Output: Return decision, confidence, and structured feedback.
      ```
-   - Tools: MCP tools + prompt_get
-   - Output Parser: Structured (using persona output_schema)
+   - Output Parser: Structured schema (decision, confidence, feedback)
 
-4. **Route Decision**
-   - If node: decision === 'approve' → Approve branch
-   - If node: decision === 'reject' → Reject branch
+**4B.4. Merge Decision**
+   - Code node: Combine callback decision OR AI decision
+   - Result: `{ decision, feedback, confidence }`
 
-5. **Call Approve API** (approve branch)
-   - HTTP Request: `POST /api/hitl/approval/:approvalId/approve`
-   - Body:
-     ```json
-     {
-       "reviewedBy": "telegram:{{ telegramChatId }}",
-       "selectedItem": "{{ originalContent }}",
-       "feedback": "{{ feedback.summary }}"
-     }
-     ```
+**4B.5. Route Decision**
+   - If node: decision === 'approve' → Call Approve API
+   - If node: decision === 'reject' → Call Reject API
 
-6. **Call Reject API** (reject branch)
-   - HTTP Request: `POST /api/hitl/approval/:approvalId/reject`
-   - Body:
-     ```json
-     {
-       "reviewedBy": "telegram:{{ telegramChatId }}",
-       "reason": "{{ feedback.summary }}",
-       "suggestedChanges": "{{ feedback.specificChanges }}"
-     }
-     ```
+**4B.6. Call HITL API**
+   - Approve: `POST /api/hitl/approval/:approvalId/approve`
+   - Reject: `POST /api/hitl/approval/:approvalId/reject`
+   - Body includes feedback
 
-7. **Send Confirmation to Telegram**
+**4B.7. Send Confirmation to Telegram**
    - Telegram node: Reply to user
-   - Approve message: "✅ Approved! Continuing workflow..."
-   - Reject message: "❌ Rejected. Workflow will retry with your feedback: {{ feedback.summary }}"
+   - Approve: "✅ Approved! Continuing workflow..."
+   - Reject: "❌ Noted. Workflow will revise based on your feedback."
+
+**4B.8. Return to Caller**
+   - Return result (decision, feedback) via webhook response
 
 ---
 
-## Phase 4: Create Telegram Callback Handler Workflow (30 min)
+## Phase 4: Configure Telegram Bot for Callbacks (15 min)
 
-### Create `workflows/telegram-callback-handler.workflow.json`
+### Update Telegram Bot Settings
 
-**Purpose**: Handle inline button clicks from Telegram
+Telegram callback queries need a webhook URL configured with BotFather or via API:
 
-**Trigger**: Webhook that Telegram sends when user clicks inline button
+```bash
+curl -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://n8n.mjames.dev/webhook/telegram-callback",
+    "allowed_updates": ["message", "callback_query"]
+  }'
+```
 
-**Nodes**:
+**Or** use Telegram Trigger node in n8n which automatically handles webhooks.
 
-1. **Telegram Callback Trigger**
-   - Listens for Telegram callback queries
-   - Extracts: `callback_data` (e.g., "approve:abc-123-def")
+### Alternative: Telegram Trigger Node
 
-2. **Parse Callback Data**
-   - Code node: Split `callback_data` into action and approvalId
-   ```javascript
-   const [action, approvalId] = $json.callback_query.data.split(':');
-   ```
-
-3. **Route Action**
-   - If action === 'approve' → Call hitl-review workflow with "User approved via button"
-   - If action === 'reject' → Ask for details in Telegram
-
-4. **Trigger HITL Review Workflow**
-   - Execute workflow: hitl-review
-   - Pass: approvalId, userMessage (generated), telegramChatId
+Add a Telegram Trigger node to `hitl-review.workflow` that:
+- Listens for ALL Telegram updates (messages + callback queries)
+- Filters by chat ID (only authorized users)
+- Routes callback_query → extract approvalId
+- Routes text message → pass to AI
 
 ---
 
