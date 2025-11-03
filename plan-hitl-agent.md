@@ -196,11 +196,17 @@ await fetch(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, 
 
 ### Create `workflows/hitl-review.workflow.json`
 
-**Two Triggers**:
-1. **Execute Workflow Trigger** - Called by other workflows to REQUEST approval
-2. **Webhook Trigger** - Called by Telegram to PROCESS user response
+**Two Triggers** (n8n supports multiple triggers - acts as OR):
+1. **Execute Workflow Trigger** (`n8n-nodes-base.executeWorkflowTrigger`)
+   - Called by other workflows to REQUEST approval
+   - Inputs: `workflowRunId`, `stage`, `content`, `telegramChatId`, `projectId`
+   
+2. **Telegram Trigger** (`n8n-nodes-base.telegramTrigger`)
+   - Listens for Telegram messages AND callback queries
+   - Updates: `["message", "callback_query"]`
+   - Processes user responses (text or button clicks)
 
-**Node Flow**:
+**Node Flow** (from n8n docs patterns):
 
 ### 1. Execute Workflow Trigger (Request Mode)
    - Inputs: `workflowRunId`, `stage`, `content`, `telegramChatId`, `projectId`
@@ -212,10 +218,13 @@ await fetch(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, 
    - Body: `{ approvalId, userMessage, telegramChatId, callbackData }`
    - When this trigger fires → Response Mode
 
-### 3. Detect Mode
-   - If node: Check if `approvalId` is present
-   - If present → Response Mode (process user answer)
-   - If not present → Request Mode (send to user)
+### 3. Detect Mode (Merge both triggers)
+   - Merge node: `n8n-nodes-base.merge` (mode: Multiplex)
+   - Combines Execute Workflow Trigger + Telegram Trigger outputs
+   - Route by checking which fields are present:
+     - If `$json.workflowRunId` exists → Request Mode (from Execute Workflow)
+     - If `$json.message` or `$json.callback_query` exists → Response Mode (from Telegram)
+   - If node: `{{ $json.workflowRunId ? 'request' : 'response' }}`
 
 ### 4A. REQUEST MODE Branch
 
@@ -245,17 +254,27 @@ await fetch(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, 
    - Output: Formatted message string
 
 **4A.3. Send to Telegram with Buttons**
-   - Telegram node: Send message
-   - Text: Riley's formatted message
-   - Inline keyboard:
+   - Node type: `n8n-nodes-base.telegram`
+   - Operation: Send Message
+   - Chat ID: `{{ telegramChatId }}`
+   - Text: `{{ $json.formattedMessage }}` (from Riley)
+   - Additional Fields → Reply Markup:
      ```json
      {
        "inline_keyboard": [[
-         { "text": "✅ Approve", "callback_data": "approve:{{ approvalId }}" },
-         { "text": "❌ Reject (type why)", "callback_data": "reject:{{ approvalId }}" }
+         { 
+           "text": "✅ Approve", 
+           "callback_data": "approve:{{ $json.approvalId }}" 
+         },
+         { 
+           "text": "❌ Reject (type why)", 
+           "callback_data": "reject:{{ $json.approvalId }}" 
+         }
        ]]
      }
      ```
+   - **Important**: Use JSON expression for reply_markup parameter
+   - Reference: n8n docs show `reply_markup` is an optional object parameter
 
 **4A.4. Exit**
    - Return approval ID to calling workflow
@@ -266,11 +285,40 @@ await fetch(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, 
    - HTTP Request: `GET /api/hitl/approval/{{ approvalId }}`
    - Returns: approval content, workflowRunId, stage
 
-**4B.2. Determine Response Type**
-   - If node: Is it a callback (button click)?
-   - Callback data format: "approve:abc-123" or "reject:abc-123"
-   - If callback → Extract decision directly
-   - If text message → Send to AI for interpretation
+**4B.2. Extract Response Data (Code Node)**
+   ```javascript
+   // Telegram trigger provides either message or callback_query
+   const callbackQuery = $json.callback_query;
+   const message = $json.message;
+   
+   let responseType, userMessage, approvalId, telegramChatId;
+   
+   if (callbackQuery) {
+     // Button click
+     responseType = 'callback';
+     const [action, id] = callbackQuery.data.split(':');
+     approvalId = id;
+     userMessage = action; // "approve" or "reject"
+     telegramChatId = callbackQuery.message.chat.id;
+   } else if (message) {
+     // Text message - extract approvalId from context or message
+     responseType = 'text';
+     userMessage = message.text;
+     telegramChatId = message.chat.id;
+     // approvalId needs to be in message context or we need another way
+     // Option: User replies to the approval message, we extract from reply
+     approvalId = message.reply_to_message?.message_id; // Store approvalId in message_id mapping
+   }
+   
+   return { 
+     json: { responseType, userMessage, approvalId, telegramChatId }
+   };
+   ```
+
+**4B.3. Determine Response Type**
+   - If node: `{{ $json.responseType === 'callback' }}`
+   - True → Button click (extract decision directly)
+   - False → Text message (send to AI for interpretation)
 
 **4B.3. Riley Interprets Response (AI Agent - only if text)**
    - Persona: hitl-reviewer (response mode)

@@ -8,6 +8,13 @@
       "when": 1733140800000,
       "tag": "0003_add_hitl_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "0004",
+      "when": 1762201926000,
+      "tag": "0004_project_id_slug",
+      "breakpoints": false
     }
   ]
 }

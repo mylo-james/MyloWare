@@ -55,7 +55,7 @@ export const runs = pgTable(
   'runs',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    projectId: uuid('project_id').notNull(),
+    projectId: text('project_id').notNull(),
     personaId: uuid('persona_id'),
     chatId: text('chat_id'),
     status: runStatusEnum('status').notNull().default('pending'),
@@ -81,7 +81,7 @@ export const videos = pgTable(
     runId: uuid('run_id')
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
-    projectId: uuid('project_id').notNull(),
+    projectId: text('project_id').notNull(),
     idea: text('idea').notNull(),
     userIdea: text('user_idea'),
     vibe: text('vibe'),

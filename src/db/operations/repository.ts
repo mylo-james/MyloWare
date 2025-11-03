@@ -163,6 +163,7 @@ export class OperationsRepository {
   }
 
   async createVideo(data: CreateVideoData): Promise<Video> {
+    await this.ensureRunRecord(data.runId, data.projectId);
     const timestamp = new Date().toISOString();
 
     const values: NewVideo = {
@@ -300,4 +301,25 @@ export class OperationsRepository {
       };
     }
   }
+
+  private async ensureRunRecord(runId: string, projectId: string): Promise<void> {
+    const existingRun = await this.getRunById(runId);
+    if (existingRun) {
+      return;
+    }
+
+    try {
+      await this.createRun({ id: runId, projectId });
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+    }
+  }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return Boolean(
+    error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505',
+  );
 }

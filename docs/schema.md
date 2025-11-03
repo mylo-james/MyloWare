@@ -250,7 +250,7 @@ CREATE TYPE run_status AS ENUM ('pending', 'idea_gen_pending', 'idea_gen_complet
 
 CREATE TABLE runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  project_id TEXT NOT NULL,
   persona_id UUID,
   chat_id TEXT,
   status run_status NOT NULL DEFAULT 'pending',
@@ -271,7 +271,7 @@ CREATE INDEX idx_runs_created ON runs(created_at DESC);
 | Column         | Type        | Description                                                                                                              |
 | -------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `id`           | UUID        | Primary key                                                                                                              |
-| `project_id`   | UUID        | Owning project (e.g., AISMR)                                                                                             |
+| `project_id`   | TEXT        | Owning project slug (e.g., `aismr`)                                                                                      |
 | `persona_id`   | UUID        | Optional persona driving the run                                                                                         |
 | `chat_id`      | TEXT        | Conversation/thread identifier                                                                                           |
 | `status`       | run_status  | Lifecycle stage (`pending`, `idea_gen_pending`, `idea_gen_complete`, `ideas`, `scripts`, `videos`, `complete`, `failed`) |
@@ -291,7 +291,7 @@ Generic table storing video generation data for all projects.
 CREATE TABLE videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  project_id TEXT NOT NULL,
   idea TEXT NOT NULL,
   user_idea TEXT,
   vibe TEXT,
@@ -312,7 +312,7 @@ CREATE UNIQUE INDEX idx_videos_project_idea ON videos(project_id, idea);
 | --------------- | ------------ | ---------------------------------------------------------------------------------------- |
 | `id`            | UUID         | Primary key                                                                              |
 | `run_id`        | UUID         | Owning automation run (links back to `runs.id`)                                          |
-| `project_id`    | UUID         | Foreign key to projects table (NOT NULL)                                                 |
+| `project_id`    | TEXT         | Project slug tying videos back to the owning project                                    |
 | `idea`          | TEXT         | The two-word video idea                                                                  |
 | `user_idea`     | TEXT         | Normalized object extracted from the request                                             |
 | `vibe`          | TEXT         | Emotional descriptor for the idea (serene, tense, etc.)                                  |
