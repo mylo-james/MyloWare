@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js' with { 'resolution-mode': 'import' };
 import { OperationsRepository } from '../../db/operations/repository';
+import type { Video } from '../../db/operations/schema';
 import { extractToolArgs } from './argUtils';
 
-const VIDEO_QUERY_ARG_KEYS = ['idea', 'projectId', 'fuzzyMatch'] as const;
+const VIDEO_QUERY_ARG_KEYS = ['idea', 'fuzzyMatch'] as const;
 
 const videoQueryArgsSchema = z.object({
   idea: z.string().trim().min(1, 'idea must not be empty'),
-  projectId: z.string().trim().min(1, 'projectId must not be empty (use UUID, not slug)'),
   fuzzyMatch: z.boolean().optional(),
 });
 
@@ -49,9 +49,15 @@ async function queryVideos(
   repository: OperationsRepository,
   args: VideoQueryInput,
 ): Promise<VideoQueryResult> {
-  // Query all videos by project - projectId can be UUID or slug
-  // The repository will handle the query, and we filter by idea client-side
-  const allVideos = await repository.listVideosByProject(args.projectId, { limit: 1000 });
+  // Query all videos across ALL projects - we don't want duplicate ideas anywhere
+  const db = (repository as any).db;
+  if (!db) {
+    throw new Error('Database connection not available');
+  }
+
+  const { videos } = await import('../../db/operations/schema.js');
+  const { desc, sql } = await import('drizzle-orm');
+  const allVideos: Video[] = await db.select().from(videos).orderBy(sql`${videos.createdAt} DESC`).limit(1000);
 
   const normalizedIdea = args.idea.toLowerCase().trim();
   
@@ -124,22 +130,22 @@ export function registerVideoQueryTool(
     {
       title: 'Query videos by idea',
       description: [
-        'Check if a 2-word idea already exists in the videos table for a given project.',
+        'Check if a 2-word idea already exists in the videos table across ALL projects.',
         'Returns existing videos with matching idea, vibe, status, and creation date.',
         'Supports exact matching and optional fuzzy matching for similar ideas.',
         '',
         '## Usage',
-        'Query for existing videos to check uniqueness before generating new ideas:',
-        '- Exact match: Check if exact idea title exists',
-        '- Fuzzy match: Find similar ideas (same words, partial matches)',
+        'Query for existing videos to ensure global uniqueness - we do not want duplicate ideas even across different projects.',
+        '- Exact match: Check if exact idea title exists anywhere',
+        '- Fuzzy match: Find similar ideas (same words, partial matches) anywhere',
         '',
-        '## IMPORTANT: projectId Format',
-        'projectId must be a UUID (e.g., "550e8400-e29b-41d4-a716-446655440000"), NOT a slug like "aismr".',
-        'The videos table stores project_id as UUID. You must obtain the UUID from the workflow context.',
+        '## Parameters',
+        '- idea (required): 2-word idea title to search for',
+        '- fuzzyMatch (optional): Enable fuzzy matching for partial matches',
         '',
         '## Examples',
-        '- Check exact: {idea: "velvet puppy", projectId: "550e8400-e29b-41d4-a716-446655440000", fuzzyMatch: false}',
-        '- Check fuzzy: {idea: "velvet puppy", projectId: "550e8400-e29b-41d4-a716-446655440000", fuzzyMatch: true}',
+        '- Check exact: {idea: "velvet puppy", fuzzyMatch: false}',
+        '- Check fuzzy: {idea: "velvet puppy", fuzzyMatch: true}',
       ].join('\n'),
       inputSchema: videoQueryArgsSchema.shape,
       outputSchema: outputSchema.shape,
@@ -163,7 +169,6 @@ export function registerVideoQueryTool(
 
         const suggestions = [
           'Ensure idea is a non-empty string (2-word title)',
-          'Ensure projectId is a UUID (NOT a slug like "aismr") - get it from workflow context',
           'fuzzyMatch must be true or false if provided',
         ];
 
@@ -249,13 +254,10 @@ export function registerVideoQueryTool(
                 '',
                 '💡 Possible causes:',
                 '  • Database connection issue',
-                '  • Invalid projectId format (must be UUID, not slug like "aismr")',
                 '  • Permission error accessing videos table',
+                '  • Unable to query across all videos (if projectId was a slug)',
                 '',
-                'If you passed a slug like "aismr", you need to pass the project UUID instead.',
-                'Get the project UUID from the workflow context (runData.project_id).',
-                '',
-                'Try again with correct projectId or proceed without uniqueness checking.',
+                'Try again or proceed without uniqueness checking.',
               ].join('\n'),
             },
           ],
