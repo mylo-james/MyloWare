@@ -86,6 +86,8 @@ const videoCreateSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+const videoBatchCreateSchema = z.array(videoCreateSchema).min(1, 'At least one video is required');
+
 const videoUpdateSchema = videoCreateSchema.partial().extend({
   runId: z.never().optional(),
   projectId: z.string().trim().optional(),
@@ -554,6 +556,32 @@ export async function registerApiRoutes(
       request.log.error({ err: error }, 'create video failed');
       const message = error instanceof Error ? error.message : 'Unexpected error creating video.';
       return sendError(reply, 500, 'VIDEO_CREATE_ERROR', message);
+    }
+  });
+
+  app.post('/api/videos/batch', async (request, reply) => {
+    if (!ensureOperationsAvailable(reply, operationsRepository)) {
+      return;
+    }
+
+    const parsed = videoBatchCreateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return sendValidationError(reply, parsed.error);
+    }
+
+    try {
+      const videos = await operationsRepository!.createVideos(
+        parsed.data.map((item) => ({
+          ...item,
+          status: item.status as VideoStatus | undefined,
+          metadata: (item.metadata ?? {}) as Record<string, unknown>,
+        })),
+      );
+      return reply.status(201).send({ data: { videos } });
+    } catch (error) {
+      request.log.error({ err: error }, 'batch create videos failed');
+      const message = error instanceof Error ? error.message : 'Unexpected error creating videos.';
+      return sendError(reply, 500, 'VIDEO_BATCH_CREATE_ERROR', message);
     }
   });
 

@@ -209,6 +209,38 @@ export class OperationsRepository {
     throw lastError;
   }
 
+  async createVideos(data: CreateVideoData[]): Promise<Video[]> {
+    if (data.length === 0) {
+      return [];
+    }
+
+    // Ensure run record exists (all videos share the same runId and projectId)
+    const firstVideo = data[0];
+    await this.ensureRunRecord(firstVideo.runId, firstVideo.projectId);
+    const timestamp = new Date().toISOString();
+
+    const values: NewVideo[] = data.map((item) => ({
+      id: item.id,
+      runId: item.runId,
+      projectId: item.projectId,
+      idea: item.idea,
+      userIdea: (item.userIdea ?? null) as NewVideo['userIdea'],
+      vibe: (item.vibe ?? null) as NewVideo['vibe'],
+      prompt: (item.prompt ?? null) as NewVideo['prompt'],
+      videoLink: (item.videoLink ?? undefined) as NewVideo['videoLink'],
+      status: item.status ?? 'idea_gen',
+      errorMessage: (item.errorMessage ?? undefined) as NewVideo['errorMessage'],
+      startedAt: (item.startedAt ?? null) as NewVideo['startedAt'],
+      completedAt: (item.completedAt ?? null) as NewVideo['completedAt'],
+      metadata: (item.metadata ?? {}) as NewVideo['metadata'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+
+    const rows = await this.db.insert(schema.videos).values(values).returning();
+    return rows;
+  }
+
   async updateVideo(videoId: string, data: UpdateVideoData): Promise<Video | null> {
     const updatePayload: Partial<NewVideo> & { updatedAt?: string } = {};
 

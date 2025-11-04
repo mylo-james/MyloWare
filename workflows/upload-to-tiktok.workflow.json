@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T23:16:40.411Z",
+  "updatedAt": "2025-11-04T00:15:25.552Z",
   "createdAt": "2025-11-02T01:07:29.880Z",
   "id": "85BRncHFFikG9FIE",
   "name": "Upload to TikTok",
@@ -24,7 +24,7 @@
           "parameters": [
             {
               "name": "title",
-              "value": "={{ $json.output.caption }}"
+              "value": "={{ $('AI Agent').item.json.output.caption }}"
             },
             {
               "name": "user",
@@ -68,7 +68,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = clone(stages.publishing); const tiktokUrl = $json.response?.url ?? $json.data?.url ?? null; const publishingOutput = { ...(publishingStage?.output ?? {}), tiktokUrl, platform: 'tiktok' }; const updatedPublishingStage = { ...publishingStage, status: 'completed', output: publishingOutput }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), tiktokUrl, platform: 'tiktok' } }; return { status: 'completed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: updatedPublishingStage }, output: mergedOutput };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = clone(stages.publishing); const tiktokUrl = $json.response?.url ?? $json.data?.url ?? null; const caption = $('AI Agent').item?.json?.output?.caption ?? null; const publishingOutput = { ...(publishingStage?.output ?? {}), tiktokUrl, platform: 'tiktok', caption, completedAt: new Date().toISOString() }; const updatedPublishingStage = { ...publishingStage, status: 'completed', output: publishingOutput }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), ...publishingOutput } }; return { status: 'completed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: updatedPublishingStage }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -145,10 +145,10 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Video Idea: Your Month, Your ",
+        "text": "=Video Idea: {{ $('Get a row').item.json.idea || 'ASMR Video' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "={{ $('Call \\'Load Persona\\'').item.json.prompt_text }} Here's all the information we used to make this video. {{ $json }}"
+          "systemMessage": "={{ $('Call \\'Load Persona\\'').item.json.prompt_text }} Here's the workflow run data: Project={{ $('Get a row').item.json.projectId }}, Idea={{ $('Get a row').item.json.idea }}, Video={{ $('Get a row').item.json.videoUrl }}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -254,21 +254,9 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent($json.runId || '') }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1376,
-        0
-      ],
-      "id": "1d3887a5-65fb-4995-8f2f-e06b271d70e0",
-      "name": "Get many rows (API)"
-    },
-    {
-      "parameters": {
-        "url": "={{ $('Get a row').item.json.video_output?.videoUrl || $('Get a row').item.json.result || '' }}",
+        "url": "={{ $('Get a row').item.json.videoUrl || '' }}",
+        "responseFormat": "file",
+        "binaryPropertyName": "data",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -282,7 +270,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\nconst videoOutput = payload.output?.video_generation ?? {};\nconst publishingOutput = payload.output?.publishing ?? {};\nconst normalized = {\n  ...payload,\n  metadata,\n  video_output: videoOutput,\n  publishing_output: publishingOutput,\n  result: videoOutput.videoUrl ?? payload.result ?? null\n};\nreturn [{ json: normalized }];"
+        "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\n\n// Extract metadata\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\n\n// Extract stage outputs\nconst videoOutput = payload.output?.video_generation ?? {};\nconst publishingOutput = payload.output?.publishing ?? {};\n\n// CRITICAL: Use editUrl if present (from edit workflow), otherwise use raw videoUrl\nconst videoUrl = publishingOutput.editUrl ?? videoOutput.videoUrl ?? payload.result ?? null;\n\nif (!videoUrl) {\n  throw new Error('No video URL found. Expected editUrl from publishing stage or videoUrl from video_generation stage.');\n}\n\n// Build normalized output for downstream nodes\nconst normalized = {\n  ...payload,\n  metadata,\n  video_output: videoOutput,\n  publishing_output: publishingOutput,\n  videoUrl,  // Single source of truth for video to upload\n  idea: videoOutput.idea ?? null,\n  runId: payload.id\n};\n\nreturn [{ json: normalized }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -292,19 +280,6 @@
       ],
       "id": "0f9073df-29ad-4203-98e0-d17cde0bb0bc",
       "name": "Get a row"
-    },
-    {
-      "parameters": {
-        "jsCode": "const videos = $json?.data?.videos;\nif (!Array.isArray(videos)) {\n  throw new Error('Video list missing from API response.');\n}\nreturn videos.map((video) => ({\n  json: {\n    ...video,\n    run_id: video.runId ?? null,\n    project_id: video.projectId ?? null,\n    user_idea: video.userIdea ?? null,\n    vibe: video.vibe ?? null,\n    prompt: video.prompt ?? null,\n    video_link: video.videoLink ?? null,\n    error_message: video.errorMessage ?? null,\n    started_at: video.startedAt ?? null,\n    completed_at: video.completedAt ?? null,\n    created_at: video.createdAt ?? null,\n    updated_at: video.updatedAt ?? null,\n    metadata: video.metadata ?? {},\n  }\n}));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1600,
-        0
-      ],
-      "id": "35896ce0-42ce-4e34-a22a-fe85e8d03295",
-      "name": "Get many rows"
     }
   ],
   "connections": {
@@ -335,17 +310,6 @@
         [
           {
             "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Call 'Load Persona'": {
-      "main": [
-        [
-          {
-            "node": "Get many rows (API)",
             "type": "main",
             "index": 0
           }
@@ -428,18 +392,7 @@
         ]
       ]
     },
-    "Get many rows (API)": {
-      "main": [
-        [
-          {
-            "node": "Get many rows",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get many rows": {
+    "Call 'Load Persona'": {
       "main": [
         [
           {
@@ -457,61 +410,6 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "37c8d090-c21e-4e24-b510-34db3df69b18",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:07:29.880Z",
-      "createdAt": "2025-11-02T01:07:29.880Z",
-      "role": "workflow:owner",
-      "workflowId": "85BRncHFFikG9FIE",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T23:05:06.805Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "d4d854ff-b8a2-499b-a367-6bb89c0c0a63",
+  "triggerCount": 0
 }

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T23:16:40.322Z",
+  "updatedAt": "2025-11-04T00:15:25.383Z",
   "createdAt": "2025-11-02T01:07:29.817Z",
   "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
@@ -45,8 +45,8 @@
       "name": "Update Run Screenplay Complete",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -82,8 +82,8 @@
       "name": "Mark Run Failed (Scripts)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -214,8 +214,8 @@
       "name": "Get Run (API)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -398,62 +398,22 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "versionId": "8df97a78-66c1-49c5-a236-3ac7eb2cb139",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:07:29.817Z",
-      "createdAt": "2025-11-02T01:07:29.817Z",
-      "role": "workflow:owner",
-      "workflowId": "UH0zBnpPyB8HHUKW",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T23:05:06.805Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
+  "pinData": {
+    "When Called": [
+      {
+        "json": {
+          "userInput": "Make an asmr video about puppies",
+          "runId": "e5e36da6-508d-42ff-9a5c-8a5ba78ee77c",
+          "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+          "selectedIdea": {
+            "idea": "ember puppy",
+            "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
+            "description": ""
           }
-        ]
+        }
       }
-    }
-  ],
-  "tags": []
+    ]
+  },
+  "versionId": "cef9666f-b257-4527-883c-48640b708ed6",
+  "triggerCount": 0
 }

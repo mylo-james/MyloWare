@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T23:16:40.186Z",
+  "updatedAt": "2025-11-04T00:15:24.827Z",
   "createdAt": "2025-11-02T01:07:28.641Z",
   "id": "uLwOn2FpGtS7DiqE",
   "name": "Edit_AISMR",
@@ -14,24 +14,32 @@
       "typeVersion": 2,
       "position": [
         640,
-        424
+        496
       ],
       "id": "636b315f-1053-49f3-b551-c8ce2c1c0e21",
       "name": "Code in JavaScript"
     },
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent($json.runId || '') }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos?run=' + encodeURIComponent(($('When Executed by Another Workflow').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         192,
-        424
+        496
       ],
       "id": "9fd8087d-0070-4442-bb17-a55effeade3c",
-      "name": "Get many rows (API)"
+      "name": "Get many rows (API)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
     },
     {
       "parameters": {
@@ -47,7 +55,7 @@
       "typeVersion": 1.1,
       "position": [
         -32,
-        424
+        400
       ],
       "id": "ab013440-cbc9-4aec-b30b-a74ee5615021",
       "name": "When Executed by Another Workflow"
@@ -67,7 +75,7 @@
       "typeVersion": 4.2,
       "position": [
         864,
-        424
+        496
       ],
       "id": "4d8a32a6-eb44-454d-b789-373ae2d77742",
       "name": "HTTP Request",
@@ -89,7 +97,7 @@
       "typeVersion": 4.2,
       "position": [
         1088,
-        424
+        496
       ],
       "id": "b9a7113d-6245-418d-be27-18d6717e2bc1",
       "name": "Get Video4",
@@ -112,7 +120,7 @@
       "typeVersion": 1.1,
       "position": [
         1536,
-        520
+        592
       ],
       "id": "ace47c24-b39f-4a52-bc4f-7c827e7eb6e5",
       "name": "Wait",
@@ -180,7 +188,7 @@
       "typeVersion": 3.3,
       "position": [
         1312,
-        352
+        432
       ],
       "id": "e8f852dd-0b33-43b5-9cf8-bc8df619a37f",
       "name": "Switch"
@@ -206,15 +214,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -32,
-        256
+        192,
+        304
       ],
       "id": "7bf3d9f8-5149-443d-a1d0-0a0d4c418c52",
       "name": "Get Run (API)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -225,8 +233,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        256
+        416,
+        304
       ],
       "id": "8e6b8d20-2b75-4d33-9ed1-9b83d0c083c6",
       "name": "Normalize Run"
@@ -239,7 +247,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = { ...clone(stages.publishing), status: 'failed', error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; return { status: 'failed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = { ...clone(stages.publishing), status: 'failed', error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; return { status: 'failed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), video_generation: run.output?.video_generation ?? videoStage.output ?? {}, publishing: { ...(run.output?.publishing ?? {}), error: { message: $json.error?.message ?? 'Editing workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -252,8 +260,8 @@
       "name": "Mark Run Failed (Edit)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -265,21 +273,21 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const editUrl = $json.response?.url ?? null; const publishingStage = { ...clone(stages.publishing), status: 'in_progress', output: { ...(clone(stages.publishing)?.output ?? {}), editUrl } }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), editUrl } }; return { status: 'running', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: mergedOutput };\n})() }}",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Normalize Run') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const editUrl = $json.response?.url ?? null; const editId = $json.response?.id ?? null; const publishingStage = { ...clone(stages.publishing), status: 'in_progress', output: { ...(clone(stages.publishing)?.output ?? {}), editUrl, editId, completedAt: new Date().toISOString() } }; const mergedOutput = { ...(run.output ?? {}), video_generation: run.output?.video_generation ?? videoStage.output ?? {}, publishing: { ...(run.output?.publishing ?? {}), editUrl, editId, completedAt: new Date().toISOString() } }; return { status: 'running', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: mergedOutput };\n})() }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         1536,
-        304
+        384
       ],
       "id": "e5dfd393-2996-4c9a-a3f6-f35696501914",
       "name": "Mark Run Complete",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "PDRTlQZsKzQBcv6T",
-          "name": "Mylo MCP"
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
         }
       }
     },
@@ -291,7 +299,7 @@
       "typeVersion": 2,
       "position": [
         416,
-        424
+        496
       ],
       "id": "5d22ba08-3661-4c79-94d3-6b24057f972b",
       "name": "Get many rows"
@@ -436,62 +444,102 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "versionId": "cf2486c2-a3d4-482a-a986-626781768c21",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:07:28.641Z",
-      "createdAt": "2025-11-02T01:07:28.641Z",
-      "role": "workflow:owner",
-      "workflowId": "uLwOn2FpGtS7DiqE",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T23:05:06.805Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "workflowRun": {
+            "id": "69b2c22c-fbd3-421e-bc5c-43f51ced5fbb",
+            "projectId": "aismr",
+            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+            "currentStage": "publishing",
+            "status": "running",
+            "stages": {
+              "publishing": {
+                "status": "in_progress"
               },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
+              "screenplay": {
+                "output": {
+                  "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                  "screenplay": {
+                    "title": "Puppy ASMR",
+                    "scenes": [],
+                    "triggerWords": [],
+                    "totalDuration": 60
+                  },
+                  "completedAt": "2025-11-03T23:52:41.695Z"
+                },
+                "status": "completed"
               },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
+              "idea_generation": {
+                "status": "pending"
+              },
+              "video_generation": {
+                "output": {
+                  "idea": "ember puppy",
+                  "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                  "status": "video_gen",
+                  "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
+                },
+                "status": "completed"
+              }
+            },
+            "input": {
+              "turn": {
+                "id": "c306939b-0b61-4ece-a978-011cb75f6d43",
+                "role": "user",
+                "userId": "telegram:6559268788",
+                "content": "Make an asmr video about puppies",
+                "summary": null,
+                "metadata": {
+                  "chatId": "6559268788",
+                  "preview": "Make an asmr video about puppies",
+                  "keywords": [
+                    "make",
+                    "asmr",
+                    "video",
+                    "about",
+                    "puppies"
+                  ],
+                  "platform": "telegram",
+                  "workflow": "chat",
+                  "messageId": "156",
+                  "timestamp": "2025-11-03T22:36:29.120Z",
+                  "messageType": "text"
+                },
+                "createdAt": "2025-11-03 22:36:29.219968+00",
+                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+                "turnIndex": 19,
+                "updatedAt": "2025-11-03 22:36:29.219968+00"
+              },
+              "chatId": "6559268788",
+              "source": "aismr_orchestrator",
+              "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43",
+              "personaId": "ideagenerator",
+              "userInput": "Make an asmr video about puppies"
+            },
+            "output": {
+              "screenplay": {
+                "title": "Puppy ASMR",
+                "scenes": [],
+                "triggerWords": [],
+                "totalDuration": 60
+              },
+              "video_generation": {
+                "idea": "ember puppy",
+                "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                "status": "video_gen",
+                "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
+              }
+            },
+            "workflowDefinitionChunkId": null,
+            "createdAt": "2025-11-03 23:52:28.246+00",
+            "updatedAt": "2025-11-03 23:59:28.646+00"
           }
-        ]
+        }
       }
-    }
-  ],
-  "tags": []
+    ]
+  },
+  "versionId": "94067048-5b96-4de3-8168-ebd180123870",
+  "triggerCount": 0
 }

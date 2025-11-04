@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T23:17:20.289Z",
+  "updatedAt": "2025-11-04T00:15:24.859Z",
   "createdAt": "2025-11-02T01:07:29.166Z",
   "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
@@ -31,20 +31,20 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://mcp-vector.mjames.dev/api/videos",
+        "url": "https://mcp-vector.mjames.dev/api/videos/batch",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ runId: $json.run_id, projectId: $json.project_id, idea: $json.idea, userIdea: $json.user_idea ?? null, vibe: $json.vibe ?? null, status: $json.status ?? 'idea_gen', prompt: $json.prompt ?? null, startedAt: $json.started_at ?? null, metadata: { source: 'idea-generator' }\n}) }}",
+        "jsonBody": "={{ $json.batchData }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -4432,
+        -4656,
         -96
       ],
       "id": "4c83097b-61a1-43a3-ac1b-f6ba24b825f1",
-      "name": "Create a row"
+      "name": "Create Batch Videos"
     },
     {
       "parameters": {
@@ -56,8 +56,8 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -4880,
-        -96
+        -6240,
+        232
       ],
       "id": "bfd42c2b-d229-43ae-80c2-87e07ad2ac09",
       "name": "Split Out"
@@ -115,8 +115,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -4656,
-        -96
+        -6016,
+        232
       ],
       "id": "b87bc1d0-7b1f-402a-8ab6-965b14857f02",
       "name": "Edit Fields1"
@@ -149,7 +149,7 @@
       "typeVersion": 1,
       "position": [
         -6240,
-        240
+        456
       ],
       "id": "31131e25-274b-479e-88ec-f037fe847d6e",
       "name": "On Error"
@@ -169,7 +169,7 @@
       "typeVersion": 4.2,
       "position": [
         -6016,
-        240
+        456
       ],
       "id": "96853da5-92f3-4f02-a6f1-bc45da08828f",
       "name": "Mark Run Failed (Ideas)",
@@ -214,7 +214,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -5520,
+        -5512,
         -96
       ],
       "id": "64a026c0-85e8-4169-8195-8a9e4cfa5c82",
@@ -236,6 +236,19 @@
     },
     {
       "parameters": {
+        "jsCode": "// Prepare batch video data from parsed ideas\nconst parsedOutput = $json;\nconst ideas = parsedOutput.ideas ?? [];\nconst runData = $('Get Run').item?.json ?? {};\nconst runId = $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\nconst userIdea = parsedOutput.userIdea || runData.user_idea || $('When Called').item.json.userInput || '';\nconst startedAt = new Date().toISOString();\n\n// Format each idea for batch creation\nconst batchData = ideas.map((idea) => ({\n  runId: runId,\n  projectId: projectId,\n  idea: idea.ideaTitle || idea.idea || '',\n  userIdea: userIdea,\n  vibe: idea.vibe || null,\n  status: 'idea_gen',\n  prompt: null,\n  startedAt: startedAt,\n  metadata: { source: 'idea-generator' }\n}));\n\nreturn [{\n  json: {\n    batchData,\n    runId,\n    projectId,\n    userIdea,\n    totalIdeas: batchData.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4880,
+        -96
+      ],
+      "id": "prep-batch-videos-001",
+      "name": "Prepare Batch Videos"
+    },
+    {
+      "parameters": {
         "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\n\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\n\nconst normalized = {\n  ...payload,\n  run_id: payload.id,\n  project_id: payload.projectId ?? null,\n  projectId: payload.projectId ?? null,\n  session_id: payload.sessionId ?? null,\n  sessionId: payload.sessionId ?? null,\n  user_idea:\n    (payload.input?.userIdea ??\n      payload.input?.user_idea ??\n      metadata.userIdea ??\n      '') || '',\n  input: payload.input ?? {},\n  metadata,\n};\n\nreturn [{ json: normalized }];"
       },
       "type": "n8n-nodes-base.code",
@@ -249,12 +262,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Aggregate all ideas from the previous items\nconst ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId = runData.run_id || runData.id || $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\n\n// Get ideas from Parse Ideas Output if available, otherwise from split items\nconst parsedOutput = $('Parse Ideas Output').item?.json;\nif (parsedOutput && Array.isArray(parsedOutput.ideas)) {\n  // Use ideas from parsed output\n  ideas.push(...parsedOutput.ideas);\n} else {\n  // Fallback: collect ideas from split items\n  for (const item of $input.all()) {\n    if (item.json.idea) {\n      ideas.push({\n        idea: item.json.idea,\n        vibe: item.json.vibe,\n        ideaId: item.json.run_id || item.json.id || item.json.ideaId,\n      });\n    }\n  }\n}\n\nconst userIdea = parsedOutput?.userIdea || runData.user_idea || runData.metadata?.userIdea || runData.input?.userIdea || runData.input?.user_idea || $('When Called').item.json.userInput || '';\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: userIdea,\n    totalIdeas: ideas.length,\n  }\n}];"
+        "jsCode": "// Aggregate all ideas from batch creation response or parsed output\nconst ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId = runData.run_id || runData.id || $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\n\n// Check if batch creation succeeded\nconst batchResponse = $('Create Batch Videos').item?.json;\nconst parsedOutput = $('Parse Ideas Output').item?.json;\n\nif (batchResponse?.data?.videos && Array.isArray(batchResponse.data.videos)) {\n  // Use videos from batch creation response\n  ideas.push(...batchResponse.data.videos.map((v) => ({\n    ideaTitle: v.idea,\n    idea: v.idea,\n    vibe: v.vibe,\n    ideaId: v.id\n  })));\n} else if (parsedOutput && Array.isArray(parsedOutput.ideas)) {\n  // Fallback: use ideas from parsed output\n  ideas.push(...parsedOutput.ideas);\n} else {\n  // Last resort: collect from input items\n  for (const item of $input.all()) {\n    if (item.json.idea) {\n      ideas.push({\n        idea: item.json.idea,\n        vibe: item.json.vibe,\n        ideaId: item.json.run_id || item.json.id || item.json.ideaId,\n      });\n    }\n  }\n}\n\nconst userIdea = parsedOutput?.userIdea || runData.user_idea || runData.metadata?.userIdea || runData.input?.userIdea || runData.input?.user_idea || $('When Called').item.json.userInput || '';\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: userIdea,\n    totalIdeas: ideas.length,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -4208,
+        -4432,
         -96
       ],
       "id": "29a8eda8-4059-4110-a61a-4e0e45918e41",
@@ -274,7 +287,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -3984,
+        -4208,
         -96
       ],
       "id": "a9cd19b6-71b6-4e9c-8237-82e9bb98fafa",
@@ -293,7 +306,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3760,
+        -3984,
         -96
       ],
       "id": "c0441158-ca26-46f8-94e4-3632ac9e5cde",
@@ -351,7 +364,7 @@
         ]
       ]
     },
-    "Create a row": {
+    "Create Batch Videos": {
       "main": [
         [
           {
@@ -421,7 +434,18 @@
       "main": [
         [
           {
-            "node": "Split Out",
+            "node": "Prepare Batch Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Batch Videos": {
+      "main": [
+        [
+          {
+            "node": "Create Batch Videos",
             "type": "main",
             "index": 0
           }
@@ -505,7 +529,7 @@
       {
         "json": {
           "userInput": "Make an asmr video about puppies",
-          "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad"
+          "runId": "e9140408-792d-40c4-b8e9-f4a273884a73"
         }
       }
     ],
@@ -1181,61 +1205,6 @@
       }
     ]
   },
-  "versionId": "c426944f-f6c2-4e93-b65c-9009fc27577a",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:07:29.166Z",
-      "createdAt": "2025-11-02T01:07:29.166Z",
-      "role": "workflow:owner",
-      "workflowId": "9tBbhRfA4149YH0f",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T23:05:06.805Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "be7fd965-aa76-479c-8dec-bdbac4476531",
+  "triggerCount": 0
 }

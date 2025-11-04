@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-03T23:16:39.809Z",
+  "updatedAt": "2025-11-04T00:15:24.756Z",
   "createdAt": "2025-11-02T01:09:00.869Z",
   "id": "NGKqyspp66gDGVI0",
   "name": "AISMR",
@@ -246,20 +246,6 @@
     },
     {
       "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        896,
-        64
-      ],
-      "id": "860967b8-8ae8-4b7d-928c-8377c5af29c5",
-      "name": "Merge: Ideas to Notifications"
-    },
-    {
-      "parameters": {
         "chatId": "={{ $('Assemble Context').item.json.chatId }}",
         "text": "={{ '✅ Generated ' + String($('Call Generate Ideas').item.json.totalIdeas || 0) + ' ideas! Moving to screenplay...' }}",
         "additionalFields": {}
@@ -267,7 +253,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1120,
+        896,
         -32
       ],
       "id": "8aafc9ad-c253-4560-ae75-9458d1d7d9af",
@@ -288,25 +274,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
+        896,
         160
       ],
       "id": "6958060a-f053-4a05-a559-da08f62e2de2",
       "name": "Extract Selected Idea"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        1568,
-        160
-      ],
-      "id": "aeed8a44-917e-4f7d-b960-cddbb2336042",
-      "name": "Merge: Screenplay to Video and Notification"
     },
     {
       "parameters": {
@@ -317,7 +289,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1792,
+        1344,
         64
       ],
       "id": "e7b6e05f-f6d4-47c0-b483-5b7ae67e692f",
@@ -393,25 +365,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1344,
+        1120,
         160
       ],
       "id": "d405fc21-e5cb-424e-a345-6b88e57e7217",
       "name": "Call Screen Writer"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        2016,
-        256
-      ],
-      "id": "3c48aca5-8af6-4f58-8560-b8cd29adbb66",
-      "name": "Merge: Video to Edit and Notification"
     },
     {
       "parameters": {
@@ -422,7 +380,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2240,
+        1568,
         160
       ],
       "id": "5f3e9ecf-d809-41a5-8561-a6986b256198",
@@ -482,25 +440,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1792,
+        1344,
         256
       ],
       "id": "193c0696-c1a3-43d2-afdf-4ee96f644b28",
       "name": "Call Generate Video"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        2464,
-        352
-      ],
-      "id": "9c5b191a-e6d0-44b3-b92f-a0f70fa4872b",
-      "name": "Merge: Edit to Upload and Notification"
     },
     {
       "parameters": {
@@ -511,7 +455,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2688,
+        1792,
         256
       ],
       "id": "43e8572a-7b81-4912-9694-3c80220b182d",
@@ -560,25 +504,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2240,
+        1568,
         352
       ],
       "id": "4a546256-b647-47d0-b9f7-7c895cf5eaf1",
       "name": "Call Edit AISMR"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        2912,
-        448
-      ],
-      "id": "7abc3099-7ac2-4360-8764-9995136e0c88",
-      "name": "Merge: Upload to TikTok and Notification"
     },
     {
       "parameters": {
@@ -589,7 +519,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        3136,
+        2016,
         352
       ],
       "id": "31586e50-93e5-499d-bd91-185be7f5f5ea",
@@ -638,25 +568,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2688,
+        1792,
         448
       ],
       "id": "d104df5f-994f-4833-933b-d37886e1c8a6",
       "name": "Call Upload to Google Drive"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2.1,
-      "position": [
-        3360,
-        544
-      ],
-      "id": "643fb4b7-68f0-4148-a6b2-e123fee1e798",
-      "name": "Merge: TikTok to Complete and Notification"
     },
     {
       "parameters": {
@@ -667,7 +583,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        3584,
+        2240,
         448
       ],
       "id": "29debd31-91e3-45d2-a66f-a25bc3511eff",
@@ -716,7 +632,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        3136,
+        2016,
         544
       ],
       "id": "04b44a5b-6ad0-44c3-a29e-5a24e4e447a4",
@@ -729,7 +645,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3584,
+        2240,
         640
       ],
       "id": "prepare-completion-data",
@@ -751,7 +667,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3808,
+        2464,
         640
       ],
       "id": "mark-run-complete",
@@ -772,7 +688,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        4032,
+        2688,
         640
       ],
       "id": "cd129976-36a4-48bd-972a-91e5861cbd5b",
@@ -836,7 +752,12 @@
       "main": [
         [
           {
-            "node": "Merge: Ideas to Notifications",
+            "node": "Extract Selected Idea",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Progress: Ideas Generated",
             "type": "main",
             "index": 0
           }
@@ -913,17 +834,6 @@
       "main": [
         [
           {
-            "node": "Merge: Screenplay to Video and Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge: Screenplay to Video and Notification": {
-      "main": [
-        [
-          {
             "node": "Call Generate Video",
             "type": "main",
             "index": 0
@@ -937,17 +847,6 @@
       ]
     },
     "Call Generate Video": {
-      "main": [
-        [
-          {
-            "node": "Merge: Video to Edit and Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge: Video to Edit and Notification": {
       "main": [
         [
           {
@@ -967,17 +866,6 @@
       "main": [
         [
           {
-            "node": "Merge: Edit to Upload and Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge: Edit to Upload and Notification": {
-      "main": [
-        [
-          {
             "node": "Call Upload to Google Drive",
             "type": "main",
             "index": 0
@@ -994,17 +882,6 @@
       "main": [
         [
           {
-            "node": "Merge: Upload to TikTok and Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge: Upload to TikTok and Notification": {
-      "main": [
-        [
-          {
             "node": "Call Post to TikTok",
             "type": "main",
             "index": 0
@@ -1018,17 +895,6 @@
       ]
     },
     "Call Post to TikTok": {
-      "main": [
-        [
-          {
-            "node": "Merge: TikTok to Complete and Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge: TikTok to Complete and Notification": {
       "main": [
         [
           {
@@ -1065,22 +931,6 @@
           }
         ]
       ]
-    },
-    "Merge: Ideas to Notifications": {
-      "main": [
-        [
-          {
-            "node": "Extract Selected Idea",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Progress: Ideas Generated",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "settings": {
@@ -1095,63 +945,204 @@
           "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43"
         }
       }
+    ],
+    "Call Generate Ideas": [
+      {
+        "json": {
+          "ideas": [
+            {
+              "ideaTitle": "ember puppy",
+              "idea": "ember puppy",
+              "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
+              "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c"
+            },
+            {
+              "ideaTitle": "slate puppy",
+              "idea": "slate puppy",
+              "vibe": "A monochrome studio built from slate and graphite mirrors. The puppy appears as a soft silhouette against cool, chalky surfaces, sliding gently across a stone stage. Subtle rain taps on slate while distant wind whispers through creaking frames.",
+              "ideaId": "7d334557-03da-4807-9ad2-9fc079185329"
+            },
+            {
+              "ideaTitle": "aurora puppy",
+              "idea": "aurora puppy",
+              "vibe": "A velvet night sky spills across the ceiling, ribbons of green and pink swirl above a sleepy puppy. Each breath makes the aurora ripple, turning fur into light. Delicate chimes and distant thunder roll in as colors cascade and fade.",
+              "ideaId": "5272e24d-9a78-4aed-ba64-0489f2820d3d"
+            },
+            {
+              "ideaTitle": "obsidian puppy",
+              "idea": "obsidian puppy",
+              "vibe": "An obsidian room with glassy black walls; the puppy glides like a speck of light on a midnight mirror. The bark becomes a soft echo carried by wind through dark corridors. The sound design blends glass taps, soft paw pads, and the hush of velvet shadows.",
+              "ideaId": "b968110e-f737-4fa3-b8cd-4ed68ebb6f38"
+            },
+            {
+              "ideaTitle": "bronze puppy",
+              "idea": "bronze puppy",
+              "vibe": "A gallery of bronze sculptures and warm amber lighting. The puppy nuzzles among metal leaves as tiny clinks echo. The texture of fur softens into metallic sheen, while background hums with old brass strings.",
+              "ideaId": "c76fee0e-e409-4d74-b3d6-39b8ed93d78d"
+            },
+            {
+              "ideaTitle": "coral puppy",
+              "idea": "coral puppy",
+              "vibe": "An underwater reef scene in a quiet room; coral shapes bloom around a tiny puppy. Bubbles rise with each gentle motion, while distant whale songs become whispering percussion. The color palette glows pink-orange, like sunrise filtered through coral glass.",
+              "ideaId": "a8be271c-fc55-4d9c-b3df-a141c4b3e4ce"
+            },
+            {
+              "ideaTitle": "ivory puppy",
+              "idea": "ivory puppy",
+              "vibe": "A pristine ivory chamber where a white puppy rests on a feather-soft cloud bed. Each exhale stirs white dust motes that swirl into tiny constellations. The soundscape glides with muffled bells, ticking clocks, and soft brushing.",
+              "ideaId": "55235b0a-d006-468e-aa4a-b57a0a16b3f4"
+            },
+            {
+              "ideaTitle": "onyx puppy",
+              "idea": "onyx puppy",
+              "vibe": "A deep onyx tunnel lit by a single point of starlight; the puppy apprentices shadow puppets on glossy walls. Paw steps create ripples of light; the room breathes in near-silent tempo. A piano key tick and distant wind complete the mood.",
+              "ideaId": "71576713-1498-4a0e-934c-5652b5445e3d"
+            },
+            {
+              "ideaTitle": "lucid puppy",
+              "idea": "lucid puppy",
+              "vibe": "In a lucid, glassy space, the puppy steps through refracted rainbows. Each breath scatters light into playful prisms that linger like bubble memories. The hush between sounds is thick as feathered fog, punctuated by distant chimes.",
+              "ideaId": "1b2db0ac-3f06-4558-a8f0-862eacd62eea"
+            },
+            {
+              "ideaTitle": "mossy puppy",
+              "idea": "mossy puppy",
+              "vibe": "A forest stage grows up from the floor; moss cushions the puppy's paws as dew beads on fur. Birds whisper from above while the puppy explores a mossy path that glows softly. The soundscape blends rustling leaves, distant water droplets, and gentle heartbeat-like thumps.",
+              "ideaId": "a7f2fc0b-4292-4503-8378-7104b43de27d"
+            },
+            {
+              "ideaTitle": "electric puppy",
+              "idea": "electric puppy",
+              "vibe": "A neon-lit lab where electric cords trace luminescent lines around a playful puppy. Static buzz crackles in the air with every paw tap. The room hums like a circuit board in a dream.",
+              "ideaId": "942ccea7-db64-4682-a554-d57b1f93c207"
+            },
+            {
+              "ideaTitle": "opal puppy",
+              "idea": "opal puppy",
+              "vibe": "An opalescent room shimmers as the puppy shifts color with every pawstep. Flakes of iridescent dust drift like snow; a chorus of tiny bells tingles with each breath. The ambience glows with gentle, dreamlike shimmer.",
+              "ideaId": "5465627a-b8b2-4a17-b073-75c472e1bb2e"
+            }
+          ],
+          "selectedIdea": {
+            "ideaTitle": "ember puppy",
+            "idea": "ember puppy",
+            "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
+            "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c"
+          },
+          "userIdea": "Make an asmr video about puppies",
+          "totalIdeas": 12
+        }
+      }
+    ],
+    "Call Screen Writer": [
+      {
+        "json": {
+          "screenplay": {
+            "title": "Puppy ASMR",
+            "scenes": [],
+            "totalDuration": 60,
+            "triggerWords": []
+          },
+          "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+          "status": "completed"
+        }
+      }
+    ],
+    "Call Generate Video": [
+      {
+        "json": {
+          "workflowRun": {
+            "id": "69b2c22c-fbd3-421e-bc5c-43f51ced5fbb",
+            "projectId": "aismr",
+            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+            "currentStage": "publishing",
+            "status": "running",
+            "stages": {
+              "publishing": {
+                "status": "in_progress"
+              },
+              "screenplay": {
+                "output": {
+                  "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                  "screenplay": {
+                    "title": "Puppy ASMR",
+                    "scenes": [],
+                    "triggerWords": [],
+                    "totalDuration": 60
+                  },
+                  "completedAt": "2025-11-03T23:52:41.695Z"
+                },
+                "status": "completed"
+              },
+              "idea_generation": {
+                "status": "pending"
+              },
+              "video_generation": {
+                "output": {
+                  "idea": "ember puppy",
+                  "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                  "status": "video_gen",
+                  "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
+                },
+                "status": "completed"
+              }
+            },
+            "input": {
+              "turn": {
+                "id": "c306939b-0b61-4ece-a978-011cb75f6d43",
+                "role": "user",
+                "userId": "telegram:6559268788",
+                "content": "Make an asmr video about puppies",
+                "summary": null,
+                "metadata": {
+                  "chatId": "6559268788",
+                  "preview": "Make an asmr video about puppies",
+                  "keywords": [
+                    "make",
+                    "asmr",
+                    "video",
+                    "about",
+                    "puppies"
+                  ],
+                  "platform": "telegram",
+                  "workflow": "chat",
+                  "messageId": "156",
+                  "timestamp": "2025-11-03T22:36:29.120Z",
+                  "messageType": "text"
+                },
+                "createdAt": "2025-11-03 22:36:29.219968+00",
+                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
+                "turnIndex": 19,
+                "updatedAt": "2025-11-03 22:36:29.219968+00"
+              },
+              "chatId": "6559268788",
+              "source": "aismr_orchestrator",
+              "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43",
+              "personaId": "ideagenerator",
+              "userInput": "Make an asmr video about puppies"
+            },
+            "output": {
+              "screenplay": {
+                "title": "Puppy ASMR",
+                "scenes": [],
+                "triggerWords": [],
+                "totalDuration": 60
+              },
+              "video_generation": {
+                "idea": "ember puppy",
+                "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
+                "status": "video_gen",
+                "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
+              }
+            },
+            "workflowDefinitionChunkId": null,
+            "createdAt": "2025-11-03 23:52:28.246+00",
+            "updatedAt": "2025-11-03 23:59:28.646+00"
+          }
+        }
+      }
     ]
   },
-  "versionId": "5638841e-1cdb-4bd9-a475-b8b2c486b474",
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2025-11-02T01:09:00.869Z",
-      "createdAt": "2025-11-02T01:09:00.869Z",
-      "role": "workflow:owner",
-      "workflowId": "NGKqyspp66gDGVI0",
-      "projectId": "31ZCiMO58nOfetfK",
-      "project": {
-        "updatedAt": "2025-11-02T01:05:08.411Z",
-        "createdAt": "2025-11-02T01:01:26.863Z",
-        "id": "31ZCiMO58nOfetfK",
-        "name": "Mylo James <mylo.james114@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "updatedAt": "2025-11-02T01:01:26.863Z",
-            "createdAt": "2025-11-02T01:01:26.863Z",
-            "userId": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-            "projectId": "31ZCiMO58nOfetfK",
-            "user": {
-              "updatedAt": "2025-11-03T23:05:06.805Z",
-              "createdAt": "2025-11-02T01:01:26.032Z",
-              "id": "e35192e8-55eb-4de4-9518-a6a205b8c65a",
-              "email": "mylo.james114@gmail.com",
-              "firstName": "Mylo",
-              "lastName": "James",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-11-02T01:05:22.653Z",
-                "personalization_survey_n8n_version": "1.117.3",
-                "companySize": "20-99",
-                "companyType": "saas",
-                "role": "customer-support",
-                "reportedSource": "other",
-                "reportedSourceOther": "f"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "NGKqyspp66gDGVI0",
-                "userActivatedAt": 1762065650829
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-11-03",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "1af1efe4-3f04-4262-a7f5-6e2cb92f19bc",
+  "triggerCount": 0
 }
