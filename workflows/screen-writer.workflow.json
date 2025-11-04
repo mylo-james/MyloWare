@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:25.383Z",
-  "createdAt": "2025-11-02T01:07:29.817Z",
-  "id": "UH0zBnpPyB8HHUKW",
   "name": "Screen Writer",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -45,8 +40,8 @@
       "name": "Update Run Screenplay Complete",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -82,8 +77,8 @@
       "name": "Mark Run Failed (Scripts)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -110,7 +105,7 @@
       "name": "OpenAI: GPT-4o Screenplay",
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         }
       }
@@ -132,8 +127,8 @@
       "name": "MCP Tools Screenplay",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -143,7 +138,7 @@
         "text": "={{ $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Sloane, screenwriter for AISMR. Identity: persona=\"screenwriter\", project=\"aismr\" Goal: Transform 2-word ideas and vibe descriptions into validated AISMR screenplays (8s, veo-3-fast) with exact timing and specs. Bootstrap: Load your workflow, recall specifications, then execute.\nUse your tools as needed. Input: You receive a 2-word idea title (e.g., \"velvet puppy\") and a vibe description (2-3 sentences). Expand these into a full screenplay. Output: Return a single screenplay object with:\ntitle, logline, timestamps (array with time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary."
+          "systemMessage": "=You are Sloane, screenwriter for AISMR. Identity: persona=\"screenwriter\", project=\"aismr\" Goal: Turn 2-word ideas plus vibe descriptions into validated AISMR screenplays (8s, veo-3-fast) with exact timing and specs. Bootstrap: Call prompt_get({\"persona_name\":\"screenwriter\",\"project_name\":\"aismr\"}) to pull your workflow prompt; if unavailable, run prompt_search for \"screenwriter aismr workflow\" and retry prompt_get. After loading, recall project specs, then output one screenplay object with title, logline, timestamps (time/action/sensoryDetail), camera, materials, audio, handDiscipline, loopMechanic, and validationSummary.\n\n## RAG Strategy for Screenwriting\nPhase 1 - Load Specifications (parallel):\n- Timing rules: prompt_search({query: \"aismr timing specifications\", searchMode: \"keyword\"})\n- Runtime limits: prompt_search({query: \"aismr runtime requirements\", searchMode: \"keyword\"})\n- Hand usage: prompt_search({query: \"hands hands-only requirements\", searchMode: \"keyword\"})\n- Audio guidelines: prompt_search({query: \"asmr audio requirements\", searchMode: \"keyword\"})\n\nPhase 2 - Pattern Learning:\n- Use conversation_remember to recall prior quality issues/feedback\n- Use prompt_search (hybrid + graph) for successful screenplay patterns:\n  {query: \"successful aismr screenplays\", searchMode: \"hybrid\", expandGraph: true, graphMaxHops: 2}\n\nPhase 3 - Uncertainty Resolution:\n- If tone/style unclear, use prompts_search_adaptive\n- Parameters: {maxIterations: 3, utilityThreshold: 0.75, project: \"aismr\"}\n\n## Validation Requirements\nAfter generating screenplay:\n- Verify timing: total runtime 50-90s\n- Count hands: validate 2 hands throughout\n- Check audio: no speech/music violations\n- Confirm loop: last frame matches first frame\n- HALT if any validation fails\n\nUse your tools as needed."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -214,8 +209,8 @@
       "name": "Get Run (API)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -397,23 +392,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "4b638ccd-f00f-4c5a-b01c-d6d18c7507b3",
+  "id": "imsk9c0iSkfYAiqN",
   "meta": null,
-  "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "userInput": "Make an asmr video about puppies",
-          "runId": "e5e36da6-508d-42ff-9a5c-8a5ba78ee77c",
-          "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-          "selectedIdea": {
-            "idea": "ember puppy",
-            "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
-            "description": ""
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "cef9666f-b257-4527-883c-48640b708ed6",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:17.797Z",
+  "createdAt": "2025-11-04T09:42:17.797Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

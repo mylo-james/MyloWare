@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:25.514Z",
-  "createdAt": "2025-11-02T01:07:29.839Z",
-  "id": "hePBBi9MkuJN7Fpj",
   "name": "Upload file to Google Drive",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -239,7 +234,7 @@
       "typeVersion": 4.2,
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         },
         "httpHeaderAuth": {
@@ -282,6 +277,58 @@
       ],
       "id": "17e7fc2a-0c92-4bf8-a9d7-1caabbc82dca",
       "name": "Get a row"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        816,
+        320
+      ],
+      "id": "error-trigger-upload-drive",
+      "name": "On Workflow Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle workflow error and preserve state\nconst errorData = $json ?? {};\n\n// Try to get runId from various sources\nlet runId = null;\ntry {\n  runId = $('Get a row').item?.json?.id ?? $('When Called by Generate Video').item?.json?.runId ?? null;\n} catch (e) {\n  console.log('Could not extract runId from executed nodes');\n}\n\n// If we still don't have runId, we can't update the workflow\nif (!runId) {\n  console.error('Unable to determine runId for error handling');\n  return [{ json: { error: 'No runId available to update workflow run', errorData } }];\n}\n\n// Get the workflow run to preserve prior outputs\nlet run = {};\ntry {\n  run = $('Get a row').item?.json ?? {};\n} catch (e) {\n  console.log('Could not get workflow run data');\n}\n\nconst stages = run.stages ?? {};\nconst clone = (value) => (value && typeof value === 'object' ? { ...value } : {});\n\n// Set prior stages as completed\nconst ideaStage = clone(stages.idea_generation);\nif (!ideaStage.status) {\n  ideaStage.status = 'completed';\n}\n\nconst screenplayStage = clone(stages.screenplay);\nif (!screenplayStage.status) {\n  screenplayStage.status = 'completed';\n}\n\nconst videoStage = clone(stages.video_generation);\nif (!videoStage.status) {\n  videoStage.status = 'completed';\n}\n\n// Mark publishing stage failed\nconst publishingStage = {\n  ...clone(stages.publishing),\n  status: 'failed',\n  error: {\n    message: errorData.error?.message ?? 'Google Drive upload failed.',\n    stack: errorData.error?.stack ?? null,\n    lastNode: errorData.execution?.lastNodeExecuted ?? null,\n    timestamp: new Date().toISOString()\n  }\n};\n\nreturn {\n  json: {\n    runId,\n    status: 'failed',\n    currentStage: 'publishing',\n    stages: {\n      idea_generation: ideaStage,\n      screenplay: screenplayStage,\n      video_generation: videoStage,\n      publishing: publishingStage\n    },\n    output: {\n      ...(run.output ?? {}),\n      // CRITICAL: Preserve ALL prior outputs\n      idea_generation: run.output?.idea_generation ?? {},\n      screenplay: run.output?.screenplay ?? {},\n      video_generation: run.output?.video_generation ?? {},\n      publishing: {\n        ...(run.output?.publishing ?? {}),\n        error: {\n          message: errorData.error?.message ?? 'Google Drive upload failed.',\n          timestamp: new Date().toISOString()\n        }\n      }\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        320
+      ],
+      "id": "prepare-error-update",
+      "name": "Prepare Error Update"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || 'unknown') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: $json.status, currentStage: $json.currentStage, stages: $json.stages, output: $json.output } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        320
+      ],
+      "id": "mark-run-failed",
+      "name": "Mark Run Failed",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     }
   ],
   "connections": {
@@ -379,14 +426,42 @@
           }
         ]
       ]
+    },
+    "On Workflow Error": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Update": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "91920bd0-6483-4678-b18d-5a97fb543c97",
+  "id": "zvJoSOEUDr9hXOLV",
   "meta": null,
-  "pinData": {},
-  "versionId": "f89c460a-8273-442f-8491-3b94c0050a6a",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:18.047Z",
+  "createdAt": "2025-11-04T09:42:18.047Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

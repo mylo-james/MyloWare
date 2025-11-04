@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:25.161Z",
-  "createdAt": "2025-11-02T01:07:29.778Z",
-  "id": "7Dj31lfHvYGQIVKh",
   "name": "poll-db",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -202,8 +197,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "1e466808-d48f-42f9-a17a-08abfaf668a9",
+  "id": "TYUVl5MTYEOwdWTU",
   "meta": null,
-  "pinData": {},
-  "versionId": "7e1750e0-f840-4f78-bf4c-b24f25f5e983",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:17.551Z",
+  "createdAt": "2025-11-04T09:42:17.551Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

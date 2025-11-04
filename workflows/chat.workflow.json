@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.788Z",
-  "createdAt": "2025-11-02T01:09:00.910Z",
-  "id": "MhurGfQPUg5lWdXw",
   "name": "Chat",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -26,7 +21,7 @@
       "webhookId": "55acc711-c248-4ac9-b6cd-e295c2d33f4b",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       }
@@ -115,7 +110,7 @@
       "webhookId": "e0769871-efe3-49da-81a5-2f88a6fdd33f",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       }
@@ -136,7 +131,7 @@
       "name": "Transcribe Audio",
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         }
       }
@@ -305,13 +300,13 @@
         "promptType": "define",
         "text": "={{ $json.message.text }}",
         "options": {
-          "systemMessage": "=You are Casey, conversational orchestrator. Identity: persona=\"chat\", project=null Goal: Help users with context-aware responses. Bootstrap: Load your configuration, recall conversation context, then respond.\nUse your tools as needed."
+          "systemMessage": "=You are Casey, conversational orchestrator. Identity: persona=\"chat\", project=null Goal: Help users with context-aware responses grounded in the current session. Bootstrap: Call prompt_get({\"persona_name\":\"chat\"}) to pull your prompt; if it fails, run prompt_search for \"chat workflow\" and retry prompt_get. After loading your prompt, recall context via conversation_remember, then respond.\n\n## RAG Decision Tree\nWhen to use each tool:\n1. Known persona/project? → prompt_get (exact lookup)\n2. Exploratory query? → prompt_search (hybrid mode, expandGraph=true, graphMaxHops=2)\n3. Recall past conversation? → conversation_remember (sessionId required)\n4. Need creative patterns? → prompt_search (expandGraph=true, graphMaxHops=2)\n5. Uncertain/ambiguous? → prompts_search_adaptive (3 iterations, utilityThreshold=0.75)\n\n## Search Mode Guidelines\n- keyword: Exact specs, technical terms (e.g., \"workflow definition screenwriter\")\n- hybrid: Most queries - combines semantic + lexical (default choice)\n- vector: Concept/theme matching when exact terms unknown\n\n## Graph Expansion Patterns\n- graphMaxHops=1: Direct connections only\n- graphMaxHops=2: Pattern discovery, creative adjacency (recommended for ideas)\n- graphMaxHops=3+: Deep exploration (rarely needed, slower)\n\nUse your tools as needed."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        840,
+        848,
         112
       ],
       "id": "de108ba0-ac47-4f93-abcf-b27e5bf09987",
@@ -338,7 +333,7 @@
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         }
       }
@@ -360,25 +355,25 @@
       "name": "MCP Client",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
     {
       "parameters": {
-        "description": "ASMR video generation workflow",
+        "description": "Executes the AISMR video generation workflow which handles idea generation, screenplay creation, and video production. Requires a conversation turn ID to retrieve user input and context. Returns workflow execution results including generated ideas, scripts, or video metadata.",
         "workflowId": {
           "__rl": true,
-          "value": "NGKqyspp66gDGVI0",
+          "value": "4TEgnw5MR5Er2Vb5",
           "mode": "list",
-          "cachedResultUrl": "/workflow/NGKqyspp66gDGVI0",
+          "cachedResultUrl": "/workflow/4TEgnw5MR5Er2Vb5",
           "cachedResultName": "AISMR"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "turnId": "={{ $json.conversation.userTurn.id }}"
+            "turnId": "={{ $('Assemble Agent Context').item.json.memory.recentTurns[0].id }}"
           },
           "matchingColumns": [
             "turnId"
@@ -415,7 +410,7 @@
       "typeVersion": 2,
       "position": [
         1248,
-        16
+        112
       ],
       "id": "aefa282c-e031-4c6e-be12-5d3030e7c3d4",
       "name": "Prepare Assistant Store Request"
@@ -435,7 +430,7 @@
       "typeVersion": 4.2,
       "position": [
         1472,
-        16
+        112
       ],
       "id": "3f8ea9e3-e992-44fa-a4cb-7204a0299f8c",
       "name": "Store Assistant Turn",
@@ -449,7 +444,7 @@
       "typeVersion": 2,
       "position": [
         1696,
-        16
+        112
       ],
       "id": "f894ab04-2a1d-429f-a931-219632389f37",
       "name": "Finalize Response"
@@ -464,50 +459,14 @@
       "typeVersion": 1.2,
       "position": [
         1920,
-        16
+        112
       ],
       "id": "4bfc2a3e-82f2-4b09-8e18-c26036408fc8",
       "name": "Reply in Telegram",
       "webhookId": "b96b7a41-9806-455f-b72e-00aa638eda71",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
-          "name": "Telegram account"
-        }
-      },
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Handle AI Agent errors\nconst context = $('Assemble Agent Context').item?.json ?? {};\nconst errorData = $json ?? {};\n\n// Extract error message\nconst errorMessage = errorData.error?.message ?? errorData.message ?? 'Unknown error processing your request';\nconst errorDetails = errorData.error?.stack ?? errorData.stack ?? '';\n\n// Format user-friendly error message\nconst userMessage = 'I encountered an error processing your request. Please try again or contact support if the issue persists.';\n\nconst timestamp = new Date().toISOString();\n\nconst metadata = {\n  platform: context.platform,\n  workflow: 'chat',\n  timestamp,\n  errorType: 'ai_agent_error'\n};\n\nif (context.message?.telegramChatId) {\n  metadata.chatId = context.message.telegramChatId;\n}\nif (context.message?.telegramMessageId) {\n  metadata.messageId = context.message.telegramMessageId;\n}\n\nreturn {\n  json: {\n    responseText: userMessage,\n    errorMessage,\n    errorDetails,\n    chatId: context.message?.telegramChatId ?? null,\n    session: context.session ?? null,\n    message: context.message ?? null,\n    platform: context.platform ?? null,\n    metadata\n  }\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1248,
-        208
-      ],
-      "id": "handle-ai-agent-error",
-      "name": "Handle AI Agent Error"
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.responseText }}",
-        "additionalFields": {}
-      },
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [
-        1472,
-        208
-      ],
-      "id": "reply-error-telegram",
-      "name": "Reply Error in Telegram",
-      "webhookId": "error-telegram-webhook",
-      "credentials": {
-        "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -641,22 +600,6 @@
         ]
       ]
     },
-    "Handle AI Agent Error": {
-      "main": [
-        [
-          {
-            "node": "Reply Error in Telegram",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Reply Error in Telegram": {
-      "main": [
-        []
-      ]
-    },
     "OpenAI Chat Model": {
       "ai_languageModel": [
         [
@@ -728,34 +671,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "c8ddd2b9-2d1b-4545-9dba-2f800a55fa4e",
+  "id": "VrRa5g4bBCf0esst",
   "meta": null,
-  "pinData": {
-    "Telegram Message Trigger": [
-      {
-        "json": {
-          "update_id": 96972043,
-          "message": {
-            "message_id": 156,
-            "from": {
-              "id": 6559268788,
-              "is_bot": false,
-              "first_name": "Mylo",
-              "last_name": "James",
-              "language_code": "en"
-            },
-            "chat": {
-              "id": 6559268788,
-              "first_name": "Mylo",
-              "last_name": "James",
-              "type": "private"
-            },
-            "date": 1762048699,
-            "text": "Make an asmr video about puppies"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "aa2277fc-ae06-4033-bdce-8abf5fce6d07",
-  "triggerCount": 1
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:15.430Z",
+  "createdAt": "2025-11-04T09:42:15.430Z",
+  "isArchived": false,
+  "versionCounter": 1,
+  "triggerCount": 0
 }

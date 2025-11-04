@@ -46,9 +46,11 @@ export OPENAI_API_KEY=sk-...
 
 # Run migrations
 npm run db:migrate
+npm run db:migrate-ops
 
-# Start production stack
-npm run stack:prod
+# Start production server
+npm run build
+npm start
 ```
 
 See [docs/DEPLOYMENT_SETUP.md](docs/DEPLOYMENT_SETUP.md) for detailed deployment guide.
@@ -198,11 +200,14 @@ mcp-prompts/
 
 ## Documentation
 
-- [Local Development Guide](docs/LOCAL-DEVELOPMENT.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Code Review - Claude](docs/review-claude.md)
-- [Code Review - Codex](docs/REVIEW-CODEX.md)
-- [Implementation Plan](docs/PLAN.md)
+- [Quick Start Guide](QUICK_START.md) - Get started quickly
+- [Scripts Cheat Sheet](SCRIPTS_CHEATSHEET.md) - Quick command reference
+- [Local Development Guide](docs/LOCAL-DEVELOPMENT.md) - Detailed development setup
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment
+- [Scripts Guide](docs/SCRIPTS_GUIDE.md) - Complete scripts documentation
+- [Full Documentation Index](docs/README.md) - All available documentation
+
+Historical documentation is archived in [archive-docs/](archive-docs/).
 
 ## Configuration
 

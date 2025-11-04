@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.859Z",
-  "createdAt": "2025-11-02T01:07:29.166Z",
-  "id": "9tBbhRfA4149YH0f",
   "name": "Generate Ideas",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -22,10 +17,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -6240,
-        -96
+        -1760,
+        288
       ],
-      "id": "8df43fa0-c6fa-4744-a471-0f5dd30166b8",
+      "id": "47969627-dede-4cf5-9417-cba04b131312",
       "name": "When Called"
     },
     {
@@ -40,86 +35,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -4656,
-        -96
+        -176,
+        288
       ],
-      "id": "4c83097b-61a1-43a3-ac1b-f6ba24b825f1",
+      "id": "6962eb7f-5794-4d3c-ac39-24c644ba6eb0",
       "name": "Create Batch Videos"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "ideas",
-        "include": "selectedOtherFields",
-        "fieldsToInclude": "userIdea",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        -6240,
-        232
-      ],
-      "id": "bfd42c2b-d229-43ae-80c2-87e07ad2ac09",
-      "name": "Split Out"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "460ccabd-86a2-4125-8a0d-7393263eed5a",
-              "name": "idea",
-              "value": "={{ $json.ideas.ideaTitle }}",
-              "type": "string"
-            },
-            {
-              "id": "669d4c08-bc8e-44ef-8111-b41159f88225",
-              "name": "vibe",
-              "value": "={{ $json.ideas.vibe }}",
-              "type": "string"
-            },
-            {
-              "id": "6709048c-774a-4eb1-8782-af9197463098",
-              "name": "started_at",
-              "value": "={{ $now }}",
-              "type": "string"
-            },
-            {
-              "id": "13d977db-ba6d-495c-bbb5-a5e3dc11d2c2",
-              "name": "status",
-              "value": "idea_gen",
-              "type": "string"
-            },
-            {
-              "id": "dd923ce7-7c83-43d7-aaab-a9a16f157009",
-              "name": "project_id",
-              "value": "={{ $('Get Run').item.json.project_id }}",
-              "type": "string"
-            },
-            {
-              "id": "run-id-field",
-              "name": "run_id",
-              "value": "={{ $('When Called').item.json.runId }}",
-              "type": "string"
-            },
-            {
-              "id": "user-idea-field",
-              "name": "user_idea",
-              "value": "={{ $json.userIdea }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -6016,
-        232
-      ],
-      "id": "b87bc1d0-7b1f-402a-8ab6-965b14857f02",
-      "name": "Edit Fields1"
     },
     {
       "parameters": {
@@ -131,15 +51,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -6016,
-        -96
+        -1536,
+        288
       ],
-      "id": "e3986e1b-2324-4557-b69a-d61062321897",
+      "id": "3bcc8a20-fcea-4de1-808a-45b6d4b50cbe",
       "name": "Get Run (API)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -148,10 +68,10 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        -6240,
-        456
+        -1760,
+        616
       ],
-      "id": "31131e25-274b-479e-88ec-f037fe847d6e",
+      "id": "9f47c02f-2b2c-424c-91f9-288c23625659",
       "name": "On Error"
     },
     {
@@ -168,15 +88,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -6016,
-        456
+        -1536,
+        616
       ],
-      "id": "96853da5-92f3-4f02-a6f1-bc45da08828f",
+      "id": "707c3d85-0e1d-48f5-a77b-c021c7fff5ce",
       "name": "Mark Run Failed (Ideas)",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -190,15 +110,15 @@
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
       "position": [
-        -5440,
-        128
+        -960,
+        512
       ],
-      "id": "43d01e2f-6c19-42d1-9473-b7901c069d7b",
+      "id": "27d2396a-8bf3-4102-9551-255a7401f620",
       "name": "MCP Tools",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -208,43 +128,43 @@
         "text": "={{ $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "=You are Iggy, idea generator for AISMR. Identity: persona=\"ideagenerator\", project=\"aismr\" Goal: Generate 12 unique AISMR video ideas displaying surreal-type objects. Bootstrap: Load your workflow, check past work, then execute.\nUse your tools to discover specifications and validate uniqueness. Pattern: Each idea must be [SURREAL MODIFIER] [OBJECT]\n- First word: surreal modifier (void, velvet, water, sunrise, crystal, shadow, silk, glass, neon, cosmic, etc.)\n- Second word: object from user input or tactile item (puppy, sphere, book, hand, cloud, etc.)\n- Examples: \"void puppy\", \"velvet puppy\", \"water puppy\", \"sunrise puppy\", \"crystal book\" Output: Return an array of exactly 12 idea objects. Each must have:\n- ideaTitle (exactly 2 words following [SURREAL MODIFIER] [OBJECT] pattern)\n- vibe (2-3 sentences describing the surreal atmosphere)\n- uniquenessCheck (verification from video_query tool)"
+          "systemMessage": "=You are Iggy, idea generator for AISMR. Identity: persona=\"ideagenerator\", project=\"aismr\" Goal: Produce 12 unique AISMR video ideas following the [SURREAL MODIFIER] [OBJECT] pattern. Bootstrap: Call prompt_get({\"persona_name\":\"ideagenerator\",\"project_name\":\"aismr\"}) to pull your workflow prompt; if it is missing, run prompt_search for \"ideagenerator aismr workflow\" and then retry prompt_get. After loading your prompt, review prior runs, then validate every idea with video_ideas_snapshot and video_query. Output exactly 12 idea objects with ideaTitle (two words) and a vibe description (2-3 sentences).\n\n## RAG Strategy for Idea Generation\nPhase 1 - Archive Exclusion:\n- Use prompt_search (searchMode=\"keyword\") for each descriptor to find existing ideas\n- Build exclusion list from high-similarity matches (>0.85)\n\nPhase 2 - Pattern Discovery:\n- Use prompt_search (searchMode=\"hybrid\", expandGraph=true, graphMaxHops=2)\n- Query: \"successful aismr concepts [theme]\" to find proven patterns\n\nPhase 3 - Adaptive Search (if needed):\n- If initial results too similar/derivative, use prompts_search_adaptive\n- Set maxIterations=3, utilityThreshold=0.75\n- Let utility scoring guide iteration stopping\n\nPhase 4 - Final Validation:\n- Re-check all 12 ideas with prompt_search (keyword mode)\n- Ensure similarity <0.7 to existing content\n\n## Tool Parameters\n- Exclusion checks: {searchMode: \"keyword\", project: \"aismr\", limit: 20}\n- Pattern discovery: {searchMode: \"hybrid\", expandGraph: true, graphMaxHops: 2, limit: 10}\n- Adaptive search: {maxIterations: 3, utilityThreshold: 0.75, enableMultiHop: true}\n\nUse your tools as needed."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -5512,
-        -96
+        -1032,
+        288
       ],
-      "id": "64a026c0-85e8-4169-8195-8a9e4cfa5c82",
+      "id": "f0adf346-580d-4552-a90f-b4b1d7c5645c",
       "name": "AI Agent: Generate Ideas",
       "retryOnFail": false
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI Agent output to extract structured ideas\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    // If parsing fails, try to extract ideas from text\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { ideas: [], userIdea: rawOutput, totalIdeas: 0 };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\nconst userIdea = parsed?.userIdea || $('Get Run').item.json.user_idea || $('When Called').item.json.userInput || '';\n\n// Ensure each idea has required fields\n\nreturn {\n  json: {\n    ideas: rawOutput,\n    userIdea: userIdea,\n    totalIdeas: rawOutput.length,\n\n  }\n};"
+        "jsCode": "// Parse AI Agent output to extract structured ideas\nconst rawOutput = $json.output ?? $json.result ?? $json.response ?? $json;\nlet parsed = null;\n\n// Try to parse JSON from string output\nif (typeof rawOutput === 'string') {\n  try {\n    // Extract JSON from markdown code blocks if present\n    const jsonMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) || rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      parsed = JSON.parse(rawOutput);\n    }\n  } catch (e) {\n    // If parsing fails, try to extract ideas from text\n    console.warn('Failed to parse JSON from AI output:', e);\n    parsed = { ideas: [], userIdea: rawOutput, totalIdeas: 0 };\n  }\n} else if (typeof rawOutput === 'object') {\n  parsed = rawOutput;\n}\n\nconst ideasArray = Array.isArray(parsed?.ideas)\n  ? parsed.ideas\n  : Array.isArray(parsed)\n    ? parsed\n    : Array.isArray(rawOutput)\n      ? rawOutput\n      : [];\n\nconst userIdea =\n  parsed?.userIdea ||\n  $('Get Run').item.json.user_idea ||\n  $('When Called').item.json.userInput ||\n  (typeof rawOutput === 'object' && rawOutput ? rawOutput.userIdea : '') ||\n  '';\n\nreturn {\n  json: {\n    ideas: ideasArray,\n    userIdea: userIdea,\n    totalIdeas: ideasArray.length,\n    raw: rawOutput\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -5104,
-        -96
+        -624,
+        288
       ],
-      "id": "5c903d75-4a9b-4302-9764-9e6b99d0fb8a",
+      "id": "eaca8f44-db61-4765-9e9e-af7290d3c299",
       "name": "Parse Ideas Output"
     },
     {
       "parameters": {
-        "jsCode": "// Prepare batch video data from parsed ideas\nconst parsedOutput = $json;\nconst ideas = parsedOutput.ideas ?? [];\nconst runData = $('Get Run').item?.json ?? {};\nconst runId = $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\nconst userIdea = parsedOutput.userIdea || runData.user_idea || $('When Called').item.json.userInput || '';\nconst startedAt = new Date().toISOString();\n\n// Format each idea for batch creation\nconst batchData = ideas.map((idea) => ({\n  runId: runId,\n  projectId: projectId,\n  idea: idea.ideaTitle || idea.idea || '',\n  userIdea: userIdea,\n  vibe: idea.vibe || null,\n  status: 'idea_gen',\n  prompt: null,\n  startedAt: startedAt,\n  metadata: { source: 'idea-generator' }\n}));\n\nreturn [{\n  json: {\n    batchData,\n    runId,\n    projectId,\n    userIdea,\n    totalIdeas: batchData.length\n  }\n}];"
+        "jsCode": "// Prepare batch video data from parsed ideas\nconst parsedOutput = $json;\nconst ideas = parsedOutput.ideas ?? [];\nconst runData = $('Get Run').item?.json ?? {};\nconst runId = $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\nconst userIdea = parsedOutput.userIdea || runData.user_idea || $('When Called').item.json.userInput || '';\nconst startedAt = new Date().toISOString();\n\nconst batchData = [];\nconst skippedIdeas = [];\nconst seenIdeas = new Set();\n\nfor (const idea of ideas) {\n  const ideaTitle = String(idea.ideaTitle || idea.idea || '').trim();\n  if (!ideaTitle) {\n    skippedIdeas.push({\n      ideaTitle,\n      vibe: idea.vibe || null,\n      reason: 'missing_title'\n    });\n    continue;\n  }\n\n  const ideaKey = ideaTitle.toLowerCase();\n  if (seenIdeas.has(ideaKey)) {\n    skippedIdeas.push({\n      ideaTitle,\n      vibe: idea.vibe || null,\n      reason: 'duplicate_in_batch'\n    });\n    continue;\n  }\n\n  seenIdeas.add(ideaKey);\n  batchData.push({\n    runId: runId,\n    projectId: projectId,\n    idea: ideaTitle,\n    userIdea: userIdea,\n    vibe: idea.vibe || null,\n    status: 'idea_gen',\n    prompt: null,\n    startedAt: startedAt,\n    metadata: {\n      source: 'idea-generator'\n    }\n  });\n}\n\nreturn [{\n  json: {\n    batchData,\n    runId,\n    projectId,\n    userIdea,\n    totalIdeas: batchData.length,\n    skippedIdeas\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -4880,
-        -96
+        -400,
+        288
       ],
-      "id": "prep-batch-videos-001",
+      "id": "42dab269-6ec4-4ec8-ab94-f6ec261cae13",
       "name": "Prepare Batch Videos"
     },
     {
@@ -254,23 +174,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -5792,
-        -96
+        -1312,
+        288
       ],
-      "id": "fa7869df-d71a-4a2c-a3bb-2852a9e2ca89",
+      "id": "8f93c62c-e475-4e61-ad61-cbc5ea1e2423",
       "name": "Get Run"
     },
     {
       "parameters": {
-        "jsCode": "// Aggregate all ideas from batch creation response or parsed output\nconst ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId = runData.run_id || runData.id || $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\n\n// Check if batch creation succeeded\nconst batchResponse = $('Create Batch Videos').item?.json;\nconst parsedOutput = $('Parse Ideas Output').item?.json;\n\nif (batchResponse?.data?.videos && Array.isArray(batchResponse.data.videos)) {\n  // Use videos from batch creation response\n  ideas.push(...batchResponse.data.videos.map((v) => ({\n    ideaTitle: v.idea,\n    idea: v.idea,\n    vibe: v.vibe,\n    ideaId: v.id\n  })));\n} else if (parsedOutput && Array.isArray(parsedOutput.ideas)) {\n  // Fallback: use ideas from parsed output\n  ideas.push(...parsedOutput.ideas);\n} else {\n  // Last resort: collect from input items\n  for (const item of $input.all()) {\n    if (item.json.idea) {\n      ideas.push({\n        idea: item.json.idea,\n        vibe: item.json.vibe,\n        ideaId: item.json.run_id || item.json.id || item.json.ideaId,\n      });\n    }\n  }\n}\n\nconst userIdea = parsedOutput?.userIdea || runData.user_idea || runData.metadata?.userIdea || runData.input?.userIdea || runData.input?.user_idea || $('When Called').item.json.userInput || '';\n\nreturn [{\n  json: {\n    workflowRunId,\n    projectId,\n    ideas,\n    userIdea: userIdea,\n    totalIdeas: ideas.length,\n  }\n}];"
+        "jsCode": "const ideas = [];\nconst runData = $('Get Run').item?.json ?? {};\nconst workflowRunId =\n  runData.run_id ||\n  runData.id ||\n  $('When Called').item.json.runId;\nconst projectId = runData.project_id || runData.projectId || 'aismr';\n\nlet batchResponse = null;\ntry {\n  batchResponse = $('Create Batch Videos').item?.json ?? null;\n} catch (error) {\n  batchResponse = null;\n}\n\nlet parsedOutput = {};\ntry {\n  parsedOutput = $('Parse Ideas Output').item?.json ?? {};\n} catch (error) {\n  parsedOutput = {};\n}\n\nlet prepOutput = {};\ntry {\n  prepOutput = $('Prepare Batch Videos').item?.json ?? {};\n} catch (error) {\n  prepOutput = {};\n}\n\nconst originalIdeas = Array.isArray(parsedOutput.ideas) ? parsedOutput.ideas : [];\nconst skippedIdeas = Array.isArray(prepOutput.skippedIdeas) ? prepOutput.skippedIdeas : [];\nconst plannedBatch = Array.isArray(prepOutput.batchData) ? prepOutput.batchData : [];\n\nconst lookupOriginalIdea = (title) => {\n  if (!title) {\n    return null;\n  }\n  const normalized = String(title).trim().toLowerCase();\n  return (\n    originalIdeas.find((idea) => {\n      const candidate = (idea.ideaTitle || idea.idea || '').trim().toLowerCase();\n      return candidate === normalized;\n    }) || null\n  );\n};\n\nconst pushIdea = (payload = {}, extra = {}) => {\n  const fromLookup = lookupOriginalIdea(payload.ideaTitle || payload.idea) || payload.original || null;\n\n  ideas.push({\n    ideaTitle: payload.ideaTitle || payload.idea || '',\n    idea: payload.ideaTitle || payload.idea || '',\n    vibe: payload.vibe ?? fromLookup?.vibe ?? null,\n    ideaId: payload.ideaId ?? fromLookup?.ideaId ?? fromLookup?.id ?? null,\n    skipped: Boolean(extra.skipped),\n    skipReason: extra.skipReason ?? null,\n  });\n};\n\nif (Array.isArray(batchResponse?.data?.videos) && batchResponse.data.videos.length > 0) {\n  for (const video of batchResponse.data.videos) {\n    pushIdea({\n      ideaTitle: video.idea,\n      idea: video.idea,\n      vibe: video.vibe,\n      ideaId: video.id,\n    });\n  }\n} else if (plannedBatch.length > 0) {\n  for (const planned of plannedBatch) {\n    pushIdea({\n      ideaTitle: planned.ideaTitle || planned.idea || '',\n      idea: planned.ideaTitle || planned.idea || '',\n      vibe: planned.vibe ?? null,\n      ideaId: planned.ideaId || null,\n    });\n  }\n} else if (originalIdeas.length > 0 && skippedIdeas.length === 0) {\n  for (const idea of originalIdeas) {\n    pushIdea({\n      ideaTitle: idea.ideaTitle,\n      idea: idea.idea,\n      vibe: idea.vibe,\n      ideaId: idea.ideaId || idea.id || null,\n      original: idea,\n    });\n  }\n}\n\nif (skippedIdeas.length > 0) {\n  for (const skipped of skippedIdeas) {\n    pushIdea({\n      ideaTitle: skipped.ideaTitle,\n      idea: skipped.ideaTitle,\n      vibe: skipped.vibe ?? null,\n      original: lookupOriginalIdea(skipped.ideaTitle) ?? null,\n    }, {\n      skipped: true,\n      skipReason: skipped.reason || 'filtered_out',\n    });\n  }\n}\n\nconst userIdea =\n  parsedOutput.userIdea ||\n  runData.user_idea ||\n  runData.metadata?.userIdea ||\n  runData.input?.userIdea ||\n  runData.input?.user_idea ||\n  $('When Called').item.json.userInput ||\n  '';\n\nreturn [\n  {\n    json: {\n      workflowRunId,\n      projectId,\n      ideas,\n      userIdea,\n      totalIdeas: ideas.length,\n    },\n  },\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -4432,
-        -96
+        48,
+        288
       ],
-      "id": "29a8eda8-4059-4110-a61a-4e0e45918e41",
+      "id": "68e2ad5e-5794-4f02-8c98-debc95f61c0f",
       "name": "Aggregate Ideas"
     },
     {
@@ -287,15 +207,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -4208,
-        -96
+        272,
+        288
       ],
-      "id": "a9cd19b6-71b6-4e9c-8237-82e9bb98fafa",
+      "id": "558b6890-85f4-4e1a-b88b-f3c50236fda9",
       "name": "Update Run Ideas Complete",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -306,10 +226,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3984,
-        -96
+        496,
+        288
       ],
-      "id": "c0441158-ca26-46f8-94e4-3632ac9e5cde",
+      "id": "8681009b-aebd-4244-b764-5278174866c5",
       "name": "Prepare Workflow Output"
     },
     {
@@ -325,14 +245,14 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        -5568,
-        128
+        -1088,
+        512
       ],
-      "id": "8e232e23-5673-4a20-ac9e-1839d05a34c3",
+      "id": "65e8025f-54b2-4b60-9fa3-60cb0c673328",
       "name": "5-nano",
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         }
       }
@@ -340,15 +260,15 @@
     {
       "parameters": {
         "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\n      \"ideaTitle\",\n      \"vibe\",\n      \"uniquenessCheck\"\n    ],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\",\n        \"description\": \"Exactly 2 words following pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy', 'sunrise puppy')\",\n        \"pattern\": \"^[a-zA-Z]+ [a-zA-Z]+$\"\n      },\n      \"vibe\": {\n        \"type\": \"string\",\n        \"description\": \"2-3 sentences describing atmosphere and mood for screenwriter\"\n      },\n      \"uniquenessCheck\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"exists\": {\n            \"type\": \"boolean\"\n          },\n          \"matchedVideos\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\"\n            }\n          },\n          \"confidence\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"exact\",\n              \"fuzzy\",\n              \"none\"\n            ]\n          }\n        }\n      }\n    }\n  }\n}"
+        "inputSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"required\": [\n      \"ideaTitle\",\n      \"vibe\"\n    ],\n    \"properties\": {\n      \"ideaTitle\": {\n        \"type\": \"string\",\n        \"description\": \"Exactly 2 words following pattern: [SURREAL MODIFIER] [OBJECT] (e.g., 'velvet puppy', 'void puppy', 'water puppy', 'sunrise puppy')\",\n        \"pattern\": \"^[a-zA-Z]+ [a-zA-Z]+$\"\n      },\n      \"vibe\": {\n        \"type\": \"string\",\n        \"description\": \"2-3 sentences describing atmosphere and mood for screenwriter\"\n      }\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        -5312,
-        128
+        -832,
+        512
       ],
-      "id": "83094251-2b62-4449-8bcc-e585c4a81450",
+      "id": "5a1ee211-cfd4-4f99-9ad3-3d98cfecc404",
       "name": "Structured Output Parser"
     }
   ],
@@ -369,28 +289,6 @@
         [
           {
             "node": "Aggregate Ideas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Out": {
-      "main": [
-        [
-          {
-            "node": "Edit Fields1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Edit Fields1": {
-      "main": [
-        [
-          {
-            "node": "Create a row",
             "type": "main",
             "index": 0
           }
@@ -523,688 +421,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "21caf751-e47c-4426-8433-77a889c850a9",
+  "id": "WungdLrU92xzs8fP",
   "meta": null,
-  "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "userInput": "Make an asmr video about puppies",
-          "runId": "e9140408-792d-40c4-b8e9-f4a273884a73"
-        }
-      }
-    ],
-    "AI Agent: Generate Ideas": [
-      {
-        "json": {
-          "output": [
-            {
-              "ideaTitle": "void puppies",
-              "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "velvet puppies",
-              "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "water puppies",
-              "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "sunrise puppies",
-              "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "crystal puppies",
-              "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "shadow puppies",
-              "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "silk puppies",
-              "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "glass puppies",
-              "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "neon puppies",
-              "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "cosmic puppies",
-              "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "lunar puppies",
-              "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            },
-            {
-              "ideaTitle": "phantom puppies",
-              "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
-              "uniquenessCheck": {
-                "exists": false,
-                "confidence": "none"
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "Create a row": [
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "e11e0cae-1500-4b3c-baaf-4da46af4c4af",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "void puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.969+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.278+00",
-              "updatedAt": "2025-11-03 23:06:40.278+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "9a9e9f2a-57a8-4311-afbe-180866fedc7a",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "velvet puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.992+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.269+00",
-              "updatedAt": "2025-11-03 23:06:40.269+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "1cda0726-b69d-4b78-ad17-e75e5a659203",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "water puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.995+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.219+00",
-              "updatedAt": "2025-11-03 23:06:40.219+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "8478948c-7f4a-4f88-a93d-0a358bee281b",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "sunrise puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.996+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.166+00",
-              "updatedAt": "2025-11-03 23:06:40.166+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "07fa3328-fcce-4fbd-b36b-d9b7ca9ee47a",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "crystal puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.997+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.259+00",
-              "updatedAt": "2025-11-03 23:06:40.259+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "b1cf7e53-c274-46fd-89e7-87946b80b069",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "shadow puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.998+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.263+00",
-              "updatedAt": "2025-11-03 23:06:40.263+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "d0f76cd1-e378-4a3e-b154-34a76a8a91cf",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "silk puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:39.999+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.202+00",
-              "updatedAt": "2025-11-03 23:06:40.202+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "06a5311a-83a9-481d-ad01-9c09a2a23990",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "glass puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:40+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.256+00",
-              "updatedAt": "2025-11-03 23:06:40.256+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "f0aa7eba-914b-4e0e-83bb-6fbab2e7151e",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "neon puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:40.001+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.285+00",
-              "updatedAt": "2025-11-03 23:06:40.285+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "ef2a90e3-32e6-4c26-8c59-402b1b0bc61d",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "cosmic puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:40.004+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.239+00",
-              "updatedAt": "2025-11-03 23:06:40.239+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "b68f1e13-049c-4c83-8083-c98a2fab29c3",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "lunar puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:40.006+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.283+00",
-              "updatedAt": "2025-11-03 23:06:40.283+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      },
-      {
-        "json": {
-          "data": {
-            "video": {
-              "id": "1db19480-d1a2-4be4-a67f-04e7d715f7b0",
-              "runId": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-              "projectId": "aismr",
-              "idea": "phantom puppies",
-              "userIdea": "Make an asmr video about puppies",
-              "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
-              "prompt": null,
-              "videoLink": null,
-              "status": "idea_gen",
-              "errorMessage": null,
-              "startedAt": "2025-11-03 23:06:40.008+00",
-              "completedAt": null,
-              "createdAt": "2025-11-03 23:06:40.267+00",
-              "updatedAt": "2025-11-03 23:06:40.267+00",
-              "metadata": {
-                "source": "idea-generator"
-              }
-            }
-          }
-        }
-      }
-    ],
-    "Update Run Ideas Complete": [
-      {
-        "json": {
-          "workflowRun": {
-            "id": "a951f22d-30bb-4181-8dcb-e9dcd1ba7bad",
-            "projectId": "aismr",
-            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-            "currentStage": "screenplay",
-            "status": "running",
-            "stages": {
-              "publishing": {
-                "status": "pending"
-              },
-              "screenplay": {
-                "status": "running"
-              },
-              "idea_generation": {
-                "output": [
-                  {
-                    "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
-                    "ideaTitle": "void puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
-                    "ideaTitle": "velvet puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
-                    "ideaTitle": "water puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
-                    "ideaTitle": "sunrise puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
-                    "ideaTitle": "crystal puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
-                    "ideaTitle": "shadow puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
-                    "ideaTitle": "silk puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
-                    "ideaTitle": "glass puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
-                    "ideaTitle": "neon puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
-                    "ideaTitle": "cosmic puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
-                    "ideaTitle": "lunar puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  },
-                  {
-                    "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
-                    "ideaTitle": "phantom puppies",
-                    "uniquenessCheck": {
-                      "exists": false,
-                      "confidence": "none"
-                    }
-                  }
-                ],
-                "status": "completed"
-              },
-              "video_generation": {
-                "status": "pending"
-              }
-            },
-            "input": {
-              "turn": {
-                "id": "74de981a-22d8-4d02-9cf3-6371af33302f",
-                "role": "user",
-                "userId": "telegram:6559268788",
-                "content": "Make an asmr video about puppies",
-                "summary": null,
-                "metadata": {
-                  "chatId": "6559268788",
-                  "preview": "Make an asmr video about puppies",
-                  "keywords": [
-                    "make",
-                    "asmr",
-                    "video",
-                    "about",
-                    "puppies"
-                  ],
-                  "platform": "telegram",
-                  "workflow": "chat",
-                  "messageId": "156",
-                  "timestamp": "2025-11-03T22:50:08.811Z",
-                  "messageType": "text"
-                },
-                "createdAt": "2025-11-03 22:50:08.898595+00",
-                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-                "turnIndex": 20,
-                "updatedAt": "2025-11-03 22:50:08.898595+00"
-              },
-              "chatId": "6559268788",
-              "source": "aismr_orchestrator",
-              "turnId": "74de981a-22d8-4d02-9cf3-6371af33302f",
-              "personaId": "ideagenerator",
-              "userInput": "Make an asmr video about puppies"
-            },
-            "output": {
-              "ideas": [
-                {
-                  "vibe": "An absolute void swallows sound as tiny puppies drift in weightless space. Soft paw taps leave glittering tracers in the dark while distant stars blink in sleepy rhythm. The mood blends awe with warmth, like a lullaby whispered inside emptiness.",
-                  "ideaTitle": "void puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "An opulent velvet chamber swallows sound into plush silence. Puppies tread through folds of deep red fabric, their paws whispering against velvet seams. The atmosphere feels intimate and tactile, a whispered cuddle in a room that sighs with softness.",
-                  "ideaTitle": "velvet puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Submerged light threads through a quiet theater where puppies swim through rippling curtains. Bubbles rise like tiny chorus numbers, and the puppies leave delicate rings in the current. The vibe is buoyant, almost meditative, like watching a peaceful tide of cuteness.",
-                  "ideaTitle": "water puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Dawn spills across a boundary where puppies ride sunbeams. The air glows with pink-gold gradients as their paws press into radiant mist. The mood is gentle and hopeful, a waking dream that hums with new light.",
-                  "ideaTitle": "sunrise puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Crystal prisms scatter playfully as puppies bounce through a room of living light. Each touch releases soft chimes and the puppies' squeaks become a glassy lullaby. The vibe sparkles with precision, warmth, and delicate wonder.",
-                  "ideaTitle": "crystal puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Long shadows stretch as puppies drift through a dim corridor. Their silhouettes stitch quiet patterns on a wall of ink, each pawprint fading into twilight. The mood is mysterious yet tender, a noir lullaby about innocent mischief.",
-                  "ideaTitle": "shadow puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Silk threads ripple around a room lit by breathy, pastel glow as puppies tumble through a soft breeze. Their squeaks mingle with the rustle of satin and the room feels like a whispered secret. The atmosphere is intimate, luxurious, and almost breathless.",
-                  "ideaTitle": "silk puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "A chamber of glass walls refracts a pale glow as puppies wander through fractured space. Every sniff scatters light into prismatic ripples, turning fur into living color. The vibe is crisp, reflective, and gently hypnotic.",
-                  "ideaTitle": "glass puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Neon signs hiss and flicker in a rain-soaked alley where puppies drift on luminous puddles. Colors collide, painting fur in electric pinks, blues, and greens. The mood is energetic, playful, and wonderfully surreal—like a cartoon dream after dark.",
-                  "ideaTitle": "neon puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Cosmic dust drifts around orbiting toys as puppies float among tiny comets. Their yips whirl like satellites, tracing soft arcs through velvet space. The atmosphere hums with innocence and universal wonder.",
-                  "ideaTitle": "cosmic puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Moonlit meadows reflect in a quiet pool as lunar puppies leap through silver light. Gravity eases to a sigh, letting each paw land with almost feathered grace. The vibe is calm, curious, and serenely celestial.",
-                  "ideaTitle": "lunar puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                },
-                {
-                  "vibe": "Phantom puppies drift through a foggy stage, transparent and kind, scattering echoes of soft whines. Their forms shimmer in and out as if the air remembers every wag. The mood is hauntingly sweet—a dream of dogs you can almost touch but cannot.",
-                  "ideaTitle": "phantom puppies",
-                  "uniquenessCheck": {
-                    "exists": false,
-                    "confidence": "none"
-                  }
-                }
-              ],
-              "stage": "idea_generation",
-              "userIdea": "Make an asmr video about puppies",
-              "totalIdeas": 12
-            },
-            "workflowDefinitionChunkId": null,
-            "createdAt": "2025-11-03 22:50:18.924+00",
-            "updatedAt": "2025-11-03 23:16:48.095+00"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "be7fd965-aa76-479c-8dec-bdbac4476531",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:16.307Z",
+  "createdAt": "2025-11-04T09:42:16.307Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

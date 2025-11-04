@@ -56,16 +56,14 @@ docker compose -f docker-compose.dev.yml logs -f cloudflared
 tsx scripts/manageDevStack.ts up
 ```
 
-### Production Stack (`docker-compose.yml`)
+### Production Stack
 
-| Command | Description |
-|---------|-------------|
-| `npm run stack:prod` | Start MCP server production profile |
-| `npm run stack:prod:down` | Stop production stack |
-| `npm run stack:dev` | Start MCP server dev profile (with hot reload) |
-| `npm run stack:dev:down` | Stop dev profile |
+For production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions. Production uses Docker Compose directly:
 
-**Note:** These use the main `docker-compose.yml` with profiles, NOT the `docker-compose.dev.yml` which is for n8n development.
+```bash
+docker compose --profile prod up -d
+docker compose --profile prod down
+```
 
 ## 🔍 Service Health & Status
 
@@ -96,51 +94,51 @@ MCP Postgres           Container: running      HTTP: n/a
 | Command | Description |
 |---------|-------------|
 | `npm run db:migrate` | Run main database migrations |
-| `npm run db:operations:migrate` | Run operations database migrations |
+| `npm run db:migrate-ops` | Run operations database migrations |
+| `npm run db:wipe-ops` | Wipe operations database (⚠️ destructive) |
+| `npm run db:ingest` | Ingest prompts from `prompts/` directory |
 | `npm run db:studio` | Open Drizzle Studio (database GUI) |
 
 **Workflow:**
 ```bash
 # After pulling changes that include new migrations
 npm run db:migrate
-npm run db:operations:migrate
+npm run db:migrate-ops
 
 # Browse/edit data in GUI
 npm run db:studio
+
+# Re-ingest prompts after updating prompt files
+npm run db:ingest
 ```
 
-## 📝 Data Ingestion
+## 🔄 Workflow & n8n Operations
 
 | Command | Description |
 |---------|-------------|
-| `npm run ingest` | Ingest prompts from `prompts/` directory |
-| `npm run ingest:prompts` | Same as above |
-| `npm run episodic:backfill` | Backfill workflow runs to episodic memory |
-
-## 🔄 n8n Workflow Sync
-
-| Command | Description |
-|---------|-------------|
-| `npm run n8n:push` | Push local workflows to n8n |
-| `npm run n8n:pull` | Pull workflows from n8n to local files |
+| `npm run workflow:sync-push` | Push local workflows to n8n (with schema injection) |
+| `npm run workflow:sync-pull` | Pull workflows from n8n to local files (with schema extraction) |
+| `npm run workflow:validate` | Validate workflows and tool specifications |
 
 **Workflow:**
 ```bash
 # After editing workflows in n8n UI
-npm run n8n:pull
+npm run workflow:sync-pull
 
 # After editing workflow files locally
-npm run n8n:push
+npm run workflow:sync-push
+
+# Validate workflows before committing
+npm run workflow:validate
 ```
 
 ## 🌐 Cloudflare Tunnel
 
 | Command | Description |
 |---------|-------------|
-| `npm run tunnel` | Run cloudflared locally (non-Docker) |
-| `npm run tunnel:credentials` | Create/manage tunnel credentials |
+| `npm run util:tunnel` | Run cloudflared locally (non-Docker) |
 
-**Note:** Typically cloudflared runs in Docker, but you can run it locally for debugging.
+**Note:** Typically cloudflared runs in Docker via `dev:up`, but you can run it locally for debugging.
 
 ## 🛠️ Development Tools
 
@@ -157,14 +155,18 @@ npm run n8n:push
 
 | Command | Description |
 |---------|-------------|
-| `npm run validate:tool-specs` | Validate MCP tool specification files |
+| `npm run workflow:validate` | Validate workflows and tool specifications |
 | `npm test` | Run full test suite with Vitest |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run type-check` | TypeScript type checking without build |
 
-## 📹 AISMR Utilities
+## 🛠️ Utilities
 
 | Command | Description |
 |---------|-------------|
-| `npm run aismr:archive-videos` | Archive AISMR videos |
+| `npm run util:archive` | Archive AISMR videos |
+| `npm run util:backfill` | Backfill workflow runs to episodic memory |
+| `npm run util:tunnel` | Run cloudflared tunnel locally |
 
 ## 🔧 Custom Scripts
 
@@ -259,9 +261,9 @@ npm run db:migrate
 # 4. Build
 npm run build
 
-# 5. Restart production stack
-npm run stack:prod:down
-npm run stack:prod
+# 5. Restart production server
+npm run build
+npm start
 ```
 
 ### Working with Workflows
@@ -270,14 +272,14 @@ npm run stack:prod
 # 1. Edit workflows in n8n UI (http://localhost:5678)
 
 # 2. Pull changes to local files
-npm run n8n:pull
+npm run workflow:sync-pull
 
 # 3. Commit workflow files
 git add workflows/
 git commit -m "Update workflows"
 
 # On another machine, push workflows back to n8n
-npm run n8n:push
+npm run workflow:sync-push
 ```
 
 ## 📚 Additional Resources

@@ -37,3 +37,19 @@ cloudflared/cert.pem
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+
+# Temporary documentation (should be moved to archive-docs/)
+# These patterns help prevent documentation bloat in root directory
+# Note: Patterns are commented to allow intentional temporary docs during development
+# Uncomment and move files to archive-docs/ when cleanup is needed
+
+# *COMPLIANCE*.md
+# *FIX*.md
+# *REVIEW*.md
+# plan-*.md
+# review-*.md
+
+# Compiled JavaScript files (should not be committed)
+*.js.map
+scripts/*.js
+scripts/*.js.map

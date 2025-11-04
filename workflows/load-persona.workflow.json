@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.935Z",
-  "createdAt": "2025-11-02T01:12:17.645Z",
-  "id": "vhhDMoTeagMrrFyY",
   "name": "Load Persona",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -111,8 +106,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "ee37e3a5-7fda-403f-a458-b5a8bfeb91d0",
+  "id": "I0NZf0EDiLjyD9Ow",
   "meta": null,
-  "pinData": {},
-  "versionId": "3c2c9b7b-585b-4830-ae20-58b6fc385259",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:16.977Z",
+  "createdAt": "2025-11-04T09:42:16.977Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

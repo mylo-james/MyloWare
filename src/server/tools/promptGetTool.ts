@@ -11,13 +11,12 @@ import { extractToolArgs } from './argUtils';
 
 const PROMPT_GET_ARG_KEYS = ['project_name', 'persona_name', 'tags', 'tag'] as const;
 
-const tagInputSchema = z.union([z.string().trim(), z.array(z.string().trim())]).optional();
-
+// n8n-compatible: accept string (will be split on comma) or array
 const promptGetArgsSchema = z.object({
-  project_name: z.string().trim().min(1, 'project_name must not be empty').optional(),
-  persona_name: z.string().trim().min(1, 'persona_name must not be empty').optional(),
-  tags: tagInputSchema,
-  tag: tagInputSchema,
+  project_name: z.string().trim().optional(),
+  persona_name: z.string().trim().optional(),
+  tags: z.string().trim().optional(), // Comma-separated tags or single tag
+  tag: z.string().trim().optional(),  // Legacy: comma-separated tags or single tag
 });
 
 const inputSchema = promptGetArgsSchema.superRefine((value, ctx) => {
@@ -78,6 +77,23 @@ export function registerPromptGetTool(
         'Pass persona_name, project_name, or both to disambiguate overlapping prompts, and receive resolution diagnostics along the way.',
         'Ideal for loading an AI Agent persona\'s system prompt before answering a user.',
         '',
+        '## When to Use prompt_get',
+        'Use ONLY when you know exact identifiers:',
+        '- persona_name AND project_name for combinations',
+        '- persona_name OR project_name for individual prompts',
+        '',
+        'This is EXACT MATCH lookup - if identifiers uncertain, use prompt_search instead.',
+        '',
+        '## Common Patterns',
+        '1. Load combination: {persona_name: "screenwriter", project_name: "aismr"}',
+        '2. Load persona: {persona_name: "ideagenerator"}',
+        '3. Load project: {project_name: "aismr"}',
+        '',
+        '## If prompt_get fails:',
+        '1. Use prompt_list to see available prompts',
+        '2. Use prompt_search to find by description/content',
+        '3. Retry prompt_get with correct identifier',
+        '',
         '## Resolution Strategy',
         'The tool resolves prompts in this priority order:',
         '1. BOTH parameters → COMBINATION prompt (complete workflow with persona + project)',
@@ -99,27 +115,48 @@ export function registerPromptGetTool(
     },
     async (rawArgs: unknown) => {
       let args: PromptGetInput;
+      let normalizedTags: string[] | undefined;
 
       try {
         const extracted = extractToolArgs(rawArgs, {
           allowedKeys: PROMPT_GET_ARG_KEYS,
         });
-        if ('tag' in extracted) {
-          const rawTag = extracted.tag;
-          delete extracted.tag;
-          if (rawTag !== undefined) {
-            const tagValues = Array.isArray(rawTag) ? rawTag : [rawTag];
-            if (extracted.tags === undefined) {
-              extracted.tags = tagValues;
-            } else {
-              const existing = Array.isArray(extracted.tags)
-                ? extracted.tags
-                : [extracted.tags];
-              extracted.tags = [...existing, ...tagValues];
+        
+        // Normalize tags: handle string (comma-separated), array, or undefined
+        const rawTags = extracted.tags;
+        const rawTag = extracted.tag;
+        
+        if (rawTags || rawTag) {
+          const tagList: string[] = [];
+          
+          if (rawTags) {
+            if (typeof rawTags === 'string') {
+              tagList.push(...rawTags.split(',').map(t => t.trim()).filter(Boolean));
+            } else if (Array.isArray(rawTags)) {
+              tagList.push(...rawTags.map(t => String(t).trim()).filter(Boolean));
             }
           }
+          
+          if (rawTag) {
+            if (typeof rawTag === 'string') {
+              tagList.push(...rawTag.split(',').map(t => t.trim()).filter(Boolean));
+            } else if (Array.isArray(rawTag)) {
+              tagList.push(...rawTag.map(t => String(t).trim()).filter(Boolean));
+            }
+          }
+          
+          normalizedTags = tagList.length > 0 ? tagList : undefined;
         }
-        args = inputSchema.parse(extracted);
+        
+        // Parse with normalized data for schema validation
+        const parseInput = {
+          project_name: extracted.project_name,
+          persona_name: extracted.persona_name,
+          tags: extracted.tags,
+          tag: extracted.tag,
+        };
+        
+        args = inputSchema.parse(parseInput);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to parse prompt_get arguments.';
@@ -139,7 +176,14 @@ export function registerPromptGetTool(
           repository = new PromptEmbeddingsRepository();
         }
 
-        const result = await resolvePrompt(repository, args);
+        // Convert MCP args (strings) to internal format (arrays)
+        const resolveArgs: ResolvePromptArgs = {
+          project_name: args.project_name,
+          persona_name: args.persona_name,
+          tags: normalizedTags,
+        };
+
+        const result = await resolvePrompt(repository, resolveArgs);
 
         if (!result.prompt) {
           return {
@@ -215,13 +259,20 @@ interface ResolutionFailure {
   candidates: PromptGetOutput['candidates'];
 }
 
+// Internal function accepts array for direct usage
+interface ResolvePromptArgs {
+  project_name?: string;
+  persona_name?: string;
+  tags?: string[];
+}
+
 async function resolvePrompt(
   repository: PromptEmbeddingsRepository,
-  args: PromptGetInput,
+  args: ResolvePromptArgs,
 ): Promise<ResolutionSuccess | ResolutionFailure> {
   const project = normaliseSlug(args.project_name);
   const persona = normaliseSlug(args.persona_name);
-  const tags = normalizeTagFilters(args.tags, args.tag);
+  const tags = args.tags ?? [];
 
   const filters: PromptLookupFilters = {};
   if (project) {
@@ -476,29 +527,7 @@ function getMetadataArray(
   return [];
 }
 
-function normalizeTagFilters(
-  tags: string | string[] | undefined,
-  legacyTag?: string | string[],
-): string[] {
-  const inputs = [tags, legacyTag].filter((value): value is string | string[] => value !== undefined);
-  if (inputs.length === 0) {
-    return [];
-  }
-
-  const collected: string[] = [];
-
-  for (const entry of inputs) {
-    const values = Array.isArray(entry) ? entry : entry.split(',');
-    for (const value of values) {
-      const slug = typeof value === 'string' ? normaliseSlug(value) : null;
-      if (slug && !collected.includes(slug)) {
-        collected.push(slug);
-      }
-    }
-  }
-
-  return collected;
-}
+// Helper: normalize string/array tags to slug array (removed, no longer used)
 
 function buildFailure(
   message: string,
@@ -506,7 +535,7 @@ function buildFailure(
   project: string | null,
   persona: string | null,
   strategy: PromptGetOutput['resolution']['strategy'],
-  tags: string[],
+  tags: string[] | undefined,
 ): ResolutionFailure {
   return {
     prompt: null,
@@ -521,14 +550,14 @@ function buildResolution(
   persona: string | null,
   strategy: PromptGetOutput['resolution']['strategy'],
   analyzedMatches: number,
-  tags: string[],
+  tags: string[] | undefined,
 ): PromptGetOutput['resolution'] {
   return {
     project,
     persona,
     strategy,
     analyzedMatches,
-    tags: tags.length > 0 ? tags : null,
+    tags: tags && tags.length > 0 ? tags : null,
   };
 }
 

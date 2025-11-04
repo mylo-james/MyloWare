@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.902Z",
-  "createdAt": "2025-11-02T01:07:29.234Z",
-  "id": "XILT3npSi1rA1azF",
   "name": "Generate Video",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -154,7 +149,7 @@
       "name": "Text to Video2",
       "credentials": {
         "httpBearerAuth": {
-          "id": "Q9AKqqQIbQC3QvEI",
+          "id": "AmyJW31FD33zltAm",
           "name": "Bearer Auth account"
         }
       }
@@ -185,7 +180,7 @@
       "name": "Get Video4",
       "credentials": {
         "httpBearerAuth": {
-          "id": "Q9AKqqQIbQC3QvEI",
+          "id": "AmyJW31FD33zltAm",
           "name": "Bearer Auth account"
         }
       }
@@ -649,28 +644,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "36a38c58-2585-40fd-bd00-766395974c5f",
+  "id": "PQsePXjhfSVfw6zb",
   "meta": null,
-  "pinData": {
-    "When Called": [
-      {
-        "json": {
-          "id": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-          "runId": "69b2c22c-fbd3-421e-bc5c-43f51ced5fbb"
-        }
-      }
-    ],
-    "Text to Video2": [
-      {
-        "json": {
-          "code": 200,
-          "msg": "success",
-          "data": {
-            "taskId": "12b3fab3426407ebfed4ab2abf2c1d64"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "8e964a2e-e9ca-4880-a118-6ee11258c0fe",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:16.647Z",
+  "createdAt": "2025-11-04T09:42:16.647Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

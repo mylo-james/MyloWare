@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Validate n8n workflows before commit
+echo "🔍 Validating n8n workflows..."
+
+# Check if any workflow files are being committed
+if git diff --cached --name-only | grep -q "workflows/.*\.workflow\.json"; then
+  npm run validate:workflows || {
+    echo ""
+    echo "❌ Workflow validation failed!"
+    echo "Fix violations before committing. Run: npm run validate:workflows"
+    echo ""
+    exit 1
+  }
+  echo "✅ All workflows passed validation"
+fi
+

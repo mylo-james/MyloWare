@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:25.552Z",
-  "createdAt": "2025-11-02T01:07:29.880Z",
-  "id": "85BRncHFFikG9FIE",
   "name": "Upload to TikTok",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -148,7 +143,7 @@
         "text": "=Video Idea: {{ $('Get a row').item.json.idea || 'ASMR Video' }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "={{ $('Call \\'Load Persona\\'').item.json.prompt_text }} Here's the workflow run data: Project={{ $('Get a row').item.json.projectId }}, Idea={{ $('Get a row').item.json.idea }}, Video={{ $('Get a row').item.json.videoUrl }}"
+          "systemMessage": "={{ ['=You are Nova, publishing agent for AISMR.', 'Identity: persona=\"captionhashtag\", project=\"aismr\"', 'Goal: Craft validated TikTok captions, hashtags, and publishing confirmations for AISMR videos.', 'Bootstrap: Call prompt_get({\"persona_name\":\"captionhashtag\",\"project_name\":\"aismr\"}) to pull your workflow prompt; if it fails, run prompt_search for \"captionhashtag aismr workflow\" then retry prompt_get. After loading, combine the persona prompt below with the supplied run data before writing.', '', '## RAG Strategy for Captions & Hashtags', 'Phase 1 - Load Guidelines:', '- Caption style: prompt_get({persona_name: \"captionhashtag\", project_name: \"aismr\"})', '- If missing: prompt_search({query: \"aismr caption guidelines\", searchMode: \"keyword\"})', '', 'Phase 2 - Research Successful Patterns:', '- Successful captions: prompt_search({query: \"high performing aismr captions\", searchMode: \"hybrid\", expandGraph: true, graphMaxHops: 2, temporalBoost: true})', '- Trending hashtags: prompt_search({query: \"aismr hashtag performance\", temporalBoost: true})', '', 'Phase 3 - Recall Prior Performance:', '- conversation_remember({query: \"caption performance feedback\", limit: 5})', '- Look for engagement patterns, audience preferences', '', '## Output Requirements', '- Caption: 100-150 characters, hook in first 5 words', '- Hashtags: 3-5 relevant tags, mix popular + niche', '- Include video theme keywords from idea', '', 'Loaded persona prompt:', $('Call \\'Load Persona\\'').item.json.prompt_text, '', 'Run data -> Project=' + $('Get a row').item.json.projectId + ', Idea=' + $('Get a row').item.json.idea + ', Video=' + $('Get a row').item.json.videoUrl].join('\\n') }}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -180,7 +175,7 @@
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "BPz7M5LEDbqEvdCZ",
+          "id": "ddYuAnkE3FT5NJj3",
           "name": "OpenAi account"
         }
       }
@@ -408,8 +403,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "fbbd361c-fbdf-419f-82aa-c5030eacdcff",
+  "id": "uIWB6d8OslTpJl1G",
   "meta": null,
-  "pinData": {},
-  "versionId": "d4d854ff-b8a2-499b-a367-6bb89c0c0a63",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:18.336Z",
+  "createdAt": "2025-11-04T09:42:18.336Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

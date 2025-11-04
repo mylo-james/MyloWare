@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.756Z",
-  "createdAt": "2025-11-02T01:09:00.869Z",
-  "id": "NGKqyspp66gDGVI0",
   "name": "AISMR",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -44,8 +39,8 @@
       "name": "Get Turn",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -79,29 +74,19 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "9tBbhRfA4149YH0f",
+          "value": "aTf9AeeHD83GhaYe",
           "mode": "list",
-          "cachedResultUrl": "/workflow/9tBbhRfA4149YH0f",
+          "cachedResultUrl": "/workflow/aTf9AeeHD83GhaYe",
           "cachedResultName": "Generate Ideas"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ $json.runId }}",
-            "userInput": "={{ $json.userInput }}"
+            "userInput": "={{ $json.workflowRun.input.turn.content }}",
+            "runId": "={{ $json.runId }}"
           },
           "matchingColumns": [],
           "schema": [
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
             {
               "id": "userInput",
               "displayName": "userInput",
@@ -109,8 +94,16 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
+            },
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
             }
           ],
           "attemptToConvertTypes": false,
@@ -150,8 +143,8 @@
       "name": "Create Run",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -215,8 +208,8 @@
       "name": "Mark Run Failed",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       },
       "continueOnFail": true
@@ -238,7 +231,7 @@
       "webhookId": "278e8d04-4101-430d-acb7-89bff0a4fc9e",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -261,7 +254,7 @@
       "webhookId": "85f81f2d-87b9-4975-aed8-3d249a1ac98f",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -297,7 +290,7 @@
       "webhookId": "04415893-3114-487c-b1ae-e944382dfaeb",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -307,35 +300,19 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "UH0zBnpPyB8HHUKW",
+          "value": "AOgjN8mzuCAVvQM7",
           "mode": "list",
-          "cachedResultUrl": "/workflow/UH0zBnpPyB8HHUKW",
+          "cachedResultUrl": "/workflow/AOgjN8mzuCAVvQM7",
           "cachedResultName": "Screen Writer"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ $('Assemble Context').item.json.runId }}",
-            "userInput": "={{ $('Assemble Context').item.json.userInput }}",
-            "ideaId": "={{ $json.selectedItem }}",
-            "selectedIdea": {
-              "idea": "={{ $json.idea?.idea || $json.selectedIdea?.idea || '' }}",
-              "vibe": "={{ $json.idea?.vibe || $json.selectedIdea?.vibe || '' }}",
-              "description": "={{ $json.idea?.description || $json.selectedIdea?.description || '' }}"
-            }
+            "userInput": "={{ $json.userInput }}",
+            "runId": "={{ $json.runId }}"
           },
           "matchingColumns": [],
           "schema": [
-            {
-              "id": "runId",
-              "displayName": "runId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
             {
               "id": "userInput",
               "displayName": "userInput",
@@ -343,8 +320,25 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
+            },
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "ideaId",
+              "displayName": "ideaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
             },
             {
               "id": "selectedIdea",
@@ -353,8 +347,7 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "object",
-              "removed": false
+              "type": "string"
             }
           ],
           "attemptToConvertTypes": false,
@@ -388,7 +381,7 @@
       "webhookId": "4643451a-dba6-439a-a254-9b93339a426b",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -463,7 +456,7 @@
       "webhookId": "1ec6bf40-c62c-43cb-ac64-4b3303789426",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -527,7 +520,7 @@
       "webhookId": "9e4cbfb2-0caa-43f8-b567-f059e04c08b9",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -591,7 +584,7 @@
       "webhookId": "d7347230-725e-43e3-91ea-6100ebdc6bb7",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -640,7 +633,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst videoId = $('Extract Selected Idea').item.json.videoId;\nconst tiktokUrl = $('Call Post to TikTok').item.json.videoUrl || \n                  $('Call Post to TikTok').item.json.url ||\n                  'Unknown';\nconst driveUrl = $('Call Upload to Google Drive').item.json.fileUrl ||\n                 $('Call Upload to Google Drive').item.json.webViewLink ||\n                 'Unknown';\n\nreturn {\n  json: {\n    runId,\n    status: 'completed',\n    completedAt: new Date().toISOString(),\n    output: {\n      videoId,\n      tiktokUrl,\n      driveUrl\n    }\n  }\n};"
+        "jsCode": "const runId = $('Assemble Context').item.json.runId;\nconst videoId = $('Extract Selected Idea').item.json.videoId;\nconst tiktokUrl = $('Call Post to TikTok').item.json.videoUrl || \n                  $('Call Post to TikTok').item.json.url ||\n                  'Unknown';\nconst driveUrl = $('Call Upload to Google Drive').item.json.fileUrl ||\n                 $('Call Upload to Google Drive').item.json.webViewLink ||\n                 'Unknown';\n\n// Get existing workflow run to preserve prior outputs\nconst run = $('Assemble Context').item?.json?.workflowRun ?? {};\n\nreturn {\n  json: {\n    runId,\n    status: 'completed',\n    completedAt: new Date().toISOString(),\n    output: {\n      ...(run.output ?? {}),  // CRITICAL: Preserve all prior outputs\n      publishing: {\n        ...(run.output?.publishing ?? {}),  // Preserve existing publishing data\n        videoId,\n        tiktokUrl,\n        driveUrl,\n        completedAt: new Date().toISOString()\n      }\n    }\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -674,8 +667,8 @@
       "name": "Mark Run Complete",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "FlSleoPTUxLtSS8j",
-          "name": "Header Auth account"
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
         }
       }
     },
@@ -696,7 +689,7 @@
       "webhookId": "0d1a7520-456f-4965-b9c2-e1f5579fdca6",
       "credentials": {
         "telegramApi": {
-          "id": "GPniCaPupOh6tYzX",
+          "id": "eC8lO0ynjt4o2RIL",
           "name": "Telegram account"
         }
       },
@@ -937,212 +930,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "f7a7eb51-cb1d-4eb9-bdbc-fd1c3801d3bf",
+  "id": "jAah1mNCNXuvU67S",
   "meta": null,
-  "pinData": {
-    "When Executed by Another Workflow": [
-      {
-        "json": {
-          "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43"
-        }
-      }
-    ],
-    "Call Generate Ideas": [
-      {
-        "json": {
-          "ideas": [
-            {
-              "ideaTitle": "ember puppy",
-              "idea": "ember puppy",
-              "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
-              "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c"
-            },
-            {
-              "ideaTitle": "slate puppy",
-              "idea": "slate puppy",
-              "vibe": "A monochrome studio built from slate and graphite mirrors. The puppy appears as a soft silhouette against cool, chalky surfaces, sliding gently across a stone stage. Subtle rain taps on slate while distant wind whispers through creaking frames.",
-              "ideaId": "7d334557-03da-4807-9ad2-9fc079185329"
-            },
-            {
-              "ideaTitle": "aurora puppy",
-              "idea": "aurora puppy",
-              "vibe": "A velvet night sky spills across the ceiling, ribbons of green and pink swirl above a sleepy puppy. Each breath makes the aurora ripple, turning fur into light. Delicate chimes and distant thunder roll in as colors cascade and fade.",
-              "ideaId": "5272e24d-9a78-4aed-ba64-0489f2820d3d"
-            },
-            {
-              "ideaTitle": "obsidian puppy",
-              "idea": "obsidian puppy",
-              "vibe": "An obsidian room with glassy black walls; the puppy glides like a speck of light on a midnight mirror. The bark becomes a soft echo carried by wind through dark corridors. The sound design blends glass taps, soft paw pads, and the hush of velvet shadows.",
-              "ideaId": "b968110e-f737-4fa3-b8cd-4ed68ebb6f38"
-            },
-            {
-              "ideaTitle": "bronze puppy",
-              "idea": "bronze puppy",
-              "vibe": "A gallery of bronze sculptures and warm amber lighting. The puppy nuzzles among metal leaves as tiny clinks echo. The texture of fur softens into metallic sheen, while background hums with old brass strings.",
-              "ideaId": "c76fee0e-e409-4d74-b3d6-39b8ed93d78d"
-            },
-            {
-              "ideaTitle": "coral puppy",
-              "idea": "coral puppy",
-              "vibe": "An underwater reef scene in a quiet room; coral shapes bloom around a tiny puppy. Bubbles rise with each gentle motion, while distant whale songs become whispering percussion. The color palette glows pink-orange, like sunrise filtered through coral glass.",
-              "ideaId": "a8be271c-fc55-4d9c-b3df-a141c4b3e4ce"
-            },
-            {
-              "ideaTitle": "ivory puppy",
-              "idea": "ivory puppy",
-              "vibe": "A pristine ivory chamber where a white puppy rests on a feather-soft cloud bed. Each exhale stirs white dust motes that swirl into tiny constellations. The soundscape glides with muffled bells, ticking clocks, and soft brushing.",
-              "ideaId": "55235b0a-d006-468e-aa4a-b57a0a16b3f4"
-            },
-            {
-              "ideaTitle": "onyx puppy",
-              "idea": "onyx puppy",
-              "vibe": "A deep onyx tunnel lit by a single point of starlight; the puppy apprentices shadow puppets on glossy walls. Paw steps create ripples of light; the room breathes in near-silent tempo. A piano key tick and distant wind complete the mood.",
-              "ideaId": "71576713-1498-4a0e-934c-5652b5445e3d"
-            },
-            {
-              "ideaTitle": "lucid puppy",
-              "idea": "lucid puppy",
-              "vibe": "In a lucid, glassy space, the puppy steps through refracted rainbows. Each breath scatters light into playful prisms that linger like bubble memories. The hush between sounds is thick as feathered fog, punctuated by distant chimes.",
-              "ideaId": "1b2db0ac-3f06-4558-a8f0-862eacd62eea"
-            },
-            {
-              "ideaTitle": "mossy puppy",
-              "idea": "mossy puppy",
-              "vibe": "A forest stage grows up from the floor; moss cushions the puppy's paws as dew beads on fur. Birds whisper from above while the puppy explores a mossy path that glows softly. The soundscape blends rustling leaves, distant water droplets, and gentle heartbeat-like thumps.",
-              "ideaId": "a7f2fc0b-4292-4503-8378-7104b43de27d"
-            },
-            {
-              "ideaTitle": "electric puppy",
-              "idea": "electric puppy",
-              "vibe": "A neon-lit lab where electric cords trace luminescent lines around a playful puppy. Static buzz crackles in the air with every paw tap. The room hums like a circuit board in a dream.",
-              "ideaId": "942ccea7-db64-4682-a554-d57b1f93c207"
-            },
-            {
-              "ideaTitle": "opal puppy",
-              "idea": "opal puppy",
-              "vibe": "An opalescent room shimmers as the puppy shifts color with every pawstep. Flakes of iridescent dust drift like snow; a chorus of tiny bells tingles with each breath. The ambience glows with gentle, dreamlike shimmer.",
-              "ideaId": "5465627a-b8b2-4a17-b073-75c472e1bb2e"
-            }
-          ],
-          "selectedIdea": {
-            "ideaTitle": "ember puppy",
-            "idea": "ember puppy",
-            "vibe": "A cozy, dim stage where tiny embers drift through the air like slow fireflies. The puppy moves with kiln-warmed light, shadows flickering over fur. The sound design centers on crackling embers, soft breaths, and distant wood planks sighing.",
-            "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c"
-          },
-          "userIdea": "Make an asmr video about puppies",
-          "totalIdeas": 12
-        }
-      }
-    ],
-    "Call Screen Writer": [
-      {
-        "json": {
-          "screenplay": {
-            "title": "Puppy ASMR",
-            "scenes": [],
-            "totalDuration": 60,
-            "triggerWords": []
-          },
-          "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-          "status": "completed"
-        }
-      }
-    ],
-    "Call Generate Video": [
-      {
-        "json": {
-          "workflowRun": {
-            "id": "69b2c22c-fbd3-421e-bc5c-43f51ced5fbb",
-            "projectId": "aismr",
-            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-            "currentStage": "publishing",
-            "status": "running",
-            "stages": {
-              "publishing": {
-                "status": "in_progress"
-              },
-              "screenplay": {
-                "output": {
-                  "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                  "screenplay": {
-                    "title": "Puppy ASMR",
-                    "scenes": [],
-                    "triggerWords": [],
-                    "totalDuration": 60
-                  },
-                  "completedAt": "2025-11-03T23:52:41.695Z"
-                },
-                "status": "completed"
-              },
-              "idea_generation": {
-                "status": "pending"
-              },
-              "video_generation": {
-                "output": {
-                  "idea": "ember puppy",
-                  "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                  "status": "video_gen",
-                  "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
-                },
-                "status": "completed"
-              }
-            },
-            "input": {
-              "turn": {
-                "id": "c306939b-0b61-4ece-a978-011cb75f6d43",
-                "role": "user",
-                "userId": "telegram:6559268788",
-                "content": "Make an asmr video about puppies",
-                "summary": null,
-                "metadata": {
-                  "chatId": "6559268788",
-                  "preview": "Make an asmr video about puppies",
-                  "keywords": [
-                    "make",
-                    "asmr",
-                    "video",
-                    "about",
-                    "puppies"
-                  ],
-                  "platform": "telegram",
-                  "workflow": "chat",
-                  "messageId": "156",
-                  "timestamp": "2025-11-03T22:36:29.120Z",
-                  "messageType": "text"
-                },
-                "createdAt": "2025-11-03 22:36:29.219968+00",
-                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-                "turnIndex": 19,
-                "updatedAt": "2025-11-03 22:36:29.219968+00"
-              },
-              "chatId": "6559268788",
-              "source": "aismr_orchestrator",
-              "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43",
-              "personaId": "ideagenerator",
-              "userInput": "Make an asmr video about puppies"
-            },
-            "output": {
-              "screenplay": {
-                "title": "Puppy ASMR",
-                "scenes": [],
-                "triggerWords": [],
-                "totalDuration": 60
-              },
-              "video_generation": {
-                "idea": "ember puppy",
-                "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                "status": "video_gen",
-                "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
-              }
-            },
-            "workflowDefinitionChunkId": null,
-            "createdAt": "2025-11-03 23:52:28.246+00",
-            "updatedAt": "2025-11-03 23:59:28.646+00"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "1af1efe4-3f04-4262-a7f5-6e2cb92f19bc",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:14.744Z",
+  "createdAt": "2025-11-04T09:42:14.744Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

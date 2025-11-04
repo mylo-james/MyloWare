@@ -9,6 +9,8 @@ const CANDIDATE_KEYS = [
   'request',
   'requestBody',
   'params',
+  'query', // n8n wraps MCP tool arguments in a query object
+  'arguments', // Standard MCP parameter wrapper
 ];
 
 const ENVELOPE_KEYS = ['requestInfo', '_meta'];

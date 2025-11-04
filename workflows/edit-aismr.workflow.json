@@ -1,10 +1,5 @@
 {
-  "updatedAt": "2025-11-04T00:15:24.827Z",
-  "createdAt": "2025-11-02T01:07:28.641Z",
-  "id": "uLwOn2FpGtS7DiqE",
   "name": "Edit_AISMR",
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -443,103 +438,14 @@
     "executionOrder": "v1"
   },
   "staticData": null,
+  "active": false,
+  "versionId": "d01e632a-f2da-4a6c-9f35-06e698ed00c3",
+  "id": "z34mb3qsWQfoiWVD",
   "meta": null,
-  "pinData": {
-    "When Executed by Another Workflow": [
-      {
-        "json": {
-          "workflowRun": {
-            "id": "69b2c22c-fbd3-421e-bc5c-43f51ced5fbb",
-            "projectId": "aismr",
-            "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-            "currentStage": "publishing",
-            "status": "running",
-            "stages": {
-              "publishing": {
-                "status": "in_progress"
-              },
-              "screenplay": {
-                "output": {
-                  "videoId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                  "screenplay": {
-                    "title": "Puppy ASMR",
-                    "scenes": [],
-                    "triggerWords": [],
-                    "totalDuration": 60
-                  },
-                  "completedAt": "2025-11-03T23:52:41.695Z"
-                },
-                "status": "completed"
-              },
-              "idea_generation": {
-                "status": "pending"
-              },
-              "video_generation": {
-                "output": {
-                  "idea": "ember puppy",
-                  "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                  "status": "video_gen",
-                  "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
-                },
-                "status": "completed"
-              }
-            },
-            "input": {
-              "turn": {
-                "id": "c306939b-0b61-4ece-a978-011cb75f6d43",
-                "role": "user",
-                "userId": "telegram:6559268788",
-                "content": "Make an asmr video about puppies",
-                "summary": null,
-                "metadata": {
-                  "chatId": "6559268788",
-                  "preview": "Make an asmr video about puppies",
-                  "keywords": [
-                    "make",
-                    "asmr",
-                    "video",
-                    "about",
-                    "puppies"
-                  ],
-                  "platform": "telegram",
-                  "workflow": "chat",
-                  "messageId": "156",
-                  "timestamp": "2025-11-03T22:36:29.120Z",
-                  "messageType": "text"
-                },
-                "createdAt": "2025-11-03 22:36:29.219968+00",
-                "sessionId": "a19c5482-7fdf-5a4d-88cb-1ba1fe4163fc",
-                "turnIndex": 19,
-                "updatedAt": "2025-11-03 22:36:29.219968+00"
-              },
-              "chatId": "6559268788",
-              "source": "aismr_orchestrator",
-              "turnId": "c306939b-0b61-4ece-a978-011cb75f6d43",
-              "personaId": "ideagenerator",
-              "userInput": "Make an asmr video about puppies"
-            },
-            "output": {
-              "screenplay": {
-                "title": "Puppy ASMR",
-                "scenes": [],
-                "triggerWords": [],
-                "totalDuration": 60
-              },
-              "video_generation": {
-                "idea": "ember puppy",
-                "ideaId": "9d5f06fd-0eac-4ce3-a426-fed758e1376c",
-                "status": "video_gen",
-                "videoUrl": "https://tempfile.aiquickdraw.com/v/12b3fab3426407ebfed4ab2abf2c1d64_1762214360.mp4"
-              }
-            },
-            "workflowDefinitionChunkId": null,
-            "createdAt": "2025-11-03 23:52:28.246+00",
-            "updatedAt": "2025-11-03 23:59:28.646+00"
-          }
-        }
-      }
-    ]
-  },
-  "versionId": "94067048-5b96-4de3-8168-ebd180123870",
+  "pinData": null,
+  "updatedAt": "2025-11-04T09:42:16.026Z",
+  "createdAt": "2025-11-04T09:42:16.026Z",
+  "isArchived": false,
+  "versionCounter": 1,
   "triggerCount": 0
 }

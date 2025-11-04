@@ -9,12 +9,14 @@ interface CliOptions {
   mode: 'push' | 'pull';
   directory: string;
   dryRun: boolean;
+  force: boolean;
 }
 
 const cliOptionsSchema = z.object({
   mode: z.enum(['push', 'pull']),
   directory: z.string().min(1),
   dryRun: z.boolean(),
+  force: z.boolean(),
 });
 
 function parseArgs(): CliOptions {
@@ -22,6 +24,7 @@ function parseArgs(): CliOptions {
   let mode: 'push' | 'pull' | undefined;
   let directory = path.resolve(process.cwd(), 'workflows');
   let dryRun = false;
+  let force = false;
 
   for (const arg of argv) {
     if (arg === '--push') {
@@ -30,6 +33,8 @@ function parseArgs(): CliOptions {
       mode = 'pull';
     } else if (arg === '--dry-run') {
       dryRun = true;
+    } else if (arg === '--force') {
+      force = true;
     } else if (arg.startsWith('--dir=')) {
       directory = path.resolve(arg.slice('--dir='.length));
     }
@@ -44,6 +49,7 @@ function parseArgs(): CliOptions {
     mode,
     directory,
     dryRun,
+    force,
   });
 
   if (!optionsResult.success) {
@@ -99,7 +105,7 @@ async function run(): Promise<void> {
   console.info(
     `[n8n] ${options.mode === 'push' ? 'Pushing' : 'Pulling'} workflows ${
       options.dryRun ? '(dry run)' : ''
-    } from ${baseUrl.toString()} using directory ${options.directory}`,
+    }${options.force ? ' (force mode - will create new workflows)' : ''} from ${baseUrl.toString()} using directory ${options.directory}`,
   );
 
   if (options.mode === 'pull') {
@@ -108,6 +114,7 @@ async function run(): Promise<void> {
       headers,
       directory: options.directory,
       dryRun: options.dryRun,
+      force: options.force,
     });
   } else {
     await pushWorkflows({
@@ -115,6 +122,7 @@ async function run(): Promise<void> {
       headers,
       directory: options.directory,
       dryRun: options.dryRun,
+      force: options.force,
     });
   }
 }
@@ -124,6 +132,7 @@ interface N8nRequestOptions {
   headers: Record<string, string>;
   directory: string;
   dryRun: boolean;
+  force: boolean;
 }
 
 async function pullWorkflows(options: N8nRequestOptions): Promise<void> {
@@ -300,15 +309,22 @@ async function pushWorkflows(options: N8nRequestOptions): Promise<void> {
       continue;
     }
 
+    // In force mode, strip the ID to force creation of new workflows
+    if (options.force && workflow?.id) {
+      delete workflow.id;
+    }
+
     const workflowId = workflow?.id ? String(workflow.id) : undefined;
     const workflowName =
       typeof workflow?.name === 'string'
         ? (workflow.name as string)
         : file.name.replace(/\.workflow\.json$/, '');
 
-    const remoteEntry =
-      (workflowId && remoteById.get(workflowId)) ??
-      (workflowName ? remoteByName.get(workflowName) : undefined);
+    // In force mode, don't try to match with remote workflows
+    const remoteEntry = options.force
+      ? undefined
+      : (workflowId && remoteById.get(workflowId)) ??
+        (workflowName ? remoteByName.get(workflowName) : undefined);
 
     if (options.dryRun) {
       console.info(

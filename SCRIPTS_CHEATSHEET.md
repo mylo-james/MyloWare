@@ -66,10 +66,13 @@ npm run db:studio
 
 ```bash
 # Pull from n8n → local files
-npm run n8n:pull
+npm run workflow:sync-pull
 
 # Push from local files → n8n
-npm run n8n:push
+npm run workflow:sync-push
+
+# Validate workflows and tool specs
+npm run workflow:validate
 ```
 
 ## Testing & QA
@@ -129,7 +132,7 @@ docker exec -it mcp-prompts-n8n-1 sh
 | Can't access localhost:5678 | `npm run dev:restart n8n`                  |
 | Port already in use         | `npm run dev:down` then check `docker ps`  |
 | Database connection errors  | `npm run db:migrate`                       |
-| Workflow not loading        | `npm run n8n:pull` then `npm run n8n:push` |
+| Workflow not loading        | `npm run workflow:sync-pull` then `npm run workflow:sync-push` |
 | Everything is broken        | `npm run dev:clean && npm run dev:up`      |
 
 ## Full Documentation
