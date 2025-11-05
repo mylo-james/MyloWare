@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: v2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: memories
+      POSTGRES_USER: mylo
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'mylo', '-d', 'memories']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - v2-network
+
+  mcp-server:
+    build:
+      context: .
+      target: mcp-server
+    container_name: v2-mcp-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://mylo:${DB_PASSWORD}@postgres:5432/memories
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MCP_AUTH_KEY: ${MCP_AUTH_KEY}
+      SERVER_PORT: 3000
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
+      LOG_LEVEL: info
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - v2-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: v2-n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - mcp-server
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: mylo
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      N8N_METRICS: true
+      N8N_LOG_LEVEL: info
+      QUEUE_HEALTH_CHECK_ACTIVE: true
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 10
+      WEBHOOK_URL: http://localhost:5678
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      MCP_SERVER_URL: http://mcp-server:3000
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    ports:
+      - '${N8N_PORT:-5678}:5678'
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/.n8n/workflows
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5678/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - v2-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: v2-cloudflared
+    depends_on:
+      - mcp-server
+    command: tunnel --config /etc/cloudflared/config.dev.yml run
+    restart: unless-stopped
+    volumes:
+      - ./cloudflared/config.dev.yml:/etc/cloudflared/config.dev.yml:ro
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+      - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
+    networks:
+      - v2-network
+
+volumes:
+  postgres_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  v2-network:
+    driver: bridge

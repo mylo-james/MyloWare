@@ -1,0 +1,21 @@
+# Cloudflare Tunnel configuration for development environment
+# Routes to services within the docker-compose.dev.yml network
+tunnel: mcp-vector
+credentials-file: /etc/cloudflared/credentials/mcp-vector.json
+origincert: /etc/cloudflared/cert.pem
+
+ingress:
+  # Route n8n via internal Docker network (not host.docker.internal)
+  - hostname: n8n.mjames.dev
+    service: http://n8n:5678
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+  # Route MCP server running on host machine
+  - hostname: mcp-vector.mjames.dev
+    service: http://host.docker.internal:3456
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+  - service: http_status:404
+

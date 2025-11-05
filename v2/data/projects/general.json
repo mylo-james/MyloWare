@@ -1,0 +1,11 @@
+{
+  "title": "General Conversations",
+  "workflows": ["conversation"],
+  "guardrails": {
+    "maxResponseSeconds": 30
+  },
+  "orientation": {
+    "what_we_are": ["Default fallback project for ad-hoc conversations"],
+    "key_metrics": ["Response clarity", "Latency"]
+  }
+}

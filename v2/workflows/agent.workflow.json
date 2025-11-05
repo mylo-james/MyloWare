@@ -1,0 +1,242 @@
+{
+  "name": "Agent Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ]
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        40
+      ],
+      "id": "telegram-trigger",
+      "name": "Telegram Message Trigger",
+      "webhookId": "agent-webhook-id",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $input.item.json.message || {};\nconst chatId = message.chat?.id ?? 'unknown';\nconst userId = message.from?.id ?? 'unknown';\nconst text = message.text || message.caption || '';\nconst attachments = [];\n\nif (message.voice) {\n  attachments.push({ type: 'voice', duration: message.voice.duration, fileId: message.voice.file_id });\n}\n\nreturn {\n  json: {\n    chatId: chatId.toString(),\n    userId: `telegram:${userId}`,\n    sessionId: `telegram:${chatId}`,\n    messageId: message.message_id ?? null,\n    text,\n    platform: 'telegram',\n    attachments,\n    raw: message,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -904,
+        40
+      ],
+      "id": "normalize-event",
+      "name": "Normalize Telegram Event"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.item.json ?? {};\nconst sessionId = base.sessionId || `telegram:${base.chatId}`;\nconst systemPrompt = [\n  'You are Casey, Mylo\'s AI collaborator. You operate inside n8n and have MCP tools for memory + workflow orchestration.',\n  'Process:',\n  '1) Understand the latest user utterance.',\n  '2) Load persona/project context via MCP if missing.',\n  '3) Use memory_search / memory_store / workflow_discover / workflow_execute tools as needed.',\n  '4) Respond warmly and concisely, or acknowledge delegated work.',\n  'All tool calls must use the provided session + user identifiers so memory stays linked.',\n].join(' ');\n\nreturn {\n  json: {\n    systemPrompt,\n    session: {\n      id: sessionId,\n      userId: base.userId,\n    },\n    message: {\n      text: base.text || '',\n      chatId: base.chatId,\n      messageId: base.messageId,\n      platform: base.platform,\n      timestamp: base.timestamp,\n      attachments: base.attachments || []\n    },\n    platform: base.platform,\n    telemetry: { raw: base.raw }
+  }
+};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -664,
+        40
+      ],
+      "id": "prepare-agent-context",
+      "name": "Prepare Agent Context"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        40
+      ],
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -408,
+        216
+      ],
+      "id": "openai-chat",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "={{ $env.MCP_SERVER_URL || 'http://mcp-server:3000/mcp' }}",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        -192,
+        232
+      ],
+      "id": "mcp-client",
+      "name": "MCP Client",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $json.response ?? $json.result ?? $json.output ?? $json.text ?? '';\nconst replyText = typeof agentOutput === 'string' ? agentOutput : JSON.stringify(agentOutput, null, 2);\nconst context = $('Prepare Agent Context').item?.json ?? {};\n\nreturn {\n  json: {\n    replyText,\n    chatId: context.message?.chatId ?? null,\n    messageId: context.message?.messageId ?? null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        72,
+        40
+      ],
+      "id": "format-response",
+      "name": "Format Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.replyText }}",
+        "replyToMessageId": "={{ $json.messageId }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        312,
+        40
+      ],
+      "id": "reply-telegram",
+      "name": "Reply in Telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Telegram Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Telegram Event": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Reply in Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-05T00:00:00.000Z",
+  "versionId": "2"
+}
