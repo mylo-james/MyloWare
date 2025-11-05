@@ -19,23 +19,23 @@ describe('SessionRepository', () => {
       const session = await repository.findOrCreate(
         'test-session-1',
         'test-user',
-        'casey',
+        'chat',
         'aismr'
       );
 
       expect(session.id).toBe('test-session-1');
       expect(session.userId).toBe('test-user');
-      expect(session.persona).toBe('casey');
+      expect(session.persona).toBe('chat');
       expect(session.project).toBe('aismr');
     });
 
     it('should return existing session when exists', async () => {
-      await repository.findOrCreate('test-session-2', 'test-user', 'casey', 'aismr');
+      await repository.findOrCreate('test-session-2', 'test-user', 'chat', 'aismr');
       
       const session = await repository.findOrCreate(
         'test-session-2',
         'test-user',
-        'casey',
+        'chat',
         'aismr'
       );
 
@@ -48,7 +48,7 @@ describe('SessionRepository', () => {
       const session = await repository.findOrCreate(
         'test-session-3',
         'test-user',
-        'casey',
+        'chat',
         'aismr'
       );
       const firstInteraction = session.lastInteractionAt;
@@ -59,7 +59,7 @@ describe('SessionRepository', () => {
       const updated = await repository.findOrCreate(
         'test-session-3',
         'test-user',
-        'casey',
+        'chat',
         'aismr'
       );
 

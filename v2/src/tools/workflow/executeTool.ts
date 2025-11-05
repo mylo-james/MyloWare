@@ -4,12 +4,13 @@ import type {
 } from '../../types/workflow.js';
 import { WorkflowRunRepository } from '../../db/repositories/workflow-run-repository.js';
 import { workflowExecutions, workflowDuration } from '../../utils/metrics.js';
+import { N8nClient } from '../../integrations/n8n/client.js';
+import { config } from '../../config/index.js';
 
 /**
  * Execute a workflow and track its execution
  *
- * Phase 3: Direct execution mode only (MCP steps executed by agent)
- * Phase 4: Will add n8n delegation mode
+ * Delegates workflow execution to n8n API
  *
  * @param params - Execution parameters
  * @returns Workflow run ID and status
@@ -27,21 +28,58 @@ export async function executeWorkflow(
       workflowName: params.workflowId,
       input: params.input,
       metadata: {
-        executionMode: 'direct',
+        executionMode: 'n8n_delegation',
         waitForCompletion: params.waitForCompletion || false,
       },
     });
 
-    // 2. Update to running status
-    await repository.updateStatus(run.id, 'running');
+    // 2. Initialize n8n client
+    const n8nClient = new N8nClient({
+      baseUrl: config.n8n.baseUrl || 'http://n8n:5678',
+      apiKey: config.n8n.apiKey,
+    });
 
-    // 3. Record metrics
-    workflowExecutions.inc({ workflow_name: params.workflowId, status: 'running' });
+    // 3. Trigger n8n workflow
+    const executionId = await n8nClient.executeWorkflow(
+      params.workflowId,
+      params.input
+    );
+
+    // 4. Update run with n8n execution ID
+    await repository.update(run.id, {
+      status: 'running',
+      metadata: {
+        ...run.metadata,
+        n8nExecutionId: executionId,
+      },
+    });
+
+    // 5. If waitForCompletion, poll for result
+    if (params.waitForCompletion) {
+      try {
+        const result = await n8nClient.waitForCompletion(executionId, 300000); // 5 min timeout
+        await repository.updateStatus(run.id, 'completed', { output: result as Record<string, unknown> });
+        timer();
+        workflowExecutions.inc({ workflow_name: params.workflowId, status: 'completed' });
+        return {
+          workflowRunId: run.id,
+          status: 'completed',
+          output: result as Record<string, unknown>,
+          error: undefined,
+        };
+      } catch (waitError) {
+        await repository.updateStatus(run.id, 'failed', {
+          error: waitError instanceof Error ? waitError.message : 'Workflow execution failed',
+        });
+        timer();
+        workflowExecutions.inc({ workflow_name: params.workflowId, status: 'error' });
+        throw waitError;
+      }
+    }
+
+    // 6. Return immediately if not waiting
     timer();
-
-    // 4. For Phase 3: Return immediately with pending status
-    // The agent will execute steps itself using available MCP tools
-    // In Phase 4, we'll add actual execution logic for n8n delegation
+    workflowExecutions.inc({ workflow_name: params.workflowId, status: 'running' });
     return {
       workflowRunId: run.id,
       status: 'running',

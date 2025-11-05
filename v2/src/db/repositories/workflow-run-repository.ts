@@ -95,5 +95,29 @@ export class WorkflowRunRepository {
 
     return results as WorkflowRun[];
   }
+
+  async update(
+    id: string,
+    updates: {
+      status?: string;
+      output?: Record<string, unknown>;
+      error?: string;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<WorkflowRun> {
+    const setValues: any = { ...updates };
+
+    if (updates.status === 'completed' || updates.status === 'failed') {
+      setValues.completedAt = new Date();
+    }
+
+    const [result] = await db
+      .update(workflowRuns)
+      .set(setValues)
+      .where(eq(workflowRuns.id, id))
+      .returning();
+
+    return result as WorkflowRun;
+  }
 }
 

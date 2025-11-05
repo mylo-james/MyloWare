@@ -15,7 +15,7 @@
         "description": "Load platform-specific configurations in parallel",
         "parallel_calls": [
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "TikTok publishing settings caption hashtag templates",
               "project": "aismr",
@@ -25,7 +25,7 @@
             "storeAs": "tiktokConfig"
           },
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "YouTube Shorts publishing settings title description",
               "project": "aismr",
@@ -35,7 +35,7 @@
             "storeAs": "youtubeConfig"
           },
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "Instagram Reels publishing settings caption hashtags",
               "project": "aismr",
@@ -178,7 +178,7 @@
         "description": "Store publishing results and URLs in episodic memory",
         "dependsOn": ["publish_tiktok", "publish_youtube", "publish_instagram"],
         "mcp_call": {
-          "tool": "conversation.store",
+          "tool": "memory_store",
           "params": {
             "sessionId": "${context.sessionId}",
             "role": "assistant",

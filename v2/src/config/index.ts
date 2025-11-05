@@ -11,7 +11,7 @@ const ConfigSchema = z.object({
     apiKey: z.string().startsWith('sk-'),
   }),
   mcp: z.object({
-    authKey: z.string().uuid(),
+    authKey: z.string().uuid().optional(),
   }),
   server: z.object({
     port: z.number().default(3000),
@@ -22,6 +22,8 @@ const ConfigSchema = z.object({
     userId: z.string().optional(),
   }),
   n8n: z.object({
+    baseUrl: z.string().url().optional(),
+    apiKey: z.string().optional(),
     webhookUrl: z.string().url().optional(),
   }),
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
@@ -58,6 +60,8 @@ export const config = ConfigSchema.parse({
     userId: process.env.TELEGRAM_USER_ID,
   },
   n8n: {
+    baseUrl: process.env.N8N_BASE_URL || 'http://n8n:5678',
+    apiKey: process.env.N8N_API_KEY,
     webhookUrl: process.env.N8N_WEBHOOK_URL || process.env.N8N_BASE_URL,
   },
   logLevel: (process.env.LOG_LEVEL as any) || 'info',

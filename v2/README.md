@@ -52,13 +52,13 @@ cd mcp-prompts/v2
 
 # Create .env file
 cp .env.example .env
-# Edit .env with your secrets (OpenAI API key is required for non-test runs)
+# Edit .env with your credentials (OpenAI API key is required for non-test runs)
 
 # Start all services (Postgres + MCP Server + n8n)
 docker compose up
 
 # In another terminal, run database migrations
-npm run db:migrate
+npm run db:push
 
 # Seed with test data (optional)
 npm run db:seed
@@ -140,7 +140,7 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## 🛠️ Available Tools
 
-The agent has **11 MCP tools** organized into 4 categories:
+The agent has **12 MCP tools** organized into 4 categories:
 
 ### Memory Tools
 - `memory_search` - Hybrid vector + keyword search
@@ -160,6 +160,9 @@ The agent has **11 MCP tools** organized into 4 categories:
 - `clarify_ask` - Request user clarification
 - `session_get_context` - Load session state
 - `session_update_context` - Save working memory
+
+### Documentation Tools
+- `docs_lookup` - Search documentation via Context7 for OpenAI, n8n, MCP, and internal docs
 
 See [MCP_TOOLS.md](docs/MCP_TOOLS.md) for complete API reference.
 

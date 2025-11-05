@@ -24,6 +24,15 @@ const mcpServer = new McpServer({
 // Register all tools
 registerMCPTools(mcpServer);
 
+// OpenAI health cache
+let openaiHealthCache: { status: string; lastCheck: number } = {
+  status: 'unknown',
+  lastCheck: 0,
+};
+
+// Check OpenAI health every 60 seconds max
+const HEALTH_CACHE_TTL = 60000;
+
 // Health endpoint with detailed checks
 fastify.get('/health', async () => {
   const checks: Record<string, string> = {};
@@ -33,17 +42,24 @@ fastify.get('/health', async () => {
   try {
     await pool.query('SELECT 1');
     checks.database = 'ok';
-  } catch (error) {
+  } catch {
     checks.database = 'error';
     allHealthy = false;
   }
 
-  // Check OpenAI
-  try {
-    await embedText('test');
-    checks.openai = 'ok';
-  } catch (error) {
-    checks.openai = 'error';
+  // Check OpenAI with caching
+  const now = Date.now();
+  if (now - openaiHealthCache.lastCheck > HEALTH_CACHE_TTL) {
+    try {
+      await embedText('test');
+      openaiHealthCache = { status: 'ok', lastCheck: now };
+    } catch {
+      openaiHealthCache = { status: 'error', lastCheck: now };
+    }
+  }
+  
+  checks.openai = openaiHealthCache.status;
+  if (openaiHealthCache.status !== 'ok') {
     allHealthy = false;
   }
 
@@ -71,6 +87,22 @@ fastify.get('/metrics', async (request, reply) => {
 // MCP endpoint
 fastify.post('/mcp', async (request, reply) => {
   try {
+    // Check auth if MCP_AUTH_KEY is configured
+    if (config.mcp.authKey) {
+      const authHeader = request.headers['x-mcp-auth-key'] as string | undefined;
+      if (authHeader !== config.mcp.authKey) {
+        reply.code(401).send({
+          jsonrpc: '2.0',
+          error: {
+            code: -32001,
+            message: 'Unauthorized',
+          },
+          id: null,
+        });
+        return;
+      }
+    }
+
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

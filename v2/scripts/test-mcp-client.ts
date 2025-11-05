@@ -66,7 +66,7 @@ async function testMCPClient() {
       const persona = await client.callTool({
         name: 'context_get_persona',
         arguments: {
-          personaName: 'casey',
+          personaName: 'chat',
         },
       });
       console.log('✅ context_get_persona result:', JSON.stringify(persona, null, 2));

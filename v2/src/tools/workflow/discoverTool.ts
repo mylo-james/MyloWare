@@ -38,12 +38,19 @@ export async function discoverWorkflow(
         return null;
       }
 
+      // Use actual similarity score from search result if available
+      // The memory is already ranked by RRF, so index reflects relevance
+      // But we can use a normalized score based on position (higher = more relevant)
+      const relevanceScore = searchResult.memories.length > 0
+        ? (searchResult.memories.length - index) / searchResult.memories.length
+        : 1.0 - index * 0.05;
+
       return {
         workflowId: memory.id,
         name: workflowDef.name || 'Unknown Workflow',
         description:
           workflowDef.description || memory.summary || memory.content,
-        relevanceScore: 1.0 - index * 0.05, // Simple relevance scoring
+        relevanceScore,
         workflow: workflowDef,
         memoryId: memory.id,
       };

@@ -44,12 +44,12 @@ describe('Agent Integration', () => {
     const session = await repository.findOrCreate(
       'test-session-456',
       'test-user',
-      'casey',
+      'chat',
       'aismr'
     );
 
     expect(session.id).toBe('test-session-456');
-    expect(session.persona).toBe('casey');
+    expect(session.persona).toBe('chat');
 
     // Update context
     await repository.updateContext('test-session-456', {
@@ -84,7 +84,7 @@ describe('Agent Integration', () => {
     const session = await repository.findOrCreate(
       'telegram:123456',
       'mylo',
-      'casey',
+      'chat',
       'aismr'
     );
 

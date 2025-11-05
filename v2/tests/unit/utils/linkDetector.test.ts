@@ -70,7 +70,7 @@ describe('linkDetector', () => {
       await storeMemory({
         content: 'Casey workflow for ideas',
         memoryType: 'procedural',
-        persona: ['casey'],
+        persona: ['chat'],
         project: ['aismr']
       });
 
@@ -84,7 +84,7 @@ describe('linkDetector', () => {
       const related = await detectRelatedMemories(
         'Casey workflow',
         {
-          persona: ['casey'],
+          persona: ['chat'],
           project: ['aismr'],
           limit: 5
         }

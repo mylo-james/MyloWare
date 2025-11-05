@@ -27,7 +27,7 @@ describe('Agent E2E Flow', () => {
     
     // 2. Agent loads context
     const sessionRepo = new SessionRepository();
-    await sessionRepo.findOrCreate(sessionId, 'mylo', 'casey', 'aismr');
+    await sessionRepo.findOrCreate(sessionId, 'mylo', 'chat', 'aismr');
     
     // 3. Agent searches memory
     const pastIdeas = await searchMemories({

@@ -15,7 +15,7 @@
         "description": "Load all AISMR specs in parallel using keyword search",
         "parallel_calls": [
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "AISMR runtime 8 seconds specification",
               "project": "aismr",
@@ -25,7 +25,7 @@
             "storeAs": "runtimeSpec"
           },
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "AISMR whisper timing 3.0 seconds specification",
               "project": "aismr",
@@ -35,7 +35,7 @@
             "storeAs": "whisperSpec"
           },
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "AISMR maximum hands count specification",
               "project": "aismr",
@@ -45,7 +45,7 @@
             "storeAs": "handsSpec"
           },
           {
-            "tool": "prompts.search",
+            "tool": "memory_search",
             "params": {
               "query": "AISMR no music audio specification",
               "project": "aismr",
@@ -63,7 +63,7 @@
         "description": "Retrieve past quality issues from episodic memory",
         "dependsOn": ["load_specs"],
         "mcp_call": {
-          "tool": "conversation.remember",
+          "tool": "memory_search",
           "params": {
             "sessionId": "${context.sessionId}",
             "query": "past AISMR screenplay quality issues timing errors validation failures",
@@ -172,7 +172,7 @@
         "description": "Store screenplay and validation results in episodic memory",
         "dependsOn": ["generate_screenplay", "validate_timing", "validate_no_music"],
         "mcp_call": {
-          "tool": "conversation.store",
+          "tool": "memory_store",
           "params": {
             "sessionId": "${context.sessionId}",
             "role": "assistant",

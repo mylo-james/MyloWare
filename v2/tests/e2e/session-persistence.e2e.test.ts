@@ -18,7 +18,7 @@ describe('Session Persistence E2E', () => {
     const sessionId = 'telegram:persistence-test';
     
     // First interaction
-    await sessionRepo.findOrCreate(sessionId, 'mylo', 'casey', 'aismr');
+    await sessionRepo.findOrCreate(sessionId, 'mylo', 'chat', 'aismr');
     await sessionRepo.updateContext(sessionId, {
       lastIntent: 'generate-ideas',
       recentTopics: ['rain'],
@@ -39,7 +39,7 @@ describe('Session Persistence E2E', () => {
     const sessionRepo = new SessionRepository();
     const sessionId = 'telegram:history-test';
     
-    await sessionRepo.findOrCreate(sessionId, 'mylo', 'casey', 'aismr');
+    await sessionRepo.findOrCreate(sessionId, 'mylo', 'chat', 'aismr');
     
     // Add conversation entries
     await sessionRepo.addToConversationHistory(sessionId, 'user', 'Generate ideas about rain');
@@ -80,7 +80,7 @@ describe('Session Persistence E2E', () => {
     const sessionRepo = new SessionRepository();
     const sessionId = 'telegram:context-update-test';
     
-    await sessionRepo.findOrCreate(sessionId, 'mylo', 'casey', 'aismr');
+    await sessionRepo.findOrCreate(sessionId, 'mylo', 'chat', 'aismr');
     
     // Initial context
     await sessionRepo.updateContext(sessionId, {

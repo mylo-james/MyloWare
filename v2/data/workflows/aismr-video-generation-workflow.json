@@ -14,7 +14,7 @@
         "type": "mcp_call",
         "description": "Load veo-3-fast and Shotstack configuration from project prompts",
         "mcp_call": {
-          "tool": "prompts.search",
+          "tool": "memory_search",
           "params": {
             "query": "veo-3-fast API configuration settings 8 seconds 9:16 aspect ratio",
             "project": "aismr",
@@ -30,7 +30,7 @@
         "type": "mcp_call",
         "description": "Load Shotstack edit parameters",
         "mcp_call": {
-          "tool": "prompts.search",
+          "tool": "memory_search",
           "params": {
             "query": "Shotstack edit parameters timing overlays audio whisper",
             "project": "aismr",
@@ -195,7 +195,7 @@
         "description": "Store video metadata in episodic memory",
         "dependsOn": ["poll_edit_status"],
         "mcp_call": {
-          "tool": "conversation.store",
+          "tool": "memory_store",
           "params": {
             "sessionId": "${context.sessionId}",
             "role": "assistant",

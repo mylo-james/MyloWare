@@ -11,6 +11,7 @@ import { clarifyAsk } from '../tools/clarify/index.js';
 import { SessionRepository } from '../db/repositories/session-repository.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
+import { docsLookup, DocsLookupSchema } from '../tools/docs-lookup.js';
 
 export interface MCPTool {
   name: string;
@@ -355,10 +356,15 @@ const sessionGetContextTool: MCPTool = {
     });
 
     const repository = new SessionRepository();
+    
+    // Extract userId from sessionId (e.g., "telegram:123456")
+    const parts = validated.sessionId.split(':');
+    const userId = parts.length > 1 ? parts[1] : 'unknown';
+    
     const session = await repository.findOrCreate(
       validated.sessionId,
-      'unknown',
-      'casey',
+      userId,
+      'chat',
       'aismr'
     );
     const context = await repository.getContext(validated.sessionId);
@@ -403,6 +409,29 @@ const sessionUpdateContextTool: MCPTool = {
   },
 };
 
+const docsLookupTool: MCPTool = {
+  name: 'docs_lookup',
+  title: 'Lookup Documentation',
+  description: 'Search documentation via Context7 for OpenAI, n8n, MCP, and internal docs',
+  inputSchema: DocsLookupSchema,
+  handler: async (params, requestId) => {
+    const validated = DocsLookupSchema.parse(params);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'docs_lookup',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const result = await docsLookup(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
 export const mcpTools: MCPTool[] = [
   memorySearchTool,
   memoryStoreTool,
@@ -415,6 +444,7 @@ export const mcpTools: MCPTool[] = [
   clarifyAskTool,
   sessionGetContextTool,
   sessionUpdateContextTool,
+  docsLookupTool,
 ];
 
 export function generateRequestId(): string {

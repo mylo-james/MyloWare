@@ -41,9 +41,9 @@ export async function searchMemories(
   // 4. Combine with RRF
   let memories = reciprocalRankFusion([vectorResults, keywordResults]);
 
-  // 5. Apply temporal boosting if requested
+  // 5. Apply temporal boosting if requested (integrate into RRF scores)
   if (params.temporalBoost) {
-    memories = applyTemporalDecay(memories);
+    memories = applyTemporalDecay(memories, 0.1);
   }
 
   // 6. Expand graph if requested

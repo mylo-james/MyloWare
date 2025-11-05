@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-The agent has **11 tools** for memory, workflows, and context management.
+The agent has **12 tools** for memory, workflows, context management, and documentation lookup.
 
 ---
 
@@ -377,13 +377,51 @@ Update session working memory.
 
 ---
 
+## Documentation Tools
+
+### docs_lookup
+
+Search documentation via Context7 for OpenAI, n8n, MCP, and internal docs.
+
+**Parameters:**
+```typescript
+{
+  query: string;              // Documentation query
+  library?: string;           // Specific library to search (e.g., "n8n", "openai")
+  tokens?: number;            // Max tokens to retrieve (default: 5000)
+}
+```
+
+**Returns:**
+```typescript
+{
+  content: string;            // Documentation content
+  note?: string;             // Implementation note
+  query: string;
+  library?: string;
+}
+```
+
+**Example:**
+```json
+{
+  "query": "How to execute n8n workflows via API",
+  "library": "n8n",
+  "tokens": 5000
+}
+```
+
+**Note:** Context7 integration is currently a placeholder. Full implementation coming soon.
+
+---
+
 ## Usage Patterns
 
 ### Loading Context
 
 ```typescript
 // Start of conversation
-const persona = await context_get_persona({ personaName: 'casey' });
+const persona = await context_get_persona({ personaName: 'chat' });
 const project = await context_get_project({ projectName: 'aismr' });
 const session = await session_get_context({ sessionId });
 ```

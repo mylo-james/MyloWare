@@ -44,7 +44,7 @@ V2 is built on three principles:
 ┌─────────────────────────────────────────────────┐
 │              MCP SERVER                         │
 │                                                 │
-│  Tool Registry (11 tools)                      │
+│  Tool Registry (12 tools)                      │
 │  ├── memory_search                             │
 │  ├── memory_store                              │
 │  ├── memory_evolve                             │
@@ -55,7 +55,8 @@ V2 is built on three principles:
 │  ├── workflow_status                           │
 │  ├── clarify_ask                               │
 │  ├── session_get_context                       │
-│  └── session_update_context                    │
+│  ├── session_update_context                    │
+│  └── docs_lookup                               │
 │                                                 │
 │  Features:                                     │
 │  • Zod validation                              │
@@ -205,6 +206,14 @@ Stored in Postgres with:
 - MCP client for tool calling
 - System prompt (agentic RAG pattern)
 - Telegram integration
+- Tool workflow nodes for programmatic workflows
+
+**n8n Integration:**
+- **MCP Server:** Provides tools via HTTP endpoint (`/mcp`)
+- **Authentication:** Optional `X-MCP-Auth-Key` header (when `MCP_AUTH_KEY` configured)
+- **Tool Calling:** n8n MCP Client node calls MCP tools synchronously
+- **Workflow Delegation:** `workflow_execute` tool delegates to n8n API for execution
+- **Programmatic Workflows:** Edit_AISMR and Generate Video workflows callable via `toolWorkflow` nodes
 
 **Decision Process:**
 1. Understand user intent
@@ -212,8 +221,13 @@ Stored in Postgres with:
 3. Load context (persona, project)
 4. Search memory if relevant
 5. Discover workflow if task-based
-6. Execute workflow or respond directly
+6. Execute workflow (delegates to n8n API) or respond directly
 7. Store interaction in memory
+
+**Programmatic Workflows:**
+- **Edit_AISMR:** Takes 12 videos, builds Shotstack edit JSON, renders final video
+- **Generate Video:** Takes idea, generates video via Veo 3 Fast API
+- These workflows are pure n8n (no AI) and are exposed as tools via `toolWorkflow` nodes
 
 ### Postgres + pgvector
 

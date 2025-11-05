@@ -1,0 +1,416 @@
+{
+  "updatedAt": "2025-11-05T11:03:13.008Z",
+  "createdAt": "2025-11-04T09:42:18.336Z",
+  "id": "uIWB6d8OslTpJl1G",
+  "name": "Upload to TikTok",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.upload-post.com/api/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{ $('AI Agent').item.json.output.caption }}"
+            },
+            {
+              "name": "user",
+              "value": "AISMR"
+            },
+            {
+              "name": "platform[]",
+              "value": "tiktok"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e05b2a09-ad60-4249-a9c3-6d981f94890e",
+      "name": "Upload Video and Description to Tiktok",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2400,
+        0
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0BNuv1pF0pwOdsBI",
+          "name": "upload-post"
+        }
+      },
+      "notes": "Generate in upload-post.com the token and add to the credentials in the header-> Authorization: Apikey (token here)"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Executed by Another Workflow').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = clone(stages.publishing); const tiktokUrl = $json.response?.url ?? $json.data?.url ?? null; const caption = $('AI Agent').item?.json?.output?.caption ?? null; const publishingOutput = { ...(publishingStage?.output ?? {}), tiktokUrl, platform: 'tiktok', caption, completedAt: new Date().toISOString() }; const updatedPublishingStage = { ...publishingStage, status: 'completed', output: publishingOutput }; const mergedOutput = { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), ...publishingOutput } }; return { status: 'completed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: updatedPublishingStage }, output: mergedOutput };\n})() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2624,
+        0
+      ],
+      "id": "4271d6c4-36b8-4f7e-a656-b10f1e5b00fe",
+      "name": "Update Run TikTok Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -192
+      ],
+      "id": "6af5c86e-2f47-4d30-afa8-ff717a6c6d83",
+      "name": "On Error"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Executed by Another Workflow').item.json.runId) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const getNodeData = (name) => { try { return $(name).item?.json ?? null; } catch (error) { return null; } }; const run = getNodeData('Get a row') ?? {}; const stages = run.stages ?? {}; const clone = (value) => (value && typeof value === 'object' ? { ...value } : {}); const ideaStage = clone(stages.idea_generation); if (!ideaStage.status) { ideaStage.status = 'completed'; } const screenplayStage = clone(stages.screenplay); if (!screenplayStage.status) { screenplayStage.status = 'completed'; } const videoStage = clone(stages.video_generation); if (!videoStage.status) { videoStage.status = 'completed'; } const publishingStage = { ...clone(stages.publishing), status: 'failed', error: { message: $json.error?.message ?? 'TikTok upload workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } }; return { status: 'failed', currentStage: 'publishing', stages: { idea_generation: ideaStage, screenplay: screenplayStage, video_generation: videoStage, publishing: publishingStage }, output: { ...(run.output ?? {}), publishing: { ...(run.output?.publishing ?? {}), error: { message: $json.error?.message ?? 'TikTok upload workflow failed.', stack: $json.error?.stack ?? null, lastNode: $json.execution?.lastNodeExecuted ?? null } } } };\n})() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        704,
+        -192
+      ],
+      "id": "2a8ebd30-9732-4f5c-a228-3fbc64bfa690",
+      "name": "Mark Run Failed (TikTok)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "runId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "760957a9-d8d6-4d2d-8818-7544fd511ea2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Video Idea: {{ $('Get a row').item.json.idea || 'ASMR Video' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ ['=You are Nova, publishing agent for AISMR.', 'Identity: persona=\"captionhashtag\", project=\"aismr\"', 'Goal: Craft validated TikTok captions, hashtags, and publishing confirmations for AISMR videos.', 'Bootstrap: Call prompt_get({\"persona_name\":\"captionhashtag\",\"project_name\":\"aismr\"}) to pull your workflow prompt; if it fails, run prompt_search for \"captionhashtag aismr workflow\" then retry prompt_get. After loading, combine the persona prompt below with the supplied run data before writing.', '', '## RAG Strategy for Captions & Hashtags', 'Phase 1 - Load Guidelines:', '- Caption style: prompt_get({persona_name: \"captionhashtag\", project_name: \"aismr\"})', '- If missing: prompt_search({query: \"aismr caption guidelines\", searchMode: \"keyword\"})', '', 'Phase 2 - Research Successful Patterns:', '- Successful captions: prompt_search({query: \"high performing aismr captions\", searchMode: \"hybrid\", expandGraph: true, graphMaxHops: 2, temporalBoost: true})', '- Trending hashtags: prompt_search({query: \"aismr hashtag performance\", temporalBoost: true})', '', 'Phase 3 - Recall Prior Performance:', '- conversation_remember({query: \"caption performance feedback\", limit: 5})', '- Look for engagement patterns, audience preferences', '', '## Output Requirements', '- Caption: 100-150 characters, hook in first 5 words', '- Hashtags: 3-5 relevant tags, mix popular + niche', '- Include video theme keywords from idea', '', 'Loaded persona prompt:', $('Call \\'Load Persona\\'').item.json.prompt_text, '', 'Run data -> Project=' + $('Get a row').item.json.projectId + ', Idea=' + $('Get a row').item.json.idea + ', Video=' + $('Get a row').item.json.videoUrl].join('\\n') }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        0
+      ],
+      "id": "c58d479f-2b27-409c-94cc-ad108d617590",
+      "name": "AI Agent",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1832,
+        224
+      ],
+      "id": "e2583121-bada-42fe-989c-ba8bb75d25a2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4eaPRf4DiHKOvOrc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4eaPRf4DiHKOvOrc",
+          "cachedResultName": "Load Persona"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ $('When Executed by Another Workflow').item.json.runId }}",
+            "personaSlug": "captionhashtag",
+            "projectSlug": "aismr"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "079e73b1-06bf-494a-a3f0-1bb13c9980e2",
+      "name": "Call 'Load Persona'"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"caption\": \"some caption\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1960,
+        224
+      ],
+      "id": "f09a23dc-f060-4470-a924-42dc9e73c5fc",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "9a7def8f-7bde-4c14-bc7e-53755f9cea04",
+      "name": "Get Run (API)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Get a row').item.json.videoUrl || '' }}",
+        "responseFormat": "file",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2176,
+        0
+      ],
+      "id": "6133a461-89f9-48f2-b56f-6deee1ae1718",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json?.workflowRun ?? $json?.data?.workflowRun ?? null;\nif (!payload) {\n  throw new Error('Workflow run payload missing from API response.');\n}\n\n// Extract metadata\nconst metadata = {};\nif (payload.input && typeof payload.input === 'object') {\n  if (payload.input.metadata && typeof payload.input.metadata === 'object') {\n    Object.assign(metadata, payload.input.metadata);\n  }\n  if (payload.input.turn && typeof payload.input.turn === 'object' && payload.input.turn.metadata && typeof payload.input.turn.metadata === 'object') {\n    Object.assign(metadata, payload.input.turn.metadata);\n  }\n  if (payload.input.projectSlug && typeof payload.input.projectSlug === 'string' && !metadata.projectSlug) {\n    metadata.projectSlug = payload.input.projectSlug;\n  }\n}\nif (!metadata.projectSlug && typeof payload.projectId === 'string') {\n  metadata.projectSlug = payload.projectId;\n}\n\n// Extract stage outputs\nconst videoOutput = payload.output?.video_generation ?? {};\nconst publishingOutput = payload.output?.publishing ?? {};\n\n// CRITICAL: Use editUrl if present (from edit workflow), otherwise use raw videoUrl\nconst videoUrl = publishingOutput.editUrl ?? videoOutput.videoUrl ?? payload.result ?? null;\n\nif (!videoUrl) {\n  throw new Error('No video URL found. Expected editUrl from publishing stage or videoUrl from video_generation stage.');\n}\n\n// Build normalized output for downstream nodes\nconst normalized = {\n  ...payload,\n  metadata,\n  video_output: videoOutput,\n  publishing_output: publishingOutput,\n  videoUrl,  // Single source of truth for video to upload\n  idea: videoOutput.idea ?? null,\n  runId: payload.id\n};\n\nreturn [{ json: normalized }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        0
+      ],
+      "id": "0f9073df-29ad-4203-98e0-d17cde0bb0bc",
+      "name": "Get a row"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get Run (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Upload Video and Description to Tiktok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video and Description to Tiktok": {
+      "main": [
+        [
+          {
+            "node": "Update Run TikTok Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Failed (TikTok)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Run Failed (TikTok)": {
+      "main": [
+        []
+      ]
+    },
+    "Update Run TikTok Complete": {
+      "main": [
+        []
+      ]
+    },
+    "Get Run (API)": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Call 'Load Persona'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Load Persona'": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "059dd4a7-9dbf-4e4b-b345-8b73d11bbe4d",
+  "versionCounter": 5,
+  "triggerCount": 0
+}

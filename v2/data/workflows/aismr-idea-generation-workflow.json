@@ -14,7 +14,7 @@
         "type": "mcp_call",
         "description": "Retrieve past ideas from episodic memory to avoid duplicates",
         "mcp_call": {
-          "tool": "conversation.remember",
+          "tool": "memory_search",
           "params": {
             "sessionId": "${context.sessionId}",
             "query": "past AISMR ideas generated",
@@ -30,7 +30,7 @@
         "type": "mcp_call",
         "description": "Search archive for similar ideas using keyword search",
         "mcp_call": {
-          "tool": "prompts.search",
+          "tool": "memory_search",
           "params": {
             "query": "${context.userInput}",
             "project": "aismr",
@@ -47,7 +47,7 @@
         "description": "Search for inspiration patterns using hybrid search with graph expansion",
         "dependsOn": ["search_archive"],
         "mcp_call": {
-          "tool": "prompts.search",
+          "tool": "memory_search",
           "params": {
             "query": "${context.userInput}",
             "project": "aismr",
@@ -149,7 +149,7 @@
         "description": "Store generated ideas and audit results in episodic memory",
         "dependsOn": ["generate_ideas", "uniqueness_audit"],
         "mcp_call": {
-          "tool": "conversation.store",
+          "tool": "memory_store",
           "params": {
             "sessionId": "${context.sessionId}",
             "role": "assistant",

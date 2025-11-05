@@ -1,6 +1,6 @@
 import { db } from '../client.js';
 import { sessions } from '../schema.js';
-import { eq, desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export interface Session {
   id: string;

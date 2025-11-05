@@ -39,7 +39,7 @@ function createTestClient(): OpenAIClient {
         }),
       },
     },
-  } as OpenAIClient;
+  } as unknown as OpenAIClient;
 }
 
 export function getOpenAIClient(): OpenAIClient {
