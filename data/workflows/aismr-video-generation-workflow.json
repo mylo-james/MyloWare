@@ -18,7 +18,6 @@
           "params": {
             "query": "veo-3-fast API configuration settings 8 seconds 9:16 aspect ratio",
             "project": "aismr",
-            "searchMode": "keyword",
             "limit": 10
           },
           "storeAs": "veoConfig"
@@ -34,7 +33,6 @@
           "params": {
             "query": "Shotstack edit parameters timing overlays audio whisper",
             "project": "aismr",
-            "searchMode": "keyword",
             "limit": 10
           },
           "storeAs": "shotstackConfig"
@@ -197,11 +195,10 @@
         "mcp_call": {
           "tool": "memory_store",
           "params": {
-            "sessionId": "${context.sessionId}",
-            "role": "assistant",
             "content": "Generated AISMR video",
+            "memoryType": "episodic",
+            "project": ["aismr"],
             "tags": ["aismr", "video-generation", "workflow-output"],
-            "embeddingText": "AISMR video generated: ${editResult.videoUrl}",
             "metadata": {
               "stage": "video_generation",
               "workflowRunId": "${context.workflowRunId}",

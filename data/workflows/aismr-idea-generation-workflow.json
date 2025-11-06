@@ -16,10 +16,10 @@
         "mcp_call": {
           "tool": "memory_search",
           "params": {
-            "sessionId": "${context.sessionId}",
             "query": "past AISMR ideas generated",
-            "limit": 50,
-            "format": "bullets"
+            "memoryTypes": ["episodic"],
+            "project": "aismr",
+            "limit": 50
           },
           "storeAs": "pastIdeas"
         }
@@ -34,7 +34,6 @@
           "params": {
             "query": "${context.userInput}",
             "project": "aismr",
-            "searchMode": "keyword",
             "limit": 20
           },
           "storeAs": "archiveResults"
@@ -51,7 +50,6 @@
           "params": {
             "query": "${context.userInput}",
             "project": "aismr",
-            "searchMode": "hybrid",
             "expandGraph": true,
             "maxHops": 2,
             "temporalBoost": true,
@@ -151,11 +149,10 @@
         "mcp_call": {
           "tool": "memory_store",
           "params": {
-            "sessionId": "${context.sessionId}",
-            "role": "assistant",
             "content": "Generated 12 unique AISMR ideas: ${generatedIdeas}",
+            "memoryType": "episodic",
+            "project": ["aismr"],
             "tags": ["aismr", "idea-generation", "workflow-output"],
-            "embeddingText": "AISMR ideas: ${generatedIdeas.ideas.map(i => i.idea).join(', ')}",
             "metadata": {
               "stage": "idea_generation",
               "workflowRunId": "${context.workflowRunId}",

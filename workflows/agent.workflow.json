@@ -7,8 +7,8 @@
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [368, -16],
-      "id": "e0648770-7136-4912-948c-d6ba3b98efb5",
+      "position": [-432, 144],
+      "id": "f0052cb9-54f1-4d27-85ab-2080ac92c2a1",
       "name": "Telegram Message Trigger",
       "webhookId": "agent-webhook-id",
       "credentials": {
@@ -20,36 +20,68 @@
     },
     {
       "parameters": {
-        "jsCode": "const message = $input.item.json.message || {};\nconst chatId = message.chat?.id ?? 'unknown';\nconst userId = message.from?.id ?? 'unknown';\nconst text = message.text || message.caption || '';\nconst attachments = [];\n\nif (message.voice) {\n  attachments.push({ type: 'voice', duration: message.voice.duration, fileId: message.voice.file_id });\n}\n\nreturn {\n  json: {\n    chatId: chatId.toString(),\n    userId: `telegram:${userId}`,\n    sessionId: `telegram:${chatId}`,\n    messageId: message.message_id ?? null,\n    text,\n    platform: 'telegram',\n    attachments,\n    raw: message,\n    timestamp: new Date().toISOString()\n  }\n};"
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/tools/run_state_createOrResume",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sessionId\": \"={{ $json.message?.from?.id ? 'telegram:' + $json.message.from.id : undefined }}\",\n  \"persona\": \"={{ $json.persona || 'chat' }}\",\n  \"project\": \"={{ $json.project || 'aismr' }}\",\n  \"instructions\": \"={{ $json.instructions || $json.message?.text || '' }}\"\n}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [592, -16],
-      "id": "1e8ad4bf-7de0-41d9-ae1b-1a607a4016f7",
-      "name": "Normalize Telegram Event"
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-208, 48],
+      "id": "d53ad6d8-0130-4ace-b66f-f13ef1aa6f73",
+      "name": "Bootstrap Run",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const base = $input.item.json ?? {};\nconst sessionId = base.sessionId || `telegram:${base.chatId}`;\nconst systemPrompt = [\n  \"You are Mylo's AI collaborator. You operate inside n8n and have MCP tools for memory + workflow orchestration.\",\n  'Process:',\n  '1) Understand the latest user utterance.',\n  '2) Load persona/project context via MCP if missing.',\n  '3) Use memory_search / memory_store / workflow_discover / workflow_execute tools as needed.',\n  '4) Respond warmly and concisely, or acknowledge delegated work.',\n  'All tool calls must use the provided session + user identifiers so memory stays linked.',\n].join(' ');\n\nreturn {\n  json: {\n    systemPrompt,\n    session: {\n      id: sessionId,\n      userId: base.userId,\n    },\n    message: {\n      text: base.text || '',\n      chatId: base.chatId,\n      messageId: base.messageId,\n      platform: base.platform,\n      timestamp: base.timestamp,\n      attachments: base.attachments || []\n    },\n    platform: base.platform,\n    telemetry: { raw: base.raw }\n  }\n};"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "extract-runid",
+              "name": "runId",
+              "value": "={{ $json.result?.structuredContent?.runId || JSON.parse($json.result?.content?.[0]?.text || '{}').runId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [816, -16],
-      "id": "7aa0d41b-0e57-4060-90c3-dfadea49eb8d",
-      "name": "Prepare Agent Context"
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [16, 48],
+      "id": "473de770-d59a-43a3-8aaa-0192cca78694",
+      "name": "Extract RunId"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.message.text }}",
+        "text": "={{ $('Telegram Message Trigger').item.json.message.text }}",
         "options": {
-          "systemMessage": "={{ $json.systemPrompt }}"
+          "systemMessage": "You orchestrate AISMR workflows using a canonical runId provided by the Bootstrap Run node.\\n\\nProtocol:\\n1. Call run_state_read(runId) before planning each major action so you respect the latest custody state.\\n2. After every meaningful step, call memory_store with runId (and optional handoffId) and chain relatedTo IDs to preserve the execution graph.\\n3. To delegate work: handoff_create -> run_state_appendEvent -> call the 'Agent Workflow' tool workflow with persona/project/instructions/runId.\\n4. Never invent IDs or personas; always reuse the supplied values.\\n5. Prefer MCP tools and toolWorkflow nodes—avoid HITL interactions unless explicitly instructed."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
-      "position": [1288, -16],
-      "id": "5d8c3b85-2d7f-4c67-91dc-0f3e1c4560b1",
+      "position": [624, 48],
+      "id": "1fe6c620-e253-4f8b-a1b5-72fc860cd5ee",
       "name": "AI Agent",
       "retryOnFail": false
     },
@@ -65,8 +97,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [1040, 208],
-      "id": "d8b7b5b0-0c40-4d93-a2ee-08ca651d8c21",
+      "position": [240, 272],
+      "id": "9cc5e0a1-d76a-47ef-8ffe-b148e408d70c",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -84,42 +116,13 @@
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
-      "position": [1168, 208],
-      "id": "ecbb7478-9318-4ba9-b04a-b43c7d503c91",
+      "position": [368, 272],
+      "id": "b344b570-b70b-4734-85bb-daa9db3554d7",
       "name": "MCP Client",
       "credentials": {
         "httpHeaderAuth": {
           "id": "PDRTlQZsKzQBcv6T",
           "name": "Mylo MCP"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const agentOutput = $json.response ?? $json.result ?? $json.output ?? $json.text ?? '';\nconst replyText = typeof agentOutput === 'string' ? agentOutput : JSON.stringify(agentOutput, null, 2);\nconst context = $('Prepare Agent Context').item?.json ?? {};\n\nreturn {\n  json: {\n    replyText,\n    chatId: context.message?.chatId ?? null,\n    messageId: context.message?.messageId ?? null\n  }\n};"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1888, -16],
-      "id": "f1e3dba6-c265-4ff0-82b6-600ee7e46150",
-      "name": "Format Response"
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.replyText }}",
-        "additionalFields": {}
-      },
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.1,
-      "position": [2112, -16],
-      "id": "1bb5201b-146b-4ab4-aa64-c92cbf3c6d02",
-      "name": "Reply in Telegram",
-      "webhookId": "4e535a2b-0313-401b-8da1-dbef0f2fb6a2",
-      "credentials": {
-        "telegramApi": {
-          "id": "eC8lO0ynjt4o2RIL",
-          "name": "Telegram account"
         }
       }
     },
@@ -135,7 +138,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+            "runId": "={{ $('Extract RunId').item.json.runId }}"
           },
           "matchingColumns": ["runId"],
           "schema": [
@@ -156,8 +159,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1296, 208],
-      "id": "15368a5b-ad27-41a4-bea2-32ce4fb5c6b7",
+      "position": [496, 272],
+      "id": "e240e678-91d3-45e8-a555-ddaa587c2622",
       "name": "Call 'Edit_AISMR'"
     },
     {
@@ -172,7 +175,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+            "runId": "={{ $('Extract RunId').item.json.runId }}"
           },
           "matchingColumns": ["runId"],
           "schema": [
@@ -193,8 +196,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1424, 208],
-      "id": "799564d5-85c0-4463-bd81-86e080cbf647",
+      "position": [624, 272],
+      "id": "af3fefc9-0715-476c-be5e-0999d26c721a",
       "name": "Call 'Upload to TikTok'"
     },
     {
@@ -209,7 +212,7 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+            "runId": "={{ $('Extract RunId').item.json.runId }}"
           },
           "matchingColumns": ["runId"],
           "schema": [
@@ -230,8 +233,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1552, 208],
-      "id": "196f084f-74be-41f6-9dfa-a210bac877dc",
+      "position": [752, 272],
+      "id": "8f2ce763-e6e5-441e-b0e9-84442542c9d0",
       "name": "Call 'Upload file to Google Drive'"
     },
     {
@@ -247,7 +250,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id', ``, 'string') }}",
-            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+            "runId": "={{ $('Extract RunId').item.json.runId }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -278,9 +281,110 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [1680, 208],
-      "id": "fb7ba809-ccd7-4b77-9161-dfc7e0f94cb9",
+      "position": [880, 272],
+      "id": "cab8d426-86f4-4fd6-97d0-733e09396a2e",
       "name": "Call 'Generate Video'"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "persona"
+            },
+            {
+              "name": "project"
+            },
+            {
+              "name": "instructions"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [-432, -48],
+      "id": "06869c1e-833f-4314-874c-aed8222d3437",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Chat_ID', ``, 'string') }}",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [1008, 272],
+      "id": "80f371bb-5ef3-43e5-af7c-5d240283181c",
+      "name": "Send a text message in Telegram",
+      "webhookId": "71034ade-950c-4b87-8d52-4aab945b19f9",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Call this to hand off to another agent with a different persona based on what comes next in the workflow",
+        "workflowId": {
+          "__rl": true,
+          "value": "mo7JJJRQPIs6mUWC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/mo7JJJRQPIs6mUWC",
+          "cachedResultName": "Agent Workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "persona": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('persona', ``, 'string') }}",
+            "project": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('project', ``, 'string') }}",
+            "instructions": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('instructions', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "persona",
+              "displayName": "persona",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "project",
+              "displayName": "project",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "instructions",
+              "displayName": "instructions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1136, 272],
+      "id": "ca233eba-6874-4493-8943-ce72601ae26a",
+      "name": "Call 'Agent Workflow'"
     }
   ],
   "connections": {
@@ -288,40 +392,29 @@
       "main": [
         [
           {
-            "node": "Normalize Telegram Event",
+            "node": "Bootstrap Run",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize Telegram Event": {
+    "Bootstrap Run": {
       "main": [
         [
           {
-            "node": "Prepare Agent Context",
+            "node": "Extract RunId",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Agent Context": {
+    "Extract RunId": {
       "main": [
         [
           {
             "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Format Response",
             "type": "main",
             "index": 0
           }
@@ -345,17 +438,6 @@
           {
             "node": "AI Agent",
             "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Response": {
-      "main": [
-        [
-          {
-            "node": "Reply in Telegram",
-            "type": "main",
             "index": 0
           }
         ]
@@ -395,6 +477,39 @@
       ]
     },
     "Call 'Generate Video'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Bootstrap Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message in Telegram": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Agent Workflow'": {
       "ai_tool": [
         [
           {

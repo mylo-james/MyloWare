@@ -71,7 +71,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
       LOG_LEVEL: debug
-    command: npm run dev
+    command: bash -lc "npm run db:bootstrap -- --seed && npm run dev"
     ports:
       - '${SERVER_PORT:-3456}:3456'
     volumes:

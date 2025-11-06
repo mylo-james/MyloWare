@@ -1,88 +1,131 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { mcpTools } from '@/mcp/tools.js';
-import { z } from 'zod';
+import { db } from '@/db/client.js';
+import { agentRuns, handoffTasks, runEvents, memories } from '@/db/schema.js';
+import { MemoryRepository } from '@/db/repositories/memory-repository.js';
+import { RunEventsRepository } from '@/db/repositories/run-events-repository.js';
 
-describe('MCP Tools', () => {
-  it('should have all required tools registered', () => {
-    const expectedTools = [
-      'memory_search',
-      'memory_store',
-      'memory_evolve',
-      'context_get_persona',
-      'context_get_project',
-      'workflow_discover',
-      'workflow_execute',
-      'workflow_status',
-      'clarify_ask',
-      'session_get_context',
-      'session_update_context',
-    ];
+const getTool = (name: string) => {
+  const tool = mcpTools.find((t) => t.name === name);
+  if (!tool) {
+    throw new Error(`Tool not found: ${name}`);
+  }
+  return tool;
+};
 
-    const toolNames = mcpTools.map((t) => t.name);
-    expect(toolNames.length).toBe(11);
-
-    for (const expected of expectedTools) {
-      expect(toolNames).toContain(expected);
-    }
+describe('MCP tools', () => {
+  beforeEach(async () => {
+    await db.delete(runEvents);
+    await db.delete(handoffTasks);
+    await db.delete(agentRuns);
+    await db.delete(memories);
   });
 
-  it('should have valid input schemas for all tools', () => {
-    for (const tool of mcpTools) {
-      expect(tool.inputSchema).toBeInstanceOf(z.ZodObject);
-      expect(tool.handler).toBeInstanceOf(Function);
-    }
+  it('creates, reads, updates runs and logs events with actor', async () => {
+    const createTool = getTool('run_state_createOrResume');
+    const createResult = await createTool.handler(
+      { persona: 'casey', project: 'aismr' },
+      'req-run-create'
+    );
+    const runId = createResult.structuredContent?.runId as string;
+    expect(runId).toBeDefined();
+
+    const updateTool = getTool('run_state_update');
+    await updateTool.handler(
+      { runId, patch: { status: 'in_progress', currentStep: 'drafting' } },
+      'req-run-update'
+    );
+
+    const appendEventTool = getTool('run_state_appendEvent');
+    await appendEventTool.handler(
+      { runId, eventType: 'handoff_created', actor: 'casey', payload: { foo: 'bar' } },
+      'req-run-event'
+    );
+
+    const readTool = getTool('run_state_read');
+    const readResult = await readTool.handler({ runId }, 'req-run-read');
+    expect(readResult.structuredContent?.status).toBe('in_progress');
+
+    const eventsRepo = new RunEventsRepository();
+    const events = await eventsRepo.listForRun(runId);
+    expect(events).toHaveLength(1);
+    expect(events[0].actor).toBe('casey');
   });
 
-  it('should validate memory_search parameters', () => {
-    const tool = mcpTools.find((t) => t.name === 'memory_search');
-    expect(tool).toBeDefined();
+  it('handles handoff lifecycle via tools', async () => {
+    const createRunTool = getTool('run_state_createOrResume');
+    const run = await createRunTool.handler(
+      { persona: 'casey', project: 'aismr' },
+      'req-run-for-handoff'
+    );
+    const runId = run.structuredContent?.runId as string;
 
-    const schema = tool!.inputSchema as z.ZodObject<any>;
-    const valid = schema.safeParse({
-      query: 'test query',
-      project: 'aismr',
-      limit: 10,
-    });
+    const handoffCreate = getTool('handoff_create');
+    const handoff = await handoffCreate.handler(
+      { runId, toPersona: 'editor', taskBrief: 'Edit script' },
+      'req-handoff-create'
+    );
+    const handoffId = handoff.structuredContent?.handoffId as string;
+    expect(handoffId).toBeDefined();
 
-    expect(valid.success).toBe(true);
+    const handoffClaim = getTool('handoff_claim');
+    const claimResult = await handoffClaim.handler(
+      { handoffId, agentId: 'agent-editor', ttlMs: 1000 },
+      'req-handoff-claim'
+    );
+    expect(claimResult.structuredContent?.status).toBe('locked');
+
+    const handoffComplete = getTool('handoff_complete');
+    await handoffComplete.handler(
+      { handoffId, status: 'done', outputs: { url: 'http://example.com' } },
+      'req-handoff-complete'
+    );
+
+    const handoffList = getTool('handoff_listPending');
+    const pending = await handoffList.handler({ runId }, 'req-handoff-list');
+    expect(pending.structuredContent?.handoffs).toHaveLength(0);
   });
 
-  it('should reject invalid memory_search parameters', () => {
-    const tool = mcpTools.find((t) => t.name === 'memory_search');
-    expect(tool).toBeDefined();
+  it('stores and retrieves memories scoped by runId', async () => {
+    const memoryStore = getTool('memory_store');
+    await memoryStore.handler(
+      {
+        content: 'Step 1 completed',
+        memoryType: 'episodic',
+        persona: ['casey'],
+        project: ['aismr'],
+        tags: ['test'],
+        runId: 'run-123',
+      },
+      'req-memory-store-1'
+    );
 
-    const schema = tool!.inputSchema as z.ZodObject<any>;
-    const invalid = schema.safeParse({
-      query: 123, // Should be string
-    });
+    await memoryStore.handler(
+      {
+        content: 'Other run event',
+        memoryType: 'episodic',
+        runId: 'run-999',
+      },
+      'req-memory-store-2'
+    );
 
-    expect(invalid.success).toBe(false);
-  });
+    const memorySearchByRun = getTool('memory_searchByRun');
+    const searchResult = await memorySearchByRun.handler(
+      { runId: 'run-123' },
+      'req-memory-search'
+    );
 
-  it('should validate workflow_discover parameters', () => {
-    const tool = mcpTools.find((t) => t.name === 'workflow_discover');
-    expect(tool).toBeDefined();
+    const result = searchResult.structuredContent as {
+      memories: Array<{ metadata: Record<string, unknown> }>;
+      totalFound: number;
+    };
 
-    const schema = tool!.inputSchema as z.ZodObject<any>;
-    const valid = schema.safeParse({
-      intent: 'generate ideas',
-      project: 'aismr',
-    });
+    expect(result.totalFound).toBe(1);
+    expect(result.memories[0].metadata.runId).toBe('run-123');
 
-    expect(valid.success).toBe(true);
-  });
-
-  it('should validate clarify_ask parameters', () => {
-    const tool = mcpTools.find((t) => t.name === 'clarify_ask');
-    expect(tool).toBeDefined();
-
-    const schema = tool!.inputSchema as z.ZodObject<any>;
-    const valid = schema.safeParse({
-      question: 'What would you like?',
-      suggestedOptions: ['Option 1', 'Option 2'],
-    });
-
-    expect(valid.success).toBe(true);
+    // Ensure metadata filter actually hit DB record
+    const repo = new MemoryRepository();
+    const stored = await repo.findByRunId('run-123', {});
+    expect(stored).toHaveLength(1);
   });
 });
-

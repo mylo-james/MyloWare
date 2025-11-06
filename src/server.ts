@@ -38,13 +38,19 @@ const mcpServer = new McpServer({
   }
 });
 
-// Register all MCP APIs
-registerMCPTools(mcpServer);
-registerMCPResources(mcpServer);
-registerMCPPrompts(mcpServer);
-
 // Session transport management
 const transports = new Map<string, StreamableHTTPServerTransport>();
+
+// Initialize MCP server with all handlers (async)
+async function initializeMCPServer() {
+  registerMCPTools(mcpServer);
+  registerMCPResources(mcpServer);
+  await registerMCPPrompts(mcpServer); // Now async - loads prompts dynamically from DB
+  logger.info({
+    msg: 'MCP server initialized',
+    tools: mcpTools.length,
+  });
+}
 
 // OpenAI health cache
 let openaiHealthCache: { status: string; lastCheck: number } = {
@@ -316,8 +322,70 @@ fastify.options('/mcp', handleMcpRequest);
 fastify.get('/mcp', handleMcpRequest);
 fastify.post('/mcp', handleMcpRequest);
 
+// Direct tool call endpoint (bypasses MCP session management for n8n workflows)
+fastify.post('/tools/:toolName', async (request, reply) => {
+  const requestId = randomUUID();
+  const startTime = Date.now();
+
+  if (!authenticateRequest(request, reply, requestId)) {
+    return;
+  }
+
+  const { toolName } = request.params as { toolName: string };
+  const params = request.body as unknown;
+
+  try {
+    logger.info({
+      msg: 'Direct tool call',
+      requestId,
+      toolName,
+      ip: request.ip,
+    });
+
+    // Find the tool
+    const tool = mcpTools.find(t => t.name === toolName);
+    if (!tool) {
+      return reply.code(404).send({
+        error: `Tool '${toolName}' not found`,
+        availableTools: mcpTools.map(t => t.name),
+      });
+    }
+
+    // Call the tool handler directly
+    const result = await tool.handler(params, requestId);
+
+    const duration = Date.now() - startTime;
+    logger.info({
+      msg: 'Direct tool call completed',
+      requestId,
+      toolName,
+      duration,
+    });
+
+    return reply.code(200).send(result);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error({
+      msg: 'Direct tool call error',
+      requestId,
+      toolName,
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return reply.code(500).send({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 const start = async () => {
   try {
+    // Initialize MCP server (load prompts from DB, register tools, etc.)
+    await initializeMCPServer();
+
     // Register security middleware
     // Note: Helmet's strict policies can block MCP responses, so we disable some for /mcp endpoint
     await fastify.register(helmet, {

@@ -1,6 +1,6 @@
 import { db } from '../client.js';
 import { memories } from '../schema.js';
-import { sql, and, eq, inArray } from 'drizzle-orm';
+import { sql, and, eq, inArray, desc } from 'drizzle-orm';
 import type { MemorySearchParams, Memory } from '../../types/memory.js';
 
 export class MemoryRepository {
@@ -161,6 +161,32 @@ export class MemoryRepository {
       .select()
       .from(memories)
       .where(inArray(memories.id, ids));
+
+    return results as Memory[];
+  }
+
+  async findByRunId(
+    runId: string,
+    params: { persona?: string; project?: string; limit?: number }
+  ): Promise<Memory[]> {
+    const conditions = [sql`${memories.metadata} ->> 'runId' = ${runId}`];
+
+    if (params.persona) {
+      conditions.push(sql`${params.persona} = ANY(${memories.persona})`);
+    }
+
+    if (params.project) {
+      conditions.push(sql`${params.project} = ANY(${memories.project})`);
+    }
+
+    const where = and(...conditions);
+
+    const results = await db
+      .select()
+      .from(memories)
+      .where(where)
+      .orderBy(desc(memories.createdAt))
+      .limit(params.limit ?? 20);
 
     return results as Memory[];
   }

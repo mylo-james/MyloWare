@@ -181,3 +181,60 @@ export const workflowRuns = pgTable(
     workflowSessionIdx: index('workflow_runs_session_idx').on(table.sessionId),
   })
 );
+
+// Agent orchestration tables
+export const agentRuns = pgTable('agent_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: text('session_id'),
+  persona: text('persona').notNull(),
+  project: text('project').notNull(),
+  instructions: text('instructions'),
+  currentStep: text('current_step'),
+  status: text('status').notNull(), // new | in_progress | blocked | delegated | completed | failed
+  stateBlob: jsonb('state_blob').notNull().default({}),
+  custodianAgent: text('custodian_agent'),
+  lockedAt: timestamp('locked_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const handoffTasks = pgTable(
+  'handoff_tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: 'cascade' }),
+    fromPersona: text('from_persona'),
+    toPersona: text('to_persona').notNull(),
+    taskBrief: text('task_brief'),
+    requiredOutputs: jsonb('required_outputs').notNull().default({}),
+    status: text('status').notNull().default('pending'), // pending | in_progress | returned | done
+    custodianAgent: text('custodian_agent'),
+    lockedAt: timestamp('locked_at'),
+    completedAt: timestamp('completed_at'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    runIdIdx: index('handoff_tasks_run_id_idx').on(table.runId),
+  })
+);
+
+export const runEvents = pgTable(
+  'run_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: 'cascade' }),
+    eventType: text('event_type').notNull(),
+    actor: text('actor'),
+    payload: jsonb('payload').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    runIdIdx: index('run_events_run_id_idx').on(table.runId),
+  })
+);

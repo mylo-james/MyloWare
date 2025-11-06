@@ -133,9 +133,13 @@ export function normalizeToolParams(params: unknown): Record<string, unknown> {
 
   let working: unknown = params;
 
+  // If it's a string, try to parse as JSON
+  // BUT if it's not valid JSON, don't throw it away - it might be a valid string parameter
   if (typeof working === 'string') {
     const parsed = tryParseJson(working);
-    working = typeof parsed === 'string' ? {} : parsed;
+    // Only use parsed result if it's actually an object
+    // Otherwise keep the original params object (which will be validated by Zod)
+    working = typeof parsed === 'object' ? parsed : params;
   }
 
   if (!isPlainObject(working)) {

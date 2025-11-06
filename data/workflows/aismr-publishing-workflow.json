@@ -19,7 +19,6 @@
             "params": {
               "query": "TikTok publishing settings caption hashtag templates",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "tiktokConfig"
@@ -29,7 +28,6 @@
             "params": {
               "query": "YouTube Shorts publishing settings title description",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "youtubeConfig"
@@ -39,7 +37,6 @@
             "params": {
               "query": "Instagram Reels publishing settings caption hashtags",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "instagramConfig"
@@ -180,11 +177,10 @@
         "mcp_call": {
           "tool": "memory_store",
           "params": {
-            "sessionId": "${context.sessionId}",
-            "role": "assistant",
             "content": "Published video to all platforms",
+            "memoryType": "episodic",
+            "project": ["aismr"],
             "tags": ["aismr", "publishing", "workflow-output"],
-            "embeddingText": "Published AISMR video: TikTok ${tiktokResult.url}, YouTube ${youtubeResult.url}, Instagram ${instagramResult.url}",
             "metadata": {
               "stage": "publishing",
               "workflowRunId": "${context.workflowRunId}",

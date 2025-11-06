@@ -27,6 +27,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:reset": "tsx scripts/db/reset.ts",
+    "db:bootstrap": "tsx scripts/db/bootstrap.ts",
     "db:migrate": "drizzle-kit up",
     "db:seed": "tsx scripts/db/seed.ts",
     "db:seed:test": "tsx scripts/db/seed-test.ts",

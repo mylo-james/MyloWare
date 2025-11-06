@@ -1,49 +1,116 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
+import { db } from '../db/client.js';
+import { memories } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+
+interface PromptDefinition {
+  name: string;
+  description: string;
+  steps: Array<{
+    id: string;
+    step: number;
+    type: string;
+    description: string;
+    [key: string]: unknown;
+  }>;
+  output_format?: Record<string, unknown>;
+  guardrails?: Array<{
+    type: string;
+    rule: Record<string, unknown>;
+    onViolation: 'halt' | 'warn' | 'continue';
+  }>;
+}
 
 /**
- * Register all MCP prompts with the server
+ * Register dynamic MCP prompts from procedural memories
+ * 
+ * Architecture:
+ * - Prompts = Semantic/declarative guidance stored as procedural memories
+ * - They tell the AI WHAT to accomplish and WHY
+ * - The AI then decides HOW using n8n workflows or MCP tools
  */
-export function registerMCPPrompts(server: McpServer): void {
-  // AISMR video creation workflow prompt
-  server.registerPrompt(
-    'aismr-video-creation',
-    {
-      title: 'AISMR Video Creation',
-      description: 'Create an AISMR video with full production workflow from idea to upload',
-      argsSchema: {
-        topic: z.string().describe('Video topic or theme (e.g., "rain sounds", "ocean waves")'),
-        style: z.string().optional().describe('Video style/ambiance: rain, ocean, nature, urban, or ambient'),
-        duration: z.string().optional().describe('Desired video duration in seconds (as string)'),
-      }
-    },
-    ({ topic, style, duration }) => {
-      const durationNum = duration ? parseInt(duration, 10) : undefined;
-      return {
-        messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Create an AISMR video about "${topic}"${style ? ` with ${style} style` : ''}${durationNum ? ` (${durationNum} seconds)` : ''}. 
+export async function registerMCPPrompts(server: McpServer): Promise<void> {
+  // Load all procedural memories that contain workflow/prompt definitions
+  const proceduralMemories = await db
+    .select()
+    .from(memories)
+    .where(eq(memories.memoryType, 'procedural'));
 
-Follow the complete production workflow:
-1. Generate 12 creative ideas for the video
-2. Have the user select their favorite
-3. Write a detailed screenplay following AISMR guardrails
-4. Generate the video content
-5. Upload to TikTok
+  const registeredPrompts: string[] = [];
 
-Use the workflow_execute tool with the appropriate workflow ID and input parameters.`
-          }
-        }
-      ]
-    };
+  // Register each procedural memory as a prompt with persona/project scoping
+  for (const memory of proceduralMemories) {
+    // Check if this memory has a prompt definition in metadata
+    const promptDef = (memory.metadata as any)?.workflow as PromptDefinition | undefined;
+    
+    if (!promptDef || !promptDef.name || !promptDef.description) {
+      continue; // Skip memories without valid prompt definitions
     }
-  );
 
-  // Memory-assisted conversation prompt
+    // Get persona and project arrays from memory
+    const personas = memory.persona && memory.persona.length > 0 ? memory.persona : ['general'];
+    const projects = memory.project && memory.project.length > 0 ? memory.project : ['general'];
+
+    // Format the steps as a readable guide
+    const stepsText = promptDef.steps
+      .map((step, idx) => `${idx + 1}. ${step.description}`)
+      .join('\n');
+
+    // Register prompt for each persona/project combination
+    for (const persona of personas) {
+      for (const project of projects) {
+        const promptId = `${persona}/${project}/${promptDef.name.toLowerCase().replace(/\s+/g, '-')}`;
+
+        // Register the prompt dynamically
+        server.registerPrompt(
+          promptId,
+          {
+            title: `${promptDef.name} (${persona} on ${project})`,
+            description: promptDef.description,
+            argsSchema: {
+              input: z.string().optional(),
+            }
+          },
+          ({ input }) => {
+            // Build the prompt message with semantic guidance
+            let text = `# ${promptDef.name}\n\n${promptDef.description}\n\n## Steps:\n\n${stepsText}`;
+
+            // Add guardrails if present
+            if (promptDef.guardrails && promptDef.guardrails.length > 0) {
+              text += `\n\n## Guardrails:\n\n`;
+              text += promptDef.guardrails
+                .map((g, idx) => `${idx + 1}. ${g.type}: ${JSON.stringify(g.rule)}`)
+                .join('\n');
+            }
+
+            // Add input parameters if provided
+            if (input) {
+              const inputStr = typeof input === 'string' ? input : JSON.stringify(input, null, 2);
+              text += `\n\n## Input:\n\n${inputStr}`;
+            }
+
+            return {
+              messages: [
+                {
+                  role: 'user',
+                  content: {
+                    type: 'text',
+                    text,
+                  }
+                }
+              ]
+            };
+          }
+        );
+
+        registeredPrompts.push(promptId);
+      }
+    }
+  }
+
+  // Also register a helper prompt for general memory-assisted chat
   server.registerPrompt(
     'memory-chat',
     {
@@ -68,7 +135,7 @@ Use the workflow_execute tool with the appropriate workflow ID and input paramet
 
 ${persona ? `Please use the ${persona} persona. ` : ''}${project ? `Focus on the ${project} project context. ` : ''}
 
-Before responding, search memories for relevant context using:
+Before responding, search memories for relevant context using memory_search with:
 - Query: "${query}"
 ${types.length > 0 ? `- Memory types: ${types.join(', ')}` : ''}
 ${project ? `- Project: ${project}` : ''}
@@ -80,44 +147,11 @@ Use the retrieved memories to provide informed, context-aware responses.`
       };
     }
   );
-
-  // Workflow discovery prompt
-  server.registerPrompt(
-    'discover-workflow',
-    {
-      title: 'Discover Workflow',
-      description: 'Discover available workflows by describing what you want to accomplish',
-      argsSchema: {
-        intent: z.string().describe('What you want to accomplish (e.g., "create video", "search memories", "update project")'),
-        project: z.string().optional().describe('Filter workflows by project'),
-        persona: z.string().optional().describe('Filter workflows by persona'),
-      }
-    },
-    ({ intent, project, persona }) => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `I want to: ${intent}
-
-${project ? `This is for the ${project} project. ` : ''}${persona ? `Using the ${persona} persona. ` : ''}
-
-Please discover workflows that match this intent. Once you find suitable workflows, explain what each one does and help me choose the best one to execute.`
-          }
-        }
-      ]
-    })
-  );
+  registeredPrompts.push('memory-chat');
 
   logger.info({
-    msg: 'MCP prompts registered',
-    count: 3,
-    prompts: [
-      'aismr-video-creation',
-      'memory-chat',
-      'discover-workflow',
-    ],
+    msg: 'MCP prompts registered with persona/project scoping',
+    count: registeredPrompts.length,
   });
 }
 

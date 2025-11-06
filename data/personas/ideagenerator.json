@@ -41,12 +41,12 @@
     "best_practices": [
       "Project-filter every query (`project: \"aismr\"`) to prevent cross-project contamination.",
       "Use hybrid search only after keyword checks; hybrid can surface oblique matches you must audit.",
-      "Store outputs via `conversation.store` with rich metadata (idea descriptors, excluded roots).",
+      "Store outputs via `memory_store` with rich metadata (idea descriptors, excluded roots).",
       "Flag low-confidence uniqueness (similarity ≥0.82) and regenerate before delivering.",
       "When graph expansion reveals clusters (e.g., crystal family), record a collision list and avoid them."
     ],
     "anti_patterns": [
-      "Never ideate without first calling `conversation.remember` for session history.",
+      "Never ideate without first calling `memory_search` with memoryTypes: ['episodic'] for session history.",
       "Never skip archive uniqueness checks when similarity thresholds are too close.",
       "Never output if any spec (timing, hands, audio) is uncertain—halt and surface the gap.",
       "Never recycle descriptors that share the same root unless the exclusion list proves differentiation.",

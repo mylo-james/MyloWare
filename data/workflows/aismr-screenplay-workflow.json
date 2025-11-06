@@ -19,7 +19,6 @@
             "params": {
               "query": "AISMR runtime 8 seconds specification",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "runtimeSpec"
@@ -29,7 +28,6 @@
             "params": {
               "query": "AISMR whisper timing 3.0 seconds specification",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "whisperSpec"
@@ -39,7 +37,6 @@
             "params": {
               "query": "AISMR maximum hands count specification",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "handsSpec"
@@ -49,7 +46,6 @@
             "params": {
               "query": "AISMR no music audio specification",
               "project": "aismr",
-              "searchMode": "keyword",
               "limit": 5
             },
             "storeAs": "audioSpec"
@@ -65,10 +61,10 @@
         "mcp_call": {
           "tool": "memory_search",
           "params": {
-            "sessionId": "${context.sessionId}",
             "query": "past AISMR screenplay quality issues timing errors validation failures",
-            "limit": 20,
-            "format": "bullets"
+            "memoryTypes": ["episodic"],
+            "project": "aismr",
+            "limit": 20
           },
           "storeAs": "qualityIssues"
         }
@@ -80,11 +76,11 @@
         "description": "Search for successful screenplay patterns using hybrid search with graph expansion",
         "dependsOn": ["remember_quality_issues"],
         "mcp_call": {
-          "tool": "prompts.search",
+          "tool": "memory_search",
           "params": {
             "query": "successful AISMR screenplay patterns tactile details timestamps",
             "project": "aismr",
-            "searchMode": "hybrid",
+            "memoryTypes": ["procedural"],
             "expandGraph": true,
             "maxHops": 2,
             "temporalBoost": true,
@@ -174,11 +170,10 @@
         "mcp_call": {
           "tool": "memory_store",
           "params": {
-            "sessionId": "${context.sessionId}",
-            "role": "assistant",
             "content": "Generated AISMR screenplay: ${screenplay.prompt}",
+            "memoryType": "episodic",
+            "project": ["aismr"],
             "tags": ["aismr", "screenplay", "workflow-output"],
-            "embeddingText": "AISMR screenplay: ${screenplay.prompt.substring(0, 500)}",
             "metadata": {
               "stage": "screenplay",
               "workflowRunId": "${context.workflowRunId}",
