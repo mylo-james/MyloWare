@@ -1,36 +1,20 @@
 {
-  "version": "5",
+  "version": "7",
   "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "when": 1761822150597,
-      "tag": "0001_initial",
-      "breakpoints": false
+      "version": "7",
+      "when": 1762349624791,
+      "tag": "0000_common_lorna_dane",
+      "breakpoints": true
     },
     {
       "idx": 1,
-      "when": 1761822150598,
-      "tag": "0002_add_fulltext_search",
-      "breakpoints": false
-    },
-    {
-      "idx": 2,
-      "when": 1761825567386,
-      "tag": "0003_add_memory_components",
-      "breakpoints": false
-    },
-    {
-      "idx": 3,
-      "when": 1761833470431,
-      "tag": "0004_add_episodic_memory",
-      "breakpoints": false
-    },
-    {
-      "idx": 4,
-      "when": 1761840120000,
-      "tag": "0005_add_memory_graph",
-      "breakpoints": false
+      "version": "7",
+      "when": 1762354071284,
+      "tag": "0001_mighty_layla_miller",
+      "breakpoints": true
     }
   ]
 }

@@ -1,166 +1,375 @@
-import fastify, { FastifyInstance } from 'fastify';
-import cors from '@fastify/cors';
+import Fastify, {
+  type FastifyReply,
+  type FastifyRequest,
+  type RouteHandler,
+} from 'fastify';
 import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
-import { config } from './config';
-import { registerMcpRoutes } from './server/httpTransport';
-import { registerApiRoutes } from './server/routes/api';
-import { errorHandler } from './server/errorHandler';
-import { checkPendingMigrations } from './db/migrations';
-import { metricsRegistry, httpRequestDuration, httpRequestTotal } from './server/metrics';
-import { PromptEmbeddingsRepository } from './db/repository';
-import { OperationsRepository } from './db/operations/repository';
-import { runOperationsMigrations } from './db/operations/migrations';
+import { config } from './config/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import { registerMCPTools, registerMCPResources, registerMCPPrompts } from './mcp/handlers.js';
+import { mcpTools } from './mcp/tools.js';
+import { logger } from './utils/logger.js';
+import { pool } from './db/client.js';
+import { embedText } from './utils/embedding.js';
+import { register } from './utils/metrics.js';
+import { createHash, randomUUID } from 'node:crypto';
+const hashValue = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
 
-export async function createServer(): Promise<FastifyInstance> {
-  const app = fastify({
-    logger: {
-      level: config.isProduction ? 'info' : 'debug',
-    },
-  });
+const fastify = Fastify({
+  logger: {
+    level: config.logLevel,
+  },
+});
 
-  await app.register(helmet, {
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  });
+// Create MCP server instance with explicit capabilities
+const mcpServer = new McpServer({
+  name: 'mcp-prompts',
+  version: '2.0.0',
+}, {
+  capabilities: {
+    tools: { listChanged: true },
+    resources: { subscribe: true, listChanged: true },
+    prompts: { listChanged: true }
+  }
+});
 
-  await app.register(rateLimit, {
-    max: config.http.rateLimitMax,
-    timeWindow: config.http.rateLimitWindowMs,
-    ban: 5,
-    cache: 10000,
-  });
+// Register all MCP APIs
+registerMCPTools(mcpServer);
+registerMCPResources(mcpServer);
+registerMCPPrompts(mcpServer);
 
-  const allowedOrigins = new Set(config.http.allowedOrigins);
+// Session transport management
+const transports = new Map<string, StreamableHTTPServerTransport>();
 
-  await app.register(cors, {
-    credentials: true,
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
+// OpenAI health cache
+let openaiHealthCache: { status: string; lastCheck: number } = {
+  status: 'unknown',
+  lastCheck: 0,
+};
 
-      if (allowedOrigins.size === 0 || allowedOrigins.has(origin)) {
-        callback(null, true);
-        return;
-      }
+// Check OpenAI health every 60 seconds max
+const HEALTH_CACHE_TTL = 60000;
 
-      app.log.warn({ origin }, 'CORS origin rejected');
-      callback(new Error('Origin not allowed'), false);
-    },
-  });
+// Health endpoint with detailed checks
+fastify.get('/health', async () => {
+  const checks: Record<string, string> = {};
+  let allHealthy = true;
 
-  // Request instrumentation
-  app.addHook('onRequest', async (request) => {
-    (request as any).startTime = Date.now();
-  });
+  // Check database
+  try {
+    await pool.query('SELECT 1');
+    checks.database = 'ok';
+  } catch {
+    checks.database = 'error';
+    allHealthy = false;
+  }
 
-  app.addHook('onResponse', async (request, reply) => {
-    const duration = (Date.now() - (request as any).startTime) / 1000;
-    const route =
-      (request as unknown as { routerPath?: string }).routerPath ??
-      request.routeOptions?.url ??
-      request.url;
-    const labels = {
-      method: request.method,
-      route,
-      status_code: String(reply.statusCode),
-    };
-
-    httpRequestDuration.labels(labels).observe(duration);
-    httpRequestTotal.labels(labels).inc();
-  });
-
-  app.setErrorHandler(errorHandler);
-
-  await registerMcpRoutes(app);
-  await registerApiRoutes(app);
-
-  app.get('/health', async (request, reply) => {
-    const promptRepo = new PromptEmbeddingsRepository();
-    const opsRepo = config.operationsDatabaseUrl ? new OperationsRepository() : null;
-
-    const [dbCheck, opsDbCheck] = await Promise.all([
-      promptRepo.checkConnection(),
-      opsRepo ? opsRepo.checkConnection() : Promise.resolve({ status: 'disabled' as const }),
-    ]);
-
-    const healthy =
-      dbCheck.status === 'ok' && (opsDbCheck.status === 'ok' || opsDbCheck.status === 'disabled');
-
-    const response = {
-      status: healthy ? 'ok' : 'degraded',
-      timestamp: new Date().toISOString(),
-      checks: {
-        database: dbCheck,
-        operationsDatabase: opsDbCheck,
-      },
-    };
-
-    return reply.status(healthy ? 200 : 503).send(response);
-  });
-
-  app.get('/metrics', async (request, reply) => {
+  // Check OpenAI with caching
+  const now = Date.now();
+  if (now - openaiHealthCache.lastCheck > HEALTH_CACHE_TTL) {
     try {
-      const metrics = await metricsRegistry.metrics();
-      return reply.type('text/plain').send(metrics);
-    } catch (error) {
-      app.log.error({ err: error }, 'Failed to generate metrics');
-      return reply.status(500).send({ error: 'Failed to generate metrics' });
-    }
-  });
-
-  return app;
-}
-
-async function start(): Promise<void> {
-  if (config.operationsDatabaseUrl && !config.isTest) {
-    try {
-      console.log('[startup] Running operations migrations (project videos/runs schema)...');
-      await runOperationsMigrations(config.operationsDatabaseUrl);
-      console.log('[startup] Operations migrations complete.');
-    } catch (error) {
-      console.error('Failed to run operations migrations:', error);
-      process.exit(1);
+      await embedText('test');
+      openaiHealthCache = { status: 'ok', lastCheck: now };
+    } catch {
+      openaiHealthCache = { status: 'error', lastCheck: now };
     }
   }
 
-  const app = await createServer();
-
-  // Check for pending migrations
-  if (!config.isTest) {
-    const pending = await checkPendingMigrations();
-    if (pending.length > 0) {
-      app.log.error({ pending }, 'Pending migrations detected');
-      app.log.error('Please run: npm run db:migrate');
-      process.exit(1);
-    }
+  checks.openai = openaiHealthCache.status;
+  if (openaiHealthCache.status !== 'ok') {
+    allHealthy = false;
   }
 
-  const shutdown = async (signal: string) => {
-    app.log.info({ signal }, 'Shutting down');
-    try {
-      await app.close();
-      process.exit(0);
-    } catch (error) {
-      app.log.error(error, 'Error during shutdown');
-      process.exit(1);
-    }
+  // Check tools
+  const toolChecks: Record<string, string> = {};
+  for (const tool of mcpTools) {
+    toolChecks[tool.name] = 'ok'; // Tools are registered, assume ok
+  }
+  checks.tools = JSON.stringify(toolChecks);
+
+  return {
+    status: allHealthy ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    service: 'mcp-server',
+    checks,
   };
+});
 
-  process.once('SIGINT', () => void shutdown('SIGINT'));
-  process.once('SIGTERM', () => void shutdown('SIGTERM'));
+// Prometheus metrics endpoint
+fastify.get('/metrics', async (request, reply) => {
+  reply.type('text/plain');
+  return register.metrics();
+});
+
+const authenticateRequest = (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  requestId: string,
+): request is FastifyRequest => {
+  if (!config.mcp.authKey) {
+    return true;
+  }
+
+  const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
+  const providedKey = apiKeyHeader?.trim();
+
+  if (providedKey === config.mcp.authKey) {
+    return true;
+  }
+
+  logger.warn({
+    msg: 'Unauthorized MCP access attempt',
+    requestId,
+    ip: request.ip,
+    userAgent: request.headers['user-agent'],
+    url: request.url,
+    method: request.method,
+    headerKeys: Object.keys(request.headers ?? {}),
+    allHeaders: request.headers, // Full headers for debugging
+    providedKey: providedKey ?? '(none)', // Show actual key for debugging
+    expectedKey: config.mcp.authKey ?? '(none)', // Show expected key
+    providedKeyLength: providedKey?.length ?? 0,
+    expectedKeyLength: config.mcp.authKey?.length ?? 0,
+    providedKeyHash: providedKey ? hashValue(providedKey) : null,
+    expectedKeyHash: config.mcp.authKey ? hashValue(config.mcp.authKey) : null,
+    keysMatch: providedKey === config.mcp.authKey,
+  });
+
+  reply.code(401).send({
+    jsonrpc: '2.0',
+    error: {
+      code: -32001,
+      message: 'Unauthorized',
+    },
+    id: null,
+  });
+  return false;
+};
+
+const handleMcpRequest: RouteHandler = async (request, reply) => {
+  const requestId = randomUUID();
+  const startTime = Date.now();
+
+  if (!authenticateRequest(request, reply, requestId)) {
+    return;
+  }
+
+  if (request.method === 'OPTIONS') {
+    reply
+      .header('allow', 'OPTIONS, GET, POST')
+      .header('access-control-allow-methods', 'OPTIONS, GET, POST')
+      .header('access-control-allow-headers', 'content-type, x-api-key, accept')
+      .code(204)
+      .send();
+    return;
+  }
+
+  if (request.method === 'GET') {
+    reply.code(200).send({
+      status: 'ready',
+      message: 'MCP endpoint available. Use POST for JSON-RPC requests.',
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
 
   try {
-    await app.listen({ port: config.SERVER_PORT, host: config.SERVER_HOST });
-    app.log.info(`Server listening on http://${config.SERVER_HOST}:${config.SERVER_PORT}`);
+    logger.info({
+      msg: 'MCP request received',
+      requestId,
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+      hasAuth: !!config.mcp.authKey,
+    });
+
+    const body = request.body as unknown;
+    const sessionId = request.headers['mcp-session-id'] as string | undefined;
+    let transport: StreamableHTTPServerTransport;
+
+    // Check for existing session or create new one
+    if (sessionId && transports.has(sessionId)) {
+      // Reuse existing transport for this session
+      transport = transports.get(sessionId)!;
+      logger.debug({
+        msg: 'Reusing existing transport',
+        requestId,
+        sessionId,
+      });
+    } else if (!sessionId && body && isInitializeRequest(body)) {
+      // New initialization request - create new session
+      const port = config.server.port;
+      // Check if origins include wildcard - if so, disable origin validation
+      const hasWildcard = config.security?.allowedOrigins?.includes('*');
+      const allowedOrigins = hasWildcard ? undefined : (config.security?.allowedOrigins || []);
+      
+      transport = new StreamableHTTPServerTransport({
+        enableJsonResponse: true,
+        sessionIdGenerator: () => randomUUID(),
+        enableDnsRebindingProtection: false, // Disable for internal Docker network
+        allowedHosts: [
+          '127.0.0.1',
+          `127.0.0.1:${port}`,
+          'localhost',
+          `localhost:${port}`,
+          'mcp-server',
+          `mcp-server:${port}`,
+          'mcp-vector.mjames.dev',
+          ...(config.security?.allowedOrigins?.filter(origin => origin !== '*') || [])
+        ],
+        allowedOrigins,
+        onsessioninitialized: (newSessionId) => {
+          // Store the transport by session ID
+          transports.set(newSessionId, transport);
+          logger.info({
+            msg: 'MCP session initialized',
+            requestId,
+            sessionId: newSessionId,
+          });
+        }
+      });
+
+      // Clean up transport when closed
+      transport.onclose = () => {
+        if (transport.sessionId) {
+          transports.delete(transport.sessionId);
+          logger.info({
+            msg: 'MCP session closed',
+            requestId,
+            sessionId: transport.sessionId,
+          });
+        }
+      };
+
+      // Connect server to the new transport
+      await mcpServer.connect(transport);
+    } else {
+      // Invalid request - no session ID and not an initialize request
+      reply.code(400).send({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Bad Request: No valid session ID provided',
+        },
+        id: null,
+      });
+      return;
+    }
+
+    reply.raw.on('close', () => {
+      // Don't close transport on request close - keep it for session reuse
+      // Only close if session is explicitly terminated
+    });
+
+    const requiredAccept = 'application/json, text/event-stream';
+    const incomingAccept = request.headers.accept;
+    const hasRequiredAccept =
+      typeof incomingAccept === 'string' &&
+      incomingAccept.includes('application/json') &&
+      incomingAccept.includes('text/event-stream');
+    if (!hasRequiredAccept) {
+      request.headers.accept = requiredAccept;
+      (
+        request.raw.headers as Record<string, string | string[] | undefined>
+      ).accept = requiredAccept;
+    }
+
+    // Hijack the reply to prevent Fastify from auto-sending
+    reply.hijack();
+    await transport.handleRequest(request.raw, reply.raw, body);
+
+    const duration = Date.now() - startTime;
+    logger.info({
+      msg: 'MCP request completed',
+      requestId,
+      duration,
+      status: 'success',
+    });
   } catch (error) {
-    app.log.error(error, 'Failed to start server');
+    const duration = Date.now() - startTime;
+    logger.error({
+      msg: 'MCP request error',
+      requestId,
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    if (!reply.sent) {
+      reply.code(500).send({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: 'Internal server error',
+        },
+        id: null,
+      });
+    }
+  }
+};
+
+fastify.options('/mcp', handleMcpRequest);
+fastify.get('/mcp', handleMcpRequest);
+fastify.post('/mcp', handleMcpRequest);
+
+const start = async () => {
+  try {
+    // Register security middleware
+    // Note: Helmet's strict policies can block MCP responses, so we disable some for /mcp endpoint
+    await fastify.register(helmet, {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+      // Disable COEP and CORP which can block cross-origin MCP requests
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
+      // Disable COOP for MCP endpoint compatibility
+      crossOriginOpenerPolicy: false,
+    });
+
+    await fastify.register(cors, {
+      origin: config.security?.allowedOrigins || ['*'],
+      credentials: true,
+    });
+
+    await fastify.register(rateLimit, {
+      max: config.security?.rateLimitMax || 100,
+      timeWindow: config.security?.rateLimitTimeWindow || '1 minute',
+      keyGenerator: (request) => {
+        // Use API key for rate limiting if available, otherwise use IP
+        return (
+          (request.headers['x-api-key'] as string) || request.ip || 'unknown'
+        );
+      },
+    });
+
+    await fastify.listen({
+      port: config.server.port,
+      host: config.server.host,
+    });
+
+    logger.info({
+      msg: 'MCP server started',
+      port: config.server.port,
+      host: config.server.host,
+      tools: mcpTools.length,
+    });
+  } catch (err) {
+    logger.error({
+      msg: 'Failed to start server',
+      error: err instanceof Error ? err.message : String(err),
+    });
     process.exit(1);
   }
-}
+};
 
-if (require.main === module) {
-  void start();
-}
+start();

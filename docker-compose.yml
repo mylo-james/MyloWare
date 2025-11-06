@@ -1,111 +1,179 @@
 services:
   postgres:
-    image: ankane/pgvector:latest
-    container_name: mcp-prompts-postgres
+    image: pgvector/pgvector:pg16
+    container_name: mcp-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${MCP_DB_USER:-mcp_prompts}
-      POSTGRES_PASSWORD: ${MCP_DB_PASSWORD:-mcp_prompts}
-      POSTGRES_DB: ${MCP_DB_NAME:-mcp_prompts}
-    ports:
-      - 5442:5432
+      POSTGRES_DB: memories
+      POSTGRES_USER: mylo
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -d $${POSTGRES_DB:-mcp_prompts} -U $${POSTGRES_USER:-mcp_prompts}
+      test: ['CMD', 'pg_isready', '-U', 'mylo', '-d', 'memories']
       interval: 10s
       timeout: 5s
       retries: 5
-  server-prod:
+    networks:
+      - mcp-network
+
+  mcp-server:
     profiles:
       - prod
     build:
       context: .
-      target: prod
-    container_name: mcp-prompts-server
+      target: mcp-server
+    container_name: mcp-server
     restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
-      OPERATIONS_DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 3456
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://mylo:${DB_PASSWORD}@postgres:5432/memories
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MCP_AUTH_KEY: ${MCP_AUTH_KEY}
+      SERVER_PORT: ${SERVER_PORT:-3456}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
+      LOG_LEVEL: info
     ports:
-      - 3456:3456
+      - '${SERVER_PORT:-3456}:${SERVER_PORT:-3456}'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3456/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
-      default:
-        aliases:
-          - server
-  server-dev:
+      - mcp-network
+
+  mcp-server-dev:
     profiles:
       - dev
     build:
       context: .
       target: dev
-    container_name: mcp-prompts-server-dev
+    container_name: mcp-server-dev
     restart: unless-stopped
-    working_dir: /app
-    command: npm run dev
-    env_file:
-      - .env
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
-      OPERATIONS_DATABASE_URL: postgres://mcp_prompts:mcp_prompts@postgres:5432/mcp_prompts
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 3456
-    volumes:
-      - ./src:/app/src
-      - ./scripts:/app/scripts
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-      - ./vitest.config.ts:/app/vitest.config.ts
-      - ..:/workspace:ro
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DOCKER_CONTAINER: "true"
+      DATABASE_URL: postgresql://mylo:${DB_PASSWORD}@postgres:5432/memories
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MCP_AUTH_KEY: ${MCP_AUTH_KEY}
+      SERVER_PORT: ${SERVER_PORT:-3456}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
+      LOG_LEVEL: debug
+    command: npm run dev
     ports:
-      - 3456:3456
+      - '${SERVER_PORT:-3456}:3456'
+    volumes:
+      # Source code - hot reload
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./workflows:/app/workflows
+      - ./data:/app/data
+      
+      # Config files - hot reload on change
+      - ./drizzle:/app/drizzle
+      - ./drizzle.config.ts:/app/drizzle.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3456/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     networks:
-      default:
-        aliases:
-          - server
-  cloudflared-prod:
+      - mcp-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: mylo
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      N8N_METRICS: true
+      N8N_LOG_LEVEL: info
+      QUEUE_HEALTH_CHECK_ACTIVE: true
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 10
+      WEBHOOK_URL: http://localhost:5678
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      MCP_SERVER_URL: ${MCP_SERVER_URL:-http://mcp-server:3456/mcp}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    ports:
+      - '${N8N_PORT:-5678}:5678'
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/.n8n/workflows
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5678/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mcp-network
+
+  cloudflared:
     profiles:
       - prod
     image: cloudflare/cloudflared:latest
-    container_name: mcp-prompts-cloudflared
-    restart: unless-stopped
+    container_name: cloudflared
+    depends_on:
+      - mcp-server
+      - n8n
     command: tunnel --config /etc/cloudflared/config.prompts.yml run
+    restart: unless-stopped
     volumes:
       - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
       - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
       - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
-    depends_on:
-      server-prod:
-        condition: service_started
+    networks:
+      - mcp-network
+
   cloudflared-dev:
     profiles:
       - dev
     image: cloudflare/cloudflared:latest
-    container_name: mcp-prompts-cloudflared-dev
-    restart: unless-stopped
+    container_name: cloudflared-dev
+    depends_on:
+      - mcp-server-dev
+      - n8n
     command: tunnel --config /etc/cloudflared/config.prompts.yml run
+    restart: unless-stopped
     volumes:
       - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
       - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
       - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
-    depends_on:
-      server-dev:
-        condition: service_started
+    networks:
+      - mcp-network
+
 volumes:
-  postgres-data:
+  postgres_data:
     driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  mcp-network:
+    driver: bridge

@@ -1,9 +1,14 @@
 {
+  "updatedAt": "2025-11-05T11:03:11.523Z",
+  "createdAt": "2025-11-04T09:42:16.647Z",
+  "id": "PQsePXjhfSVfw6zb",
   "name": "Generate Video",
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
-        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('When Called').item.json.id || '') }}",
+        "url": "={{ 'http://mcp-server:3000/api/videos/' + ($('When Called').item.json.id || '') }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -644,14 +649,9 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "active": false,
-  "versionId": "36a38c58-2585-40fd-bd00-766395974c5f",
-  "id": "PQsePXjhfSVfw6zb",
   "meta": null,
   "pinData": null,
-  "updatedAt": "2025-11-04T09:42:16.647Z",
-  "createdAt": "2025-11-04T09:42:16.647Z",
-  "isArchived": false,
-  "versionCounter": 1,
+  "versionId": "3dc36f76-62ff-4167-9272-a90f44ec792e",
+  "versionCounter": 5,
   "triggerCount": 0
 }

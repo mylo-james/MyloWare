@@ -1,359 +1,481 @@
-# Deployment Guide
+# Production Deployment Guide
 
-This guide covers deploying the complete RAG-driven workflow system end to end.
+Complete guide for deploying MCP Prompts V2 to production.
+
+---
 
 ## Prerequisites
 
-- PostgreSQL database with `pgvector` extension
-- Node.js 18+ and npm
+- Docker & Docker Compose (or Kubernetes)
+- Domain name with SSL certificate
+- OpenAI API key
+- PostgreSQL 15+ with pgvector extension (or use managed service)
 - n8n instance (self-hosted or cloud)
-- Environment variables configured
+- Optional: Telegram bot token
 
-## Step 1: Database Setup
+---
 
-### 1.1 Create Databases
+## Step 1: Environment Setup
 
-```sql
--- Main database for prompts and embeddings
-CREATE DATABASE mcp_prompts;
-
--- Operations database for workflow runs
-CREATE DATABASE mcp_operations;
-```
-
-### 1.2 Enable Extensions
-
-```sql
--- In both databases
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-```
-
-### 1.3 Run Migrations
+### 1.1 Clone Repository
 
 ```bash
-# Main database migrations
-npm run db:migrate
-
-# Operations database migrations
-npm run db:operations:migrate
+git clone https://github.com/yourusername/mcp-prompts
+cd mcp-prompts
 ```
 
-This will create:
-- `prompt_embeddings` table (with vector support)
-- `workflow_runs` table (workflow state tracking)
-- All necessary indexes
-
-### 1.4 Verify Schema
-
-```sql
--- Check tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name IN ('prompt_embeddings', 'workflow_runs');
-```
-
-## Step 2: Ingest Workflow Definitions
+### 1.2 Create Production Environment File
 
 ```bash
-# Ingest all prompts and workflow definitions
-npm run ingest:prompts
+cp .env.example .env.production
 ```
 
-This will:
-- Parse all JSON files in `prompts/`
-- Generate embeddings
-- Store in database
-- Make searchable via MCP tools
-
-### Verify Ingestion
-
-Check that workflows are searchable:
-
-```bash
-curl -X GET "https://mcp-vector.mjames.dev/api/prompts/search?q=workflow+definition+aismr&project=aismr" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-## Step 3: Environment Variables
-
-Create `.env` file:
+Edit `.env.production` with production values:
 
 ```bash
 # Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/mcp_prompts
-OPERATIONS_DATABASE_URL=postgresql://user:pass@localhost:5432/mcp_operations
+DATABASE_URL=postgresql://user:password@prod-db:5432/mcp_prompts
 
-# Server
+# OpenAI
+OPENAI_API_KEY=sk-your-production-key
+
+# MCP Server
+MCP_AUTH_KEY=$(openssl rand -hex 16)  # Generate secure key
 SERVER_PORT=3000
 SERVER_HOST=0.0.0.0
 
-# API Keys
-MCP_API_KEY=your-api-key-here
+# n8n
+N8N_BASE_URL=https://n8n.yourdomain.com
+N8N_API_KEY=your-n8n-api-key
 
-# External APIs (for video generation, etc.)
-VEO_API_KEY=your-veo-key
-SHOTSTACK_API_KEY=your-shotstack-key
-TIKTOK_API_KEY=your-tiktok-key
-YOUTUBE_API_KEY=your-youtube-key
-INSTAGRAM_API_KEY=your-instagram-key
+# Security
+ALLOWED_ORIGINS=https://yourdomain.com,https://n8n.yourdomain.com
+RATE_LIMIT_MAX=100
+RATE_LIMIT_TIME_WINDOW=1 minute
 
-# Notifications (optional)
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-EMAIL_SMTP_HOST=smtp.example.com
-EMAIL_SMTP_PORT=587
-EMAIL_FROM=noreply@example.com
+# Optional: Telegram
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_USER_ID=your-user-id
 
-# CORS
-HTTP_ALLOWED_ORIGINS=https://your-n8n-instance.com
-HTTP_ALLOWED_HOSTS=mcp-vector.mjames.dev
+# Logging
+LOG_LEVEL=info
 ```
 
-## Step 4: Build and Start Server
+---
+
+## Step 2: Database Setup
+
+### 2.1 Create Production Database
 
 ```bash
-# Install dependencies
-npm install
+# Using managed PostgreSQL (recommended)
+# Create database via provider UI, then run migrations
 
-# Build TypeScript
-npm run build
-
-# Start server
-npm start
+# Or using Docker
+docker run -d \
+  --name mcp-postgres \
+  -e POSTGRES_DB=mcp_prompts \
+  -e POSTGRES_USER=mcp_user \
+  -e POSTGRES_PASSWORD=$(openssl rand -base64 32) \
+  -v mcp-postgres-data:/var/lib/postgresql/data \
+  pgvector/pgvector:pg16
 ```
 
-Or for development:
+### 2.2 Run Migrations
 
 ```bash
-npm run dev
+export DATABASE_URL=postgresql://user:password@prod-db:5432/mcp_prompts
+npm run db:migrate
 ```
 
-### Verify Server is Running
+### 2.3 Seed Initial Data
 
 ```bash
-curl http://localhost:3000/health
-# Should return: {"status":"ok"}
+# Seed personas and projects
+npm run migrate:personas
+npm run migrate:projects
+
+# Seed workflows (after n8n workflows are imported)
+npm run db:seed:workflows
 ```
 
-## Step 5: Deploy n8n Workflows
+---
 
-### 5.1 Push Workflows to n8n
+## Step 3: Update Workflow URLs
+
+**Important:** n8n workflows use hardcoded URLs. Update them for production:
+
+1. Edit `workflows/agent.workflow.json`:
+   - Change `endpointUrl` from `http://mcp-server:3000/mcp` to `https://mcp.yourdomain.com/mcp`
+
+2. Edit `workflows/generate-video.workflow.json`:
+   - Change base URL in HTTP request nodes to production URL
+
+3. Re-import workflows:
+   ```bash
+   npm run import:workflows
+   ```
+
+---
+
+## Step 4: Deploy MCP Server
+
+### Option A: Docker Compose (Recommended)
 
 ```bash
-# Push workflows to n8n instance
-npm run n8n:push
+# Update docker-compose.yml with production URLs
+# Set environment variables in .env.production
+
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Or manually import:
-1. Go to your n8n instance
-2. Import workflows from `workflows/*.workflow.json`
-3. Configure credentials:
-   - MCP API key for HTTP requests
-   - OpenAI API key for LLM nodes
-   - Platform API keys (TikTok, YouTube, etc.)
+### Option B: Kubernetes
 
-### 5.2 Configure n8n Environment
-
-In n8n settings, configure:
-- **MCP Server URL:** `https://mcp-vector.mjames.dev/mcp`
-- **MCP API Key:** Your `MCP_API_KEY`
-- **API Base URL:** `https://mcp-vector.mjames.dev/api`
-
-### 5.3 Activate Workflows
-
-Activate these workflows in n8n:
-- `Post Video`
-
-
-
-### Verify UI is Accessible
-
-```bash
-# Should return HTML page
+```yaml
+# Example deployment (create k8s manifests)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: mcp-server
+        image: your-registry/mcp-prompts:latest
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: mcp-secrets
+              key: database-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mcp-secrets
+              key: openai-api-key
 ```
 
-### Access UI
+---
 
+## Step 5: Configure Reverse Proxy
 
-Features:
-- View pending approvals
-- Filter by stage/project
-- Approve/reject items
-- Provide feedback
+### Using Nginx
 
-## Step 7: Configure Notifications
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name mcp.yourdomain.com;
 
-### Slack Notifications
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
 
-
-1. Create Slack webhook in Slack workspace
-2. Add `SLACK_WEBHOOK_URL` to `.env`
-3. Restart server
-
-Notifications will be sent when:
-- Approval status changes
-
-### Email Notifications (Optional)
-
-Configure SMTP settings in `.env` for email notifications.
-
-## Step 8: Monitoring and Health Checks
-
-### Health Endpoint
-
-```bash
-curl http://localhost:3000/health
-```
-
-### Database Health
-
-Check database connectivity:
-
-```bash
-curl http://localhost:3000/api/admin/features
-# Returns database status
-```
-
-### Workflow Run Status
-
-```bash
-# List recent workflow runs
-curl http://localhost:3000/api/workflow-runs?limit=10
-```
-
-## Step 9: Testing End-to-End Flow
-
-### 9.1 Create Workflow Run
-
-```bash
-curl -X POST http://localhost:3000/api/workflow-runs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "projectId": "aismr",
-    "sessionId": "test-session-id",
-    "input": {
-      "userInput": "Create an ASMR video about puppies"
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
     }
+
+    # Health check endpoint
+    location /health {
+        proxy_pass http://localhost:3000/health;
+        access_log off;
+    }
+
+    # Metrics endpoint (restrict access)
+    location /metrics {
+        allow 10.0.0.0/8;  # Internal network only
+        deny all;
+        proxy_pass http://localhost:3000/metrics;
+    }
+}
+```
+
+### Using Cloudflare Tunnel
+
+Update `cloudflared/config.prompts.yml` with production configuration:
+
+```yaml
+tunnel: your-tunnel-id
+credentials-file: /etc/cloudflared/credentials/mcp-vector.json
+
+ingress:
+  - hostname: mcp.yourdomain.com
+    service: http://mcp-server:3000
+  - service: http_status:404
+```
+
+---
+
+## Step 6: Register Workflows
+
+### 6.1 Import Workflows to n8n
+
+```bash
+npm run import:workflows
+```
+
+Copy the workflow IDs from output.
+
+### 6.2 Register in Database
+
+```bash
+# Set environment variables with n8n workflow IDs
+export N8N_WORKFLOW_ID_IDEAS=<id-from-import>
+export N8N_WORKFLOW_ID_SCRIPT=<id-from-import>
+export N8N_WORKFLOW_ID_VIDEO=<id-from-import>
+export N8N_WORKFLOW_ID_TIKTOK=<id-from-import>
+
+# Seed workflows with n8n IDs
+npm run db:seed:workflows
+
+# Or register manually
+REGISTER_WORKFLOWS=true npm run import:workflows
+```
+
+---
+
+## Step 7: Verify Deployment
+
+### 7.1 Health Checks
+
+```bash
+# Check MCP server health
+curl https://mcp.yourdomain.com/health
+
+# Expected response:
+{
+  "status": "healthy",
+  "timestamp": "2025-11-05T...",
+  "service": "mcp-server",
+  "checks": {
+    "database": "ok",
+    "openai": "ok",
+    "tools": "..."
+  }
+}
+```
+
+### 7.2 Test MCP Endpoint
+
+```bash
+curl -X POST https://mcp.yourdomain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-auth-key" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": 1
   }'
 ```
 
-### 9.2 Trigger Idea Generation
-
-Trigger via n8n workflow or API:
-- n8n: Execute `Generate Ideas` workflow
-- API: Call workflow webhook
-
-
-2. See pending approval for idea generation
-3. Approve/reject idea
-4. Workflow continues automatically
-
-### 9.4 Verify Completion
-
-Check workflow run status:
+### 7.3 Test Workflow Discovery
 
 ```bash
-curl http://localhost:3000/api/workflow-runs/{workflowRunId}
+curl -X POST https://mcp.yourdomain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-auth-key" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "workflow_discover",
+      "arguments": {
+        "intent": "generate AISMR video ideas",
+        "project": "aismr"
+      }
+    },
+    "id": 1
+  }'
 ```
 
-Should show progression through stages:
-- `idea_generation` → `screenplay` → `video_generation` → `publishing`
+---
+
+## Step 8: Monitoring & Alerting
+
+### 8.1 Prometheus Metrics
+
+Metrics are available at `/metrics` endpoint:
+
+```bash
+curl https://mcp.yourdomain.com/metrics
+```
+
+Key metrics:
+- `mcp_tool_calls_total` - Total tool calls
+- `mcp_tool_call_duration_seconds` - Tool execution time
+- `workflow_executions_total` - Workflow executions
+- `workflow_duration_seconds` - Workflow execution time
+
+### 8.2 Logging
+
+Logs are structured JSON. Set up log aggregation:
+
+```bash
+# Using Loki/Promtail
+# Configure log shipping to your logging service
+
+# Or use Docker logging driver
+docker run --log-driver=syslog ...
+```
+
+### 8.3 Health Check Monitoring
+
+Set up monitoring to check `/health` endpoint every 30 seconds:
+
+```yaml
+# Prometheus scrape config
+scrape_configs:
+  - job_name: 'mcp-server'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['mcp.yourdomain.com:443']
+```
+
+---
+
+## Step 9: Backup & Restore
+
+### 9.1 Database Backup
+
+```bash
+# Automated backup script
+#!/bin/bash
+BACKUP_DIR=/backups/mcp-prompts
+DATE=$(date +%Y%m%d_%H%M%S)
+
+pg_dump $DATABASE_URL > $BACKUP_DIR/backup_$DATE.sql
+
+# Keep last 30 days
+find $BACKUP_DIR -name "backup_*.sql" -mtime +30 -delete
+```
+
+### 9.2 Restore Database
+
+```bash
+psql $DATABASE_URL < backup_20251105_120000.sql
+```
+
+### 9.3 Backup Workflow Registry
+
+The `workflow_registry` table maps memory IDs to n8n workflow IDs. Back this up:
+
+```bash
+pg_dump $DATABASE_URL -t workflow_registry > workflow_registry_backup.sql
+```
+
+---
+
+## Step 10: Security Checklist
+
+- [ ] MCP_AUTH_KEY is set and secure (use strong random value)
+- [ ] Database credentials are secure (not in code)
+- [ ] Rate limiting is enabled (100 req/min default)
+- [ ] CORS is configured (only allow trusted origins)
+- [ ] Helmet security headers are enabled
+- [ ] SSL/TLS is configured (HTTPS only)
+- [ ] API keys are stored in secrets manager
+- [ ] Logs don't contain sensitive data
+- [ ] Health endpoint is accessible (no auth required)
+- [ ] Metrics endpoint is restricted (internal only)
+
+---
+
+## Step 11: Scaling
+
+### Horizontal Scaling
+
+The MCP server is stateless and can be scaled horizontally:
+
+```bash
+# Run multiple instances behind load balancer
+docker compose scale mcp-server=3
+```
+
+### Database Scaling
+
+- Use connection pooling (already configured)
+- Consider read replicas for heavy read workloads
+- Monitor connection pool usage
+
+### n8n Scaling
+
+- n8n can run multiple workers
+- Configure queue system for distributed execution
+- Monitor workflow execution queue
+
+---
 
 ## Troubleshooting
 
-### Database Connection Issues
+See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues.
 
-```bash
-# Test connection
-psql $DATABASE_URL -c "SELECT 1"
+---
 
-# Check pgvector extension
-psql $DATABASE_URL -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
-```
+## Rollback Procedure
 
-### Workflow Definitions Not Found
+If deployment fails:
 
-1. Verify ingestion: `npm run ingest:prompts`
-2. Check RAG search:
+1. **Rollback Database:**
    ```bash
-   curl "http://localhost:3000/api/prompts/search?q=workflow+definition"
+   # Restore from backup
+   psql $DATABASE_URL < backup_before_deployment.sql
    ```
-3. Verify file paths match ingestion script expectations
 
+2. **Rollback Code:**
+   ```bash
+   # Revert to previous version
+   git checkout previous-stable-tag
+   docker compose build
+   docker compose up -d
+   ```
 
+3. **Rollback Workflows:**
+   ```bash
+   # Re-import previous workflow versions
+   npm run import:workflows
+   ```
 
-### n8n Workflow Errors
+---
 
-1. Check n8n execution logs
-2. Verify MCP connection:
-   - Endpoint URL correct
-   - API key valid
-   - Network accessible
-3. Check workflow JSON syntax
+## Maintenance
 
-## Production Checklist
+### Regular Tasks
 
-- [ ] Database migrations applied
-- [ ] Workflow definitions ingested
-- [ ] Environment variables configured
-- [ ] Server running and healthy
-- [ ] n8n workflows deployed and active
-- [ ] Notifications configured
-- [ ] End-to-end test completed
-- [ ] Monitoring set up
-- [ ] Backup strategy in place
+- **Daily:** Monitor health checks and error logs
+- **Weekly:** Review metrics and performance
+- **Monthly:** Update dependencies and security patches
+- **Quarterly:** Review and optimize database indices
 
-## Backup Strategy
-
-### Database Backups
+### Updates
 
 ```bash
-# Main database
-pg_dump $DATABASE_URL > backup_prompts.sql
+# Pull latest code
+git pull origin main
 
-# Operations database
-pg_dump $OPERATIONS_DATABASE_URL > backup_operations.sql
+# Run migrations
+npm run db:migrate
+
+# Rebuild and restart
+docker compose build
+docker compose up -d
+
+# Verify deployment
+curl https://mcp.yourdomain.com/health
 ```
 
-### Workflow Definitions
+---
 
-Workflow JSON files are version-controlled in Git, but also backup:
-- `prompts/workflows/*.json`
-- `prompts/projects/*.json`
+## Support
 
-## Scaling Considerations
-
-### Database Performance
-
-- Indexes are already created for common queries
-- Monitor query performance
-- Consider partitioning `workflow_runs` by date if volume is high
-
-### API Rate Limiting
-
-Configure rate limiting in `src/server/httpTransport.ts`:
-- Adjust `RATE_LIMIT_PER_MINUTE`
-- Configure per-IP vs per-API-key limits
-
-### n8n Execution
-
-- Use n8n queue mode for high volume
-- Consider separate n8n instances per project
-- Monitor workflow execution times
-
-## Security
-
-- [ ] API keys stored securely (not in code)
-- [ ] Database credentials secured
-- [ ] HTTPS enabled for production
-- [ ] CORS configured correctly
-- [ ] Rate limiting enabled
-- [ ] Authentication required for admin endpoints
-
-## Next Steps
-
-After deployment:
-1. Monitor error logs
-2. Track workflow completion rates
-4. Iterate on workflow definitions based on results
-5. Add new projects following `ADDING_NEW_PROJECTS.md`
+For issues or questions:
+- Check [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- Review logs: `docker compose logs mcp-server`
+- Check metrics: `curl https://mcp.yourdomain.com/metrics`

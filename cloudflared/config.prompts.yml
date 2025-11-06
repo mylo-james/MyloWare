@@ -13,12 +13,16 @@ ingressRules:
 
 ingress:
   - hostname: mcp-vector.mjames.dev
-    service: http://host.docker.internal:3456
+    service: http://mcp-server-dev:3456
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s
+      noTLSVerify: false
+      disableChunkedEncoding: false
+      # Ensure headers are passed through
+      httpHostHeader: mcp-server-dev:3456
   - hostname: n8n.mjames.dev
-    service: http://host.docker.internal:5678
+    service: http://n8n:5678
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s

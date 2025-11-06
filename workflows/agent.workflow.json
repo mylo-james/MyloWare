@@ -1,0 +1,438 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [368, -16],
+      "id": "e0648770-7136-4912-948c-d6ba3b98efb5",
+      "name": "Telegram Message Trigger",
+      "webhookId": "agent-webhook-id",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $input.item.json.message || {};\nconst chatId = message.chat?.id ?? 'unknown';\nconst userId = message.from?.id ?? 'unknown';\nconst text = message.text || message.caption || '';\nconst attachments = [];\n\nif (message.voice) {\n  attachments.push({ type: 'voice', duration: message.voice.duration, fileId: message.voice.file_id });\n}\n\nreturn {\n  json: {\n    chatId: chatId.toString(),\n    userId: `telegram:${userId}`,\n    sessionId: `telegram:${chatId}`,\n    messageId: message.message_id ?? null,\n    text,\n    platform: 'telegram',\n    attachments,\n    raw: message,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [592, -16],
+      "id": "1e8ad4bf-7de0-41d9-ae1b-1a607a4016f7",
+      "name": "Normalize Telegram Event"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.item.json ?? {};\nconst sessionId = base.sessionId || `telegram:${base.chatId}`;\nconst systemPrompt = [\n  \"You are Mylo's AI collaborator. You operate inside n8n and have MCP tools for memory + workflow orchestration.\",\n  'Process:',\n  '1) Understand the latest user utterance.',\n  '2) Load persona/project context via MCP if missing.',\n  '3) Use memory_search / memory_store / workflow_discover / workflow_execute tools as needed.',\n  '4) Respond warmly and concisely, or acknowledge delegated work.',\n  'All tool calls must use the provided session + user identifiers so memory stays linked.',\n].join(' ');\n\nreturn {\n  json: {\n    systemPrompt,\n    session: {\n      id: sessionId,\n      userId: base.userId,\n    },\n    message: {\n      text: base.text || '',\n      chatId: base.chatId,\n      messageId: base.messageId,\n      platform: base.platform,\n      timestamp: base.timestamp,\n      attachments: base.attachments || []\n    },\n    platform: base.platform,\n    telemetry: { raw: base.raw }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [816, -16],
+      "id": "7aa0d41b-0e57-4060-90c3-dfadea49eb8d",
+      "name": "Prepare Agent Context"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [1288, -16],
+      "id": "5d8c3b85-2d7f-4c67-91dc-0f3e1c4560b1",
+      "name": "AI Agent",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1040, 208],
+      "id": "d8b7b5b0-0c40-4d93-a2ee-08ca651d8c21",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [1168, 208],
+      "id": "ecbb7478-9318-4ba9-b04a-b43c7d503c91",
+      "name": "MCP Client",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $json.response ?? $json.result ?? $json.output ?? $json.text ?? '';\nconst replyText = typeof agentOutput === 'string' ? agentOutput : JSON.stringify(agentOutput, null, 2);\nconst context = $('Prepare Agent Context').item?.json ?? {};\n\nreturn {\n  json: {\n    replyText,\n    chatId: context.message?.chatId ?? null,\n    messageId: context.message?.messageId ?? null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1888, -16],
+      "id": "f1e3dba6-c265-4ff0-82b6-600ee7e46150",
+      "name": "Format Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.replyText }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [2112, -16],
+      "id": "1bb5201b-146b-4ab4-aa64-c92cbf3c6d02",
+      "name": "Reply in Telegram",
+      "webhookId": "4e535a2b-0313-401b-8da1-dbef0f2fb6a2",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "z34mb3qsWQfoiWVD",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/z34mb3qsWQfoiWVD",
+          "cachedResultName": "Edit_AISMR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+          },
+          "matchingColumns": ["runId"],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1296, 208],
+      "id": "15368a5b-ad27-41a4-bea2-32ce4fb5c6b7",
+      "name": "Call 'Edit_AISMR'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "uIWB6d8OslTpJl1G",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/uIWB6d8OslTpJl1G",
+          "cachedResultName": "Upload to TikTok"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+          },
+          "matchingColumns": ["runId"],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1424, 208],
+      "id": "799564d5-85c0-4463-bd81-86e080cbf647",
+      "name": "Call 'Upload to TikTok'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zvJoSOEUDr9hXOLV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zvJoSOEUDr9hXOLV",
+          "cachedResultName": "Upload file to Google Drive"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+          },
+          "matchingColumns": ["runId"],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1552, 208],
+      "id": "196f084f-74be-41f6-9dfa-a210bac877dc",
+      "name": "Call 'Upload file to Google Drive'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PQsePXjhfSVfw6zb",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/PQsePXjhfSVfw6zb",
+          "cachedResultName": "Generate Video"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id', ``, 'string') }}",
+            "runId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('runId', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [1680, 208],
+      "id": "fb7ba809-ccd7-4b77-9161-dfc7e0f94cb9",
+      "name": "Call 'Generate Video'"
+    }
+  ],
+  "connections": {
+    "Telegram Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Telegram Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Telegram Event": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Reply in Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Edit_AISMR'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Upload to TikTok'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Upload file to Google Drive'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Generate Video'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Telegram Message Trigger": [
+      {
+        "update_id": 96972047,
+        "message": {
+          "message_id": 182,
+          "from": {
+            "id": 6559268788,
+            "is_bot": false,
+            "first_name": "Mylo",
+            "last_name": "James",
+            "language_code": "en"
+          },
+          "chat": {
+            "id": 6559268788,
+            "first_name": "Mylo",
+            "last_name": "James",
+            "type": "private"
+          },
+          "date": 1762351252,
+          "text": "make an asmr video about puppies"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d47e04d370a1b43496c097b567956ffb03a57fcf0b3917656c3ea43ad368f887"
+  }
+}

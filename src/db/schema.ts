@@ -1,120 +1,183 @@
-import { sql } from 'drizzle-orm';
 import {
   pgTable,
   uuid,
   text,
   timestamp,
+  integer,
+  boolean,
   jsonb,
-  varchar,
-  vector,
   index,
+  check,
   customType,
   pgEnum,
-  integer,
-  uniqueIndex,
-  doublePrecision,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
-const tsvector = customType<{ data: string; driverData: string }>({
-  dataType() {
-    return 'tsvector';
-  },
-});
+// Enable pgvector extension
+export const enablePgvector = sql`CREATE EXTENSION IF NOT EXISTS vector`;
 
+// Memory type enum
 export const memoryTypeEnum = pgEnum('memory_type', [
-  'persona',
-  'project',
-  'semantic',
   'episodic',
+  'semantic',
   'procedural',
 ]);
 
-export const conversationRoleEnum = pgEnum('conversation_role', [
-  'user',
-  'assistant',
-  'system',
-  'tool',
-]);
-
-export const promptEmbeddings = pgTable(
-  'prompt_embeddings',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    chunkId: text('chunk_id').notNull().unique(),
-    filePath: text('file_path').notNull(),
-    chunkText: text('chunk_text').notNull(),
-    rawMarkdown: text('raw_markdown').notNull(),
-    granularity: varchar('granularity', { length: 20 }).notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }).notNull(),
-    textsearch: tsvector('textsearch').notNull(),
-    metadata: jsonb('metadata')
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    checksum: text('checksum').notNull(),
-    memoryType: memoryTypeEnum('memory_type').notNull().default('semantic'),
-    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true }).defaultNow(),
+const vector = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return 'vector(1536)';
   },
-  (table) => ({
-    filePathIdx: index('idx_embeddings_file_path').on(table.filePath),
-    metadataIdx: index('idx_embeddings_metadata').on(table.metadata),
-  }),
-);
+  toDriver(value) {
+    return `[${value.join(',')}]`;
+  },
+  fromDriver(value) {
+    if (typeof value === 'string') {
+      return value
+        .replace('[', '')
+        .replace(']', '')
+        .split(',')
+        .filter(Boolean)
+        .map(Number);
+    }
+    return value as number[];
+  },
+});
 
-export const conversationTurns = pgTable(
-  'conversation_turns',
+// Memories table
+export const memories = pgTable(
+  'memories',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    sessionId: uuid('session_id').notNull(),
-    userId: text('user_id'),
-    role: conversationRoleEnum('role').notNull(),
-    turnIndex: integer('turn_index').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
     content: text('content').notNull(),
-    summary: jsonb('summary'),
-    metadata: jsonb('metadata')
+    summary: text('summary'),
+    embedding: vector('embedding').notNull(),
+    memoryType: memoryTypeEnum('memory_type').notNull(),
+
+    persona: text('persona').array().notNull().default(sql`ARRAY[]::text[]`),
+    project: text('project').array().notNull().default(sql`ARRAY[]::text[]`),
+    tags: text('tags').array().notNull().default(sql`ARRAY[]::text[]`),
+    relatedTo: uuid('related_to')
+      .array()
       .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true }).defaultNow(),
+      .default(sql`ARRAY[]::uuid[]`),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    lastAccessedAt: timestamp('last_accessed_at'),
+    accessCount: integer('access_count').notNull().default(0),
+
+    metadata: jsonb('metadata').notNull().default({}),
   },
   (table) => ({
-    sessionTurnUnique: uniqueIndex('conversation_turns_session_turn_unique').on(
-      table.sessionId,
-      table.turnIndex,
+    // Vector index - HNSW for optimal performance
+    embeddingIdx: index('memories_embedding_idx').using(
+      'hnsw',
+      sql`${table.embedding} vector_cosine_ops`
     ),
-  }),
+
+    // Metadata indices
+    memoryTypeIdx: index('memories_memory_type_idx').on(table.memoryType),
+    personaIdx: index('memories_persona_idx').using('gin', table.persona),
+    projectIdx: index('memories_project_idx').using('gin', table.project),
+    tagsIdx: index('memories_tags_idx').using('gin', table.tags),
+    relatedToIdx: index('memories_related_to_idx').using('gin', table.relatedTo),
+    temporalIdx: index('memories_created_at_idx').on(table.createdAt),
+
+    // Check constraints - enforce single-line content
+    contentNoNewlines: check('content_no_newlines', sql`content !~ E'\\n'`),
+    summaryNoNewlines: check(
+      'summary_no_newlines',
+      sql`summary IS NULL OR summary !~ E'\\n'`
+    ),
+  })
 );
 
-export const memoryLinks = pgTable(
-  'memory_links',
+// Personas table
+export const personas = pgTable('personas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  capabilities: text('capabilities').array().notNull(),
+  tone: text('tone').notNull(),
+  defaultProject: text('default_project'),
+  systemPrompt: text('system_prompt'),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Projects table
+export const projects = pgTable('projects', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  workflows: text('workflows').array().notNull(),
+  guardrails: jsonb('guardrails').notNull().default({}),
+  settings: jsonb('settings').notNull().default({}),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Sessions table
+export const sessions = pgTable(
+  'sessions',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    sourceChunkId: text('source_chunk_id').notNull(),
-    targetChunkId: text('target_chunk_id').notNull(),
-    linkType: text('link_type').notNull(),
-    strength: doublePrecision('strength').notNull(),
-    metadata: jsonb('metadata')
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true }).defaultNow(),
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    persona: text('persona').notNull(),
+    project: text('project').notNull(),
+    lastInteractionAt: timestamp('last_interaction_at').notNull().defaultNow(),
+    context: jsonb('context').notNull().default({}),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
-    sourceIdx: index('idx_memory_links_source').on(table.sourceChunkId),
-    targetIdx: index('idx_memory_links_target').on(table.targetChunkId),
-    typeIdx: index('idx_memory_links_type').on(table.linkType),
-    uniqueLink: uniqueIndex('memory_links_source_target_type_unique').on(
-      table.sourceChunkId,
-      table.targetChunkId,
-      table.linkType,
-    ),
-  }),
+    userIdx: index('sessions_user_idx').on(table.userId),
+  })
 );
 
-export type MemoryType = (typeof memoryTypeEnum.enumValues)[number];
-export type PromptEmbedding = typeof promptEmbeddings.$inferSelect;
-export type NewPromptEmbedding = typeof promptEmbeddings.$inferInsert;
-export type ConversationRole = (typeof conversationRoleEnum.enumValues)[number];
-export type ConversationTurn = typeof conversationTurns.$inferSelect;
-export type NewConversationTurn = typeof conversationTurns.$inferInsert;
-export type MemoryLink = typeof memoryLinks.$inferSelect;
-export type NewMemoryLink = typeof memoryLinks.$inferInsert;
+// Workflow registry table - maps memory IDs to n8n workflow IDs
+export const workflowRegistry = pgTable(
+  'workflow_registry',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    n8nWorkflowId: text('n8n_workflow_id').notNull(),
+    name: text('name').notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    memoryIdIdx: index('workflow_registry_memory_id_idx').on(table.memoryId),
+    n8nWorkflowIdIdx: index('workflow_registry_n8n_workflow_id_idx').on(
+      table.n8nWorkflowId
+    ),
+    activeIdx: index('workflow_registry_active_idx').on(table.isActive),
+  })
+);
+
+// Workflow runs table
+export const workflowRuns = pgTable(
+  'workflow_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: text('session_id'),
+    workflowName: text('workflow_name').notNull(),
+    status: text('status').notNull(),
+    input: jsonb('input'),
+    output: jsonb('output'),
+    error: text('error'),
+    startedAt: timestamp('started_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workflowSessionIdx: index('workflow_runs_session_idx').on(table.sessionId),
+  })
+);

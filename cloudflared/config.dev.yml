@@ -11,11 +11,10 @@ ingress:
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s
-  # Route MCP server running on host machine
+  # Route MCP dev server in Docker network
   - hostname: mcp-vector.mjames.dev
-    service: http://host.docker.internal:3456
+    service: http://mcp-server-dev:3456
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s
   - service: http_status:404
-

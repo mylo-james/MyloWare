@@ -1,297 +1,404 @@
-# MCP Prompts
+# MCP Prompts V2
 
-A Model Context Protocol (MCP) server providing prompt management, vector search, and workflow orchestration for AI video ideation.
+> **"From a text message to a published video, in five minutes."** ⭐
 
-## Features
+An agentic RAG system that turns natural language into production workflows. Send a message, get a video on TikTok.
 
-- **Prompt Management**: Store, version, and retrieve prompts with semantic search
-- **Vector Search**: pgvector-powered similarity search with temporal decay
-- **Episodic Memory**: Conversation history with semantic retrieval
-- **Workflow Orchestration**: Multi-stage workflows with AI-driven approvals
-- **Telegram Integration**: Notifications for workflow progress
-- **Observability**: Prometheus metrics, health checks, structured logging
-- **Production Ready**: Rate limiting, typed errors, comprehensive testing, CI/CD
+---
 
-## Quick Start
+## 🌟 What Is This?
 
-### Local Development
+V2 is an **AI agent** that:
+- Understands natural language requests
+- Searches its memory for context
+- Discovers workflows semantically
+- Executes complex production pipelines
+- Remembers everything for next time
 
-```bash
-# Start the development environment (n8n + databases + cloudflared)
-npm run dev:up
+No complex commands. No manual steps. Just conversation.
 
-# Check if everything is running
-npm run services:check
+**Example:**
+```
+You: "Create an AISMR video about rain sounds"
 
-# Start the MCP server (in another terminal)
-npm run dev
+Casey: I'll generate 12 ideas, have you pick your favorite, 
+       write the screenplay, produce the video, and upload 
+       it to TikTok. Starting now...
 
-# Access services
-# - n8n: http://localhost:5678 or https://n8n.mjames.dev
-# - MCP Server: http://localhost:3456 or https://mcp-vector.mjames.dev
-# - Metrics: http://localhost:3456/metrics
+[5 minutes later]
+
+Casey: 🎉 Your video "Gentle Rain" is now live on TikTok!
 ```
 
-See [SCRIPTS_CHEATSHEET.md](SCRIPTS_CHEATSHEET.md) for quick reference or [docs/SCRIPTS_GUIDE.md](docs/SCRIPTS_GUIDE.md) for full documentation.
+That's the entire interaction.
 
-### Production Deployment
+---
 
-```bash
-# Install dependencies
-npm install
-
-# Set environment variables (see .env.example)
-export DATABASE_URL=postgresql://...
-export OPENAI_API_KEY=sk-...
-
-# Run migrations
-npm run db:migrate
-npm run db:migrate-ops
-
-# Start production server
-npm run build
-npm start
-```
-
-See [docs/DEPLOYMENT_SETUP.md](docs/DEPLOYMENT_SETUP.md) for detailed deployment guide.
-
-## Architecture
-
-```
-┌─────────────┐
-│  Telegram   │
-│   (User)    │
-└──────┬──────┘
-       │
-       v
-┌─────────────┐      ┌──────────────┐      ┌────────────────┐
-│     n8n     │─────>│  MCP Server  │─────>│   PostgreSQL   │
-│  Workflows  │<─────│   (Fastify)  │<─────│   + pgvector   │
-└─────────────┘      └──────────────┘      └────────────────┘
-                            │
-                            v
-                     ┌──────────────┐
-                     │   OpenAI     │
-                     │  (Embeddings)│
-                     └──────────────┘
-```
-
-## API Endpoints
-
-### MCP Tools (Model Context Protocol)
-
-- `POST /mcp` - Execute MCP tools via JSON-RPC
-  - `prompt_get` - Retrieve prompts by persona/project
-  - `prompts.search` - Semantic/keyword/hybrid search
-  - `conversation.remember` - Retrieve episodic memory
-  - `conversation.store` - Store conversation turns
-
-### REST API
-
-**Workflows**
-- `GET /api/workflow-runs` - List workflow runs
-- `POST /api/workflow-runs` - Create workflow run
-- `GET /api/workflow-runs/:id` - Get workflow run details
-- `PATCH /api/workflow-runs/:id` - Update workflow run
-
-**System**
-- `GET /health` - Health check with database status
-- `GET /metrics` - Prometheus metrics
-
-See [docs/API.md](docs/API.md) for full API documentation.
-
-## Development
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 20+
-- PostgreSQL 16 with pgvector extension
-- Docker & Docker Compose (for local development)
+- Docker & Docker Compose
+- Node.js 20+ (for development)
+- OpenAI API key
+- Telegram bot token (optional, for chat interface)
 
-### Setup
+### ⚡ Fast Start (Recommended)
 
 ```bash
-# Install dependencies
-npm install
+# Clone repo
+git clone https://github.com/yourusername/mcp-prompts
+cd mcp-prompts
 
-# Copy environment template
+# Create .env file
 cp .env.example .env
+# Edit .env with your credentials (REQUIRED: OPENAI_API_KEY, MCP_AUTH_KEY, DB_PASSWORD)
 
-# Edit .env with your values
-vim .env
+# Build and start all services (Postgres + MCP Server + n8n + Cloudflare)
+npm run build
+docker compose build
+docker compose up -d
 
-# Start local services (PostgreSQL + n8n)
-docker compose -f docker-compose.dev.yml up -d
+# Verify everything is running
+docker compose ps
 
-# Run migrations
-npm run db:migrate
+# Check health
+curl http://localhost:3456/health
+```
 
-# Start development server (with hot reload)
+**Access points:**
+- MCP Server: `http://localhost:3456`
+- MCP Health: `http://localhost:3456/health`
+- Metrics: `http://localhost:3456/metrics`
+- n8n UI: `http://localhost:5678` or `https://n8n.mjames.dev`
+- MCP via Cloudflare: `https://mcp-vector.mjames.dev/mcp`
+- Postgres: `localhost:5432`
+
+### Run the Automated Tests
+
+Tests spin up an ephemeral pgvector database with Testcontainers. Make sure Docker Desktop (or the Docker daemon) is running, then execute:
+
+```bash
+npm test
+```
+
+You can still target a subset via `npm run test:unit`, `npm run test:integration`, etc. Performance tests live under `tests/performance` and can be executed separately with `npm run test:perf`.
+
+### Cloudflare Tunnel
+
+We ship the v1 tunnel configuration in `v2/cloudflared/`. To expose this stack over the same hostname, keep the certs/config current and run:
+
+```bash
+docker compose up cloudflared
+```
+
+The container defaults to `cloudflared/config.dev.yml`; switch the mounted config or command if you need the production tunnel.
+
+---
+
+## 🏗️ Architecture
+
+V2 is radically simple: **three services, one agent**.
+
+```
+┌─────────────┐
+│   Telegram  │  User sends message
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  n8n (Agent Workflow)               │
+│  • One AI agent node (GPT-4o-mini)  │
+│  • MCP tool calling                 │
+│  • Workflow orchestration           │
+└──────┬──────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  MCP Server (Tool Interface)        │
+│  • 11 tools (memory, workflow, etc) │
+│  • HTTP endpoint                    │
+└──────┬──────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  Postgres (with pgvector)           │
+│  • Vector memories (embeddings)     │
+│  • SQL state (sessions, runs)       │
+│  • Full-text search                 │
+└─────────────────────────────────────┘
+```
+
+**Key Principles:**
+1. **One agent** - Single AI node makes all decisions
+2. **Semantic discovery** - Workflows found by meaning, not name
+3. **Memory as context** - Agent remembers past interactions
+4. **Tool-based execution** - MCP tools for all operations
+5. **State tracking** - SQL tracks execution history
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+
+---
+
+## 🛠️ Available Tools
+
+The agent has **11 MCP tools** organized into 4 categories:
+
+### Memory Tools
+- `memory_search` - Hybrid vector + keyword search
+- `memory_store` - Store with auto-summarization and linking
+- `memory_evolve` - Update tags, links, summaries
+
+### Context Tools
+- `context_get_persona` - Load AI persona configuration
+- `context_get_project` - Load project specs and guardrails
+
+### Workflow Tools
+- `workflow_discover` - Find workflows by semantic intent
+- `workflow_execute` - Run discovered workflow
+- `workflow_status` - Check execution status
+
+### Interaction Tools
+- `clarify_ask` - Request user clarification
+- `session_get_context` - Load session state
+- `session_update_context` - Save working memory
+
+See [MCP_TOOLS.md](docs/MCP_TOOLS.md) for complete API reference.
+
+---
+
+## 🔌 MCP Compliance
+
+This server is **fully standards-compliant** with the Model Context Protocol specification for seamless integration with any AI agent client.
+
+### Standards Compliance
+
+- ✅ **Protocol:** JSON-RPC 2.0 with MCP specification 2025-06-18
+- ✅ **Transport:** Streamable HTTP with session management
+- ✅ **All Three APIs:** Tools, Resources, and Prompts implemented
+- ✅ **Capabilities:** Explicit capability declarations with `listChanged` notifications
+- ✅ **Schemas:** Complete input and output schemas for all tools
+- ✅ **Security:** DNS rebinding protection enabled
+
+### Compatible Clients
+
+- **Claude Desktop** - Full support for all APIs
+- **n8n** - Tool calling via HTTP requests
+- **Custom MCP Clients** - Standards-compliant integration
+
+### Authentication
+
+Currently using API key authentication via `X-API-Key` header. OAuth 2.1 with PKCE is planned for future versions but not required for internal/protected deployments.
+
+See [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md) for detailed integration instructions.
+
+---
+
+## 📚 Core Concepts
+
+### Agentic RAG
+
+The agent decides **when**, **what**, and **how** to retrieve:
+
+```
+Traditional RAG:
+  User query → Always retrieve → Generate response
+
+Agentic RAG:
+  User query → Agent decides if retrieval needed
+            → Agent chooses what to retrieve
+            → Agent determines how to use results
+            → Generate response
+```
+
+### Semantic Workflow Discovery
+
+Workflows are **data, not code**. They're stored as procedural memories and discovered by understanding intent:
+
+```typescript
+// No hardcoded workflow names!
+const workflows = await discoverWorkflow({
+  intent: "create AISMR video from idea to upload",
+  project: "aismr"
+});
+
+// Returns workflows ranked by semantic similarity
+// Agent picks best match and executes
+```
+
+### Memory Types
+
+Three types of memory, all searchable:
+
+- **Episodic** - Past conversations, interactions, events
+- **Semantic** - Facts, rules, specs, knowledge
+- **Procedural** - Workflows, processes, how-to's
+
+### Hybrid Memory Search
+
+Combines vector similarity + full-text search using Reciprocal Rank Fusion (RRF):
+
+```typescript
+await searchMemories({
+  query: "AISMR rain ideas",
+  memoryTypes: ["episodic", "semantic"],
+  project: "aismr",
+  temporalBoost: true,  // Recent memories rank higher
+  expandGraph: true,    // Follow memory links
+  limit: 10
+});
+```
+
+---
+
+## 🎯 The North Star
+
+Read [NORTH_STAR.md](NORTH_STAR.md) for the complete vision: a detailed walkthrough of the entire system from "user sends message" to "video live on TikTok" in 5 minutes.
+
+**The happy path:**
+1. User: "Create AISMR video about rain"
+2. Agent loads context (persona, project, memory)
+3. Agent discovers "Complete Video Production" workflow
+4. Agent generates 12 ideas (30s)
+5. User selects favorite
+6. Agent writes screenplay with guardrails (45s)
+7. Agent generates video (3min)
+8. Agent uploads to TikTok (30s)
+9. Done! Video is live.
+
+**Total time: ~5 minutes**
+
+---
+
+## 📖 Documentation
+
+- **[NORTH_STAR.md](NORTH_STAR.md)** - The complete vision and walkthrough
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and principles
+- **[MCP_TOOLS.md](docs/MCP_TOOLS.md)** - Complete tool reference
+- **[WORKFLOW_DISCOVERY.md](docs/WORKFLOW_DISCOVERY.md)** - How workflows are discovered
+- **[ADVANCED_FEATURES.md](docs/ADVANCED_FEATURES.md)** - Graph expansion, metrics, performance
+- **[CODING_STANDARDS.md](CODING_STANDARDS.md)** - Development guidelines
+
+---
+
+## 🧪 Testing
+
+```bash
+# All tests
+npm test
+
+# Unit tests only
+npm run test:unit
+
+# Integration tests
+npm run test:integration
+
+# E2E tests
+npm run test:e2e
+
+# Performance tests
+npm run test:perf
+
+# Coverage report
+npm run test:coverage
+```
+
+**Test coverage:** 80%+ across all modules
+
+---
+
+## 🔧 Development
+
+```bash
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+npm run lint:fix
+
+# Formatting
+npm run format
+npm run format:check
+
+# Database management
+npm run db:reset    # Wipe and recreate
+npm run db:migrate  # Run migrations
+npm run db:seed     # Load development data
+
+# Start in development mode
 npm run dev
 ```
 
-### Testing
+---
 
-```bash
-# Run all tests
-npm test
+## 📊 Monitoring
 
-# Run tests with coverage
-npm run test:coverage
+Prometheus metrics available at `/metrics`:
 
-# Run specific test file
-npm test src/server/routes/workflow-runs.test.ts
+- Tool call duration and errors
+- Memory search performance
+- Workflow execution stats
+- Database query times
+- Active session count
 
-# Lint code
-npm run lint
+Example queries:
+```promql
+# Average search duration
+rate(memory_search_duration_ms_sum[5m]) / rate(memory_search_duration_ms_count[5m])
 
-# Type check
-npm run type-check
-
-# Build
-npm run build
+# P95 tool call duration
+histogram_quantile(0.95, mcp_tool_call_duration_ms_bucket)
 ```
 
-### Key Commands
+---
 
-```bash
-# Development
-npm run dev              # Start with hot reload
-npm run db:migrate       # Run migrations
-npm run db:studio        # Open Drizzle Studio
+## 🎨 Technology Stack
 
-# Testing
-npm test                 # Run tests
-npm run test:watch       # Watch mode
-npm run test:coverage    # With coverage
+**Runtime:**
+- Node.js + TypeScript
+- Fastify (HTTP server)
+- Postgres with pgvector (vector + SQL database)
+- Drizzle ORM (type-safe queries)
+- OpenAI API (embeddings + summarization)
+- n8n (agent workflow + orchestration)
 
-# Production
-npm run build           # Build for production
-npm start               # Start production server
+**Development:**
+- Vitest (testing)
+- ESLint + Prettier (code quality)
+- Docker Compose (local development)
+- Prometheus (metrics)
 
-# Utilities
-npm run lint            # Lint code
-npm run type-check      # TypeScript check
-npm run format          # Format with Prettier
-```
+---
 
-## Project Structure
+## 🤝 Contributing
 
-```
-mcp-prompts/
-├── src/
-│   ├── server/              # Fastify server
-│   │   ├── routes/          # API routes
-│   │   ├── tools/           # MCP tool implementations
-│   │   ├── metrics.ts       # Prometheus metrics
-│   │   └── errorHandler.ts # Centralized error handling
-│   ├── services/            # Business logic
-│   ├── db/                  # Database layer
-│   │   ├── repository.ts    # Vector/prompt repository
-│   │   ├── operations/      # Operations database
-│   │   └── migrations/      # SQL migrations
-│   ├── vector/              # Embeddings & search
-│   └── types/               # TypeScript types
-├── workflows/               # n8n workflow definitions
-├── docs/                    # Documentation
-├── drizzle/                 # Database migrations
-└── scripts/                 # Utility scripts
-```
+1. Follow [red-green-refactor](https://github.com/yourusername/mcp-prompts/wiki/Workflow)
+2. Always write tests
+3. Keep coverage above 80%
+4. Follow [CODING_STANDARDS.md](CODING_STANDARDS.md)
+5. Never skip Husky hooks
 
-## Documentation
+---
 
-- [Quick Start Guide](QUICK_START.md) - Get started quickly
-- [Scripts Cheat Sheet](SCRIPTS_CHEATSHEET.md) - Quick command reference
-- [Local Development Guide](docs/LOCAL-DEVELOPMENT.md) - Detailed development setup
-- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment
-- [Scripts Guide](docs/SCRIPTS_GUIDE.md) - Complete scripts documentation
-- [Full Documentation Index](docs/README.md) - All available documentation
-
-Historical documentation is archived in [archive-docs/](archive-docs/).
-
-## Configuration
-
-Key environment variables:
-
-```bash
-# Database
-DATABASE_URL=postgresql://user:pass@host:5432/db
-OPERATIONS_DATABASE_URL=postgresql://user:pass@host:5432/ops_db
-
-# OpenAI
-OPENAI_API_KEY=sk-proj-...
-
-# Telegram
-TELEGRAM_BOT_TOKEN=123456:ABC...
-
-# Server
-SERVER_PORT=3456
-SERVER_HOST=0.0.0.0
-NODE_ENV=production
-
-# Rate Limiting
-RATE_LIMIT_MAX=100
-RATE_LIMIT_WINDOW_MS=60000
-
-# n8n Integration
-N8N_WEBHOOK_BASE=https://n8n.mjames.dev
-```
-
-See `.env.example` for all options.
-
-## Monitoring
-
-### Prometheus Metrics
-
-Available at `GET /metrics`:
-
-- `mcp_prompts_http_request_duration_seconds` - HTTP request latency
-- `mcp_prompts_http_requests_total` - Total HTTP requests
-- `mcp_prompts_db_query_duration_seconds` - Database query duration
-- `mcp_prompts_vector_search_duration_seconds` - Vector search latency
-
-### Health Check
-
-```bash
-curl http://localhost:3456/health | jq
-
-{
-  "status": "ok",
-  "timestamp": "2025-11-02T19:30:00.000Z",
-  "checks": {
-    "database": { "status": "ok" },
-    "operationsDatabase": { "status": "ok" }
-  }
-}
-```
-
-## CI/CD
-
-GitHub Actions workflow runs on every push/PR:
-
-- ✅ Lint (ESLint)
-- ✅ Type check (TypeScript)
-- ✅ Tests (Vitest)
-- ✅ Build
-- ✅ Security audit
-
-See `.github/workflows/ci.yml`
-
-## Contributing
-
-1. Follow the development workflow [[memory:6094533]]
-2. Always pull main first
-3. Create a feature branch
-4. Follow red-green-refactor
-5. Ensure all tests pass
-6. Never skip husky hooks
-7. Create PR and verify CI passes
-
-## License
+## 📝 License
 
 MIT
 
-## Support
+---
 
-- Issues: [GitHub Issues](https://github.com/yourusername/mcp-prompts/issues)
-- Docs: [docs/](docs/)
+## 🙏 Acknowledgments
+
+Built on the shoulders of giants:
+- MCP Protocol (Model Context Protocol)
+- pgvector (Postgres vector extension)
+- n8n (workflow automation)
+- OpenAI (embeddings and LLMs)
+
+---
+
+**Ready to build?** Start with the [NORTH_STAR.md](NORTH_STAR.md) to understand the vision, then dive into [ARCHITECTURE.md](docs/ARCHITECTURE.md) to see how it all works.
+
+**Questions?** Read the docs or check the code—it's designed to be readable.
+
+**Let's turn messages into videos.** 🎬

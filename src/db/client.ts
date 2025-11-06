@@ -1,20 +1,12 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { Pool } from 'pg';
-import * as schema from './schema';
-import { createPool } from './pool';
+import pg from 'pg';
+import { config } from '../config/index.js';
 
-let dbInstance: NodePgDatabase<typeof schema> | undefined;
+const { Pool } = pg;
 
-export function createDb(pool?: Pool): NodePgDatabase<typeof schema> {
-  if (!dbInstance) {
-    const pgPool = pool ?? createPool();
-    dbInstance = drizzle(pgPool, { schema });
-  }
+export const pool = new Pool({
+  connectionString: config.database.url,
+});
 
-  return dbInstance;
-}
+export const db = drizzle(pool);
 
-export function getDb(): NodePgDatabase<typeof schema> {
-  return dbInstance ?? createDb();
-}
