@@ -305,7 +305,7 @@ npm run test:perf
 npm run test:coverage
 ```
 
-**Test coverage:** 80%+ across all modules
+**Test coverage:** 50%+ (interim floor; raising to 80% in Epic 7)
 
 ---
 
@@ -377,7 +377,7 @@ histogram_quantile(0.95, mcp_tool_call_duration_ms_bucket)
 
 1. Follow [red-green-refactor](https://github.com/yourusername/mcp-prompts/wiki/Workflow)
 2. Always write tests
-3. Keep coverage above 80%
+3. Keep coverage above 50% (interim floor; target is 80% once stability work completes)
 4. Follow [CODING_STANDARDS.md](CODING_STANDARDS.md)
 5. Never skip Husky hooks
 

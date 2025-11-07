@@ -81,14 +81,41 @@ When to use you: ${chat.agent.whentouse}
       console.log('    ✓ Chat persona migrated');
     }
 
+    // Migrate Casey (Showrunner)
+    console.log('  - Migrating Casey (Showrunner)...');
+    const caseyJson = await readFile(path.join(dataDir, 'casey.json'), 'utf-8');
+    const caseyDoc: any = JSON.parse(caseyJson);
+    const existingCasey = await repository.findByName('casey');
+    if (existingCasey) {
+      console.log('    ⏭️  Casey persona already exists, skipping');
+    } else {
+      const caseySystemPrompt = cleanForAI(
+        `${caseyDoc.activation_notice}\n\n${caseyDoc.critical_notice}\n\n` +
+          'Follow MCP tool order: context_get_project → context_get_persona("iggy") → trace_create → memory_store → handoff_to_agent. ' +
+          'Always tag memories with traceId and persona. After handoff to Iggy, go idle and wait for Quinn to signal completion.'
+      );
+
+      await repository.insert({
+        name: 'casey',
+        description: caseyDoc.title || 'Showrunner',
+        capabilities: ['coordination', 'trace-create', 'handoff'],
+        tone: 'confident',
+        defaultProject: 'aismr',
+        systemPrompt: caseySystemPrompt,
+        metadata: { v1Source: 'casey.json', role: 'showrunner' },
+      });
+
+      console.log('    ✓ Casey persona migrated');
+    }
+
     // Migrate Idea Generator
     console.log('  - Migrating Idea Generator...');
     const iggyJson = await readFile(path.join(dataDir, 'ideagenerator.json'), 'utf-8');
     const iggy: V1Persona = JSON.parse(iggyJson);
 
-    const existingIggy = await repository.findByName(iggy.agent.id);
-    if (existingIggy) {
-      console.log('    ⏭️  Idea Generator already exists, skipping');
+    const existingIggyId = await repository.findByName(iggy.agent.id);
+    if (existingIggyId) {
+      console.log('    ⏭️  Idea Generator already exists (ideagenerator), skipping');
     } else {
       const iggySystemPrompt = cleanForAI(`
 You are ${iggy.agent.name}, a ${iggy.persona.role}.
@@ -120,6 +147,28 @@ Definition of success: ${iggy.workflow?.definition_of_success || 'Generate uniqu
       console.log('    ✓ Idea Generator migrated');
     }
 
+    // Alias: Iggy persona (Creative Director) using Idea Generator content
+    console.log('  - Ensuring Iggy (Creative Director) exists...');
+    const existingIggyPersona = await repository.findByName('iggy');
+    if (existingIggyPersona) {
+      console.log('    ⏭️  Iggy persona already exists, skipping');
+    } else {
+      const iggySystemPrompt2 = cleanForAI(`
+You are Iggy, the Creative Director for AISMR. Generate 12 unique, on-brand modifiers per object.\n
+Use memory_search to ensure session + archive uniqueness before committing. Store results with traceId, then hand off to Riley.\n
+Seek HITL approval via Telegram before handoff. Always tag memories with persona=['iggy'] and project=['aismr'].`);
+      await repository.insert({
+        name: 'iggy',
+        description: 'Creative Director',
+        capabilities: ['idea-generation', 'uniqueness-verification', 'handoff'],
+        tone: 'creative',
+        defaultProject: 'aismr',
+        systemPrompt: iggySystemPrompt2,
+        metadata: { aliasOf: 'ideagenerator' },
+      });
+      console.log('    ✓ Iggy persona created');
+    }
+
     // Migrate Screenwriter
     console.log('  - Migrating Screenwriter...');
     const screenwriterJson = await readFile(path.join(dataDir, 'screenwriter.json'), 'utf-8');
@@ -127,7 +176,7 @@ Definition of success: ${iggy.workflow?.definition_of_success || 'Generate uniqu
 
     const existingScreenwriter = await repository.findByName(screenwriter.agent.id);
     if (existingScreenwriter) {
-      console.log('    ⏭️  Screenwriter already exists, skipping');
+      console.log('    ⏭️  Screenwriter already exists (screenwriter), skipping');
     } else {
       const screenwriterSystemPrompt = cleanForAI(`
 You are ${screenwriter.agent.name}, a ${screenwriter.persona.role}.
@@ -156,6 +205,87 @@ When to use you: ${screenwriter.agent.whentouse}
       });
 
       console.log('    ✓ Screenwriter migrated');
+    }
+
+    // Alias: Riley persona (Head Writer) using Screenwriter content
+    console.log('  - Ensuring Riley (Head Writer) exists...');
+    const existingRiley = await repository.findByName('riley');
+    if (existingRiley) {
+      console.log('    ⏭️  Riley persona already exists, skipping');
+    } else {
+      const rileySystemPrompt = cleanForAI(`
+You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write 12 AISMR screenplays (8.0s each, whisper at 3.0s, ≤2 hands, no music), store them with traceId, then hand off to Veo.`);
+      await repository.insert({
+        name: 'riley',
+        description: 'Head Writer',
+        capabilities: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
+        tone: 'precise',
+        defaultProject: 'aismr',
+        systemPrompt: rileySystemPrompt,
+        metadata: { aliasOf: 'screenwriter' },
+      });
+      console.log('    ✓ Riley persona created');
+    }
+
+    // Create remaining production personas: Veo, Alex, Quinn
+    console.log('  - Ensuring Veo (Production) exists...');
+    const existingVeo = await repository.findByName('veo');
+    if (!existingVeo) {
+      const veoPrompt = cleanForAI(
+        'You are Veo, Production. Load scripts by traceId, call external video APIs to generate videos, store URLs with traceId, then hand off to Alex.'
+      );
+      await repository.insert({
+        name: 'veo',
+        description: 'Production (Video Generation)',
+        capabilities: ['video-generation', 'batch-processing', 'handoff'],
+        tone: 'efficient',
+        defaultProject: 'aismr',
+        systemPrompt: veoPrompt,
+        metadata: {},
+      });
+      console.log('    ✓ Veo persona created');
+    } else {
+      console.log('    ⏭️  Veo persona already exists, skipping');
+    }
+
+    console.log('  - Ensuring Alex (Editor) exists...');
+    const existingAlex = await repository.findByName('alex');
+    if (!existingAlex) {
+      const alexPrompt = cleanForAI(
+        'You are Alex, Editor. Retrieve videos by traceId, stitch the compilation, request HITL approval via Telegram, store the final URL with traceId, then hand off to Quinn.'
+      );
+      await repository.insert({
+        name: 'alex',
+        description: 'Editor (Post-Production)',
+        capabilities: ['editing', 'compilation', 'handoff'],
+        tone: 'meticulous',
+        defaultProject: 'aismr',
+        systemPrompt: alexPrompt,
+        metadata: {},
+      });
+      console.log('    ✓ Alex persona created');
+    } else {
+      console.log('    ⏭️  Alex persona already exists, skipping');
+    }
+
+    console.log('  - Ensuring Quinn (Publisher) exists...');
+    const existingQuinn = await repository.findByName('quinn');
+    if (!existingQuinn) {
+      const quinnPrompt = cleanForAI(
+        'You are Quinn, Publisher. Retrieve the final edit by traceId, publish to platforms (TikTok/YouTube), store platform URLs with traceId, and call workflow_complete with outputs.'
+      );
+      await repository.insert({
+        name: 'quinn',
+        description: 'Social Media Manager',
+        capabilities: ['publishing', 'captioning', 'workflow-complete'],
+        tone: 'upbeat',
+        defaultProject: 'aismr',
+        systemPrompt: quinnPrompt,
+        metadata: {},
+      });
+      console.log('    ✓ Quinn persona created');
+    } else {
+      console.log('    ⏭️  Quinn persona already exists, skipping');
     }
 
     console.log('✅ Persona migration complete');

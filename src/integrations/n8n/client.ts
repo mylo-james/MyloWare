@@ -17,6 +17,14 @@ export interface ExecutionStatus {
   finishedAt?: string;
 }
 
+export interface WorkflowSummary {
+  id: string;
+  name: string;
+  active: boolean;
+  isArchived?: boolean;
+  updatedAt?: string;
+}
+
 export class N8nClient {
   constructor(private config: N8nConfig) {}
 
@@ -133,6 +141,22 @@ export class N8nClient {
       workflow
     );
     return result.id;
+  }
+
+  async updateWorkflow(id: string, data: Record<string, unknown>): Promise<void> {
+    await this.request<void>('PUT', `/api/v1/workflows/${id}`, data);
+  }
+
+  async activateWorkflow(id: string): Promise<void> {
+    await this.request<void>('POST', `/api/v1/workflows/${id}/activate`);
+  }
+
+  async listWorkflows(limit = 250): Promise<WorkflowSummary[]> {
+    const result = await this.request<{ data: WorkflowSummary[] }>(
+      'GET',
+      `/api/v1/workflows?limit=${limit}`
+    );
+    return result.data || [];
   }
 
   async listExecutions(filter?: {

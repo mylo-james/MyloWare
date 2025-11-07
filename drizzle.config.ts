@@ -5,6 +5,10 @@ dotenv.config();
 
 const runningInDocker = process.env.DOCKER_CONTAINER === 'true';
 
+if (process.env.ROLLBACK_DEBUG === '1' && process.env.DATABASE_URL) {
+  console.info(`[drizzle.config] DATABASE_URL=${process.env.DATABASE_URL}`);
+}
+
 function normalizeDatabaseUrl(url: string): string {
   try {
     const parsed = new URL(url);

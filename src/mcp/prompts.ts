@@ -39,6 +39,7 @@ export async function registerMCPPrompts(server: McpServer): Promise<void> {
     .where(eq(memories.memoryType, 'procedural'));
 
   const registeredPrompts: string[] = [];
+  const registeredPromptSet = new Set<string>();
 
   // Register each procedural memory as a prompt with persona/project scoping
   for (const memory of proceduralMemories) {
@@ -62,6 +63,17 @@ export async function registerMCPPrompts(server: McpServer): Promise<void> {
     for (const persona of personas) {
       for (const project of projects) {
         const promptId = `${persona}/${project}/${promptDef.name.toLowerCase().replace(/\s+/g, '-')}`;
+
+        if (registeredPromptSet.has(promptId)) {
+          logger.warn({
+            msg: 'Skipping duplicate prompt registration',
+            promptId,
+            persona,
+            project,
+            memoryId: memory.id,
+          });
+          continue;
+        }
 
         // Register the prompt dynamically
         server.registerPrompt(
@@ -106,6 +118,7 @@ export async function registerMCPPrompts(server: McpServer): Promise<void> {
         );
 
         registeredPrompts.push(promptId);
+        registeredPromptSet.add(promptId);
       }
     }
   }
@@ -154,4 +167,3 @@ Use the retrieved memories to provide informed, context-aware responses.`
     count: registeredPrompts.length,
   });
 }
-

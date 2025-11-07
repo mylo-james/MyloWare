@@ -20,10 +20,38 @@ export async function searchMemories(
   params: MemorySearchParams
 ): Promise<MemorySearchResult> {
   const startTime = Date.now();
-  const timer = memorySearchDuration.startTimer({ 
-    search_mode: 'hybrid', 
-    memory_type: params.memoryTypes?.[0] || 'all' 
+  const limit = params.limit ?? 10;
+  const offset = params.offset ?? 0;
+  const effectiveLimit = limit + offset;
+  const searchMode = params.traceId ? 'trace' : 'hybrid';
+  const timer = memorySearchDuration.startTimer({
+    search_mode: searchMode,
+    memory_type: params.memoryTypes?.[0] || 'all',
   });
+
+  const repository = new MemoryRepository();
+
+  // Fast path: direct metadata lookup when traceId is provided
+  if (params.traceId) {
+    const traceScopedMemories = await repository.findByTraceId(params.traceId, {
+      persona: params.persona,
+      project: params.project,
+      limit,
+      offset,
+    });
+
+    timer();
+    memorySearchResults.observe(
+      { memory_type: params.memoryTypes?.[0] || 'all' },
+      traceScopedMemories.length
+    );
+
+    return {
+      memories: traceScopedMemories,
+      totalFound: traceScopedMemories.length,
+      searchTime: Date.now() - startTime,
+    };
+  }
 
   // 1. Validate and clean query
   validateSingleLine(params.query, 'query');
@@ -33,10 +61,14 @@ export async function searchMemories(
   const embedding = await embedText(cleanQuery);
 
   // 3. Perform searches
-  const repository = new MemoryRepository();
-
-  const vectorResults = await repository.vectorSearch(embedding, params);
-  const keywordResults = await repository.keywordSearch(cleanQuery, params);
+  const vectorResults = await repository.vectorSearch(embedding, {
+    ...params,
+    limit: effectiveLimit,
+  });
+  const keywordResults = await repository.keywordSearch(cleanQuery, {
+    ...params,
+    limit: effectiveLimit,
+  });
 
   // 4. Combine with RRF
   let memories = reciprocalRankFusion([vectorResults, keywordResults]);
@@ -48,34 +80,34 @@ export async function searchMemories(
 
   // 6. Expand graph if requested
   if (params.expandGraph) {
-    const limit = params.limit || 10;
+    const limitForGraph = effectiveLimit;
     const graphExpanded = await expandMemoryGraph(
       memories,
       params.maxHops || 2,
-      limit * 3 // Allow more for expansion
+      limitForGraph * 3 // Allow more for expansion
     );
-    memories = graphExpanded.slice(0, limit);
+    memories = graphExpanded.slice(0, limitForGraph);
   } else {
     // 7. Limit results
-    const limit = params.limit || 10;
-    memories = memories.slice(0, limit);
+    memories = memories.slice(0, effectiveLimit);
   }
 
+  const paginated = memories.slice(offset, offset + limit);
+
   // 8. Update access counts
-  await repository.updateAccessCount(memories.map((m) => m.id));
+  await repository.updateAccessCount(paginated.map((m) => m.id));
 
   // 9. Record metrics
   timer();
   memorySearchResults.observe(
     { memory_type: params.memoryTypes?.[0] || 'all' },
-    memories.length
+    paginated.length
   );
 
   // 10. Return result
   return {
-    memories,
-    totalFound: memories.length,
+    memories: paginated,
+    totalFound: paginated.length,
     searchTime: Date.now() - startTime,
   };
 }
-

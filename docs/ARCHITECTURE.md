@@ -7,6 +7,7 @@
 ## Overview
 
 V2 is built on three principles:
+
 1. **Semantic Discovery** - Find workflows by understanding intent, not matching strings
 2. **Agentic RAG** - Agent decides when and what to retrieve
 3. **Memory as State** - Everything is remembered and searchable
@@ -45,14 +46,14 @@ V2 is built on three principles:
 │              MCP SERVER                         │
 │                                                 │
 │  Tool Registry (10 tools)                      │
-│  ├── memory_search                             │
-│  ├── memory_store                              │
-│  ├── memory_evolve                             │
+│  ├── memory_search      (hybrid vector + keyword) │
+│  ├── memory_store       (with auto-linking)   │
+│  ├── memory_evolve      (update existing)     │
 │  ├── context_get_persona                       │
 │  ├── context_get_project                       │
-│  ├── trace_create                              │
-│  ├── handoff_to_agent                          │
-│  ├── workflow_complete                         │
+│  ├── trace_create      (Epic 1: coordination)│
+│  ├── handoff_to_agent  (Epic 1: n8n webhooks)│
+│  ├── workflow_complete (Epic 1: completion)  │
 │  ├── session_get_context                       │
 │  └── session_update_context                    │
 │                                                 │
@@ -107,48 +108,70 @@ Telegram Webhook
 n8n Agent Workflow receives message
 ```
 
-### 2. Agent Processes
+### 2. Casey (Showrunner) Processes
 
 ```
-Agent Node (GPT-4o-mini)
+Casey (AI Agent in n8n)
   │
   ├─► Load Persona via context_get_persona
-  │   └─► "I am Casey, helping with AISMR"
+  │   └─► "I am Casey, the Showrunner"
   │
   ├─► Load Project via context_get_project
-  │   └─► "AISMR specs: 8.0s runtime, etc"
+  │   └─► "AISMR specs: 12 modifiers, 8.0s each"
   │
   ├─► Search Memory via memory_search
-  │   └─► "Past rain ideas, user preferences"
+  │   └─► "Past candle ideas, user preferences"
   │
-  ├─► Discover Workflow via workflow_discover
-  │   └─► "Complete Video Production workflow"
+  ├─► Create Trace via trace_create
+  │   └─► traceId: "trace-aismr-001"
   │
-  └─► Decide: Execute workflow
+  └─► Handoff to Iggy via handoff_to_agent
+      └─► Instructions: "Generate 12 candle modifiers"
 ```
 
-### 3. Workflow Executes
+### 3. Multi-Agent Workflow Executes
 
 ```
-workflow_execute({
-  workflowId: "complete-video-production",
-  input: { topic: "rain sounds" }
-})
+Iggy (Creative Director)
   │
-  ├─► Step 1: Generate Ideas (MCP tool)
-  │   └─► 12 unique ideas returned
+  ├─► Loads context (persona + project)
+  ├─► Searches memory by traceId
+  ├─► Generates 12 surreal modifiers
+  ├─► Stores to memory (tagged with traceId)
+  ├─► HITL: Telegram "Send and Wait" for approval
+  └─► Hands off to Riley via handoff_to_agent
   │
-  ├─► Step 2: User Selection (clarify_ask)
-  │   └─► User picks #1
+  ▼
+Riley (Head Writer)
   │
-  ├─► Step 3: Write Screenplay (MCP tool)
-  │   └─► Validated 8.0s screenplay
+  ├─► Searches memory for Iggy's modifiers
+  ├─► Writes 12 validated screenplays (8s each)
+  ├─► Stores to memory (tagged with traceId)
+  └─► Hands off to Veo via handoff_to_agent
   │
-  ├─► Step 4: Generate Video (delegated to n8n)
-  │   └─► Video file created
+  ▼
+Veo (Production - n8n workflow)
   │
-  └─► Step 5: Upload to TikTok (delegated to n8n)
-      └─► Video published
+  ├─► Generates 12 videos in parallel
+  ├─► Validates duration and quality
+  ├─► Stores video URLs to memory
+  └─► Hands off to Alex via handoff_to_agent
+  │
+  ▼
+Alex (Editor)
+  │
+  ├─► Downloads 12 videos
+  ├─► Edits compilation with transitions
+  ├─► HITL: Telegram approval before upload
+  └─► Hands off to Quinn via handoff_to_agent
+  │
+  ▼
+Quinn (Social Media Manager)
+  │
+  ├─► Creates optimized caption + hashtags
+  ├─► Uploads to TikTok
+  ├─► Stores post URL to memory
+  └─► Calls workflow_complete(traceId, "completed")
 ```
 
 ### 4. Memory Stored
@@ -223,18 +246,21 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 ### Key Concepts
 
 **Execution Traces (`execution_traces` table):**
+
 - Each production run has a unique `traceId` (UUID)
 - Tracks status: `active`, `completed`, `failed`
 - Stores project context, session reference, and final outputs
 - All memories created during the run are tagged with `traceId` for discovery
 
 **Agent Webhooks (`agent_webhooks` table):**
+
 - Maps agent names (casey, iggy, riley, veo, alex, quinn) to n8n webhook paths
 - Configures authentication (none, header, basic, bearer)
 - Stores timeout and metadata per agent
 - Supports soft toggles via `isActive` flag
 
 **Memory Tagging:**
+
 - All memories created during a trace include `traceId` in metadata
 - Agents search memory by `traceId` to find prior outputs
 - Enables autonomous coordination without central state management
@@ -243,11 +269,13 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 ### MCP Tools
 
 **`trace_create`:**
+
 - Creates a new execution trace
 - Parameters: `projectId` (required), `sessionId` (optional), `metadata` (optional)
 - Returns: `traceId`, `status`, `createdAt`
 
 **`handoff_to_agent`:**
+
 - Hands off work to another agent via n8n webhook
 - Parameters: `traceId` (required), `toAgent` (required), `instructions` (required), `metadata` (optional)
 - Validates trace is active and agent webhook exists
@@ -255,6 +283,7 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - Returns: `webhookUrl`, `executionId`, `status`, `toAgent`
 
 **`workflow_complete`:**
+
 - Marks a workflow trace as completed or failed
 - Parameters: `traceId` (required), `status` (required: 'completed' | 'failed'), `outputs` (optional), `notes` (optional)
 - Updates trace status and stores completion event to memory
@@ -277,12 +306,14 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 **Purpose:** Tool interface between agent and database
 
 **Technology:**
+
 - Fastify (HTTP server)
 - @modelcontextprotocol/sdk
 - Drizzle ORM
 - OpenAI API
 
 **Responsibilities:**
+
 - Tool registration and validation
 - Parameter validation (Zod schemas)
 - Database queries (repositories)
@@ -291,6 +322,7 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - Error handling and retry logic
 
 **Endpoints:**
+
 - `POST /mcp` - MCP tool calls
 - `GET /health` - Health check
 - `GET /metrics` - Prometheus metrics
@@ -300,6 +332,7 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 **Purpose:** AI agent orchestration and workflow execution
 
 **Configuration:**
+
 - Single agent node with GPT-4o-mini
 - MCP client for tool calling
 - System prompt (agentic RAG pattern)
@@ -307,6 +340,7 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - Tool workflow nodes for programmatic workflows
 
 **n8n Integration:**
+
 - **MCP Server:** Provides tools via HTTP endpoint (`/mcp`)
 - **Authentication:** Optional `x-api-key` header (when `MCP_AUTH_KEY` configured)
 - **Tool Calling:** n8n MCP Client node calls MCP tools synchronously
@@ -314,15 +348,17 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - **Programmatic Workflows:** Edit_AISMR and Generate Video workflows callable via `toolWorkflow` nodes
 
 **Decision Process:**
+
 1. Understand user intent
-2. Determine if clarification needed
-3. Load context (persona, project)
-4. Search memory if relevant
-5. Discover workflow if task-based
-6. Execute workflow (delegates to n8n API) or respond directly
+2. Load context (persona, project) via MCP tools
+3. Search memory for relevant information
+4. Create trace for multi-agent workflows (trace_create)
+5. Hand off to specialist agents via webhooks (handoff_to_agent)
+6. Wait for workflow completion signal (workflow_complete)
 7. Store interaction in memory
 
 **Programmatic Workflows:**
+
 - **Edit_AISMR:** Takes 12 videos, builds Shotstack edit JSON, renders final video
 - **Generate Video:** Takes idea, generates video via Veo 3 Fast API
 - These workflows are pure n8n (no AI) and are exposed as tools via `toolWorkflow` nodes
@@ -332,11 +368,13 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 **Purpose:** Vector + SQL database
 
 **Vector Capabilities:**
+
 - 1536-dimensional embeddings (OpenAI text-embedding-3-small)
 - HNSW indices for fast similarity search
 - Cosine distance operator (<=>)
 
 **SQL Capabilities:**
+
 - State tracking (sessions, workflow runs)
 - Configuration storage (personas, projects)
 - Full-text search (PostgreSQL tsvector)
@@ -357,6 +395,7 @@ The Vitest harness now provisions its own Postgres automatically, eliminating th
 Developers who still want a persistent test DB can export `TEST_DB_URL` and use `npm run test:unit:local` (see `DEV_GUIDE.md`), but the containerized flow keeps the default path deterministic and conflict-free.
 
 **Memory Schema:**
+
 ```sql
 CREATE TABLE memories (
   id UUID PRIMARY KEY,
@@ -428,6 +467,7 @@ score = 1 / (k + rank)
 ```
 
 **Advanced Features:**
+
 - **Temporal boosting** - Recent memories rank higher
 - **Graph expansion** - Follow memory links (2 hops default)
 - **Similarity threshold** - Filter by minimum cosine similarity
@@ -443,6 +483,7 @@ score = 1 / (k + rank)
 4. **Auto-indexing** - Full-text search index updated
 
 **Storage Process:**
+
 ```typescript
 1. Validate single-line content
 2. Generate embedding (text-embedding-3-small)
@@ -454,74 +495,111 @@ score = 1 / (k + rank)
 
 ---
 
-## Workflow System
+## Multi-Agent Workflow System
 
-### Semantic Discovery
+### Autonomous Agent Handoffs
 
-Workflows are **data, not code**. They're stored as procedural memories:
+**North Star Vision:** Each specialist agent is an autonomous black box that receives natural language instructions, loads its own context, searches memory for what it needs, does the work, and hands off to the next agent.
 
-```json
-{
-  "id": "workflow-abc-123",
-  "content": "Complete AISMR video production from idea to upload",
-  "memoryType": "procedural",
-  "project": ["aismr"],
-  "tags": ["workflow", "video-production"],
-  "metadata": {
-    "workflow": {
-      "name": "Complete Video Production",
-      "description": "Generate ideas → Select → Write → Generate → Upload",
-      "steps": [
-        { "id": "generate_ideas", "tool": "workflow.execute", ... },
-        { "id": "user_selection", "type": "clarify.ask", ... },
-        { "id": "write_screenplay", "tool": "workflow.execute", ... },
-        { "id": "generate_video", "tool": "workflow.execute", ... },
-        { "id": "upload_tiktok", "tool": "workflow.execute", ... }
-      ]
-    }
-  }
-}
-```
+**Key Principles:**
 
-**Discovery Process:**
-```typescript
-// Agent doesn't know workflow name
-const intent = "create complete AISMR video";
+1. **Casey coordinates, doesn't orchestrate** - She kicks off work and waits for completion
+2. **Direct agent-to-agent handoffs** - No returning to Casey between steps
+3. **Memory-based coordination** - Agents find context via memory_search filtered by traceId
+4. **HITL via n8n Telegram nodes** - Agents can pause for human approval using "Send and Wait"
 
-// Semantic search finds best match
-const workflows = await discoverWorkflow({
-  intent,
-  project: "aismr"
-});
+### The Agent Team
 
-// Returns workflows ranked by relevance
-// Agent picks top match and executes
-```
+**Casey** - Showrunner (Coordinator)
+
+- Receives user requests
+- Creates execution trace (trace_create)
+- Kicks off first agent (handoff_to_agent)
+- Waits for completion signal
+- Notifies user when done
+
+**Iggy** - Creative Director (Idea Generation)
+
+- Generates concepts (12 AISMR modifiers or 6 GenReact scenarios)
+- Searches memory for uniqueness
+- HITL: Telegram approval of concepts
+- Hands off to Riley
+
+**Riley** - Head Writer (Screenplay)
+
+- Writes detailed screenplays
+- Validates against project specs (8s runtime, etc.)
+- Ensures timing, guardrails, feasibility
+- Hands off to Veo
+
+**Veo** - Production (n8n workflow)
+
+- Generates videos from screenplays
+- Batch processing for multiple videos
+- Monitors progress, retries on failure
+- Hands off to Alex
+
+**Alex** - Editor (Post-Production)
+
+- Stitches multiple videos together
+- Adds captions, overlays, labels
+- HITL: Telegram approval before upload
+- Hands off to Quinn
+
+**Quinn** - Social Media Manager (Publishing)
+
+- Creates optimized captions and hashtags
+- Uploads to TikTok/YouTube
+- Reports back with post URL
+- Signals completion (workflow_complete)
+
+### Prompt + Tool Template
+
+All persona prompts inherit the shared contract in `docs/MCP_PROMPT_NOTES.md`. Highlights:
+
+1. **Trace discipline:** Never invent IDs; always propagate the `{traceId, projectId, sessionId}` that Casey created via `trace_create`.
+2. **Memory-first workflow:** Load context with `memory_search` using the `traceId` parameter (newest-first results) before acting and store outputs via `memory_store` as single-line entries tagged with `traceId`, `persona`, and `project`.
+3. **Coordinated handoffs:** Use `handoff_to_agent` with clear natural-language instructions plus the memory IDs or tags the next agent should read.
+4. **Completion signal:** Quinn (or any terminal persona) must call `workflow_complete(traceId, status, outputs)` and notify Casey/user.
+5. **HITL routing:** Telegram "Send and Wait" nodes handle approvals/clarifications; the legacy `clarify_ask` tool no longer exists.
+
+The prompt notes file also contains example `tools/call` payloads for each MCP tool and persona-specific prompt snippets so n8n stays in sync with `plan.md`.
+
+### n8n Workflow Template
+
+Every persona workflow follows a predictable layout (see `workflows/casey.workflow.json` for the canonical example now that Story 2.1 is live):
+
+1. **Trigger:** Telegram (Casey) or "When Executed by Another Workflow" nodes that accept `{traceId, project, sessionId, instructions}`.
+2. **AI Agent Node:** `@n8n/n8n-nodes-langchain.agent` (gpt-5-nano unless overridden) using the persona-specific prompt plus an MCP client exposing `memory_search`, `memory_store`, `handoff_to_agent`, and `workflow_complete` (Quinn only).
+3. **Tool Workflow Delegation:** Pair each `handoff_to_agent` call with a `Call n8n workflow` node (LangChain `toolWorkflow`) so downstream personas start immediately—Casey never re-enters the loop.
+4. **HITL Nodes:** Telegram "Send and Wait" nodes gate Iggy and Alex; accept/decline branches feed directly back into the AI Agent with explicit feedback.
+5. **Observability:** Every stored memory includes the `traceId`, making the entire execution graph discoverable via `memory_search` without bespoke run-state tables.
+
+See `docs/MCP_PROMPT_NOTES.md` for the detailed checklist used when building new workflows.
 
 ### Execution Tracking
 
-Every workflow run tracked in SQL:
+Every workflow run tracked via execution traces:
 
 ```sql
-CREATE TABLE workflow_runs (
+CREATE TABLE execution_traces (
   id UUID PRIMARY KEY,
-  session_id UUID REFERENCES sessions(id),
-  workflow_name TEXT NOT NULL,
-  status TEXT NOT NULL, -- pending, running, completed, failed
-  input JSONB,
-  output JSONB,
-  error TEXT,
-  started_at TIMESTAMP DEFAULT NOW(),
+  trace_id TEXT UNIQUE NOT NULL,
+  project_id TEXT NOT NULL,
+  session_id TEXT,
+  status TEXT NOT NULL, -- active, completed, failed
+  created_at TIMESTAMP DEFAULT NOW(),
   completed_at TIMESTAMP,
   metadata JSONB
 );
 ```
 
 **Status Tracking:**
-- Agent can query run status
-- Resume failed workflows
-- Track execution history
-- Link runs to sessions
+
+- All memories tagged with traceId
+- Full execution graph reconstructable from memory
+- Agents search memory by traceId to find prior outputs
+- Casey receives completion signal via workflow_complete
 
 ---
 
@@ -530,6 +608,7 @@ CREATE TABLE workflow_runs (
 **Session Lifecycle:**
 
 1. **Create** - First interaction creates session
+
    ```typescript
    const session = await findOrCreate(
      sessionId: "telegram:6559268788",
@@ -540,21 +619,23 @@ CREATE TABLE workflow_runs (
    ```
 
 2. **Context** - Working memory stored in session
+
    ```typescript
    await updateContext(sessionId, {
-     lastIntent: "generate-ideas",
-     lastWorkflowRun: "run-abc-123",
-     recentTopics: ["rain", "cozy"],
-     preferences: { style: "gentle" }
+     lastIntent: 'generate-ideas',
+     lastWorkflowRun: 'run-abc-123',
+     recentTopics: ['rain', 'cozy'],
+     preferences: { style: 'gentle' },
    });
    ```
 
 3. **History** - Conversation history tracked
+
    ```typescript
    await addToConversationHistory(
      sessionId,
-     "user",
-     "Create AISMR video about rain"
+     'user',
+     'Create AISMR video about rain'
    );
    ```
 
@@ -578,7 +659,7 @@ await withRetry(
     maxRetries: 3,
     initialDelay: 1000,
     backoffMultiplier: 2,
-    shouldRetry: (error) => 
+    shouldRetry: (error) =>
       error.message.includes('rate_limit') ||
       error.message.includes('network')
   }
@@ -596,6 +677,7 @@ MCPError (base)
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": {
@@ -638,20 +720,20 @@ MCPError (base)
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    ports: ["5432:5432"]
+    ports: ['5432:5432']
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    
+
   mcp-server:
     build: .
-    ports: ["3000:3000"]
+    ports: ['3000:3000']
     depends_on:
       postgres:
         condition: service_healthy
-    
+
   n8n:
     image: n8nio/n8n
-    ports: ["5678:5678"]
+    ports: ['5678:5678']
     depends_on:
       - postgres
       - mcp-server
@@ -696,18 +778,23 @@ That's it. Everything starts and works together.
 ## Future Extensions
 
 ### Multi-Project Support
+
 - Same architecture, different projects
 - Semantic discovery across domains
 
 ### Learning & Adaptation
+
 - Track workflow success rates
 - Evolve workflows based on outcomes
 - Learn user preferences over time
 
-### Multi-Agent Collaboration
-- Specialized agents (idea, screenplay, upload)
-- Coordinated via shared memory
-- Each optimized for specific task
+### Multi-Agent Collaboration (Current: Epic 1-2)
+
+- Six specialized agents (Casey, Iggy, Riley, Veo, Alex, Quinn)
+- Coordinated via trace IDs and memory tagging
+- Each agent autonomous with dedicated n8n workflow
+- Natural language instructions between agents
+- HITL checkpoints via Telegram "Send and Wait"
 
 ---
 

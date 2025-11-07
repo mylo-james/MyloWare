@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-The agent has **11 tools** for memory, workflows, context management, and sessions.
+The agent has **11 tools** covering memory, context, sessions, and trace coordination.
 
 ---
 
@@ -17,7 +17,9 @@ Search memories using hybrid vector + keyword retrieval.
   memoryTypes?: string[];     // ['episodic', 'semantic', 'procedural']
   project?: string;           // Filter by project
   persona?: string;           // Filter by persona
+  traceId?: string;           // Filter by traceId metadata (new)
   limit?: number;             // Max results (default: 10)
+  offset?: number;            // Skip N newest results (default: 0)
   minSimilarity?: number;     // Threshold 0-1 (default: none)
   temporalBoost?: boolean;    // Boost recent (default: false)
   expandGraph?: boolean;      // Follow links (default: false)
@@ -40,10 +42,13 @@ Search memories using hybrid vector + keyword retrieval.
   "query": "AISMR rain ideas",
   "memoryTypes": ["episodic", "semantic"],
   "project": "aismr",
+  "traceId": "trace-aismr-001",
   "temporalBoost": true,
   "limit": 10
 }
 ```
+
+When `traceId` is provided, the tool skips vector search and returns the newest matching memories (ordered by `createdAt DESC`) so agents can replay the execution trace. Use `offset` to paginate through long traces (e.g., `limit:10, offset:10` to fetch the second page).
 
 ---
 
@@ -56,11 +61,14 @@ Store a new memory with auto-summarization and auto-linking.
 {
   content: string;                    // Memory content (single line)
   memoryType: 'episodic' | 'semantic' | 'procedural';
-  persona?: string[];                 // Associated personas
-  project?: string[];                 // Associated projects
-  tags?: string[];                    // Categorization tags
-  relatedTo?: string[];               // Manual links to other memories
+  persona?: string[];                 // Associated personas (ALWAYS pass as an array, even for a single value)
+  project?: string[];                 // Associated projects (ALWAYS pass as an array)
+  tags?: string[];                    // Categorization tags (ALWAYS pass as an array)
+  relatedTo?: string[];               // Manual links to other memories (ALWAYS pass as an array)
   metadata?: Record<string, unknown>; // Additional data
+  traceId?: string;                   // Convenience field stored in metadata
+  runId?: string;                     // Legacy compatibility helper
+  handoffId?: string;                 // Optional correlation ID for handoffs
 }
 ```
 
@@ -78,9 +86,13 @@ Store a new memory with auto-summarization and auto-linking.
   "content": "Generated 12 AISMR ideas about rain sounds, user preferred gentle rain",
   "memoryType": "episodic",
   "project": ["aismr"],
-  "tags": ["idea-generation", "user-preference"]
+  "persona": ["iggy"],
+  "tags": ["idea-generation", "user-preference"],
+  "traceId": "trace-aismr-001"
 }
 ```
+
+> ⚠️ Always pass array fields (`project`, `persona`, `tags`, `relatedTo`) as JSON arrays, even if you only have a single value. Omit optional fields instead of sending empty strings—this prevents schema validation failures inside the MCP server.
 
 ---
 
@@ -110,6 +122,43 @@ Update existing memory (tags, links, summary).
   changes: string[]; // List of changes made
 }
 ```
+
+---
+
+### memory_searchByRun
+
+Search memories captured under a legacy `runId` (stored in `metadata.runId`). Use this when replaying pre-trace workflows or when debugging Casey’s earlier handoffs.
+
+**Parameters:**
+```typescript
+{
+  runId: string;        // Required run identifier
+  persona?: string;     // Optional persona filter
+  project?: string;     // Optional project filter
+  k?: number;           // Max results (default 20)
+}
+```
+
+**Returns:**
+```typescript
+{
+  memories: Memory[];   // Embeddings removed for safety
+  totalFound: number;
+  searchTime: number;   // milliseconds
+}
+```
+
+**Example:**
+```json
+{
+  "runId": "run-aismr-42",
+  "persona": "casey",
+  "project": "aismr",
+  "k": 5
+}
+```
+
+**Usage:** Call this when you need to migrate or audit historical runs that predate trace IDs. New workflows should prefer `memory_search` with `traceId` filters.
 
 ---
 
@@ -173,146 +222,129 @@ Load project configuration and guardrails.
 
 ---
 
-## Workflow Tools
+## Trace Coordination Tools (Epic 1)
 
-### workflow_discover
+### trace_create
 
-Discover workflows by semantic intent (not by name).
+Create a new execution trace to coordinate multi-agent workflows.
 
 **Parameters:**
 ```typescript
 {
-  intent: string;        // Natural language intent
-  project?: string;      // Filter by project
-  persona?: string;      // Filter by persona
-  limit?: number;        // Max results (default: 10)
+  projectId: string;     // Project identifier (e.g., 'aismr', 'genreact')
+  sessionId?: string;    // Optional session reference
+  metadata?: Record<string, unknown>; // Additional context
 }
 ```
 
 **Returns:**
 ```typescript
 {
-  workflows: Array<{
-    workflowId: string;
-    name: string;
-    description: string;
-    relevanceScore: number;
-    workflow: WorkflowDefinition;
-  }>;
-  totalFound: number;
-  searchTime: number;
+  traceId: string;       // Unique trace identifier (UUID)
+  status: string;        // 'active'
+  createdAt: string;     // ISO timestamp
 }
 ```
 
 **Example:**
 ```json
 {
-  "intent": "create complete AISMR video from idea to upload",
-  "project": "aismr"
-}
-```
-
----
-
-### workflow_execute
-
-Execute a discovered workflow.
-
-**Parameters:**
-```typescript
-{
-  workflowId: string;              // From workflow_discover
-  input: Record<string, unknown>;  // Workflow inputs
-  sessionId?: string;              // For tracking
-  waitForCompletion?: boolean;     // Block until done (default: false)
-}
-```
-
-**Returns:**
-```typescript
-{
-  workflowRunId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  output?: Record<string, unknown>;
-  error?: string;
-}
-```
-
-**Example:**
-```json
-{
-  "workflowId": "workflow-abc-123",
-  "input": {
-    "userInput": "rain sounds",
-    "ideaCount": 12
-  },
+  "projectId": "aismr",
   "sessionId": "telegram:6559268788",
-  "waitForCompletion": true
+  "metadata": {
+    "object": "candles",
+    "userRequest": "Create AISMR video about candles"
+  }
 }
 ```
 
+**Usage:** Casey creates a trace at the start of a production run. All downstream agents tag their memories with this `traceId`.
+
 ---
 
-### workflow_status
+### handoff_to_agent
 
-Check workflow execution status.
+Hand off work to another agent via n8n webhook invocation.
 
 **Parameters:**
 ```typescript
 {
-  workflowRunId: string; // From workflow_execute
+  traceId: string;       // Active trace ID
+  toAgent: string;       // Target agent ('iggy', 'riley', 'veo', 'alex', 'quinn')
+  instructions: string;  // Natural language instructions for the agent
+  metadata?: Record<string, unknown>; // Additional context (will be forwarded to the webhook payload)
 }
 ```
 
 **Returns:**
 ```typescript
 {
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  startedAt: string;
-  completedAt?: string;
-  output?: Record<string, unknown>;
-  error?: string;
-}
-```
-
----
-
-## Interaction Tools
-
-### clarify_ask
-
-Ask user for clarification when request is ambiguous.
-
-**Parameters:**
-```typescript
-{
-  question: string;
-  suggestedOptions?: string[]; // Optional multiple choice
-}
-```
-
-**Returns:**
-```typescript
-{
-  question: string;
-  formatted: string; // Formatted with options
-  needsResponse: boolean;
+  webhookUrl: string;    // The invoked webhook URL
+  executionId?: string;  // n8n execution ID (if available)
+  status: string;        // 'invoked' or 'failed'
+  toAgent: string;       // Echo of target agent
 }
 ```
 
 **Example:**
 ```json
 {
-  "question": "What would you like to create for AISMR?",
-  "suggestedOptions": [
-    "Generate new video ideas",
-    "Write a screenplay",
-    "Check video status"
-  ]
+  "traceId": "trace-aismr-001",
+  "toAgent": "iggy",
+  "instructions": "Generate 12 surreal modifiers for candles. Make sure they're unique and validated against our archive.",
+  "metadata": {
+    "object": "candles"
+  }
 }
 ```
 
+**Usage:** Any agent can hand off to another. The tool validates the trace is active, looks up the agent's webhook, invokes it, and stores the handoff event to memory.
+
 ---
+
+### workflow_complete
+
+Signal that a workflow trace has completed (or failed).
+
+**Parameters:**
+```typescript
+{
+  traceId: string;       // Active trace ID
+  status: 'completed' | 'failed';
+  outputs?: Record<string, unknown>; // Final outputs
+  notes?: string;        // Optional completion notes
+}
+```
+
+**Returns:**
+```typescript
+{
+  traceId: string;       // Echo of trace ID
+  status: string;        // 'completed' or 'failed'
+  completedAt: string;   // ISO timestamp
+  outputs?: Record<string, unknown>;
+}
+```
+
+**Example:**
+```json
+{
+  "traceId": "trace-aismr-001",
+  "status": "completed",
+  "outputs": {
+    "postUrl": "https://tiktok.com/@mylo_aismr/video/7234567890",
+    "platform": "tiktok",
+    "duration": 110
+  },
+  "notes": "Published successfully to TikTok"
+}
+```
+
+**Usage:** The final agent (typically Quinn) calls this after publishing is complete. Casey receives the completion signal and notifies the user.
+
+---
+
+## Session Tools
 
 ### session_get_context
 
@@ -401,34 +433,59 @@ const pastIdeas = await memory_search({
 });
 ```
 
-### Discovering & Executing Workflow
+### Coordinating Multi-Agent Workflow
 
 ```typescript
-// Find workflow by intent
-const discovery = await workflow_discover({
-  intent: 'generate AISMR video ideas',
-  project: 'aismr'
+// 1. Casey creates trace
+const trace = await trace_create({
+  projectId: 'aismr',
+  sessionId: 'telegram:6559268788',
+  metadata: { object: 'candles' }
 });
+// Returns: { traceId: 'trace-aismr-001', ... }
 
-// Execute best match
-const execution = await workflow_execute({
-  workflowId: discovery.workflows[0].workflowId,
-  input: { userInput: 'rain sounds' },
-  sessionId,
-  waitForCompletion: true
+// 2. Casey hands off to Iggy
+const handoff = await handoff_to_agent({
+  traceId: trace.traceId,
+  toAgent: 'iggy',
+  instructions: 'Generate 12 surreal candle modifiers. Validate uniqueness.',
+  metadata: { object: 'candles' }
 });
-```
+// Returns: { webhookUrl: '...', executionId: '...', status: 'invoked' }
 
-### Storing Interaction
-
-```typescript
-// Remember what happened
+// 3. Iggy generates modifiers, stores to memory
 await memory_store({
-  content: `Generated 12 ideas, user selected "Gentle Rain", workflow run: ${execution.workflowRunId}`,
+  content: 'Generated 12 surreal candle modifiers: Void, Liquid, Crystal...',
   memoryType: 'episodic',
   project: ['aismr'],
-  tags: ['workflow-execution', 'idea-generation']
+  persona: ['iggy'],
+  tags: ['ideas-generated', 'candles'],
+  metadata: {
+    traceId: trace.traceId,  // KEY: Tag with traceId
+    modifiers: [...]
+  }
 });
+
+// 4. Iggy hands off to Riley
+await handoff_to_agent({
+  traceId: trace.traceId,
+  toAgent: 'riley',
+  instructions: 'Write 12 screenplays for the candle modifiers. Find details in my last memory.'
+});
+
+// ... chain continues through Riley → Veo → Alex → Quinn ...
+
+// 5. Quinn signals completion
+await workflow_complete({
+  traceId: trace.traceId,
+  status: 'completed',
+  outputs: {
+    postUrl: 'https://tiktok.com/@mylo_aismr/video/...',
+    platform: 'tiktok'
+  }
+});
+
+// 6. Casey receives completion and notifies user
 ```
 
 ---
@@ -438,8 +495,10 @@ await memory_store({
 All tools are optimized for speed:
 
 - `memory_search`: < 100ms (p95)
-- `workflow_discover`: < 200ms (p95)
 - `memory_store`: ~500ms (includes embedding generation)
+- `trace_create`: < 20ms (p95)
+- `handoff_to_agent`: < 500ms (includes webhook invocation)
+- `workflow_complete`: < 50ms (p95)
 - Other tools: < 50ms (p95)
 
 Monitor via `/metrics` endpoint.
@@ -464,6 +523,7 @@ All tools return structured errors:
 - `VALIDATION_ERROR` - Invalid input parameters
 - `DATABASE_ERROR` - Database operation failed
 - `OPENAI_ERROR` - OpenAI API call failed
-- `WORKFLOW_ERROR` - Workflow not found or execution failed
+- `TRACE_ERROR` - Trace not found or invalid
+- `AGENT_ERROR` - Agent webhook not found or invocation failed
 
-OpenAI calls automatically retry on rate limits and network errors.
+OpenAI calls and webhook invocations automatically retry on rate limits and network errors.

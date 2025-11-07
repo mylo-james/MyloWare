@@ -5,6 +5,7 @@ import { evolveMemory } from '../tools/memory/evolveTool.js';
 import { getPersona } from '../tools/context/getPersonaTool.js';
 import { getProject } from '../tools/context/getProjectTool.js';
 import { SessionRepository } from '../db/repositories/session-repository.js';
+import type { SessionContext } from '../db/repositories/session-repository.js';
 import { MemoryRepository, TraceRepository, AgentWebhookRepository } from '../db/repositories/index.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { stripEmbeddings } from '../utils/response-formatter.js';
@@ -164,7 +165,9 @@ const memorySearchInputSchema = z.object({
   memoryTypes: z.array(z.enum(['episodic', 'semantic', 'procedural'])).optional(),
   project: z.string().optional(),
   persona: z.string().optional(),
+  traceId: z.string().optional(),
   limit: numberLike().optional(),
+  offset: numberLike().optional(),
   minSimilarity: numberLike().optional(),
   temporalBoost: booleanLike().optional(),
   expandGraph: booleanLike().optional(),
@@ -179,6 +182,7 @@ const memoryStoreInputSchema = z.object({
   tags: stringArrayLike().optional(),
   metadata: recordLike().optional(),
   relatedTo: stringArrayLike().optional(),
+  traceId: z.string().optional(),
   runId: z.string().optional(),
   handoffId: z.string().optional(),
 });
@@ -246,7 +250,7 @@ const memorySearchByRunSchema = z.object({
 const memorySearchTool: MCPTool = {
   name: 'memory_search',
   title: 'Search Memories',
-  description: 'Search memories using hybrid vector + keyword retrieval',
+  description: 'Use this to retrieve prior outputs via hybrid vector + keyword search (newest-first when traceId is provided)',
   inputSchema: memorySearchInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -272,7 +276,7 @@ const memorySearchTool: MCPTool = {
 const memoryStoreTool: MCPTool = {
   name: 'memory_store',
   title: 'Store Memory',
-  description: 'Store a new memory with auto-summarization and auto-linking',
+  description: 'Log a single-line memory entry tagged with persona/project/traceId (array fields must always be JSON arrays, even for a single value)',
   inputSchema: memoryStoreInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -285,9 +289,10 @@ const memoryStoreTool: MCPTool = {
       requestId,
     });
 
-    const { runId, handoffId, relatedTo, ...rest } = validated;
+    const { traceId, runId, handoffId, relatedTo, ...rest } = validated;
     const metadata = {
       ...(rest.metadata || {}),
+      ...(traceId ? { traceId } : {}),
       ...(runId ? { runId } : {}),
       ...(handoffId ? { handoffId } : {}),
     };
@@ -309,7 +314,7 @@ const memoryStoreTool: MCPTool = {
 const memoryEvolveTool: MCPTool = {
   name: 'memory_evolve',
   title: 'Evolve Memory',
-  description: 'Update existing memory (add/remove tags, links, update summary)',
+  description: 'Update an existing memory (add/remove tags, links, or summary) without creating a new record',
   inputSchema: memoryEvolveInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -336,7 +341,7 @@ const memoryEvolveTool: MCPTool = {
 const contextGetPersonaTool: MCPTool = {
   name: 'context_get_persona',
   title: 'Get Persona',
-  description: 'Load persona configuration by name',
+  description: 'Load the canonical persona prompt and guardrails (Casey calls this for Iggy before handoff)',
   inputSchema: contextGetPersonaInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -360,7 +365,7 @@ const contextGetPersonaTool: MCPTool = {
 const contextGetProjectTool: MCPTool = {
   name: 'context_get_project',
   title: 'Get Project',
-  description: 'Load project configuration by name',
+  description: 'Retrieve project-level guardrails, workflows, and constraints for the active run',
   inputSchema: contextGetProjectInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -385,7 +390,7 @@ const contextGetProjectTool: MCPTool = {
 const sessionGetContextTool: MCPTool = {
   name: 'session_get_context',
   title: 'Get Session Context',
-  description: 'Load session context and working memory',
+  description: 'Load or initialize session working memory (user prefs, last intent, history)',
   inputSchema: sessionGetContextInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -437,7 +442,7 @@ const sessionGetContextTool: MCPTool = {
 const sessionUpdateContextTool: MCPTool = {
   name: 'session_update_context',
   title: 'Update Session Context',
-  description: 'Update session working memory',
+  description: 'Persist updates to session working memory (intent, preferences, topics)',
   inputSchema: sessionUpdateContextInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -451,7 +456,7 @@ const sessionUpdateContextTool: MCPTool = {
     });
 
     const repository = new SessionRepository();
-    await repository.updateContext(validated.sessionId, validated.context as any);
+    await repository.updateContext(validated.sessionId, validated.context as SessionContext);
 
     return {
       content: [{ type: 'text', text: JSON.stringify({ success: true }) }],
@@ -464,7 +469,7 @@ const sessionUpdateContextTool: MCPTool = {
 const memorySearchByRunTool: MCPTool = {
   name: 'memory_searchByRun',
   title: 'Search Memories by Run',
-  description: 'Search memories filtered by runId in metadata',
+  description: 'Replay a legacy run by fetching memories where metadata.runId matches',
   inputSchema: memorySearchByRunSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -503,7 +508,7 @@ const memorySearchByRunTool: MCPTool = {
 const traceCreateTool: MCPTool = {
   name: 'trace_create',
   title: 'Create Trace',
-  description: 'Create a new execution trace to anchor a production run',
+  description: 'Always call this at the start of a production run to mint the shared traceId',
   inputSchema: traceCreateInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -533,7 +538,7 @@ const traceCreateTool: MCPTool = {
 const handoffToAgentTool: MCPTool = {
   name: 'handoff_to_agent',
   title: 'Handoff to Agent',
-  description: 'Hand off work to another agent via n8n webhook',
+  description: 'Resolve the target agent’s webhook, invoke n8n, and log the handoff (requires active traceId)',
   inputSchema: handoffToAgentInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -549,6 +554,8 @@ const handoffToAgentTool: MCPTool = {
     const traceRepo = new TraceRepository();
     const webhookRepo = new AgentWebhookRepository();
 
+    const targetAgent = validated.toAgent.trim().toLowerCase();
+
     // Validate trace exists and is active
     const trace = await traceRepo.findByTraceId(validated.traceId);
     if (!trace) {
@@ -559,7 +566,7 @@ const handoffToAgentTool: MCPTool = {
     }
 
     // Lookup agent webhook
-    const webhook = await webhookRepo.findByAgentName(validated.toAgent);
+    const webhook = await webhookRepo.findByAgentName(targetAgent);
     if (!webhook) {
       throw new Error(`Agent webhook not found: ${validated.toAgent}`);
     }
@@ -624,7 +631,7 @@ const handoffToAgentTool: MCPTool = {
 const workflowCompleteTool: MCPTool = {
   name: 'workflow_complete',
   title: 'Complete Workflow',
-  description: 'Mark a workflow trace as completed or failed',
+  description: 'Mark the trace as completed/failed and attach final outputs for Casey/Quinn',
   inputSchema: workflowCompleteInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -688,7 +695,7 @@ const workflowCompleteTool: MCPTool = {
  * 
  * Architecture change:
  * - Prompts are now exposed via MCP Prompt API (loaded from procedural memories)
- * - n8n workflows are exposed as toolWorkflow nodes in agent.workflow.json
+ * - Each persona ships its own n8n workflow JSON (casey → quinn) and is triggered via handoff_to_agent
  * - Trace-based coordination replaces legacy run_state and handoff tools
  * - These tools focus on memory, session management, and agent coordination
  */

@@ -12,6 +12,7 @@ export class MemoryRepository {
       memoryTypes = ['episodic', 'semantic', 'procedural'],
       persona,
       project,
+      traceId,
       limit = 10,
       minSimilarity,
     } = params;
@@ -31,6 +32,11 @@ export class MemoryRepository {
     // Filter by project
     if (project) {
       conditions.push(sql`${project} = ANY(${memories.project})`);
+    }
+
+    // Filter by traceId metadata
+    if (traceId) {
+      conditions.push(sql`${memories.metadata} ->> 'traceId' = ${traceId}`);
     }
 
     // Filter by minimum similarity (cosine similarity = 1 - cosine distance)
@@ -61,6 +67,7 @@ export class MemoryRepository {
       memoryTypes = ['episodic', 'semantic', 'procedural'],
       persona,
       project,
+      traceId,
       limit = 10,
     } = params;
 
@@ -93,6 +100,10 @@ export class MemoryRepository {
     // Filter by project
     if (project) {
       conditions.push(sql`${project} = ANY(${memories.project})`);
+    }
+
+    if (traceId) {
+      conditions.push(sql`${memories.metadata} ->> 'traceId' = ${traceId}`);
     }
 
     const where = and(...conditions);
@@ -187,6 +198,33 @@ export class MemoryRepository {
       .where(where)
       .orderBy(desc(memories.createdAt))
       .limit(params.limit ?? 20);
+
+    return results as Memory[];
+  }
+
+  async findByTraceId(
+    traceId: string,
+    params: { persona?: string; project?: string; limit?: number; offset?: number }
+  ): Promise<Memory[]> {
+    const conditions = [sql`${memories.metadata} ->> 'traceId' = ${traceId}`];
+
+    if (params.persona) {
+      conditions.push(sql`${params.persona} = ANY(${memories.persona})`);
+    }
+
+    if (params.project) {
+      conditions.push(sql`${params.project} = ANY(${memories.project})`);
+    }
+
+    const where = and(...conditions);
+
+    const results = await db
+      .select()
+      .from(memories)
+      .where(where)
+      .orderBy(desc(memories.createdAt))
+      .limit(params.limit ?? 20)
+      .offset(params.offset ?? 0);
 
     return results as Memory[];
   }

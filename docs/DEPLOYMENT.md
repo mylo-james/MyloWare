@@ -103,15 +103,13 @@ npm run db:seed:workflows
 
 ## Step 3: Update Workflow URLs
 
-**Important:** n8n workflows use hardcoded URLs. Update them for production:
+**Important:** n8n Cloud does not support `$env.*` interpolation inside workflow JSON, so every AI Agent node needs literal URLs. Before production deployment:
 
-1. Edit `workflows/agent.workflow.json`:
-   - Change `endpointUrl` from `http://mcp-server:3000/mcp` to `https://mcp.yourdomain.com/mcp`
+1. Edit each persona workflow in `workflows/` (`casey`, `iggy`, `riley`, `veo`, `alex`, `quinn`).
+   - Update the MCP Client node `endpointUrl` to your production MCP server (e.g., `https://mcp.yourdomain.com/mcp`).
+   - Verify any HTTP Request nodes (video generation/editing/publishing) point at the production integrations.
 
-2. Edit `workflows/generate-video.workflow.json`:
-   - Change base URL in HTTP request nodes to production URL
-
-3. Re-import workflows:
+2. Re-import workflows so n8n picks up the new URLs:
    ```bash
    npm run import:workflows
    ```

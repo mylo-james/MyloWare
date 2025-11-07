@@ -29,6 +29,13 @@
       "when": 1762466536608,
       "tag": "0003_absent_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762478571139,
+      "tag": "0004_trace_metadata_index",
+      "breakpoints": true
     }
   ]
 }

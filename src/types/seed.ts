@@ -4,6 +4,7 @@ export interface TestPersona {
   capabilities: string[];
   tone: string;
   defaultProject?: string;
+  systemPrompt?: string;
 }
 
 export interface TestProject {

@@ -1,0 +1,205 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c333412d-968a-4dd7-975a-928bd532436e",
+      "name": "Telegram Message Trigger",
+      "webhookId": "casey-showrunner-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "session-id-assignment",
+              "name": "sessionId",
+              "type": "string",
+              "value": "={{ $json.sessionId || ($json.chatId ? 'chat:' + $json.chatId : ($json.message?.from?.id ? 'telegram:' + $json.message.from.id : '')) }}"
+            },
+            {
+              "id": "project-id-assignment",
+              "name": "projectId",
+              "type": "string",
+              "value": "={{ $json.project || $json.projectId || 'aismr' }}"
+            },
+            {
+              "id": "instructions-assignment",
+              "name": "instructions",
+              "type": "string",
+              "value": "={{ $json.instructions || $json.message?.text || $json.text || $json.body || $json.chatInput||'' }}"
+            },
+            {
+              "id": "trace-metadata-assignment",
+              "name": "metadata",
+              "type": "json",
+              "value": "={{ { source: $json.chatId ? 'n8n-chat' : 'telegram', receivedAt: $now, rawUserId: $json.chatId || $json.message?.from?.id || null } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        96
+      ],
+      "id": "169f71be-c22b-4cc8-9caf-79da6e5bb6ec",
+      "name": "Normalize Input"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Normalize Input').item.json.instructions }}",
+        "options": {
+          "systemMessage": "=You are Casey, the Showrunner \ud83c\udfac\n\nBefore doing ANYTHING, call context_get_persona({ personaName: 'casey' }) to load your complete instructions, workflow, and tool usage guidelines from the database.\n\nYour persona document contains everything you need:\n- Your role and responsibilities\n- The 5-step workflow process\n- How to use each MCP tool (context_get_project, trace_create, memory_store, handoff_to_agent)\n- When to use each tool and in what order\n- Example payloads and best practices\n- How to write effective handoff instructions\n\nAfter loading your persona, follow the workflow exactly as documented.\n\n## Tool Calling Rules\n- Always emit MCP tool calls as valid JSON: {\"tool\":\"memory_store\",\"arguments\":{...}}.\n- When a schema expects arrays (`project`, `persona`, `tags`, `relatedTo`), wrap single values in brackets instead of strings.\n- Omit optional fields rather than sending empty strings or placeholder text.\n\nYou have access to these inputs:\n- sessionId: {{ $json.sessionId }}\n- projectId: {{ $json.projectId }}\n- instructions: {{ $json.instructions }}\n\nRemember: You are the START and FINISH. Load your instructions, kick off the production, hand off to Iggy, then trust your team. Quinn will signal when done. \ud83c\udfac\u2728"
+        },
+        "responseFormat": "json"
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        448,
+        96
+      ],
+      "id": "09fecc2f-31d2-45cf-a240-efb5607130e6",
+      "name": "Casey Agent",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "value": "gpt-5-nano",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        320
+      ],
+      "id": "c5de8b5b-9d99-450a-8259-411b3783adbb",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        320
+      ],
+      "id": "44008336-f8af-4c1b-be5a-d4a0ab723f6d",
+      "name": "MCP Client",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "id": "4e76fc48-23b8-4c3a-8303-c3ad0bcaa591",
+      "name": "When chat message received",
+      "webhookId": "f708632d-ad65-4b4a-945d-41fc4ea2cae9"
+    }
+  ],
+  "connections": {
+    "Telegram Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Casey Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Casey Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "Casey Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {}
+}

@@ -2,8 +2,8 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["vitest"],
-    "rootDir": "."
+    "rootDir": ".."
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../src/**/*.ts"],
   "exclude": ["../node_modules", "../dist"]
 }

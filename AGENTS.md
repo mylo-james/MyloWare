@@ -1,132 +1,377 @@
-# AGENT PLAYBOOK
+# Agent Development Guide
 
-Welcome! This document is the single stop EM for AI (and human) agents working inside `mcp-prompts`. It captures how the repo is structured, how we expect you to develop, test, document, and hand off work.
-
----
-
-## 1. Mission Snapshot
-
-- **Product:** Multi-agent, memory-first “AI Production Studio”.
-- **North Star:** Every production run is coordinated via `traceId` (Epic 1) and completed through persona-specific n8n workflows (Epics 2+).
-- **Reality Check (Nov 7 2025):** Epic 1 tooling is live; docs + legacy-tool cleanup + Story 2.1 are next.
-
-Keep your work tied to `plan.md` (always in the root tab). Stories only close when their Definition of Done items are checked.
+Quick reference for AI and human agents working in the `mcp-prompts` repository.
 
 ---
 
-## 2. Repo Map
+## Mission
 
-| Path/Asset | Why You Care |
-| --- | --- |
-| `src/mcp/tools.ts` | All MCP tools (trace + memory + workflow). Adding/updating tools goes here. |
-| `src/db/schema.ts` / `drizzle/` | Source of truth for Postgres tables + migrations. |
-| `src/db/repositories/` | Drizzle repositories; tests live under `tests/unit/db/repositories`. |
-| `docs/` | Canonical documentation. If it isn’t in `docs/`, it doesn’t exist. |
-| `plan.md` | Implementation contract. Work in story order unless told otherwise. |
-| `tests/` | Vitest suites (`unit`, `integration`, `e2e`). See §4. |
-| `scripts/` | Helpers for seeding, workflow import, etc. |
+Build a **multi-agent, memory-first AI Production Studio** where:
+
+- Casey (Showrunner) coordinates production runs via `traceId`
+- Specialist agents (Iggy, Riley, Veo, Alex, Quinn) work autonomously
+- Memory tagged by `traceId` provides coordination fabric
+- Each agent hands off directly to the next via natural language
+
+**Current Status (Nov 7, 2025):** Epic 1 (trace coordination) is live. Epic 2 (agent workflows) is next.
+
+## Persona Workflow Overview (North Star Alignment)
+
+The North Star pipeline runs strictly in this order: Casey → Iggy → Riley → Veo → Alex → Quinn. Each persona has a narrow remit, a fixed entry signal, and a required MCP tool set. Keep these handoffs in mind while updating `plan.md`:
+
+| Agent | Entry Trigger | Core Responsibilities | Required MCP Tools |
+| ----- | ------------- | --------------------- | ------------------ |
+| Casey (Showrunner) | User request via Telegram (`workflows/casey.workflow.json`) | Create `traceId`, capture `{project, sessionId, instructions}`, hand off to Iggy, trigger Iggy's workflow, then idle | `trace_create`, `handoff_to_agent`, `memory_store`, `Call n8n workflow` |
+| Iggy (Creative Director) | Casey’s handoff payload | Generate 12 AISMR modifiers (or project-specific ideation), log to memory, seek HITL approval, pass to Riley | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
+| Riley (Head Writer) | Iggy approval event | Retrieve modifiers, draft scripts, store outputs, hand off to Veo | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
+| Veo (Production) | Riley’s scripts | Convert scripts to video assets via external APIs, store URLs, hand off to Alex | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow`, project video API |
+| Alex (Editor) | Veo video URLs | Stitch edits, request HITL approval, store final edit, hand off to Quinn | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
+| Quinn (Publisher) | Alex approval event | Publish final edit, store platform URLs, call `workflow_complete`, notify Casey/user | `memory_search`, `memory_store`, `workflow_complete` |
+
+Casey’s job is to start the run and wait for Quinn’s completion signal; no agent should bounce work back to Casey mid-flow. Every handoff must include the active `traceId` so memories remain queryable by downstream personas.
+
+### Build Order Snapshot (Nov 7, 2025)
+
+1. **Epic 1 DoD close-out:** lock the ≥50% interim coverage floor, legacy tool guardrails, and rollback checklist.
+2. **Story 2.1 (Casey → Iggy):** ship Casey’s workflow JSON plus prompt/docs before any downstream persona work.
+3. **Story 2.2 (Iggy → Riley):** once Casey is live, focus on Iggy’s HITL-aware workflow, memory discipline, and the Iggy→Riley integration test stub.
+4. **Stories 2.3–2.6:** proceed sequentially only after the prior persona’s workflow and documentation are merged.
+
+Staying in this order keeps `plan.md` and AGENTS instructions aligned with the North Star runbook.
+
+### Workflow Assets (Phase 2)
+
+- `workflows/casey.workflow.json` — Telegram + chat triggers → Normalize Input → Casey AI Agent → MCP Client. Casey now calls `context_get_project`, `context_get_persona('iggy')`, `trace_create`, `memory_store`, and `handoff_to_agent` in that order (no secondary Call Workflow node). Hard-code the MCP URL (`https://mcp-vector.mjames.dev/mcp`) because `$env` is unavailable inside workflow JSON.
+- **Important:** n8n Cloud does **not** support `$env.*` placeholders inside workflow JSON. Give every MCP client, HTTP Request node, and toolWorkflow node a literal URL/ID (or pull values from credentials) before exporting, otherwise the agent will see undefined inputs at runtime.
 
 ---
 
-## 3. Local Development
+## Repository Structure
 
-### Prereqs
+| Path                   | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| `src/mcp/tools.ts`     | All MCP tools (trace, memory, workflow)      |
+| `src/db/schema.ts`     | Postgres schema (source of truth)            |
+| `src/db/repositories/` | Drizzle repositories with unit tests         |
+| `docs/`                | Canonical documentation                      |
+| `plan.md`              | Implementation roadmap (work in story order) |
+| `tests/`               | Vitest suites (unit, integration, e2e)       |
+| `NORTH_STAR.md`        | Vision: detailed multi-agent walkthrough     |
 
-- Node 18+ (we test on Node 20/22).
-- Docker (Colima or Docker Desktop) if you want to use the disposable Postgres harness (recommended).
-- `npm install` at repo root.
+---
 
-### Environment
+## Development Workflow
 
-1. Copy `.env.example` → `.env` (or reuse `.env` already in repo) and set:
-   - `OPENAI_API_KEY`
-   - `MCP_AUTH_KEY`
-   - `N8N_*` vars (see `docs/n8n-webhook-config.md`)
-   - `DB_PASSWORD`, etc.
-2. Run `npm run db:bootstrap -- --seed` if you’re using the Docker compose dev stack (`npm run dev:docker` spins it up).
+### Prerequisites
 
-### Running the MCP server
+- Node 18+ (tested on 20/22)
+- Docker (Colima or Docker Desktop) for test harness
+- `npm install` at repo root
 
-- **Hot reload (host machine):** `npm run dev` (Fastify on `http://localhost:3456`).
-- **Docker dev stack:** `npm run dev:docker` (see `docker-compose.yml`); `npm run dev:stop` to tear down.
-- **Standalone n8n:** Provided in compose (`n8n` service). Credentials live in `.env`.
+### Environment Setup
 
-### Bringing things up/down fast
+1. **Copy environment file:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Set required variables:**
+
+   ```bash
+   OPENAI_API_KEY=sk-...
+   MCP_AUTH_KEY=your-auth-key
+   DB_PASSWORD=secure-password
+   N8N_BASE_URL=https://n8n.yourdomain.com
+   N8N_API_KEY=your-n8n-key
+   ```
+
+3. **Bootstrap database (if using Docker stack):**
+   ```bash
+   npm run db:bootstrap -- --seed
+   ```
+
+### Running Locally
 
 ```bash
-# Install deps
-npm install
+# Hot reload (host machine)
+npm run dev
 
-# Start MCP server locally
-npm run dev:local
-
-# Start the full Docker profile (postgres, n8n, dev server)
+# Full Docker stack (postgres + n8n + MCP server)
 npm run dev:docker
 
-# Stop containers
+# Stop Docker stack
 npm run dev:stop
+```
+
+**Access Points:**
+
+- MCP Server: `http://localhost:3456`
+- Health Check: `http://localhost:3456/health`
+- n8n UI: `http://localhost:5678`
+
+---
+
+## Testing
+
+### Quick Start
+
+```bash
+# All unit tests (disposable Postgres container)
+TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit
+
+# Specific test file
+npx vitest run tests/unit/mcp/trace-tools.test.ts
+
+# Integration tests
+TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/integration
+
+# Coverage report
+npm run test:coverage
+```
+
+> **Coverage Baseline (Nov 7, 2025):** `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit --coverage` exercises 25 files / 152 tests and currently reports 66.70% lines (interim target ≥50% while we prep the uplift back to 80%). CI now runs the same containerized unit-test command so raise coverage before merging.
+
+### Test Harness
+
+**How it works:**
+
+1. `tests/setup/database.ts` starts `pgvector/pgvector:pg16`
+2. Auto-discovers Docker socket (Colima/Docker Desktop)
+3. Runs migrations via `drizzle-kit push`
+4. Seeds base data
+5. Resets Drizzle client to point at ephemeral DB
+6. Tears down container after tests finish
+
+**Benefits:**
+
+- No port conflicts between developers
+- Schema/seed data always in sync
+- Works in CI and locally
+- Self-contained test environment
+
+**Alternative (local DB):**
+Export `TEST_DB_URL` and run `npm run test:unit:local` (see `DEV_GUIDE.md`)
+
+---
+
+## Documentation Standards
+
+### Where Documentation Lives
+
+**`docs/` directory** is the single source of truth:
+
+- Architecture, integration guides, tool references
+- Task-focused Markdown files (not monoliths)
+- Keep fresh—stale docs degrade agents quickly
+
+**Special Files:**
+
+- `plan.md` - Implementation roadmap (drives execution order)
+- `NORTH_STAR.md` - Vision (detailed multi-agent walkthrough, do not edit)
+- `AGENTS.md` - This file (quick reference for agents)
+- `docs/MCP_PROMPT_NOTES.md` - Canonical system prompts + tool sequences per persona
+
+### Documentation Rules
+
+1. **Docs vs Plan:**
+   - `plan.md` = what to build and in what order
+   - `docs/` = how things work and integrate
+
+2. **Update Both:**
+   When scope or design shifts, update both `plan.md` and relevant `docs/` files
+
+3. **Prefer Context7 Docs:**
+   When responding via Context7 (OpenAI doc retrieval), prioritize `docs/` content
+
+### Prompt Notes
+
+Reference `docs/MCP_PROMPT_NOTES.md` for:
+
+- The global system prompt block every persona inherits (trace-first contract)
+- Agent-specific instructions covering required MCP tool calls
+- Example JSON payloads for `trace_create`, `handoff_to_agent`, `memory_store`, and `workflow_complete`
+- n8n workflow template checklist (trigger inputs, MCP tools to mount, HITL guidance)
+- Paging guidance for `memory_search` (use `traceId` + `offset` to walk long traces)
+
+Always update both this file and the prompt notes when prompt behavior changes.
+
+### MCP Clients
+
+- **Context7 Doc Retrieval**  
+  Use the Context7 MCP server before changing code: fetch official `docs/` content (or other repo files) so you are working from the latest source of truth. Pull persona/system prompts, architecture details, and workflows via Context7, then implement. This keeps prompts and tooling synchronized with documentation and fulfills the “prefer Context7 docs” rule above.
+
+- **`mylo_mcp` Tool Server**  
+  The local MCP server (auth header `X-API-Key: mylo-mcp-bot`) exposes the live tool set plus hot-reload dev server running at `http://localhost:3456` (`CURSOR_MCP_SETUP.md`). Use it to exercise tools (`tools/list`, `tools/call`) and to validate changes end-to-end through Cursor, Claude Desktop, or CLI clients. Restart via `docker compose --profile dev restart mcp-server-dev` if the tools list looks stale, and always confirm `/health` before debugging agent flows.
+---
+
+## Key Tools & Patterns
+
+### Trace Coordination (Epic 1)
+
+```typescript
+// Casey creates trace
+const { traceId } = await trace_create({
+  projectId: 'aismr',
+  sessionId: 'telegram:123'
+});
+
+// Casey hands off to Iggy
+await handoff_to_agent({
+  traceId,
+  toAgent: 'iggy',
+  instructions: 'Generate 12 candle modifiers. Validate uniqueness.'
+});
+
+// Iggy stores work (tagged with traceId)
+await memory_store({
+  content: 'Generated 12 modifiers: Void, Liquid...',
+  memoryType: 'episodic',
+  project: ['aismr'],
+  persona: ['iggy'],
+  metadata: { traceId, modifiers: [...] }  // KEY: Tag with traceId
+});
+
+// Quinn signals completion
+await workflow_complete({
+  traceId,
+  status: 'completed',
+  outputs: { postUrl: 'https://tiktok.com/...' }
+});
+```
+
+### Memory Discipline
+
+**Always tag memories with:**
+
+- `traceId` (for coordination)
+- `persona` (who created it)
+- `project` (which project it belongs to)
+
+**Example:**
+
+```typescript
+await memory_store({
+  content: 'User approved 12 candle modifiers',
+  memoryType: 'episodic',
+  project: ['aismr'],
+  persona: ['iggy'],
+  tags: ['approval', 'candles'],
+  metadata: { traceId: 'trace-aismr-001' },
+});
+```
+
+### n8n Integration
+
+- **Agent webhooks:** Stored in `agent_webhooks` table (name, URL, auth)
+- **Handoff triggers:** `handoff_to_agent` invokes n8n webhooks
+- **HITL nodes:** Telegram "Send and Wait" for human approval
+- **Secrets:** Stay in env vars, never in `agent_webhooks` table
+
+### Removed Tools (Nov 7, 2025)
+
+**Do not reference these in new work:**
+
+- `clarify_ask` - Use Telegram HITL nodes in n8n workflows
+- `prompt_discover` - Use procedural memories + `memory_search`
+- Any `run_state_*` / `handoff_*` legacy endpoints — the stack is now `trace_create` → `handoff_to_agent` → `workflow_complete`. Run `npm run check:legacy-tools` (also enforced via the CI “Legacy Tool Guard” job) before pushing to ensure the forbidden symbols stay gone. The legacy orchestrator now lives in `workflows/archive/agent.workflow.json`, and the guard scans every active workflow JSON.
+
+---
+
+## Handoff Checklist
+
+Before marking a story "done":
+
+1. ✅ Update `plan.md` checkboxes for the story
+2. ✅ Update/create docs in `docs/` reflecting new behavior
+3. ✅ Run full test suite and verify it passes:
+   ```bash
+   TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit
+   ```
+4. ✅ Paste or summarize test results in your handoff note
+5. ✅ Document follow-on work (bugs, docs debt, next prerequisites)
+6. ✅ If migrations or seeds changed, run `npm run db:test:rollback` and record the success summary (the PR template now enforces this reminder).
+
+---
+
+## Coverage Requirements
+
+- **Unit tests:** ≥50% coverage (temporary floor; plan to raise back to 80% after stability work)
+- **All MCP tools:** Must have targeted unit tests
+- **Repositories:** Must have tests for CRUD operations
+- **Integration:** At least one happy path test per epic
+- Containerized unit tests now enforce the ≥50% coverage floor automatically. Run `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit` (or set `VITEST_COVERAGE=true`) locally to mirror CI.
+
+**Current Status:** 154 tests / 26 files (as of Nov 7, 2025)
+
+---
+
+## Common Commands
+
+```bash
+# Development
+npm run dev                  # Hot reload (local)
+npm run dev:docker          # Full stack with hot reload
+npm run dev:stop            # Stop Docker stack
+
+# Testing
+npm test                    # All tests
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests only
+npm run test:coverage       # Coverage report
+
+# Database
+npm run db:reset           # Wipe and recreate
+npm run db:migrate         # Run migrations
+npm run db:seed            # Load seed data
+npm run db:bootstrap       # All of the above
+npm run db:test:rollback   # Spin up ephemeral pgvector, migrate, drop schema, re-migrate (rollback safety)
+
+# Code Quality
+npm run type-check         # TypeScript validation
+npm run lint               # ESLint check
+npm run lint:fix           # Auto-fix linting issues
+npm run format             # Prettier format
+npm run format:check       # Check formatting
+npm run check:legacy-tools # Scan for forbidden legacy tool names
 ```
 
 ---
 
-## 4. Database & Test Harness
+## Critical Development Rules
 
-We default to a disposable Postgres container so agents don’t fight over ports.
-
-- **Unit test baseline (CI + local):**
-
-  ```bash
-  TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit
-  ```
-
-  `tests/setup/env.ts` auto-detects Colima/Docker Desktop sockets and rewrites `DOCKER_HOST`. It also clears `.env`’s `POSTGRES_PORT` so Drizzle won’t stomp on the ephemeral port.
-
-- **What happens under the hood:**
-  1. `tests/setup/database.ts` starts `pgvector/pgvector:pg16`, captures the mapped port, runs migrations (`npx drizzle-kit push`), seeds base data, and calls `resetDbClient()` so all Drizzle repositories point at the disposable database.
-  2. After tests finish, the container stops automatically.
-
-- **Reusable local DB option:** Export `TEST_DB_URL` (see `DEV_GUIDE.md`) and run `npm run test:unit:local`. Only do this if you already have a dedicated Postgres instance at `127.0.0.1:6543`.
+1. **Always pull main** before creating a new branch
+2. **Follow red-green-refactor** for acceptance criteria
+3. **Never skip husky hooks** (no `--no-verify`)
+4. **Never commit without tests passing**
+5. **Only commit when explicitly asked** (don't be proactive)
+6. **Never force push to main/master**
 
 ---
 
-## 5. Testing Strategy
+## The North Star Vision
 
-| Scope | Command | Notes |
-| --- | --- | --- |
-| All unit suites | `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit` | 154 tests / 26 files as of Nov 7 2025. |
-| Targeted unit | `npx vitest run <path>` | e.g., `tests/unit/mcp/trace-tools.test.ts`. |
-| Integration (trace flow) | `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/integration/trace-coordination.test.ts` | Ensures `trace_create → handoff → workflow_complete` path works. |
-| Coverage | `npm run test:coverage` | Uses Vitest + V8. |
+Read `NORTH_STAR.md` for the complete vision:
 
-CI blocks require unit tests + lint/type-check once we wire them in; run them locally before handoff.
+**Key Agents:**
 
----
+- **Casey** - Showrunner (coordinates, doesn't orchestrate)
+- **Iggy** - Creative Director (generates ideas)
+- **Riley** - Head Writer (writes screenplays)
+- **Veo** - Production (generates videos)
+- **Alex** - Editor (stitches compilations)
+- **Quinn** - Social Media Manager (publishes)
 
-## 6. Documentation Policy & Context7
-
-- **Docs live in `docs/`.** If you change behavior, update or create a doc there (e.g., `docs/ARCHITECTURE.md`, `docs/n8n-webhook-config.md`). We prefer smaller, task-focused Markdown files rather than monoliths.
-- **AGENT behavior:** When you respond via Context7 (OpenAI’s doc retrieval API), prefer documents from `docs/` first. Keep them fresh; stale docs degrade autonomous agents quickly.
-- **Plan vs. docs:** `plan.md` drives execution order. `docs/` explains architecture/integration. Update both when scope or design shifts.
+**Key Principle:** Agents call agents autonomously. Casey kicks off, agents hand off directly to each other, Casey waits for completion signal.
 
 ---
 
-## 7. Tooling & Workflows to Remember
+## Questions?
 
-- **Trace tools:** `trace_create`, `handoff_to_agent`, `workflow_complete` live in `src/mcp/tools.ts`. They touch `execution_traces` + `agent_webhooks`.
-- **n8n integration:** Use `handoff_to_agent` to trigger persona webhooks. All secrets stay in env vars; `agent_webhooks` only stores metadata.
-- **Memory discipline:** Always tag stored memories with `traceId`, `persona`, `project`. The entire coordination layer depends on memory searchability.
-- **Context repos:** `tests/unit/tools/workflow/executeTool.test.ts` & `.../getStatusTool.test.ts` show how registry lookups + n8n delegations should behave.
-- **Clarifications & prompt discovery:** Telegram HITL nodes now handle clarifications, and procedural memories + `memory_search` replace `prompt_discover`. The `clarify_ask` and `prompt_discover` tools were removed on Nov 7 2025—don’t reference them in new work.
+- **Architecture:** Read `docs/ARCHITECTURE.md`
+- **MCP Tools:** Read `docs/MCP_TOOLS.md`
+- **Testing:** Read `DEV_GUIDE.md`
+- **Deployment:** Read `docs/DEPLOYMENT.md`
+- **Vision:** Read `NORTH_STAR.md`
 
----
-
-## 8. Handoff Checklist
-
-Before you claim a story “done”:
-
-1. `plan.md` checkboxes for that story are updated.
-2. Docs in `docs/` reflect the new behavior.
-3. `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit` passes (paste or summarize results in your final note).
-4. Mention follow-on work (bugs, docs debt, next story prerequisites).
-
-Happy building! Stay trace-aware, keep memory clean, and document as you go. Everything else follows. ***
+Stay trace-aware. Keep memory clean. Document as you go.

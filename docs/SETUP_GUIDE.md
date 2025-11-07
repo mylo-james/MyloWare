@@ -104,38 +104,29 @@ Step-by-step guide for setting up and running MCP Prompts V2.
    ```bash
    npm run import:workflows
    ```
-   
-   This imports:
-   - `agent.workflow.json` (main agent workflow)
-   - `edit-aismr.workflow.json` (video editing)
-   - `generate-video.workflow.json` (video generation)
-   
-   **Note:** Copy the workflow IDs from the output and update `agent.workflow.json` toolWorkflow nodes.
 
-5. **Update Workflow URLs (if deploying to different environment):**
-   
-   **Important:** n8n workflows use hardcoded URLs. If deploying to staging or production, you must manually update URLs in workflow JSON files:
-   
-   - **For local development:** URLs default to `http://mcp-server:3000` (already configured)
-   - **For staging/production:** Update these files:
-     - `workflows/agent.workflow.json`: Change `endpointUrl` from `http://mcp-server:3000/mcp` to your production MCP server URL
-     - `workflows/generate-video.workflow.json`: Change base URL in HTTP request nodes
-   
-   After updating, re-import workflows:
-   ```bash
-   npm run import:workflows
-   ```
+   The import command syncs all six persona workflows stored in `./workflows` (`casey`, `iggy`, `riley`, `veo`, `alex`, `quinn`). The legacy monolithic orchestrator now lives in `workflows/archive` for historical reference and is no longer imported.
 
-6. **Update Agent Workflow IDs:**
-   - Open `v2/workflows/agent.workflow.json`
-   - Find `"Call 'Edit_AISMR'"` node (around line 192)
-   - Update `workflowId.value` with the imported Edit_AISMR workflow ID
-   - Repeat for Generate Video workflow if present
+   **Note:** Record the workflow IDs printed in the output so you can map them to `agent_webhooks` metadata or ops runbooks later.
 
-7. **Activate Agent Workflow:**
-   - In n8n UI, open the agent workflow
-   - Click "Active" toggle to activate
-   - Test with pinned data first
+5. **Update Workflow URLs (if deploying to a non-default environment):**
+
+   **Important:** n8n Cloud cannot read `$env.*` placeholders inside workflow JSON, so each AI Agent's MCP Client node hardcodes the MCP URL. If your MCP server runs somewhere other than `https://mcp-vector.mjames.dev/mcp`, open each persona workflow and update the MCP Client node manually before re-importing.
+
+   - **Local development / default Cloud deployment:** Nothing to change; workflows already point to `https://mcp-vector.mjames.dev/mcp` as required by Epic 2.
+   - **Custom environments:** For every persona workflow, update the MCP Client node's `endpointUrl` to your server, then re-run `npm run import:workflows`.
+
+   Remember to adjust any HTTP Request nodes that call external services (video generation/editing/publishing) if those base URLs differ per environment.
+
+6. **Record Workflow IDs:**
+   - From the import output (or via the n8n UI), copy the workflow IDs for Casey → Quinn.
+   - Store them in your password manager or export them as env vars (e.g., `export N8N_WORKFLOW_ID_CASEY=<id>`).
+   - Reference those IDs when populating `agent_webhooks.metadata` so you can trace handoffs back to n8n executions.
+
+7. **Activate Persona Workflows:**
+   - In n8n UI, open each persona workflow
+   - Click the "Active" toggle to register the webhook
+   - Test with pinned data or manual webhook POSTs before going live
 
 ---
 

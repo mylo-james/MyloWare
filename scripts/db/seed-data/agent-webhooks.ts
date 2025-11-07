@@ -23,6 +23,13 @@ export const agentWebhookSeeds: AgentWebhookSeed[] = [
     description: 'Casey orchestrator agent webhook',
     isActive: true,
     timeoutMs: 30000,
+    metadata: {
+      persona: 'casey',
+      downstreamAgent: 'iggy',
+      workflowFile: 'workflows/casey.workflow.json',
+      workflowIdEnv: 'N8N_WORKFLOW_ID_CASEY',
+      callWorkflowTool: "Call 'Iggy Workflow'",
+    },
   },
   {
     agentName: 'iggy',
@@ -32,6 +39,11 @@ export const agentWebhookSeeds: AgentWebhookSeed[] = [
     description: 'Iggy ideation agent webhook',
     isActive: true,
     timeoutMs: 30000,
+    metadata: {
+      persona: 'iggy',
+      workflowIdEnv: 'N8N_WORKFLOW_ID_IGGY',
+      expects: ['traceId', 'projectId', 'sessionId', 'instructions'],
+    },
   },
   {
     agentName: 'riley',
@@ -103,4 +115,3 @@ export async function seedAgentWebhooks() {
 
   console.log('✅ Agent webhooks seeded');
 }
-

@@ -1,12 +1,23 @@
 import type { TestPersona } from '../../../src/types/seed.js';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load Casey's persona from the JSON file
+const caseyPersonaPath = resolve(__dirname, '../../../data/personas/casey.json');
+const caseyPersonaDoc = JSON.parse(readFileSync(caseyPersonaPath, 'utf-8'));
 
 export const testPersonas: TestPersona[] = [
   {
     name: 'casey',
-    description: 'Warm, helpful AI collaborator for Mylo',
-    capabilities: ['conversation', 'workflow-discovery', 'orchestration'],
-    tone: 'friendly',
+    description: 'The Showrunner - Coordinates production kickoff and completion',
+    capabilities: ['workflow-coordination', 'trace-creation', 'agent-handoff'],
+    tone: 'confident',
     defaultProject: 'aismr',
+    systemPrompt: JSON.stringify(caseyPersonaDoc, null, 2),
   },
   {
     name: 'test-bot',

@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { N8nClient } from '../src/integrations/n8n/client.js';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../src/config/index.js';
@@ -16,10 +16,29 @@ const __dirname = dirname(__filename);
  * Map workflow file names to their display names for registry
  */
 const WORKFLOW_NAME_MAP: Record<string, string> = {
-  'agent.workflow.json': 'AI Agent',
-  'edit-aismr.workflow.json': 'Edit AISMR',
-  'generate-video.workflow.json': 'Generate Video',
+  'casey.workflow.json': 'Casey (Showrunner)',
+  'iggy.workflow.json': 'Iggy (Creative Director)',
+  'riley.workflow.json': 'Riley (Head Writer)',
+  'veo.workflow.json': 'Veo (Production)',
+  'alex.workflow.json': 'Alex (Editor)',
+  'quinn.workflow.json': 'Quinn (Publisher)',
 };
+
+function baseNameNoExt(filename: string) {
+  return filename.replace(/\.workflow\.json$/i, '');
+}
+
+function normalizeWorkflowForImport(fileName: string, raw: any) {
+  // n8n expects: { name, nodes, connections, settings?, pinData?, staticData?, meta? }
+  const name = raw.name || baseNameNoExt(fileName);
+  const { nodes, connections } = raw;
+  return {
+    name,
+    nodes,
+    connections,
+    settings: raw.settings || {},
+  };
+}
 
 async function importWorkflows() {
   console.log('🔄 Importing workflows to n8n...\n');
@@ -30,30 +49,68 @@ async function importWorkflows() {
   });
 
   const workflows = [
-    {
-      name: 'agent.workflow.json',
-      path: join(__dirname, '../workflows/agent.workflow.json'),
-    },
-    {
-      name: 'edit-aismr.workflow.json',
-      path: join(__dirname, '../workflows/edit-aismr.workflow.json'),
-    },
-    {
-      name: 'generate-video.workflow.json',
-      path: join(__dirname, '../workflows/generate-video.workflow.json'),
-    },
+    { name: 'casey.workflow.json', path: join(__dirname, '../workflows/casey.workflow.json') },
+    { name: 'iggy.workflow.json', path: join(__dirname, '../workflows/iggy.workflow.json') },
+    { name: 'riley.workflow.json', path: join(__dirname, '../workflows/riley.workflow.json') },
+    { name: 'veo.workflow.json', path: join(__dirname, '../workflows/veo.workflow.json') },
+    { name: 'alex.workflow.json', path: join(__dirname, '../workflows/alex.workflow.json') },
+    { name: 'quinn.workflow.json', path: join(__dirname, '../workflows/quinn.workflow.json') },
   ];
 
-  const imported: Array<{ name: string; id: string; displayName: string }> = [];
+  const availableWorkflows = workflows.filter(({ path }) => existsSync(path));
+  const missingWorkflows = workflows.filter(({ path }) => !existsSync(path));
+  missingWorkflows.forEach(({ name }) => {
+    console.log(`⚠️  Skipping ${name} (file not found — expected in workflows/).`);
+  });
 
-  for (const workflow of workflows) {
+  const existingList = await n8nClient.listWorkflows();
+  const existingByName = new Map<string, typeof existingList[number]>();
+  for (const workflow of existingList) {
+    const key = (workflow.name || '').trim().toLowerCase();
+    if (!key) continue;
+    const current = existingByName.get(key);
+    if (!current) {
+      existingByName.set(key, workflow);
+      continue;
+    }
+    const currentDate = current.updatedAt ? Date.parse(current.updatedAt) : 0;
+    const nextDate = workflow.updatedAt ? Date.parse(workflow.updatedAt) : 0;
+    if (nextDate > currentDate) {
+      existingByName.set(key, workflow);
+    }
+  }
+
+  const results: Array<{ name: string; id: string; displayName: string; action: 'created' | 'updated' }> = [];
+
+  for (const workflow of availableWorkflows) {
     try {
-      console.log(`📥 Importing ${workflow.name}...`);
+      console.log(`📥 Syncing ${workflow.name}...`);
       const workflowJson = JSON.parse(readFileSync(workflow.path, 'utf-8'));
-      const id = await n8nClient.importWorkflow(workflowJson);
+      const payload = normalizeWorkflowForImport(workflow.name, workflowJson);
+      const key = baseNameNoExt(workflow.name).toLowerCase();
+      const existing = existingByName.get(key);
+
+      let id: string;
+      let action: 'created' | 'updated';
+
+      if (existing) {
+        id = existing.id;
+        action = 'updated';
+        await n8nClient.updateWorkflow(id, payload);
+      } else {
+        id = await n8nClient.importWorkflow(payload);
+        action = 'created';
+      }
+
+      // Activate to register webhook endpoints
+      try {
+        await n8nClient.activateWorkflow(id);
+      } catch (e) {
+        console.warn(`   ⚠️  Could not auto-activate ${payload.name}. Please activate in UI.`);
+      }
       const displayName = WORKFLOW_NAME_MAP[workflow.name] || workflow.name;
-      imported.push({ name: workflow.name, id, displayName });
-      console.log(`   ✅ Imported: ${id}\n`);
+      results.push({ name: workflow.name, id, displayName, action });
+      console.log(`   ✅ ${action === 'created' ? 'Imported' : 'Updated'}: ${id}\n`);
     } catch (error) {
       console.error(`   ❌ Failed to import ${workflow.name}:`, error);
       if (error instanceof Error) {
@@ -64,13 +121,13 @@ async function importWorkflows() {
 
   console.log('\n📋 Import Summary:');
   console.log('─────────────────');
-  imported.forEach(({ name, id, displayName }) => {
-    console.log(`${displayName} (${name}): ${id}`);
+  results.forEach(({ name, id, displayName, action }) => {
+    console.log(`${displayName} (${name}) [${action}]: ${id}`);
   });
 
   // Optionally register in workflow_registry if memory IDs are found
   const shouldRegister = process.env.REGISTER_WORKFLOWS === 'true';
-  if (shouldRegister && imported.length > 0) {
+  if (shouldRegister && results.length > 0) {
     console.log('\n🔄 Registering workflows in workflow_registry...\n');
     const registryRepository = new WorkflowRegistryRepository();
 
@@ -81,7 +138,7 @@ async function importWorkflows() {
       .where(eq(memories.memoryType, 'procedural'));
 
     // Try to find matching procedural memories by name
-    for (const { displayName, id: n8nId } of imported) {
+    for (const { displayName, id: n8nId } of results) {
       try {
         // Find memory with matching workflow name in metadata
         const matchingMemory = allProceduralMemories.find((m) => {
@@ -124,7 +181,7 @@ async function importWorkflows() {
         }
       }
     }
-  } else if (imported.length > 0) {
+  } else if (results.length > 0) {
     console.log(
       '\n💡 To register workflows in workflow_registry:'
     );
@@ -133,10 +190,9 @@ async function importWorkflows() {
     console.log('   3. Re-run: npm run import:workflows');
   }
 
-  if (imported.length > 0) {
-    console.log('\n💡 Update agent.workflow.json toolWorkflow nodes with these IDs');
-    console.log('\n💡 Export these IDs as environment variables for seeding:');
-    imported.forEach(({ displayName, id }) => {
+  if (results.length > 0) {
+    console.log('\n💡 Record these workflow IDs for observability (agent_webhooks metadata, docs, runbooks):');
+    results.forEach(({ displayName, id }) => {
       const envVar = `N8N_WORKFLOW_ID_${displayName.toUpperCase().replace(/\s+/g, '_')}`;
       console.log(`   export ${envVar}=${id}`);
     });
@@ -147,4 +203,3 @@ importWorkflows().catch((error) => {
   console.error('Failed to import workflows:', error);
   process.exit(1);
 });
-

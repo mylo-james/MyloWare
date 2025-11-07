@@ -17,7 +17,7 @@ This note captures how we configure and rotate webhook endpoints that the `hando
 | `description` | text          | Freeform operator context                                                       |
 | `isActive`    | boolean       | Soft toggle—`handoff_to_agent` must reject inactive rows                        |
 | `timeoutMs`   | integer       | Optional per-agent timeout override for long-running downstream work            |
-| `metadata`    | jsonb         | Miscellaneous integration hints (e.g. `{"expectsTraceId": true}`)               |
+| `metadata`    | jsonb         | Integration hints such as `{ "workflowFile": "workflows/casey.workflow.json", "workflowIdEnv": "N8N_WORKFLOW_ID_CASEY", "downstreamAgent": "iggy" }` |
 
 > **Note:** We only store relative paths and metadata in Postgres. Hostname, signing secrets, and other sensitive credentials stay in the runtime environment so rotations do not require a migration.
 

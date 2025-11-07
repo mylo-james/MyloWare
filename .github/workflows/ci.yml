@@ -61,13 +61,9 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-  test:
-    name: Test
+  legacy-guard:
+    name: Legacy Tool Guard
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:dind
-        options: --privileged
     steps:
       - uses: actions/checkout@v4
       
@@ -80,12 +76,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run tests
-        run: npm test
+      - name: Scan for deprecated tools
+        run: npm run check:legacy-tools
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:27.3.1-dind
         env:
-          DATABASE_URL: postgresql://test:test@127.0.0.1:6543/mcp_v2_test
+          DOCKER_TLS_CERTDIR: ''
+        options: --privileged
+        ports:
+          - 2375:2375
+    env:
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_VERIFY: 0
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run containerized unit tests
+        env:
           OPENAI_API_KEY: sk-test
           NODE_ENV: test
+        run: |
+          TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit
 
   build:
     name: Build
@@ -109,4 +134,3 @@ jobs:
         run: |
           test -d dist || exit 1
           test -f dist/server.js || exit 1
-

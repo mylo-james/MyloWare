@@ -22,7 +22,9 @@ export interface MemorySearchParams {
   memoryTypes?: MemoryType[];
   persona?: string;
   project?: string;
+  traceId?: string;
   limit?: number;
+  offset?: number;
   minSimilarity?: number;
   temporalBoost?: boolean;
   expandGraph?: boolean;
@@ -37,6 +39,9 @@ export interface MemoryStoreParams {
   tags?: string[];
   relatedTo?: string[];
   metadata?: Record<string, unknown>;
+  traceId?: string;
+  runId?: string;
+  handoffId?: string;
 }
 
 export interface MemorySearchResult {
@@ -61,4 +66,3 @@ export interface MemoryEvolveResult {
   memory: Memory;
   changes: string[];
 }
-

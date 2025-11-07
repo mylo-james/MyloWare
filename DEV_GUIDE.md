@@ -154,6 +154,11 @@ npm run db:seed
 
 # Run migrations
 npm run migrate:all
+
+# Smoke-test rollback (ephemeral pgvector container)
+npm run db:test:rollback
+
+This command mirrors CI’s rollback verification: it auto-detects your Docker socket (Colima, Docker Desktop, or `/var/run/docker.sock`), spins up `pgvector/pgvector:pg16`, runs `drizzle-kit push`, drops the schema, re-creates the `vector` extension, and runs migrations again. Watch the prefixed logs (`[db:test:rollback][timestamp] ...`) to see which phase you’re in. If it hangs at “Pulling pgvector container…”, confirm Docker is running and that the socket path is accessible; on macOS we fall back to `~/.docker/run/docker.sock` when Colima isn’t active.
 ```
 
 ### Fast Unit Tests (Reusable Test DB)
@@ -176,6 +181,18 @@ Long-running Testcontainers startup is now optional. To get sub-second Vitest bo
 If you still need a disposable container (e.g. CI), run `npm run test:unit:container` or set `TEST_DB_USE_CONTAINER=1` before invoking any `vitest` command. The harness auto-detects Colima/Docker Desktop sockets, launches PostgreSQL on a random free host port, and propagates that port to Drizzle/`POSTGRES_PORT`. Set `TEST_DB_PORT` only if you truly need a fixed port; otherwise let the harness pick one to avoid clashing with a running dev database.
 
 > ⚠️ The dedicated test DB truncates tables during each run. Do not point it at your primary dev database.
+
+---
+
+## ✅ Pre-merge Checklist When Migrations Change
+
+Before requesting review on any PR that adds or modifies migrations/seeds:
+
+- [ ] Run `npm run db:test:rollback` locally to prove we can roll forward after a rollback. Paste the success summary (or a link to logs) into the PR.
+- [ ] Note in the PR description which migrations/seeds changed and confirm the rollback smoke test result.
+- [ ] If no schema changes occurred, explicitly state “No migration changes” so reviewers know the rollback check is not required.
+
+The same checklist now appears in the PR template—keep both in sync so Epic 1’s rollback guardrails stay enforceable.
 
 ---
 

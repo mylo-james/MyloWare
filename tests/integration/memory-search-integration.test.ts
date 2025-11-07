@@ -193,5 +193,36 @@ describe('Memory Search Integration', () => {
 
     expect(result.memories.length).toBeGreaterThanOrEqual(0);
   });
-});
 
+  it('paginates trace-scoped searches via offset', async () => {
+    const traceId = 'trace-pagination-demo';
+    const contents: string[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      const content = `Trace event #${i}`;
+      contents.push(content);
+      await storeMemory({
+        content,
+        memoryType: 'episodic',
+        project: ['aismr'],
+        traceId,
+      });
+      // Ensure ordering differences
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    const page = await searchMemories({
+      query: 'trace event',
+      project: 'aismr',
+      traceId,
+      limit: 2,
+      offset: 1,
+    });
+
+    expect(page.memories).toHaveLength(2);
+    // Results ordered newest-first; offset 1 skips most recent entry
+    const secondNewest = contents[contents.length - 2];
+    expect(page.memories[0].content).toEqual(secondNewest);
+    expect(page.memories[0].metadata?.traceId).toBe(traceId);
+  });
+});

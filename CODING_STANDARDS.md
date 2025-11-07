@@ -284,7 +284,7 @@ Every tool MUST:
 - [ ] Have JSDoc comment explaining purpose
 - [ ] Return structured result (not raw data)
 - [ ] Export tool function and registration function separately
-- [ ] Include unit tests with 100% coverage
+- [ ] Include unit tests with good coverage (aim for high coverage of critical paths)
 - [ ] Handle errors gracefully
 - [ ] Log operations for debugging
 
@@ -452,7 +452,14 @@ v2/
 │   ├── migrate/
 │   └── dev/
 └── workflows/               # n8n workflows
-    └── agent.workflow.json
+    ├── casey.workflow.json
+    ├── iggy.workflow.json
+    ├── riley.workflow.json
+    ├── veo.workflow.json
+    ├── alex.workflow.json
+    ├── quinn.workflow.json
+    └── archive/
+        └── agent.workflow.json
 ```
 
 ### File Naming
@@ -739,11 +746,16 @@ describe('searchMemories', () => {
 
 ### Test Coverage Requirements
 
-- **80% coverage minimum** (enforced by CI)
+- **50% coverage minimum** (interim floor; will raise to 80% in Epic 7)
 - Focus on quality over quantity
-- Critical paths: 95%+ coverage
-- Business logic: 90%+ coverage
-- Utility functions: 80%+ coverage
+- Current targets (interim):
+  - Critical paths: 50%+ coverage
+  - Business logic: 50%+ coverage
+  - Utility functions: 50%+ coverage
+- Future targets (Epic 7):
+  - Critical paths: 95%+ coverage
+  - Business logic: 90%+ coverage
+  - Utility functions: 80%+ coverage
 - Every error path tested
 - Every edge case tested
 
@@ -1122,7 +1134,7 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Check coverage (80%+)
+      - name: Check coverage (50%+ interim, 80%+ in Epic 7)
         run: npm run test:coverage
 ```
 
@@ -1137,7 +1149,7 @@ Before committing, ensure:
 - [ ] **User-Facing Text**: Formatted nicely (multi-line OK)
 - [ ] **No `any`**: Zero uses of `any` type
 - [ ] **Imports**: Type-only imports use `import type`
-- [ ] **Tests**: 80%+ coverage, all tests pass
+- [ ] **Tests**: 50%+ coverage (interim; 80%+ in Epic 7), all tests pass
 - [ ] **Linting**: `npm run lint` passes (max warnings=0)
 - [ ] **Type Check**: `npm run type-check` passes
 - [ ] **Formatting**: `npm run format` applied

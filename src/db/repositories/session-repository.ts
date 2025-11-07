@@ -41,7 +41,13 @@ export class SessionRepository {
 
     if (existing) {
       await this.updateLastInteraction(sessionId);
-      return existing as Session;
+      // Fetch the updated session to return fresh data
+      const [updated] = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1);
+      return updated as Session;
     }
 
     const [created] = await db

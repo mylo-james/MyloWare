@@ -45,6 +45,12 @@ export async function storeMemory(
 
   // 6. Insert into database
   const repository = new MemoryRepository();
+  const metadata = {
+    ...(params.metadata || {}),
+    ...(params.traceId ? { traceId: params.traceId } : {}),
+    ...(params.runId ? { runId: params.runId } : {}),
+    ...(params.handoffId ? { handoffId: params.handoffId } : {}),
+  };
   const memory = await repository.insert({
     content: cleanContent,
     summary,
@@ -56,7 +62,7 @@ export async function storeMemory(
     relatedTo: allRelatedIds,
     lastAccessedAt: null,
     accessCount: 0,
-    metadata: params.metadata || {},
+    metadata,
   });
 
   return memory;
