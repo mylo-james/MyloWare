@@ -99,6 +99,127 @@ describe('Trace Coordination Tools', () => {
     });
   });
 
+  describe('trace_prepare', () => {
+    it('creates a trace when none exists and returns Casey prompt + allowed tools', async () => {
+      const tool = getTool('trace_prepare');
+      const result = await tool.handler(
+        {
+          instructions: 'Need a new AISMR candle pack.',
+          sessionId: 'telegram:1234',
+          source: 'telegram',
+        },
+        'req-trace-prepare-create'
+      );
+
+      expect(result.structuredContent).toBeDefined();
+      const payload = result.structuredContent as Record<string, any>;
+      expect(payload.trace?.traceId).toBeTruthy();
+      expect(payload.trace?.currentOwner).toBe('casey');
+      expect(payload.justCreated).toBe(true);
+      expect(payload.systemPrompt).toMatch(/You are Casey/);
+      expect(payload.allowedTools).toContain('set_project');
+      expect(payload.allowedTools).toContain('handoff_to_agent');
+      expect(payload.instructions).toMatch(/AISMR candle pack/);
+    });
+
+    it('hydrates an existing trace with persona context and project prompt', async () => {
+      const trace = await traceRepo.create({
+        projectId: 'aismr',
+        instructions: 'Use Iggy to generate 12 modifiers.',
+      });
+      await traceRepo.updateWorkflow(
+        trace.traceId,
+        'ideagenerator',
+        'Generate 12 AISMR modifiers and store them.',
+        1
+      );
+
+      const tool = getTool('trace_prepare');
+      const result = await tool.handler(
+        { traceId: trace.traceId },
+        'req-trace-prepare-existing'
+      );
+
+      const payload = result.structuredContent as Record<string, any>;
+      expect(payload.trace?.traceId).toBe(trace.traceId);
+      expect(payload.trace?.currentOwner).toBe('ideagenerator');
+      expect(payload.systemPrompt).toMatch(/PROJECT/);
+      expect(payload.allowedTools).not.toContain('set_project');
+      expect(payload.allowedTools).toContain('handoff_to_agent');
+      expect(payload.instructions).toMatch(/Generate 12 AISMR modifiers/);
+      expect(payload.justCreated).toBe(false);
+    });
+
+    it('throws when the trace does not exist', async () => {
+      const tool = getTool('trace_prepare');
+      await expect(
+        tool.handler(
+          { traceId: '00000000-0000-0000-0000-000000000000' },
+          'req-trace-prepare-missing'
+        )
+      ).rejects.toThrow('Trace not found');
+    });
+  });
+
+  describe('trace_update', () => {
+    it('updates instructions and metadata', async () => {
+      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const tool = getTool('trace_update');
+
+      const result = await tool.handler(
+        {
+          traceId: trace.traceId,
+          instructions: 'Rewrite the instructions to focus on GenReact.',
+          metadata: { source: 'casey' },
+        },
+        'req-trace-update-1'
+      );
+
+      expect(result.structuredContent?.instructions).toMatch(/GenReact/);
+      expect(result.structuredContent?.metadata).toEqual({ source: 'casey' });
+    });
+
+    it('updates the projectId field', async () => {
+      const trace = await traceRepo.create({ projectId: 'aismr' });
+      const tool = getTool('trace_update');
+      const result = await tool.handler(
+        {
+          traceId: trace.traceId,
+          projectId: 'genreact',
+        },
+        'req-trace-update-project'
+      );
+
+      expect(result.structuredContent?.projectId).toBe('genreact');
+    });
+
+    it('throws when no fields are provided', async () => {
+      const trace = await traceRepo.create({ projectId: 'aismr' });
+      const tool = getTool('trace_update');
+      await expect(
+        tool.handler(
+          {
+            traceId: trace.traceId,
+          },
+          'req-trace-update-empty'
+        )
+      ).rejects.toThrow('trace_update requires at least one field');
+    });
+
+    it('throws when the trace does not exist', async () => {
+      const tool = getTool('trace_update');
+      await expect(
+        tool.handler(
+          {
+            traceId: '00000000-0000-0000-0000-000000000000',
+            instructions: 'anything',
+          },
+          'req-trace-update-missing'
+        )
+      ).rejects.toThrow('Trace not found');
+    });
+  });
+
   describe('handoff_to_agent', () => {
     beforeEach(async () => {
       // Create a test trace
@@ -129,9 +250,29 @@ describe('Trace Coordination Tools', () => {
       expect(result.structuredContent?.webhookUrl).toContain('/webhook/test');
       expect(result.structuredContent?.toAgent).toBe('test-agent');
       expect(result.structuredContent?.executionId).toBe('exec-123');
-      
+
       // Verify N8nClient was called
       expect(N8nClient).toHaveBeenCalled();
+    });
+
+    it('should update trace ownership and workflow step before invoking webhook', async () => {
+      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const tool = getTool('handoff_to_agent');
+
+      await tool.handler(
+        {
+          traceId: trace.traceId,
+          toAgent: 'test-agent',
+          instructions: 'Pass modifiers downstream',
+        },
+        'req-handoff-ownership'
+      );
+
+      const updated = await traceRepo.findByTraceId(trace.traceId);
+      expect(updated?.currentOwner).toBe('test-agent');
+      expect(updated?.previousOwner).toBe('casey');
+      expect(updated?.workflowStep).toBe(1);
+      expect(updated?.instructions).toMatch(/modifiers/);
     });
 
     it('should throw error for invalid traceId', async () => {
@@ -223,6 +364,54 @@ describe('Trace Coordination Tools', () => {
       // Note: This is a simplified check - in practice you'd search by metadata.traceId
       // For now, we just verify the tool didn't throw
       expect(true).toBe(true);
+    });
+
+    it('should mark trace completed when toAgent is "complete"', async () => {
+      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const tool = getTool('handoff_to_agent');
+
+      const result = await tool.handler(
+        {
+          traceId: trace.traceId,
+          toAgent: 'complete',
+          instructions: 'Quinn published the campaign.',
+        },
+        'req-handoff-complete'
+      );
+
+      expect(result.structuredContent?.status).toBe('completed');
+      expect(result.structuredContent?.toAgent).toBe('complete');
+      expect(N8nClient).not.toHaveBeenCalled();
+
+      const updated = await traceRepo.findByTraceId(trace.traceId);
+      expect(updated?.status).toBe('completed');
+      expect(updated?.currentOwner).toBe('complete');
+      expect(updated?.previousOwner).toBe('casey');
+      expect(updated?.workflowStep).toBe(1);
+    });
+
+    it('should mark trace failed when toAgent is "error"', async () => {
+      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const tool = getTool('handoff_to_agent');
+
+      const result = await tool.handler(
+        {
+          traceId: trace.traceId,
+          toAgent: 'error',
+          instructions: 'Veo reported provider outage.',
+        },
+        'req-handoff-error'
+      );
+
+      expect(result.structuredContent?.status).toBe('failed');
+      expect(result.structuredContent?.toAgent).toBe('error');
+      expect(N8nClient).not.toHaveBeenCalled();
+
+      const updated = await traceRepo.findByTraceId(trace.traceId);
+      expect(updated?.status).toBe('failed');
+      expect(updated?.currentOwner).toBe('error');
+      expect(updated?.previousOwner).toBe('casey');
+      expect(updated?.workflowStep).toBe(1);
     });
   });
 

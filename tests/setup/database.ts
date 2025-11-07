@@ -23,7 +23,7 @@ process.env.OPERATIONS_DATABASE_URL = databaseUrl;
 const { resetDbClient } = await import('@/db/client.js');
 await resetDbClient(databaseUrl);
 
-const { seedBaseData } = await import('./seed.ts');
+const { seedBaseData } = await import('./seed.js');
 
 await waitForDatabase(databaseUrl);
 await ensureVectorExtension(databaseUrl);
@@ -34,15 +34,16 @@ afterAll(async () => {
   await cleanup();
 });
 
-async function waitForDatabase(url: string, retries = 10) {
-  const client = new pg.Client({ connectionString: url });
+async function waitForDatabase(url: string, retries = 30, delayMs = 1000) {
   for (let attempt = 0; attempt < retries; attempt++) {
+    const client = new pg.Client({ connectionString: url });
     try {
       await client.connect();
       await client.end();
       return;
     } catch (error) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await client.end().catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
   throw new Error('Unable to connect to Postgres test container');

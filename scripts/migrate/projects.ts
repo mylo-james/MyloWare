@@ -7,7 +7,9 @@ import { pool } from '../../src/db/client.js';
 
 interface V1Project {
   title: string;
-  workflows?: string[];
+  workflow?: string[];
+  workflows?: string[]; // Legacy support
+  optionalSteps?: string[];
   guardrails?: Record<string, unknown>;
   orientation?: {
     what_we_are?: string[];
@@ -16,6 +18,11 @@ interface V1Project {
   operating_notes?: {
     uniqueness_enforcement_strategy?: any;
     specification_loading_strategy?: string[];
+  };
+  specs?: {
+    videoCount?: number;
+    videoDuration?: number;
+    generations?: string[];
   };
 }
 
@@ -44,12 +51,8 @@ async function migrateProjects() {
       await repository.insert({
         name: 'aismr',
         description: aismr.title,
-        workflows: [
-          'idea-generation',
-          'screenplay-generation',
-          'video-generation',
-          'publishing',
-        ],
+        workflow: ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+        optionalSteps: [],
         guardrails: {
           runtime: '8.0 seconds',
           whisperTiming: '3.0 seconds',
@@ -86,7 +89,8 @@ async function migrateProjects() {
       await repository.insert({
         name: 'general',
         description: general.title,
-        workflows: general.workflows || ['conversation'],
+        workflow: general.workflows || ['conversation'],
+        optionalSteps: [],
         guardrails: general.guardrails || {},
         settings: {
           defaultPersona: 'chat',
@@ -98,6 +102,50 @@ async function migrateProjects() {
       });
 
       console.log('    ✓ General project created');
+    }
+
+    // Create GenReact project
+    console.log('  - Creating GenReact project...');
+    const existingGenreact = await repository.findByName('genreact');
+    if (existingGenreact) {
+      console.log('    ⏭️  GenReact project already exists, skipping');
+    } else {
+      const genreactPath = path.join(dataDir, 'genreact.json');
+      let genreact: V1Project | null = null;
+      try {
+        const genreactJson = await readFile(genreactPath, 'utf-8');
+        genreact = JSON.parse(genreactJson) as V1Project;
+      } catch (error) {
+        // File doesn't exist, use defaults
+        genreact = {
+          title: 'GenReact Project',
+          workflow: ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+          optionalSteps: ['alex'],
+          specs: {
+            videoCount: 6,
+            videoDuration: 8.0,
+            generations: ['Silent', 'Boomer', 'GenX', 'Millennial', 'GenZ', 'Alpha'],
+          },
+        };
+      }
+
+      await repository.insert({
+        name: 'genreact',
+        description: genreact.title,
+        workflow: genreact.workflow || genreact.workflows || ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+        optionalSteps: genreact.optionalSteps || ['alex'],
+        guardrails: genreact.guardrails || {},
+        settings: {
+          videoCount: genreact.specs?.videoCount || 6,
+          videoDuration: genreact.specs?.videoDuration || 8.0,
+          generations: genreact.specs?.generations || [],
+        },
+        metadata: {
+          v1Source: 'genreact.json',
+        },
+      });
+
+      console.log('    ✓ GenReact project created');
     }
 
     console.log('✅ Project migration complete');

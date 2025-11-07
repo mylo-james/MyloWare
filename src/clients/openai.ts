@@ -22,8 +22,16 @@ function createTestClient(): OpenAIClient {
         return {
           data: inputs.map((value, idx) => ({
             embedding: buildEmbedding(value, idx),
+            index: idx,
+            object: 'embedding' as const,
           })),
-        } as any;
+          model: 'text-embedding-3-small',
+          object: 'list' as const,
+          usage: {
+            prompt_tokens: 0,
+            total_tokens: 0,
+          },
+        } as Awaited<ReturnType<OpenAI['embeddings']['create']>>;
       },
     },
     chat: {

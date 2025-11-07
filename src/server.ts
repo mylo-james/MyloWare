@@ -17,6 +17,7 @@ import { pool } from './db/client.js';
 import { embedText } from './utils/embedding.js';
 import { register } from './utils/metrics.js';
 import { createHash, randomUUID } from 'node:crypto';
+import { handleTracePrep } from './api/routes/trace-prep.js';
 const hashValue = (value: string) =>
   createHash('sha256').update(value).digest('hex');
 
@@ -38,8 +39,64 @@ const mcpServer = new McpServer({
   }
 });
 
+import { SESSION_TTL_MS, MAX_SESSIONS } from './utils/constants.js';
+
 // Session transport management
 const transports = new Map<string, StreamableHTTPServerTransport>();
+const transportLastAccess = new Map<string, number>(); // Track last access time for TTL cleanup
+
+// Cleanup abandoned sessions
+function cleanupSessions() {
+  const now = Date.now();
+  const sessionsToRemove: string[] = [];
+
+  // Remove sessions that exceed TTL
+  for (const [sessionId, lastAccess] of transportLastAccess.entries()) {
+    if (now - lastAccess > SESSION_TTL_MS) {
+      sessionsToRemove.push(sessionId);
+    }
+  }
+
+  // If we're over the limit, use LRU eviction (remove oldest sessions)
+  if (transports.size > MAX_SESSIONS) {
+    const sortedByAccess = Array.from(transportLastAccess.entries())
+      .sort((a, b) => a[1] - b[1]); // Sort by last access time (oldest first)
+    
+    const excessCount = transports.size - MAX_SESSIONS;
+    for (let i = 0; i < excessCount; i++) {
+      sessionsToRemove.push(sortedByAccess[i][0]);
+    }
+  }
+
+  // Remove sessions
+  for (const sessionId of sessionsToRemove) {
+    const transport = transports.get(sessionId);
+    const lastAccess = transportLastAccess.get(sessionId);
+    if (transport) {
+      const reason = lastAccess && (now - lastAccess > SESSION_TTL_MS) ? 'TTL expired' : 'LRU eviction';
+      transport.close();
+      transports.delete(sessionId);
+      transportLastAccess.delete(sessionId);
+      logger.debug({
+        msg: 'Cleaned up abandoned session',
+        sessionId,
+        reason,
+      });
+    }
+  }
+
+  if (sessionsToRemove.length > 0) {
+    logger.info({
+      msg: 'Session cleanup completed',
+      removedCount: sessionsToRemove.length,
+      remainingCount: transports.size,
+    });
+  }
+}
+
+// Run cleanup every 5 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+let cleanupInterval: NodeJS.Timeout | null = null;
 
 // Initialize MCP server with all handlers (async)
 async function initializeMCPServer() {
@@ -128,6 +185,20 @@ const authenticateRequest = (
     return true;
   }
 
+  // In production, log minimal info. In development, log detailed debug info.
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction) {
+    logger.warn({
+      msg: 'Unauthorized MCP access attempt',
+      requestId,
+      ip: request.ip,
+      url: request.url,
+      method: request.method,
+      // Don't log sensitive data in production
+    });
+  } else {
+    // Debug logging for development only
   logger.warn({
     msg: 'Unauthorized MCP access attempt',
     requestId,
@@ -136,15 +207,14 @@ const authenticateRequest = (
     url: request.url,
     method: request.method,
     headerKeys: Object.keys(request.headers ?? {}),
-    allHeaders: request.headers, // Full headers for debugging
-    providedKey: providedKey ?? '(none)', // Show actual key for debugging
-    expectedKey: config.mcp.authKey ?? '(none)', // Show expected key
     providedKeyLength: providedKey?.length ?? 0,
     expectedKeyLength: config.mcp.authKey?.length ?? 0,
+      keysMatch: providedKey === config.mcp.authKey,
+      // Only log hashes in development, never actual keys
     providedKeyHash: providedKey ? hashValue(providedKey) : null,
     expectedKeyHash: config.mcp.authKey ? hashValue(config.mcp.authKey) : null,
-    keysMatch: providedKey === config.mcp.authKey,
   });
+  }
 
   reply.code(401).send({
     jsonrpc: '2.0',
@@ -201,6 +271,8 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
     if (sessionId && transports.has(sessionId)) {
       // Reuse existing transport for this session
       transport = transports.get(sessionId)!;
+      // Update last access time
+      transportLastAccess.set(sessionId, Date.now());
       logger.debug({
         msg: 'Reusing existing transport',
         requestId,
@@ -231,6 +303,7 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
         onsessioninitialized: (newSessionId) => {
           // Store the transport by session ID
           transports.set(newSessionId, transport);
+          transportLastAccess.set(newSessionId, Date.now());
           logger.info({
             msg: 'MCP session initialized',
             requestId,
@@ -243,6 +316,7 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
       transport.onclose = () => {
         if (transport.sessionId) {
           transports.delete(transport.sessionId);
+          transportLastAccess.delete(transport.sessionId);
           logger.info({
             msg: 'MCP session closed',
             requestId,
@@ -297,6 +371,9 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
     });
   } catch (error) {
     const duration = Date.now() - startTime;
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Always log detailed error info for debugging
     logger.error({
       msg: 'MCP request error',
       requestId,
@@ -306,11 +383,16 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
     });
 
     if (!reply.sent) {
+      // In production, return generic error. In development, include more detail.
+      const errorMessage = isProduction
+        ? 'Internal server error'
+        : error instanceof Error ? error.message : 'Internal server error';
+      
       reply.code(500).send({
         jsonrpc: '2.0',
         error: {
           code: -32603,
-          message: 'Internal server error',
+          message: errorMessage,
         },
         id: null,
       });
@@ -321,6 +403,15 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
 fastify.options('/mcp', handleMcpRequest);
 fastify.get('/mcp', handleMcpRequest);
 fastify.post('/mcp', handleMcpRequest);
+
+// trace_prep HTTP endpoint (for n8n workflows)
+fastify.post('/mcp/trace_prep', async (request, reply) => {
+  const requestId = randomUUID();
+  if (!authenticateRequest(request, reply, requestId)) {
+    return;
+  }
+  await handleTracePrep(request, reply);
+});
 
 // Direct tool call endpoint (bypasses MCP session management for n8n workflows)
 fastify.post('/tools/:toolName', async (request, reply) => {
@@ -425,6 +516,15 @@ const start = async () => {
       host: config.server.host,
     });
 
+    // Start session cleanup interval
+    cleanupInterval = setInterval(cleanupSessions, CLEANUP_INTERVAL_MS);
+    logger.info({
+      msg: 'Session cleanup started',
+      intervalMs: CLEANUP_INTERVAL_MS,
+      ttlMs: SESSION_TTL_MS,
+      maxSessions: MAX_SESSIONS,
+    });
+
     logger.info({
       msg: 'MCP server started',
       port: config.server.port,
@@ -439,5 +539,28 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info({ msg: 'SIGTERM received, shutting down gracefully' });
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  await fastify.close();
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info({ msg: 'SIGINT received, shutting down gracefully' });
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  await fastify.close();
+  await pool.end();
+  process.exit(0);
+});
 
 start();

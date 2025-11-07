@@ -1,145 +1,210 @@
 {
-  "title": "AISMR Project Integration · MCP Native",
-  "memory": {
-    "promptType": "project",
-    "type": "project",
-    "project": ["aismr"],
-    "tags": ["project", "aismr", "mcp-native", "integration-guide"]
+  "name": "aismr",
+  "title": "AISMR - Surreal Object Videos",
+  "description": "8-second micro-films of everyday objects with impossible modifiers. Tactile, mesmerizing, slightly unsettling.",
+  
+  "workflow": ["casey", "iggy", "riley", "veo", "alex", "quinn"],
+  "optionalSteps": [],
+  
+  "specs": {
+    "videoCount": 12,
+    "videoDuration": 8.0,
+    "whisperTiming": 3.0,
+    "maxHands": 2,
+    "compilationLength": 110,
+    "format": "9:16 vertical, single-shot, no cuts",
+    "aspectRatio": "9:16",
+    "resolution": "1080x1920"
   },
-  "activation_notice": "All AISMR personae must load this project guide. It documents required MCP workflows, specs, and anti-patterns.",
-  "critical_notice": "Uniqueness, spec compliance, and validation are enforced across every persona. Do not bypass required tool sequences.",
-  "agent": {
-    "name": "AISMR Project Node",
-    "id": "project-aismr",
-    "title": "MCP Integration Blueprint",
-    "icon": "🌀",
-    "whentouse": "Whenever an agent needs AISMR context, specs, or workflow patterns.",
-    "customization": "Return only guidance, not creative output."
+  
+  "guardrails": {
+    "timing": {
+      "runtime": {
+        "rule": "Exactly 8.0s ±0.1s per video",
+        "validation": "Riley must validate before storing",
+        "tolerance": "±0.1s"
+      },
+      "whisper": {
+        "rule": "Single whispered word at 3.0s ±0.05s",
+        "validation": "Riley must validate timing",
+        "tolerance": "±0.05s"
+      },
+      "compilation": {
+        "rule": "Total compilation ~110s (12 videos + title cards)",
+        "validation": "Alex validates before storing"
+      }
+    },
+    "visual": {
+      "hands": {
+        "rule": "Maximum 2 hands visible at any time",
+        "validation": "Riley must state hand count explicitly",
+        "enforcement": "Strict - no exceptions"
+      },
+      "camera": {
+        "rule": "Single continuous shot, no cuts or transitions",
+        "validation": "Riley must ensure continuity",
+        "style": "Macro focus, object-centric"
+      },
+      "focus": {
+        "rule": "Tactile, macro, object-centric",
+        "guidelines": ["Close-up on object", "Textures emphasized", "Minimal background"]
+      }
+    },
+    "audio": {
+      "music": {
+        "rule": "Forbidden - no music allowed",
+        "validation": "Riley must explicitly state 'no music'",
+        "enforcement": "Strict - any music fails validation"
+      },
+      "voice": {
+        "rule": "Single whispered word at 3.0s",
+        "guidelines": ["ASMR-style whisper", "One word only", "Tactile sound"]
+      },
+      "foley": {
+        "rule": "Required - tactile, realistic foley sounds",
+        "guidelines": ["Object interactions", "Material sounds", "Ambient texture"]
+      }
+    },
+    "style": {
+      "modifiers": {
+        "rule": "Surreal, impossible physics",
+        "examples": ["Void (absorbs light)", "Liquid (flows upward)", "Crystal (transparent glow)"],
+        "guidelines": ["Impossible but believable", "Tactile focus", "Mesmerizing"]
+      },
+      "mood": {
+        "rule": "Mesmerizing, slightly unsettling",
+        "guidelines": ["Hypnotic motion", "Subtle unease", "Beautiful but strange"]
+      },
+      "originality": {
+        "rule": "Must validate uniqueness against archive",
+        "validation": "Iggy checks before storing",
+        "threshold": "Similarity <0.85"
+      }
+    }
   },
-  "orientation": {
-    "what_we_are": [
-      "AISMR produces 8-second, single-shot, whisper-at-3.0-second micro films that blend tactile surrealism with strict physical rules.",
-      "We rely on MCP tools for memory routing, uniqueness enforcement, and quality feedback loops.",
-      "Every persona must prove compliance before delivering work."
-    ],
-    "key_metrics": [
-      "Uniqueness collisions per session ≤ 0.",
-      "Screenplay timing deviations ≤ 0.05s from spec.",
-      "Video failure rate ≤ 5% with documented reasons."
-    ]
-  },
-  "operating_notes": {
-    "uniqueness_enforcement_strategy": {
-      "overview": "Three-layer defense executed in order; HALT if any layer cannot confirm novelty.",
-      "layers": [
-        {
-          "name": "Layer 1 · Session Memory",
-          "tool": "memory_search",
-          "parameters": {
-            "query": "AISMR ideas or screenplays this session",
-            "memoryTypes": ["episodic"],
-            "project": "aismr",
-            "limit": 12,
-            "temporalBoost": true
-          },
-          "expectations": [
-            "Collect descriptors, vibes, environments already used in session.",
-            "Add extracted descriptors to `exclusionList.session`."
-          ]
-        },
-        {
-          "name": "Layer 2 · Archive Memory",
-          "tool": "memory_search",
-          "parameters": {
-            "project": "aismr",
-            "memoryTypes": ["semantic", "procedural"],
-            "limit": 15
-          },
-          "expectations": [
-            "Query each proposed descriptor/material; block similarity ≥0.85 unless clearly differentiated.",
-            "Save collisions with chunk IDs in the final audit."
-          ]
-        },
-        {
-          "name": "Layer 3 · Adaptive Resolution",
-          "tool": "memory_search",
-          "parameters": {
-            "project": "aismr",
-            "memoryTypes": ["semantic", "procedural"],
-            "expandGraph": true,
-            "temporalBoost": true,
-            "maxHops": 2
-          },
-          "expectations": [
-            "Use when Layers 1-2 produce near-collisions or thin inspiration.",
-            "If adaptive search returns low utility (<0.4), request new direction instead of guessing."
-          ]
-        }
-      ],
+  
+  "agent_expectations": {
+    "casey": {
+      "output": "Trace created, kickoff logged, handoff to iggy",
+      "instructions_template": "Generate {specs.videoCount} surreal modifiers for {object} (AISMR project). Validate uniqueness against archive. Seek approval via HITL. When approved, hand to Riley with modifier list.",
+      "success_criteria": [
+        "Project identified correctly",
+        "Trace created with traceId",
+        "Clear instructions for Iggy"
+      ]
+    },
+    "iggy": {
+      "output": "{specs.videoCount} surreal object modifiers",
+      "validation": "Uniqueness checked against archive (similarity <0.85)",
+      "format": "Modifier name + brief description",
+      "examples": ["Void Candle - Flame absorbs light", "Liquid Candle - Wax flows upward"],
+      "success_criteria": [
+        "{specs.videoCount} modifiers generated",
+        "Uniqueness validated",
+        "All follow style guardrails (surreal, tactile)"
+      ]
+    },
+    "riley": {
+      "output": "{specs.videoCount} validated screenplays",
       "validation": [
-        "Summaries must cite all three layers or give explicit HALT reason.",
-        "Provide `uniquenessAudit` object per batch with evidence fields: sessionEvidence, archiveEvidence, adaptiveEvidence."
+        "Timing: 8.0s ±0.1s per screenplay",
+        "Whisper: 3.0s ±0.05s",
+        "Hands: ≤2 explicitly stated",
+        "Audio: No music, foley described",
+        "Format: Single-shot, no cuts"
+      ],
+      "format": "Timestamp-based shot list with explicit timing",
+      "success_criteria": [
+        "{specs.videoCount} screenplays written",
+        "All timing specs validated",
+        "All guardrails followed",
+        "Production-ready (clear, actionable)"
       ]
     },
-    "specification_loading_strategy": [
-      "Call `memory_search` for each sacred spec (timing, runtime/format, hands, audio) before drafting.",
-      "Always quote the retrieved spec snippet inside your scratchpad to avoid drift.",
-      "Enable `temporalBoost` during spec retrieval to prioritize latest updates.",
-      "Cache spec chunk IDs in output metadata so QA can trace compliance quickly."
-    ],
-    "quality_monitoring_strategy": [
-      "Log issues using `memory_store` with tags: `screenplay-error`, `timing-drift`, `hand-violation`, `audio-leak`.",
-      "QA or agents querying `memory_search` with memoryTypes: ['episodic'] must pull these tags when troubleshooting.",
-      "Maintain a rolling record of failure counts in metadata summaries for analytics."
-    ],
-    "performance_patterns": {
-      "graph_traversal": [
-        "Use `memory_search` with `expandGraph: true` and `maxHops: 2` to surface winning clusters.",
-        "Inspect metadata for recurring materials (e.g., bioluminescent glass) and either riff or deliberately avoid.",
-        "When similarities arise, note them in the uniqueness audit to show the decision rationale."
-      ],
-      "temporal_boosting": [
-        "Enable `temporalBoost` when retrieving feedback or recent specs to prioritize high-signal updates.",
-        "Disable only when researching legacy successes where recency is not relevant."
+    "veo": {
+      "output": "{specs.videoCount} video URLs",
+      "validation": "All jobs succeeded (jobs_summary confirms)",
+      "tracking": "Use job_upsert for each video",
+      "success_criteria": [
+        "{specs.videoCount} videos generated",
+        "All jobs tracked",
+        "All URLs accessible",
+        "jobs_summary confirms completion"
       ]
     },
-    "workflow_templates": {
-      "idea_generator": [
-        "memory_search (episodic) → memory_search (semantic/procedural) → memory_search (expandGraph) → memory_search (expandGraph + temporalBoost if needed) → generate → validate → memory_store"
+    "alex": {
+      "output": "1 final compilation URL (~{specs.compilationLength}s)",
+      "validation": [
+        "User approval via HITL",
+        "Duration: ~{specs.compilationLength}s",
+        "Format: Sequential with title cards",
+        "All {specs.videoCount} videos included"
       ],
-      "screenwriter": [
-        "Parallel spec loads (4 memory_search calls) → memory_search (episodic) → memory_search (expandGraph + temporalBoost) → draft → validate → memory_store"
-      ],
-      "video_generation": [
-        "Ingest screenplay metadata → trigger render → monitor retries → store success/failure with memory_store using tags `video_success` or `video_failure`."
+      "format": "Sequential compilation with title cards between videos",
+      "success_criteria": [
+        "Compilation created",
+        "User approved",
+        "Duration matches spec",
+        "Format matches project requirements"
       ]
     },
-    "anti_patterns": [
-      "Skipping uniqueness layers or failing to record exclusion lists.",
-      "Relying on informal memory instead of keyword spec searches.",
-      "Ignoring quality issue tags before drafting.",
-      "Proceeding after tool errors without HALT.",
-      "Leaving outputs without validation evidence or chunk references."
-    ]
+    "quinn": {
+      "output": "Published URL + platform confirmation",
+      "validation": "Upload succeeded",
+      "platforms": ["tiktok"],
+      "caption": "Platform-appropriate with #AISMR hashtag",
+      "success_criteria": [
+        "Video published successfully",
+        "Publish URL received",
+        "Caption optimized",
+        "Completion signaled"
+      ]
+    }
   },
-  "additional_sections": {
-    "tool_call_examples": {
-      "memory_search_episodic": "{\"query\": \"AISMR ideas this session\", \"memoryTypes\": [\"episodic\"], \"project\": \"aismr\", \"limit\": 12, \"temporalBoost\": true}",
-      "memory_search_specs": "{\"query\": \"AISMR timing rule 3.0 seconds\", \"project\": \"aismr\", \"memoryTypes\": [\"semantic\", \"procedural\"], \"limit\": 10}",
-      "memory_search_inspiration": "{\"query\": \"surreal tactile AISMR crystals\", \"project\": \"aismr\", \"memoryTypes\": [\"semantic\", \"procedural\"], \"expandGraph\": true, \"maxHops\": 2}",
-      "memory_search_adaptive": "{\"query\": \"bioluminescent textile AISMR ideas\", \"project\": \"aismr\", \"memoryTypes\": [\"semantic\", \"procedural\"], \"expandGraph\": true, \"temporalBoost\": true, \"maxHops\": 2}",
-      "memory_store": "{\"content\": \"Generated AISMR screenplay...\", \"memoryType\": \"episodic\", \"project\": [\"aismr\"], \"tags\": [\"screenplay\", \"aismr\", \"completed\"], \"metadata\": {\"runtime\": 8, \"whisperAt\": 3.0}}"
+  
+  "quality_metrics": {
+    "uniqueness_collisions": {
+      "target": 0,
+      "measurement": "Iggy's uniqueness validation",
+      "threshold": "Similarity <0.85"
     },
-    "status_codes": [
-      "`status:blocked.toolFailure` – Mandatory tool unavailable after retries.",
-      "`status:blocked.specLookup` – Sacred specification could not be verified.",
-      "`status:blocked.uniqueness` – Unable to confirm uniqueness after three adaptive iterations.",
-      "`status:blocked.feedback` – Prior feedback conflicts unresolved; requires human review."
-    ],
-    "handoff_requirements": [
-      "Always provide `uniquenessAudit` or `validationSummary` objects in outputs.",
-      "Attach chunk IDs for key specs and reference memories (session + archive).",
-      "Store decisions or escalations so follow-up agents have context."
-    ]
+    "timing_deviations": {
+      "target": 0,
+      "measurement": "Riley's validation",
+      "tolerance": "±0.1s runtime, ±0.05s whisper"
+    },
+    "video_failure_rate": {
+      "target": "≤5%",
+      "measurement": "Veo's job tracking",
+      "handling": "Document reasons for failures"
+    },
+    "user_approval_rate": {
+      "target": "≥90%",
+      "measurement": "Iggy and Alex HITL approvals",
+      "handling": "Incorporate feedback on rejection"
+    }
+  },
+  
+  "example_outputs": {
+    "iggy": {
+      "modifiers": [
+        "Void Candle - Flame absorbs light, creates darkness",
+        "Liquid Candle - Wax flows upward against gravity",
+        "Crystal Candle - Transparent with inner bioluminescent glow"
+      ],
+      "count": 12
+    },
+    "riley": {
+      "screenplay_example": {
+        "title": "Void Candle",
+        "timestamps": {
+          "0.0s": "Hook: Candle appears normal",
+          "3.0s": "Whisper: 'void'",
+          "8.0s": "Resolution: Flame absorbs all light"
+        },
+        "hands": 1,
+        "audio": "No music, tactile foley only"
+      }
+    }
   }
 }

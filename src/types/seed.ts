@@ -10,7 +10,8 @@ export interface TestPersona {
 export interface TestProject {
   name: string;
   description: string;
-  workflows: string[];
+  workflow: string[];
+  optionalSteps: string[];
   guardrails: Record<string, unknown>;
   settings: Record<string, unknown>;
 }

@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-The agent has **11 tools** covering memory, context, sessions, and trace coordination.
+The agent has **13 tools** covering memory, context, sessions, and trace coordination.
 
 ---
 
@@ -224,6 +224,102 @@ Load project configuration and guardrails.
 
 ## Trace Coordination Tools (Epic 1)
 
+### trace_prep (HTTP Endpoint)
+
+**Endpoint:** `POST /mcp/trace_prep`
+
+Create (when no `traceId` is supplied) or hydrate (when a `traceId` already exists) the active production trace, fetch persona + project context, pull recent memories, and emit the fully baked system prompt + scoped MCP tool list for the current owner. This replaces the multi-node preprocessing chain inside n8n.
+
+**Note:** This is available as both an HTTP endpoint (used by n8n workflows) and an MCP tool (`trace_prepare`). The HTTP endpoint is the primary interface for the universal workflow pattern.
+
+**Parameters:**
+```typescript
+{
+  traceId?: string;         // Existing trace identifier (omit to create a new one)
+  instructions?: string;    // Raw user message (only used when creating a new trace)
+  sessionId?: string;       // Optional chat/telegram session handle
+  source?: string;          // 'telegram' | 'chat' | 'handoff' | etc.
+  metadata?: Record<string, unknown>; // Additional ingress metadata
+  memoryLimit?: number;     // How many trace-scoped memories to include (default 12)
+}
+```
+
+**Returns:**
+```typescript
+{
+  trace: {
+    traceId: string;
+    projectId: string;
+    currentOwner: string;
+    status: 'active' | 'completed' | 'failed';
+    instructions: string;
+    workflowStep: number;
+    sessionId: string | null;
+    metadata: Record<string, unknown>;
+  };
+  traceId: string;
+  justCreated: boolean;
+  persona: PersonaConfig;
+  project: {
+    id: string;
+    name: string;
+    description: string;
+    guardrails: Record<string, unknown>;
+    settings: Record<string, unknown>;
+  };
+  memories: Array<Record<string, unknown>>;
+  memorySummary: string;
+  systemPrompt: string;
+  allowedTools: string[];
+  instructions: string;
+}
+```
+
+**Example:**
+```json
+{
+  "name": "trace_prepare",
+  "arguments": {
+    "traceId": "trace-aismr-001"
+  }
+}
+```
+
+**Usage:** Every ingress path (telegram, chat, webhook) calls `trace_prepare` exactly once. The LangChain Agent reads `systemPrompt` for the system message, uses `instructions` as the user input, and the MCP Client is scoped to `allowedTools`.
+
+---
+
+### trace_update
+
+Persist new project assignments, normalized instructions, or metadata updates after Casey interprets the user request.
+
+**Parameters:**
+```typescript
+{
+  traceId: string;
+  projectId?: string;
+  instructions?: string;
+  metadata?: Record<string, unknown>;
+}
+```
+
+Provide at least one optional field. Omitted fields remain unchanged.
+
+**Returns:** Updated trace record (see `trace_prepare`).
+
+**Example:**
+```json
+{
+  "traceId": "trace-aismr-001",
+  "instructions": "Produce AISMR candle clips with neon gradients.",
+  "metadata": { "source": "telegram", "sessionId": "telegram:123" }
+}
+```
+
+**Usage:** Casey calls `trace_update` immediately after `trace_create` so downstream personas receive the cleaned instructions and any project switch the user requested.
+
+---
+
 ### trace_create
 
 Create a new execution trace to coordinate multi-agent workflows.
@@ -298,7 +394,16 @@ Hand off work to another agent via n8n webhook invocation.
 }
 ```
 
-**Usage:** Any agent can hand off to another. The tool validates the trace is active, looks up the agent's webhook, invokes it, and stores the handoff event to memory.
+**Usage:** Any agent can hand off to another. The tool validates the trace is active, bumps the trace `workflowStep`, updates ownership (`previousOwner` → `currentOwner = toAgent`), looks up the agent's webhook, invokes it, and stores the handoff event to memory.
+
+**Special targets:**
+
+- `complete` – Marks the trace as `completed`, sets `currentOwner='complete'`, records the instructions, stores a completion memory, **sends Telegram notification to user** (if sessionId starts with 'telegram:'), and **does not** call a webhook. The notification includes the publish URL if found in instructions (format: "URL: https://...") or trace.outputs.url.
+- `error` – Marks the trace as `failed`, sets `currentOwner='error'`, stores the error summary, and **does not** call a webhook.
+
+Use these terminal targets when Quinn (or any persona) needs to finish or abort a run without bouncing back to Casey.
+
+**Notification:** When `toAgent === 'complete'` and the trace has a `sessionId` starting with `'telegram:'`, the tool automatically sends a Telegram notification to the user with the completion message and publish URL (if available). Notification failures are logged but do not fail the handoff operation.
 
 ---
 
@@ -341,6 +446,66 @@ Signal that a workflow trace has completed (or failed).
 ```
 
 **Usage:** The final agent (typically Quinn) calls this after publishing is complete. Casey receives the completion signal and notifies the user.
+
+---
+
+## Job Ledger Tools (Epic 1.6)
+
+### job_upsert
+
+Track long-running generation/editing jobs so Veo/Alex (and Casey) can see real progress rather than polling providers manually.
+
+**Parameters:**
+```typescript
+{
+  kind: 'video' | 'edit';
+  traceId: string;
+  scriptId?: string;            // optional (video jobs)
+  provider: string;            // e.g. 'runway', 'descript'
+  taskId: string;              // provider task reference
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+  url?: string;                // assetUrl/finalUrl depending on kind
+  error?: string;
+  metadata?: Record<string, unknown>;
+  startedAt?: string;          // ISO timestamp
+  completedAt?: string;        // ISO timestamp
+}
+```
+
+**Returns:** Full job record (including id, timestamps, metadata).
+
+**Usage:**
+- Veo calls this whenever an external video provider job changes state (queued → running → succeeded/failed).
+- Alex calls this for editing tasks (e.g., multi-clip stitching, manual review). The `provider + taskId` pair is idempotent, so subsequent updates mutate the same row.
+
+---
+
+### jobs_summary
+
+Summarize outstanding/completed jobs for a given `traceId` (combines video + edit tables).
+
+**Parameters:**
+```typescript
+{
+  traceId: string;
+}
+```
+
+**Returns:**
+```typescript
+{
+  total: number;
+  completed: number;       // succeeded
+  failed: number;          // failed
+  pending: number;         // queued + running
+  breakdown: {
+    video: { total; completed; failed; pending };
+    edit:  { total; completed; failed; pending };
+  };
+}
+```
+
+**Usage:** Agents can poll `jobs_summary` before handing off downstream (e.g., Veo waits for all video jobs to finish before alerting Alex). Casey can also use it for proactive updates when a user asks "how many clips are done?".
 
 ---
 

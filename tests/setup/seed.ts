@@ -36,7 +36,9 @@ interface V1Persona {
 
 interface V1Project {
   title: string;
-  workflows?: string[];
+  workflow?: string[];
+  workflows?: string[]; // Legacy support
+  optionalSteps?: string[];
   guardrails?: Record<string, unknown>;
   orientation?: {
     what_we_are?: string[];
@@ -81,11 +83,18 @@ async function clearTables() {
 
 async function seedPersonas() {
   const personaRepository = new PersonaRepository();
-  const files = ['chat.json', 'ideagenerator.json', 'screenwriter.json'];
+  const files = ['chat.json', 'ideagenerator.json', 'screenwriter.json', 'casey.json'];
   const capabilityMap: Record<string, string[]> = {
     chat: ['conversation', 'workflow-discovery', 'orchestration'],
     ideagenerator: ['idea-generation', 'uniqueness-verification', 'memory-search'],
     screenwriter: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
+    casey: ['trace-coordination', 'handoff', 'memory-management'],
+  };
+  const allowedToolsMap: Record<string, string[]> = {
+    chat: ['memory_search', 'memory_store', 'handoff_to_agent'],
+    ideagenerator: ['memory_search', 'memory_store', 'handoff_to_agent'],
+    screenwriter: ['memory_search', 'memory_store', 'handoff_to_agent'],
+    casey: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
   };
 
   for (const file of files) {
@@ -112,10 +121,66 @@ ${persona.workflow?.definition_of_success ? `Definition of success: ${persona.wo
       tone: persona.persona.style,
       defaultProject: 'aismr',
       systemPrompt,
+      allowedTools: allowedToolsMap[persona.agent.id] || ['memory_search', 'memory_store', 'handoff_to_agent'],
       metadata: {
         v1Source: file,
       },
     });
+  }
+
+  // Seed additional personas that don't have JSON files
+  const additionalPersonas = [
+    {
+      name: 'iggy',
+      description: 'Creative Director',
+      capabilities: ['idea-generation', 'uniqueness-verification', 'handoff'],
+      tone: 'creative',
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
+    },
+    {
+      name: 'riley',
+      description: 'Head Writer',
+      capabilities: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
+      tone: 'precise',
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
+    },
+    {
+      name: 'veo',
+      description: 'Production (Video Generation)',
+      capabilities: ['video-generation', 'batch-processing', 'handoff'],
+      tone: 'efficient',
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
+    },
+    {
+      name: 'alex',
+      description: 'Editor (Post-Production)',
+      capabilities: ['editing', 'compilation', 'handoff'],
+      tone: 'meticulous',
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
+    },
+    {
+      name: 'quinn',
+      description: 'Social Media Manager',
+      capabilities: ['publishing', 'captioning', 'workflow-complete'],
+      tone: 'upbeat',
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'workflow_complete'],
+    },
+  ];
+
+  for (const persona of additionalPersonas) {
+    const existing = await personaRepository.findByName(persona.name);
+    if (!existing) {
+      await personaRepository.insert({
+        name: persona.name,
+        description: persona.description,
+        capabilities: persona.capabilities,
+        tone: persona.tone,
+        defaultProject: 'aismr',
+        systemPrompt: `You are ${persona.name}, ${persona.description}.`,
+        allowedTools: persona.allowedTools,
+        metadata: {},
+      });
+    }
   }
 }
 
@@ -128,10 +193,15 @@ async function seedProjects() {
     const project = JSON.parse(raw) as V1Project;
     const name = file.startsWith('aismr') ? 'aismr' : 'general';
 
+    // Use workflow (singular) if available, fallback to workflows (plural) for legacy support
+    const workflow = project.workflow || project.workflows || (name === 'aismr' ? ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'] : ['conversation']);
+    const optionalSteps = project.optionalSteps || [];
+
     await projectRepository.insert({
       name,
       description: project.title,
-      workflows: project.workflows || ['conversation'],
+      workflow,
+      optionalSteps,
       guardrails: project.guardrails || project.operating_notes || {},
       settings: {
         keyMetrics: project.orientation?.key_metrics || [],

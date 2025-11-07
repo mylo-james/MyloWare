@@ -90,6 +90,10 @@ export interface WorkflowExecuteParams {
   input: Record<string, unknown>;
   sessionId?: string;
   waitForCompletion?: boolean;
+  /** Optional override when the caller already knows the actual n8n workflow ID */
+  n8nWorkflowId?: string;
+  /** Optional human-friendly name for logging (otherwise derived from memory metadata) */
+  workflowName?: string;
 }
 
 export interface WorkflowExecuteResult {
@@ -98,4 +102,3 @@ export interface WorkflowExecuteResult {
   output?: Record<string, unknown>;
   error?: string;
 }
-

@@ -44,8 +44,8 @@ describe('Workflow Integration', () => {
       return;
     }
 
-    // Note: This will fail if workflow isn't registered in workflow_registry
-    // That's expected - workflows need to be seeded and registered first
+    // Note: This will fail if the workflow memory is missing metadata.n8nWorkflowId
+    // That's expected until workflows are seeded with n8n IDs
     try {
       const execution = await executeWorkflow({
         workflowId: discovery.workflows[0].workflowId,
@@ -56,9 +56,9 @@ describe('Workflow Integration', () => {
       expect(execution.workflowRunId).toBeDefined();
       expect(execution.status).toBe('running');
     } catch (error) {
-      // If workflow not registered, that's expected
-      if (error instanceof Error && error.message.includes('No n8n workflow mapped')) {
-        console.log('⚠️  Workflow not registered in workflow_registry - this is expected if workflows not seeded');
+      // If workflow metadata missing ID, that's expected
+      if (error instanceof Error && error.message.includes('n8n workflow ID')) {
+        console.log('⚠️  Workflow memory missing n8nWorkflowId metadata - expected if workflows not seeded');
         return;
       }
       throw error;

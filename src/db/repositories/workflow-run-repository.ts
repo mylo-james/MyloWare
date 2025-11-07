@@ -48,7 +48,12 @@ export class WorkflowRunRepository {
       error?: string;
     }
   ): Promise<WorkflowRun> {
-    const setValues: any = {
+    const setValues: {
+      status: string;
+      output?: Record<string, unknown>;
+      error?: string;
+      completedAt?: Date;
+    } = {
       status,
       ...(updates || {}),
     };
@@ -105,7 +110,13 @@ export class WorkflowRunRepository {
       metadata?: Record<string, unknown>;
     }
   ): Promise<WorkflowRun> {
-    const setValues: any = { ...updates };
+    const setValues: {
+      status?: string;
+      output?: Record<string, unknown>;
+      error?: string;
+      metadata?: Record<string, unknown>;
+      completedAt?: Date;
+    } = { ...updates };
 
     if (updates.status === 'completed' || updates.status === 'failed') {
       setValues.completedAt = new Date();

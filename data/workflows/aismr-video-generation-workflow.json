@@ -201,8 +201,9 @@
             "tags": ["aismr", "video-generation", "workflow-output"],
             "metadata": {
               "stage": "video_generation",
-              "workflowRunId": "${context.workflowRunId}",
+              "traceId": "${context.traceId}",
               "videoUrl": "${editResult.videoUrl}",
+              "taskId": "${videoGenerationResult.taskId}",
               "duration": 8,
               "aspectRatio": "9:16"
             }

@@ -6,7 +6,8 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  workflows: string[];
+  workflow: string[];
+  optionalSteps: string[];
   guardrails: Record<string, unknown>;
   settings: Record<string, unknown>;
   metadata: Record<string, unknown>;
@@ -15,6 +16,19 @@ export interface Project {
 }
 
 export class ProjectRepository {
+  /**
+   * Validates that optionalSteps is a subset of workflow
+   */
+  private validateOptionalSteps(workflow: string[], optionalSteps: string[]): void {
+    const workflowSet = new Set(workflow);
+    const invalidSteps = optionalSteps.filter(step => !workflowSet.has(step));
+    if (invalidSteps.length > 0) {
+      throw new Error(
+        `optionalSteps must be a subset of workflow. Invalid steps: ${invalidSteps.join(', ')}`
+      );
+    }
+  }
+
   async findByName(name: string): Promise<Project | null> {
     const [result] = await db
       .select()
@@ -34,6 +48,9 @@ export class ProjectRepository {
   }
 
   async insert(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+    // Validate optionalSteps is a subset of workflow
+    this.validateOptionalSteps(project.workflow, project.optionalSteps);
+
     const [result] = await db
       .insert(projects)
       .values(project)

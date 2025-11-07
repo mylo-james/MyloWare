@@ -7,6 +7,13 @@ export interface CreateTraceParams {
   projectId: string;
   sessionId?: string;
   metadata?: Record<string, unknown>;
+  instructions?: string;
+}
+
+export interface UpdateTraceParams {
+  projectId?: string;
+  instructions?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Trace {
@@ -14,6 +21,10 @@ export interface Trace {
   traceId: string;
   projectId: string;
   sessionId: string | null;
+  currentOwner: string;
+  previousOwner: string | null;
+  instructions: string;
+  workflowStep: number;
   status: string;
   outputs: Record<string, unknown> | null;
   createdAt: Date;
@@ -24,15 +35,23 @@ export interface Trace {
 export class TraceRepository {
   async create(params: CreateTraceParams): Promise<Trace> {
     const traceId = randomUUID();
+    
+    // Build insert values, omitting previousOwner to let DB default to NULL
+    // This avoids issues with Drizzle potentially converting null to empty string
+    const insertValues = {
+      traceId,
+      projectId: params.projectId,
+      sessionId: params.sessionId ?? null,
+      currentOwner: 'casey' as const,
+      instructions: params.instructions ?? '',
+      workflowStep: 0,
+      status: 'active' as const,
+      metadata: params.metadata || {},
+    };
+
     const [result] = await db
       .insert(executionTraces)
-      .values({
-        traceId,
-        projectId: params.projectId,
-        sessionId: params.sessionId || null,
-        status: 'active',
-        metadata: params.metadata || {},
-      })
+      .values(insertValues)
       .returning();
 
     return result as Trace;
@@ -46,6 +65,10 @@ export class TraceRepository {
       .limit(1);
 
     return (result as Trace) || null;
+  }
+
+  async getTrace(traceId: string): Promise<Trace | null> {
+    return this.findByTraceId(traceId);
   }
 
   async updateStatus(
@@ -85,5 +108,65 @@ export class TraceRepository {
 
     return results as Trace[];
   }
-}
 
+  async updateWorkflow(
+    traceId: string,
+    owner: string,
+    instructions: string,
+    workflowStep: number,
+    expectedCurrentOwner?: string
+  ): Promise<Trace | null> {
+    // Fetch current owner for previousOwner field and optimistic locking check
+    const current = await this.findByTraceId(traceId);
+    if (!current) return null;
+
+    // Optimistic locking: if expectedCurrentOwner is provided, verify it matches
+    if (expectedCurrentOwner !== undefined && current.currentOwner !== expectedCurrentOwner) {
+      throw new Error(
+        `Trace ownership conflict: expected owner '${expectedCurrentOwner}', but current owner is '${current.currentOwner}'`
+      );
+    }
+
+    const [result] = await db
+      .update(executionTraces)
+      .set({
+        previousOwner: current.currentOwner,
+        currentOwner: owner,
+        instructions,
+        workflowStep,
+      })
+      .where(eq(executionTraces.traceId, traceId))
+      .returning();
+
+    return (result as Trace) || null;
+  }
+
+  async updateTrace(
+    traceId: string,
+    updates: UpdateTraceParams
+  ): Promise<Trace | null> {
+    const updateData: Record<string, unknown> = {};
+
+    if (typeof updates.projectId !== 'undefined') {
+      updateData.projectId = updates.projectId;
+    }
+    if (typeof updates.instructions !== 'undefined') {
+      updateData.instructions = updates.instructions;
+    }
+    if (typeof updates.metadata !== 'undefined') {
+      updateData.metadata = updates.metadata;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return this.findByTraceId(traceId);
+    }
+
+    const [result] = await db
+      .update(executionTraces)
+      .set(updateData)
+      .where(eq(executionTraces.traceId, traceId))
+      .returning();
+
+    return (result as Trace) || null;
+  }
+}

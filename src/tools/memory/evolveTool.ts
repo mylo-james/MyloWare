@@ -63,7 +63,10 @@ export async function evolveMemory(
   }
 
   // 3. Track evolution in metadata
-  const evolutionHistory = (memory.metadata.evolutionHistory as any[]) || [];
+  const metadata = memory.metadata as Record<string, unknown>;
+  const evolutionHistory = (Array.isArray(metadata.evolutionHistory) 
+    ? metadata.evolutionHistory 
+    : []) as Array<{ timestamp: string; changes: string[] }>;
   evolutionHistory.push({
     timestamp: new Date().toISOString(),
     changes,

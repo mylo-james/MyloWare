@@ -4,6 +4,10 @@ export interface PromptExecuteParams {
   input?: Record<string, unknown>;
   context?: Record<string, unknown>;
   waitForCompletion?: boolean;
+  /** Optional override for the backing n8n workflow ID */
+  n8nWorkflowId?: string;
+  /** Optional friendly name for logging */
+  promptName?: string;
 }
 
 export interface PromptExecuteResult {

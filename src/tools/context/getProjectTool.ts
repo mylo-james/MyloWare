@@ -25,7 +25,8 @@ export async function getProject(
     project: {
       name: project.name,
       description: project.description,
-      workflows: project.workflows,
+      workflow: project.workflow,
+      optionalSteps: project.optionalSteps,
       guardrails: project.guardrails,
       settings: project.settings,
     },

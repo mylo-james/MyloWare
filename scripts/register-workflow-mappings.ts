@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { WorkflowRegistryRepository } from '../src/db/repositories/workflow-registry-repository.js';
+import { MemoryRepository } from '../src/db/repositories/memory-repository.js';
 
 /**
  * Register semantic workflow memories with their n8n workflow implementations
@@ -9,7 +9,7 @@ import { WorkflowRegistryRepository } from '../src/db/repositories/workflow-regi
 async function registerWorkflowMappings() {
   console.log('🔄 Registering workflow mappings...\n');
 
-  const registry = new WorkflowRegistryRepository();
+  const memories = new MemoryRepository();
 
   // Define mappings: semantic memory ID → n8n workflow ID
   const mappings = [
@@ -43,22 +43,18 @@ async function registerWorkflowMappings() {
         continue;
       }
 
-      // Check if already registered
-      const existing = await registry.findByMemoryId(mapping.memoryId);
-      if (existing) {
-        console.log(`⚠️  "${mapping.name}" already registered`);
-        console.log(`   Memory ID: ${mapping.memoryId}`);
-        console.log(`   n8n ID: ${existing.n8nWorkflowId}\n`);
+      const memory = await memories.findById(mapping.memoryId);
+      if (!memory) {
+        console.log(`❌ Memory not found for "${mapping.name}" (${mapping.memoryId})\n`);
         continue;
       }
 
-      // Register new mapping
-      await registry.create({
-        memoryId: mapping.memoryId,
+      const metadata = {
+        ...(memory.metadata || {}),
         n8nWorkflowId: mapping.n8nWorkflowId,
-        name: mapping.name,
-        isActive: true,
-      });
+      };
+
+      await memories.update(memory.id, { metadata });
 
       console.log(`✅ Registered "${mapping.name}"`);
       console.log(`   Memory ID: ${mapping.memoryId}`);
@@ -78,4 +74,3 @@ registerWorkflowMappings().catch((error) => {
   console.error('Failed to register workflow mappings:', error);
   process.exit(1);
 });
-

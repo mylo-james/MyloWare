@@ -44,7 +44,8 @@ export async function registerMCPPrompts(server: McpServer): Promise<void> {
   // Register each procedural memory as a prompt with persona/project scoping
   for (const memory of proceduralMemories) {
     // Check if this memory has a prompt definition in metadata
-    const promptDef = (memory.metadata as any)?.workflow as PromptDefinition | undefined;
+    const metadata = memory.metadata as Record<string, unknown>;
+    const promptDef = metadata?.workflow as PromptDefinition | undefined;
     
     if (!promptDef || !promptDef.name || !promptDef.description) {
       continue; // Skip memories without valid prompt definitions

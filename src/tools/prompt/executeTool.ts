@@ -3,7 +3,7 @@ import type {
   PromptExecuteResult,
 } from '../../types/prompt.js';
 import { WorkflowRunRepository } from '../../db/repositories/workflow-run-repository.js';
-import { WorkflowRegistryRepository } from '../../db/repositories/workflow-registry-repository.js';
+import { MemoryRepository } from '../../db/repositories/memory-repository.js';
 import { workflowExecutions, workflowDuration } from '../../utils/metrics.js';
 import { N8nClient } from '../../integrations/n8n/client.js';
 import { config } from '../../config/index.js';
@@ -35,33 +35,56 @@ export async function executePrompt(
 ): Promise<PromptExecuteResult> {
   const timer = workflowDuration.startTimer({ workflow_name: params.promptId });
   const repository = new WorkflowRunRepository();
-  const registryRepository = new WorkflowRegistryRepository();
+  const memoryRepository = new MemoryRepository();
+  let promptIdentifier = params.promptId;
+  let promptName = params.promptName || params.promptId;
+  let memoryIdForLogging: string | undefined;
+  let n8nWorkflowId = params.n8nWorkflowId?.trim();
 
   try {
-    // 1. Look up n8n workflow ID from registry
-    // params.promptId is a procedural memory UUID (the semantic prompt)
-    // We need to map it to an n8n workflow ID (the programmatic implementation)
-    const registryEntry = await registryRepository.findByMemoryId(params.promptId);
-    
-    if (!registryEntry) {
-      throw new NotFoundError(
-        `No n8n workflow mapped to prompt ID: ${params.promptId}. ` +
-        `This prompt exists but hasn't been connected to an n8n workflow implementation. ` +
-        `Register the mapping in the workflow_registry table.`
-      );
+    // 1. Resolve n8n workflow ID either from params or prompt memory metadata
+    if (!n8nWorkflowId) {
+      const promptMemory = await memoryRepository.findById(params.promptId);
+      if (!promptMemory) {
+        throw new NotFoundError(
+          `Prompt memory not found: ${params.promptId}. ` +
+          'Pass n8nWorkflowId directly to executePrompt or store metadata.n8nWorkflowId on the prompt memory.'
+        );
+      }
+
+      const metadataN8nId = (promptMemory.metadata as Record<string, unknown> | null)?.n8nWorkflowId;
+      if (typeof metadataN8nId !== 'string' || !metadataN8nId.trim()) {
+        throw new NotFoundError(
+          `Prompt memory ${params.promptId} is missing metadata.n8nWorkflowId. ` +
+          'Add the n8n workflow ID to the memory metadata or provide it directly to executePrompt.'
+        );
+      }
+
+      n8nWorkflowId = metadataN8nId.trim();
+      const metadataPrompt = promptMemory.metadata?.prompt as { name?: unknown } | undefined;
+      promptName =
+        params.promptName ||
+        (typeof metadataPrompt?.name === 'string'
+          ? metadataPrompt.name
+          : promptMemory.summary || promptMemory.content || promptName);
+      memoryIdForLogging = promptMemory.id;
+      promptIdentifier = promptMemory.id;
     }
 
-    const n8nWorkflowId = registryEntry.n8nWorkflowId;
+    if (!n8nWorkflowId) {
+      throw new NotFoundError('n8n workflow ID could not be resolved for executePrompt');
+    }
 
     // 2. Create workflow run record
     const run = await repository.create({
       sessionId: params.sessionId,
-      workflowName: registryEntry.name, // Use registry name, not memory ID
+      workflowName: promptName,
       input: params.input,
       metadata: {
         executionMode: 'n8n_delegation',
         waitForCompletion: params.waitForCompletion || false,
-        promptMemoryId: params.promptId, // Track which prompt was executed
+        promptMemoryId: memoryIdForLogging,
+        providedPromptId: params.promptId,
         n8nWorkflowId: n8nWorkflowId,
       },
     });
@@ -70,7 +93,7 @@ export async function executePrompt(
     logger.info({
       msg: 'Prompt execution started (delegating to n8n workflow)',
       promptRunId: run.id,
-      promptId: params.promptId,
+      promptId: promptIdentifier,
       n8nWorkflowId,
       sessionId: params.sessionId,
       waitForCompletion: params.waitForCompletion || false,
@@ -112,7 +135,7 @@ export async function executePrompt(
           output: result as Record<string, unknown>,
         });
         timer();
-        workflowExecutions.inc({ workflow_name: params.promptId, status: 'completed' });
+        workflowExecutions.inc({ workflow_name: promptIdentifier, status: 'completed' });
         return {
           success: true,
           promptRunId: run.id,
@@ -128,7 +151,7 @@ export async function executePrompt(
         if (waitError instanceof TimeoutError) {
           logger.error({
             msg: 'Prompt execution timed out',
-            promptId: params.promptId,
+            promptId: promptIdentifier,
             n8nWorkflowId,
             executionId,
             timeout: timeoutMs,
@@ -139,11 +162,11 @@ export async function executePrompt(
           });
           
           timer();
-          workflowExecutions.inc({ workflow_name: params.promptId, status: 'timeout' });
+          workflowExecutions.inc({ workflow_name: promptIdentifier, status: 'timeout' });
           
           throw new WorkflowTimeoutError(
             `Workflow ${n8nWorkflowId} timed out after ${timeoutMs}ms`,
-            params.promptId,
+            promptIdentifier,
             executionId,
             timeoutMs
           );
@@ -163,11 +186,11 @@ export async function executePrompt(
         });
         
         timer();
-        workflowExecutions.inc({ workflow_name: params.promptId, status: 'error' });
+          workflowExecutions.inc({ workflow_name: promptIdentifier, status: 'error' });
         
         throw new WorkflowExecutionError(
           `Workflow execution failed: ${errorMessage}`,
-          params.promptId,
+          promptIdentifier,
           waitError instanceof Error ? waitError : new Error(String(waitError))
         );
       }
@@ -175,7 +198,7 @@ export async function executePrompt(
 
     // 7. Return immediately if not waiting
     timer();
-    workflowExecutions.inc({ workflow_name: params.promptId, status: 'running' });
+    workflowExecutions.inc({ workflow_name: promptIdentifier, status: 'running' });
     return {
       success: true,
       promptRunId: run.id,
@@ -185,8 +208,7 @@ export async function executePrompt(
     };
   } catch (error) {
     timer();
-    workflowExecutions.inc({ workflow_name: params.promptId, status: 'error' });
+    workflowExecutions.inc({ workflow_name: promptIdentifier, status: 'error' });
     throw error;
   }
 }
-

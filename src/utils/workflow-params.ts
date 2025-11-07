@@ -178,7 +178,10 @@ export function formatSearchResults(
         .map((item, index) => {
           if (typeof item === 'object' && item !== null) {
             // Try to extract meaningful content
-            const content = (item as any).content || (item as any).text || JSON.stringify(item);
+            const itemObj = item as Record<string, unknown>;
+            const content = (itemObj.content as string | undefined) || 
+                           (itemObj.text as string | undefined) || 
+                           JSON.stringify(item);
             return `${index + 1}. ${content}`;
           }
           return `${index + 1}. ${String(item)}`;
@@ -193,7 +196,10 @@ export function formatSearchResults(
       return results
         .map((item, index) => {
           if (typeof item === 'object' && item !== null) {
-            const content = (item as any).content || (item as any).text || JSON.stringify(item);
+            const itemObj = item as Record<string, unknown>;
+            const content = (itemObj.content as string | undefined) || 
+                           (itemObj.text as string | undefined) || 
+                           JSON.stringify(item);
             return `Result ${index + 1}: ${content}`;
           }
           return `Result ${index + 1}: ${String(item)}`;

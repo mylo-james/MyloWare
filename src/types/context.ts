@@ -10,6 +10,7 @@ export interface PersonaGetResult {
     tone: string;
     defaultProject: string | null;
     systemPrompt: string | null;
+    allowedTools: string[];
   };
   metadata: Record<string, unknown>;
 }
@@ -22,7 +23,8 @@ export interface ProjectGetResult {
   project: {
     name: string;
     description: string;
-    workflows: string[];
+    workflow: string[];
+    optionalSteps: string[];
     guardrails: Record<string, unknown>;
     settings: Record<string, unknown>;
   };

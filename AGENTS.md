@@ -17,18 +17,25 @@ Build a **multi-agent, memory-first AI Production Studio** where:
 
 ## Persona Workflow Overview (North Star Alignment)
 
-The North Star pipeline runs strictly in this order: Casey → Iggy → Riley → Veo → Alex → Quinn. Each persona has a narrow remit, a fixed entry signal, and a required MCP tool set. Keep these handoffs in mind while updating `plan.md`:
+The North Star pipeline runs strictly in this order: Casey → Iggy → Riley → Veo → Alex → Quinn. All personas execute in the **same universal workflow** (`myloware-agent.workflow.json`), which becomes any persona dynamically based on `trace.currentOwner`.
 
 | Agent | Entry Trigger | Core Responsibilities | Required MCP Tools |
 | ----- | ------------- | --------------------- | ------------------ |
-| Casey (Showrunner) | User request via Telegram (`workflows/casey.workflow.json`) | Create `traceId`, capture `{project, sessionId, instructions}`, hand off to Iggy, trigger Iggy's workflow, then idle | `trace_create`, `handoff_to_agent`, `memory_store`, `Call n8n workflow` |
-| Iggy (Creative Director) | Casey’s handoff payload | Generate 12 AISMR modifiers (or project-specific ideation), log to memory, seek HITL approval, pass to Riley | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
-| Riley (Head Writer) | Iggy approval event | Retrieve modifiers, draft scripts, store outputs, hand off to Veo | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
-| Veo (Production) | Riley’s scripts | Convert scripts to video assets via external APIs, store URLs, hand off to Alex | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow`, project video API |
-| Alex (Editor) | Veo video URLs | Stitch edits, request HITL approval, store final edit, hand off to Quinn | `memory_search`, `memory_store`, `handoff_to_agent`, `Call n8n workflow` |
-| Quinn (Publisher) | Alex approval event | Publish final edit, store platform URLs, call `workflow_complete`, notify Casey/user | `memory_search`, `memory_store`, `workflow_complete` |
+| Casey (Showrunner) | User request via Telegram/Chat (no traceId) | Determine project, set projectId, create kickoff memory, hand off to Iggy | `trace_update` (via `set_project`), `memory_store`, `handoff_to_agent` |
+| Iggy (Creative Director) | Webhook with traceId (Casey's handoff) | Generate 12 AISMR modifiers, log to memory, seek HITL approval, pass to Riley | `memory_search`, `memory_store`, `handoff_to_agent` |
+| Riley (Head Writer) | Webhook with traceId (Iggy's handoff) | Retrieve modifiers, draft scripts, store outputs, hand off to Veo | `memory_search`, `memory_store`, `handoff_to_agent` |
+| Veo (Production) | Webhook with traceId (Riley's handoff) | Convert scripts to video assets via toolWorkflow, track jobs, store URLs, hand off to Alex | `memory_search`, `memory_store`, `job_upsert`, `jobs_summary`, `handoff_to_agent` |
+| Alex (Editor) | Webhook with traceId (Veo's handoff) | Stitch edits via toolWorkflow, request HITL approval, store final edit, hand off to Quinn | `memory_search`, `memory_store`, `job_upsert`, `jobs_summary`, `handoff_to_agent` |
+| Quinn (Publisher) | Webhook with traceId (Alex's handoff) | Publish final edit, store platform URLs, call `handoff_to_agent({ toAgent: 'complete' })` | `memory_search`, `memory_store`, `handoff_to_agent` |
 
-Casey’s job is to start the run and wait for Quinn’s completion signal; no agent should bounce work back to Casey mid-flow. Every handoff must include the active `traceId` so memories remain queryable by downstream personas.
+**Universal Workflow Pattern:**
+1. Trigger (Telegram/Chat/Webhook) → Edit Fields → trace_prep HTTP Request → AI Agent Node
+2. trace_prep discovers persona from `trace.currentOwner` and returns `systemPrompt` + `allowedTools`
+3. AI Agent executes as that persona with scoped tools
+4. Agent calls `handoff_to_agent`, which invokes same workflow via webhook with `{ traceId }`
+5. Loop repeats: trace_prep discovers next persona, workflow becomes that persona
+
+Casey's job is to start the run; Quinn signals completion via `handoff_to_agent({ toAgent: 'complete' })`, which sends user notification. Every handoff must include the active `traceId` so memories remain queryable by downstream personas.
 
 ### Build Order Snapshot (Nov 7, 2025)
 
@@ -41,8 +48,18 @@ Staying in this order keeps `plan.md` and AGENTS instructions aligned with the N
 
 ### Workflow Assets (Phase 2)
 
-- `workflows/casey.workflow.json` — Telegram + chat triggers → Normalize Input → Casey AI Agent → MCP Client. Casey now calls `context_get_project`, `context_get_persona('iggy')`, `trace_create`, `memory_store`, and `handoff_to_agent` in that order (no secondary Call Workflow node). Hard-code the MCP URL (`https://mcp-vector.mjames.dev/mcp`) because `$env` is unavailable inside workflow JSON.
-- **Important:** n8n Cloud does **not** support `$env.*` placeholders inside workflow JSON. Give every MCP client, HTTP Request node, and toolWorkflow node a literal URL/ID (or pull values from credentials) before exporting, otherwise the agent will see undefined inputs at runtime.
+- `workflows/myloware-agent.workflow.json` — **Universal workflow** that becomes any persona dynamically. Structure:
+  - **Triggers:** Telegram, Chat, Webhook (all feed into same workflow)
+  - **Edit Fields Node:** Normalizes inputs, extracts `traceId` from webhook body
+  - **trace_prep HTTP Request:** Calls `POST /mcp/trace_prep` with normalized inputs
+  - **AI Agent Node:** Receives `systemPrompt` and `allowedTools` from trace_prep response
+  - **MCP Client:** Filters tools by `allowedTools` from trace_prep (dynamic scoping)
+  - **Handoff Loop:** Agent calls `handoff_to_agent`, which invokes same workflow via webhook
+
+- **Important:** n8n Cloud does **not** support `$env.*` placeholders inside workflow JSON. Hard-code URLs:
+  - trace_prep URL: `https://mcp-vector.mjames.dev/mcp/trace_prep`
+  - MCP Client URL: `https://mcp-vector.mjames.dev/mcp`
+  - MCP Client includeTools: `={{ $('Prepare Trace Context').item.json.allowedTools }}` (dynamic)
 
 ---
 
@@ -207,21 +224,49 @@ Always update both this file and the prompt notes when prompt behavior changes.
 
 ## Key Tools & Patterns
 
+### Universal Workflow Pattern
+
+All personas execute in the same workflow (`myloware-agent.workflow.json`). The workflow pattern:
+
+```typescript
+// 1. Workflow receives trigger (Telegram/Chat/Webhook)
+// 2. Edit Fields normalizes inputs
+// 3. trace_prep HTTP Request (POST /mcp/trace_prep)
+const prep = await fetch('/mcp/trace_prep', {
+  method: 'POST',
+  body: JSON.stringify({ traceId, sessionId, instructions, source })
+});
+// Returns: { systemPrompt, allowedTools, traceId, instructions, memorySummary }
+
+// 4. AI Agent Node receives prep response
+//    - System Prompt: prep.systemPrompt
+//    - Allowed Tools: prep.allowedTools (dynamically scoped)
+//    - User Message: prep.instructions
+
+// 5. Agent executes as persona (Casey/Iggy/Riley/Veo/Alex/Quinn)
+// 6. Agent calls handoff_to_agent, which invokes same workflow via webhook
+```
+
 ### Trace Coordination (Epic 1)
 
 ```typescript
-// Casey creates trace
-const { traceId } = await trace_create({
-  projectId: 'aismr',
-  sessionId: 'telegram:123'
+// trace_prep creates trace automatically (when no traceId provided)
+// Returns traceId in response
+
+// Casey determines project and sets it
+await set_project({
+  traceId: 'trace-aismr-001',
+  projectId: 'aismr'
 });
 
 // Casey hands off to Iggy
 await handoff_to_agent({
-  traceId,
+  traceId: 'trace-aismr-001',
   toAgent: 'iggy',
   instructions: 'Generate 12 candle modifiers. Validate uniqueness.'
 });
+// Updates trace: currentOwner = "iggy", workflowStep = 1
+// Invokes webhook: POST /webhook/myloware/ingest { traceId }
 
 // Iggy stores work (tagged with traceId)
 await memory_store({
@@ -229,15 +274,16 @@ await memory_store({
   memoryType: 'episodic',
   project: ['aismr'],
   persona: ['iggy'],
-  metadata: { traceId, modifiers: [...] }  // KEY: Tag with traceId
+  metadata: { traceId: 'trace-aismr-001', modifiers: [...] }  // KEY: Tag with traceId
 });
 
 // Quinn signals completion
-await workflow_complete({
-  traceId,
-  status: 'completed',
-  outputs: { postUrl: 'https://tiktok.com/...' }
+await handoff_to_agent({
+  traceId: 'trace-aismr-001',
+  toAgent: 'complete',
+  instructions: 'Published AISMR candles compilation to TikTok successfully. URL: https://tiktok.com/...'
 });
+// Sets trace status = "completed", sends Telegram notification to user
 ```
 
 ### Memory Discipline
@@ -263,10 +309,11 @@ await memory_store({
 
 ### n8n Integration
 
-- **Agent webhooks:** Stored in `agent_webhooks` table (name, URL, auth)
-- **Handoff triggers:** `handoff_to_agent` invokes n8n webhooks
-- **HITL nodes:** Telegram "Send and Wait" for human approval
-- **Secrets:** Stay in env vars, never in `agent_webhooks` table
+- **Universal workflow:** Single workflow (`myloware-agent.workflow.json`) handles all personas
+- **Handoff triggers:** `handoff_to_agent` invokes same workflow via webhook (`POST /webhook/myloware/ingest`)
+- **Webhook URL:** Hard-coded in `handoff_to_agent` tool: `${config.n8n.webhookUrl}/webhook/myloware/ingest`
+- **HITL nodes:** Telegram "Send and Wait" for human approval (configured in workflow, not prompts)
+- **Secrets:** Stay in env vars, never hard-coded in workflow JSON
 
 ### Removed Tools (Nov 7, 2025)
 

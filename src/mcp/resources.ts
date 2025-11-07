@@ -103,7 +103,8 @@ export function registerMCPResources(server: McpServer): void {
               projects: projects.map(p => ({
                 name: p.name,
                 description: p.description,
-                workflows: p.workflows,
+                workflow: p.workflow,
+                optionalSteps: p.optionalSteps,
               }))
             }, null, 2)
           }
@@ -139,7 +140,8 @@ export function registerMCPResources(server: McpServer): void {
               project: {
                 name: project.name,
                 description: project.description,
-                workflows: project.workflows,
+                workflow: project.workflow,
+                optionalSteps: project.optionalSteps,
                 guardrails: project.guardrails,
                 settings: project.settings,
               },

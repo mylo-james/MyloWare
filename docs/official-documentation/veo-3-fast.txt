@@ -1,0 +1,7 @@
+# Google Veo 3 Master Prompting Guide
+
+Google Veo 3 is the world's most advanced text-to-video AI model, capable of generating cinematic-quality videos with synchronized audio, realistic physics, and professional-grade visual effects. The revolutionary breakthrough is its ability to generate video and audio simultaneously in a single pass, ensuring perfect lip-sync dialogue, environmental soundscapes, and broadcast-quality results. This comprehensive guide provides master-level prompting techniques for professional video generation across corporate, educational, marketing, creative, and technical domains.
+
+The system is accessible through Vertex AI (enterprise API), Google Vids (consumer interface), and Gemini App (general access), with two generation modes: Fast Generate for rapid prototyping and Standard Generate for maximum quality. Version 4.0 introduces critical discoveries including the revolutionary camera positioning syntax, battle-tested dialogue techniques, audio categorization frameworks, movement quality control, and expert troubleshooting solutions. The guide uses an 8-component professional prompt structure covering Subject, Context, Action, Style, Camera, Composition, Ambiance, and Audio to transform basic descriptions into cinematic masterpieces.
+
+[Note: Full content was retrieved via Context7 MCP tool. This is a summary of the comprehensive guide covering professional prompt structures, camera techniques, dialogue formatting, audio specifications, and advanced video generation patterns for Veo 3.]

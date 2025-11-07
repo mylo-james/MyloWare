@@ -8,6 +8,9 @@ const resolveConnectionString = () => process.env.DATABASE_URL || config.databas
 
 export let pool = new Pool({
   connectionString: resolveConnectionString(),
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
 });
 
 export let db = drizzle(pool);
@@ -16,6 +19,9 @@ export async function resetDbClient(connectionString?: string): Promise<void> {
   await pool.end();
   pool = new Pool({
     connectionString: connectionString || resolveConnectionString(),
+    max: 20, // Maximum number of clients in the pool
+    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+    connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
   });
   db = drizzle(pool);
 }

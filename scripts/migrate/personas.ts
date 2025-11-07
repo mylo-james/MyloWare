@@ -71,6 +71,7 @@ When to use you: ${chat.agent.whentouse}
         tone: 'friendly',
         defaultProject: 'aismr',
         systemPrompt: chatSystemPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: {
           v1Source: 'persona-chat.json',
           role: chat.persona.role,
@@ -102,6 +103,7 @@ When to use you: ${chat.agent.whentouse}
         tone: 'confident',
         defaultProject: 'aismr',
         systemPrompt: caseySystemPrompt,
+        allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: { v1Source: 'casey.json', role: 'showrunner' },
       });
 
@@ -137,6 +139,7 @@ Definition of success: ${iggy.workflow?.definition_of_success || 'Generate uniqu
         tone: 'creative',
         defaultProject: 'aismr',
         systemPrompt: iggySystemPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: {
           v1Source: 'persona-ideagenerator.json',
           role: iggy.persona.role,
@@ -164,6 +167,7 @@ Seek HITL approval via Telegram before handoff. Always tag memories with persona
         tone: 'creative',
         defaultProject: 'aismr',
         systemPrompt: iggySystemPrompt2,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: { aliasOf: 'ideagenerator' },
       });
       console.log('    ✓ Iggy persona created');
@@ -197,6 +201,7 @@ When to use you: ${screenwriter.agent.whentouse}
         tone: 'precise',
         defaultProject: 'aismr',
         systemPrompt: screenwriterSystemPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: {
           v1Source: 'persona-screenwriter.json',
           role: screenwriter.persona.role,
@@ -222,6 +227,7 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
         tone: 'precise',
         defaultProject: 'aismr',
         systemPrompt: rileySystemPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: { aliasOf: 'screenwriter' },
       });
       console.log('    ✓ Riley persona created');
@@ -241,6 +247,7 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
         tone: 'efficient',
         defaultProject: 'aismr',
         systemPrompt: veoPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
         metadata: {},
       });
       console.log('    ✓ Veo persona created');
@@ -261,6 +268,7 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
         tone: 'meticulous',
         defaultProject: 'aismr',
         systemPrompt: alexPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
         metadata: {},
       });
       console.log('    ✓ Alex persona created');
@@ -281,6 +289,7 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
         tone: 'upbeat',
         defaultProject: 'aismr',
         systemPrompt: quinnPrompt,
+        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'workflow_complete'],
         metadata: {},
       });
       console.log('    ✓ Quinn persona created');

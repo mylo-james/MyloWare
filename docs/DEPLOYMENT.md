@@ -361,12 +361,12 @@ find $BACKUP_DIR -name "backup_*.sql" -mtime +30 -delete
 psql $DATABASE_URL < backup_20251105_120000.sql
 ```
 
-### 9.3 Backup Workflow Registry
+### 9.3 Verify Workflow Metadata Backups
 
-The `workflow_registry` table maps memory IDs to n8n workflow IDs. Back this up:
+Procedural memories now contain the `n8nWorkflowId` inside their metadata. Ensure your database backups include the `memories` table so those mappings can be restored:
 
 ```bash
-pg_dump $DATABASE_URL -t workflow_registry > workflow_registry_backup.sql
+pg_dump $DATABASE_URL -t memories > memories_backup.sql
 ```
 
 ---

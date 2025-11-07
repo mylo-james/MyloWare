@@ -183,7 +183,7 @@
             "tags": ["aismr", "publishing", "workflow-output"],
             "metadata": {
               "stage": "publishing",
-              "workflowRunId": "${context.workflowRunId}",
+              "traceId": "${context.traceId}",
               "platforms": {
                 "tiktok": {
                   "url": "${tiktokResult.url}",

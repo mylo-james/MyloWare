@@ -3,7 +3,6 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { storeMemory } from '../../src/tools/memory/storeTool.js';
-import { WorkflowRegistryRepository } from '../../src/db/repositories/workflow-registry-repository.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,7 +40,6 @@ interface WorkflowFile {
 async function seedWorkflows() {
   console.log('🌱 Seeding workflow procedural memories...\n');
 
-  const registryRepository = new WorkflowRegistryRepository();
   const workflowsDir = join(__dirname, '../../data/workflows');
 
   const workflowFiles = [
@@ -65,31 +63,29 @@ async function seedWorkflows() {
       const content = `${workflowData.workflow.name}: ${workflowData.workflow.description}`;
 
       // Store as procedural memory
+      const metadata: Record<string, unknown> = {
+        workflow: workflowData.workflow,
+        version: workflowData.version,
+        sourceFile: fileName,
+      };
+      const n8nWorkflowId = N8N_WORKFLOW_IDS[workflowData.workflow.name];
+      if (n8nWorkflowId) {
+        metadata.n8nWorkflowId = n8nWorkflowId;
+      }
+
       const memory = await storeMemory({
         content,
         memoryType: 'procedural',
         persona: workflowData.persona,
         project: workflowData.project,
         tags: ['workflow', ...workflowData.project],
-        metadata: {
-          workflow: workflowData.workflow,
-          version: workflowData.version,
-          sourceFile: fileName,
-        },
+        metadata,
       });
 
       console.log(`   ✅ Stored memory: ${memory.id}`);
 
-      // Register in workflow registry if n8n ID is available
-      const n8nWorkflowId = N8N_WORKFLOW_IDS[workflowData.workflow.name];
       if (n8nWorkflowId) {
-        await registryRepository.create({
-          memoryId: memory.id,
-          n8nWorkflowId,
-          name: workflowData.workflow.name,
-          isActive: true,
-        });
-        console.log(`   ✅ Registered in workflow_registry: ${n8nWorkflowId}`);
+        console.log(`   ✅ Attached n8n workflow ID metadata: ${n8nWorkflowId}`);
         seeded.push({
           name: workflowData.workflow.name,
           memoryId: memory.id,
@@ -100,7 +96,7 @@ async function seedWorkflows() {
           `   ⚠️  No n8n workflow ID found for "${workflowData.workflow.name}"`
         );
         console.log(
-          `      Set N8N_WORKFLOW_ID_${workflowData.workflow.name.toUpperCase().replace(/\s+/g, '_')} env var to register`
+          `      Set N8N_WORKFLOW_ID_${workflowData.workflow.name.toUpperCase().replace(/\s+/g, '_')} env var to attach metadata`
         );
         seeded.push({
           name: workflowData.workflow.name,

@@ -6,6 +6,21 @@ import { detectRelatedMemories } from '../../utils/linkDetector.js';
 import { MemoryRepository } from '../../db/repositories/memory-repository.js';
 
 /**
+ * Validates that a string is a valid UUID
+ */
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+/**
+ * Filters an array to only include valid UUIDs
+ */
+function filterValidUUIDs(ids: string[]): string[] {
+  return ids.filter((id) => isValidUUID(id));
+}
+
+/**
  * Store a memory with auto-summarization and auto-linking
  *
  * @param params - Memory storage parameters
@@ -38,10 +53,11 @@ export async function storeMemory(
         limit: 5,
       });
 
-  // 5. Merge with provided relatedTo
-  const allRelatedIds = [
+  // 5. Merge with provided relatedTo and filter to only valid UUIDs
+  // The database schema expects relatedTo to be an array of UUIDs (memory IDs)
+  const allRelatedIds = filterValidUUIDs([
     ...new Set([...(params.relatedTo || []), ...relatedIds]),
-  ];
+  ]);
 
   // 6. Insert into database
   const repository = new MemoryRepository();

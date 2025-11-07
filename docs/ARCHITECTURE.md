@@ -94,7 +94,71 @@ V2 is built on three principles:
 
 ---
 
-## Data Flow
+## Universal Workflow Pattern
+
+V2 uses a **single universal workflow** (`myloware-agent.workflow.json`) that becomes any persona dynamically based on trace state. This eliminates the need for separate workflow files per agent.
+
+### Workflow Structure
+
+```
+┌─────────────────────────────────────────────────────┐
+│  myloware-agent.workflow.json (ONE FILE)           │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────┐   ┌─────────────┐   ┌──────────┐ │
+│  │  Telegram   │   │    Chat     │   │ Webhook  │ │
+│  │  Trigger    │   │   Trigger   │   │ Trigger  │ │
+│  └──────┬──────┘   └──────┬──────┘   └────┬─────┘ │
+│         │                  │               │       │
+│         └──────────────────┴───────────────┘       │
+│                            ↓                       │
+│                  ┌──────────────────┐              │
+│                  │   Edit Fields    │              │
+│                  ├──────────────────┤              │
+│                  │ Extract traceId  │              │
+│                  │ Normalize inputs │              │
+│                  └────────┬─────────┘              │
+│                           ↓                        │
+│                  ┌──────────────────┐              │
+│                  │   trace_prep     │              │
+│                  │   (HTTP Request) │              │
+│                  ├──────────────────┤              │
+│                  │ ONE call that:   │              │
+│                  │ • Creates trace  │              │
+│                  │   if missing     │              │
+│                  │ • Loads persona  │              │
+│                  │ • Gets project   │              │
+│                  │ • Searches memory│              │
+│                  │ • Builds prompt  │              │
+│                  │ • Returns tools  │              │
+│                  └────────┬─────────┘              │
+│                           ↓                        │
+│                  ┌──────────────────┐              │
+│                  │   AI Agent Node  │              │
+│                  ├──────────────────┤              │
+│                  │ Prompt: {{prep}} │              │
+│                  │ Tools: {{tools}} │              │
+│                  │                  │              │
+│                  │ Personifies:     │              │
+│                  │ • Casey          │              │
+│                  │ • Iggy           │              │
+│                  │ • Riley          │              │
+│                  │ • Veo            │              │
+│                  │ • Alex           │              │
+│                  │ • Quinn          │              │
+│                  │                  │              │
+│                  │ Calls tools:     │              │
+│                  │ • memory_store   │              │
+│                  │ • handoff_to_agent│             │
+│                  └────────┬─────────┘              │
+│                           ↓                        │
+│              (Handoff updates DB & invokes        │
+│               SAME workflow via webhook)           │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### Data Flow
 
 ### 1. Message Arrives
 
@@ -102,31 +166,58 @@ V2 is built on three principles:
 User: "Create an AISMR video about rain sounds"
   │
   ▼
-Telegram Webhook
+Telegram Webhook → myloware-agent.workflow.json
   │
   ▼
-n8n Agent Workflow receives message
-```
-
-### 2. Casey (Showrunner) Processes
-
-```
-Casey (AI Agent in n8n)
+Edit Fields Node
   │
-  ├─► Load Persona via context_get_persona
-  │   └─► "I am Casey, the Showrunner"
+  ├─► Extracts: { traceId: null, sessionId: "telegram:123", message: "..." }
   │
-  ├─► Load Project via context_get_project
-  │   └─► "AISMR specs: 12 modifiers, 8.0s each"
+  ▼
+trace_prep HTTP Request (POST /mcp/trace_prep)
   │
-  ├─► Search Memory via memory_search
-  │   └─► "Past candle ideas, user preferences"
+  ├─► No traceId → Creates new trace
+  │   └─► traceId: "trace-aismr-001", currentOwner: "casey", projectId: "unknown"
   │
-  ├─► Create Trace via trace_create
-  │   └─► traceId: "trace-aismr-001"
+  ├─► Loads persona: Casey
   │
-  └─► Handoff to Iggy via handoff_to_agent
-      └─► Instructions: "Generate 12 candle modifiers"
+  ├─► Builds Casey init prompt (project selection mode)
+  │
+  ├─► Returns: { systemPrompt, allowedTools, traceId, instructions }
+  │
+  ▼
+AI Agent Node (becomes Casey)
+  │
+  ├─► Receives complete systemPrompt from trace_prep
+  ├─► Has access to: trace_update, memory_search, memory_store, handoff_to_agent
+  │
+  ├─► Determines project = "aismr"
+  ├─► Calls trace_update({ traceId, projectId: "aismr" })
+  ├─► Stores kickoff memory
+  └─► Calls handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
+  │
+      ├─► Updates trace: currentOwner = "iggy", workflowStep = 1
+      ├─► Stores handoff memory
+      └─► Invokes webhook: POST /webhook/myloware/ingest { traceId }
+          │
+          ▼
+          SAME workflow receives webhook
+          │
+          ▼
+          trace_prep HTTP Request (with traceId)
+          │
+          ├─► Loads existing trace
+          ├─► Finds currentOwner = "iggy"
+          ├─► Loads persona: Iggy
+          ├─► Loads project: AISMR
+          ├─► Searches memories by traceId
+          ├─► Builds Iggy prompt with context
+          └─► Returns: { systemPrompt, allowedTools, traceId, instructions }
+              │
+              ▼
+              AI Agent Node (becomes Iggy)
+              │
+              └─► ... (continues through all agents)
 ```
 
 ### 3. Multi-Agent Workflow Executes
@@ -196,52 +287,94 @@ Stored in Postgres with:
 
 ## Trace-Based Coordination
 
-Epic 1 introduces a trace-based coordination model for multi-agent workflows. This replaces the legacy run_state and handoff tools with a simpler, memory-first approach.
+V2 uses a trace-based coordination model where a single universal workflow (`myloware-agent.workflow.json`) becomes any persona dynamically. The `execution_traces` table serves as the state machine that coordinates agent handoffs.
+
+### Trace State Machine
+
+The `execution_traces` table tracks:
+- `traceId` - Unique identifier for the production run
+- `currentOwner` - Which persona currently owns the trace (casey, iggy, riley, veo, alex, quinn)
+- `workflowStep` - Position in the project's workflow array
+- `instructions` - What the current owner should do
+- `status` - active | completed | failed
+- `projectId` - Which project (defines workflow order)
+
+### Agent Self-Discovery
+
+When the universal workflow receives a webhook with `{ traceId }`:
+
+1. Calls `trace_prep` HTTP endpoint with `traceId`
+2. `trace_prep` loads trace and finds `currentOwner`
+3. `trace_prep` loads persona config for `currentOwner`
+4. `trace_prep` loads project config
+5. `trace_prep` searches memories by `traceId`
+6. `trace_prep` builds complete system prompt
+7. `trace_prep` returns `allowedTools` for that persona
+8. AI Agent node receives prompt and tools, becomes that persona
 
 ### Data Flow: Trace Create → Handoff → Complete
 
 ```
-Casey receives user request
+User sends message → myloware-agent workflow
   │
   ▼
-trace_create({ projectId: "aismr", sessionId: "..." })
+trace_prep HTTP endpoint (no traceId)
   │
   ├─► Creates execution_traces row
-  ├─► Generates unique traceId (UUID)
-  └─► Returns traceId
+  │   └─► traceId: "trace-aismr-001", currentOwner: "casey", projectId: "unknown"
+  │
+  ├─► Loads persona: Casey
+  ├─► Builds Casey init prompt
+  └─► Returns: { systemPrompt, allowedTools, traceId }
   │
   ▼
-handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
+AI Agent (becomes Casey)
   │
-  ├─► Validates trace exists and is active
-  ├─► Looks up agent webhook from agent_webhooks table
-  ├─► Constructs webhook URL: config.n8n.webhookUrl + webhookPath
-  ├─► Invokes n8n webhook with payload:
-  │   { traceId, instructions, metadata, projectId, sessionId }
-  ├─► Captures executionId from n8n response
-  ├─► Stores handoff event to memory (tagged with traceId)
-  └─► Returns webhookUrl, executionId, status, toAgent
+  ├─► Determines project = "aismr"
+  ├─► Calls trace_update({ traceId, projectId: "aismr" })
+  ├─► Stores kickoff memory
+  └─► Calls handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
+  │
+      ├─► Updates trace: currentOwner = "iggy", workflowStep = 1
+      ├─► Stores handoff memory (tagged with traceId)
+      └─► Invokes webhook: POST /webhook/myloware/ingest { traceId }
+          │
+          ▼
+          SAME workflow receives webhook
+          │
+          ▼
+          trace_prep HTTP endpoint (with traceId)
+          │
+          ├─► Loads trace, finds currentOwner = "iggy"
+          ├─► Loads persona: Iggy
+          ├─► Loads project: AISMR
+          ├─► Searches memories by traceId
+          └─► Returns: { systemPrompt, allowedTools, traceId }
   │
   ▼
-Iggy workflow executes autonomously
+              AI Agent (becomes Iggy)
   │
-  ├─► Searches memory by traceId to find context
+              ├─► Searches memory by traceId for context
   ├─► Generates outputs
   ├─► Stores outputs to memory (tagged with traceId)
-  └─► Hands off to next agent (riley) via handoff_to_agent
+              └─► Hands off to next agent via handoff_to_agent
   │
   ▼
 ... (chain continues through all agents)
   │
   ▼
-workflow_complete({ traceId, status: "completed", outputs: {...} })
+                  Quinn calls handoff_to_agent({ toAgent: "complete", ... })
   │
-  ├─► Updates execution_traces status to "completed"
-  ├─► Sets completedAt timestamp
-  ├─► Stores outputs reference
-  ├─► Creates completion memory entry (tagged with traceId)
-  └─► Returns traceId, status, completedAt, outputs
+                  ├─► Updates trace: status = "completed", currentOwner = "complete"
+                  ├─► Stores completion memory
+                  ├─► Sends Telegram notification to user
+                  └─► Returns (no webhook invoked)
 ```
+
+### Special Handoff Targets
+
+- `toAgent: "complete"` → Sets trace status = 'completed', sends user notification, no webhook invoked
+- `toAgent: "error"` → Sets trace status = 'failed', no webhook invoked
 
 ### Key Concepts
 
@@ -266,6 +399,12 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - Enables autonomous coordination without central state management
 - Full execution graph is reconstructable from memory
 
+**Workflow Metadata:**
+
+- Procedural memories that describe workflows must store the backing n8n workflow ID in `metadata.n8nWorkflowId`.
+- The workflow/prompt execution helpers read that metadata (or accept an explicit `n8nWorkflowId` override) and delegate to n8n without relying on a separate registry table.
+- Scripts such as `scripts/db/seed-workflows.ts` and `scripts/register-workflow-mappings.ts` ensure these metadata fields stay up to date.
+
 ### MCP Tools
 
 **`trace_create`:**
@@ -274,13 +413,30 @@ workflow_complete({ traceId, status: "completed", outputs: {...} })
 - Parameters: `projectId` (required), `sessionId` (optional), `metadata` (optional)
 - Returns: `traceId`, `status`, `createdAt`
 
+**`trace_prepare`:**
+
+- Creates a new trace when no `traceId` is supplied, or loads the existing one when it is.
+- Bundles persona + project guardrails, retrieves recent trace-scoped memories, builds the final system prompt, and scopes the MCP tool list for the active owner.
+- Parameters: `traceId?`, `instructions?`, `sessionId?`, `source?`, `metadata?`, `memoryLimit?`
+- Returns: `{ trace, systemPrompt, allowedTools, memories, instructions, justCreated }`
+
+**`trace_update`:**
+
+- Updates existing trace fields after Casey normalizes the user request
+- Parameters: `traceId` (required), plus any of `projectId`, `instructions`, `metadata`
+- Returns: Updated trace record
+
 **`handoff_to_agent`:**
 
 - Hands off work to another agent via n8n webhook
 - Parameters: `traceId` (required), `toAgent` (required), `instructions` (required), `metadata` (optional)
-- Validates trace is active and agent webhook exists
-- Invokes n8n webhook and stores handoff event to memory
-- Returns: `webhookUrl`, `executionId`, `status`, `toAgent`
+- Validates trace is active and agent webhook exists (unless `toAgent` is a terminal target)
+- Updates the trace ledger (`previousOwner`, `currentOwner`, `instructions`, `workflowStep`) before invoking downstream work
+- Invokes n8n webhook and stores the handoff event to memory
+- Special targets:
+  - `complete` → marks the trace `completed`, sets `currentOwner='complete'`, stores the completion memory, skips webhook invocation
+  - `error` → marks the trace `failed`, sets `currentOwner='error'`, stores the incident summary, skips webhook invocation
+- Returns: `webhookUrl`, `executionId`, `status`, `toAgent` for normal handoffs or `{ traceId, status, toAgent }` for terminal targets
 
 **`workflow_complete`:**
 

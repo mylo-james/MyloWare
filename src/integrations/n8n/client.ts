@@ -1,6 +1,7 @@
 // Using built-in fetch (Node.js 18+)
 import { withRetry, isRetryableError } from '../../utils/retry.js';
 import { ExternalServiceError } from '../../utils/errors.js';
+import { MAX_RETRIES, RETRY_INITIAL_DELAY_MS } from '../../utils/constants.js';
 
 export interface N8nConfig {
   baseUrl: string;
@@ -62,8 +63,8 @@ export class N8nClient {
 
     if (retry) {
       return withRetry(makeRequest, {
-        maxRetries: 3,
-        initialDelay: 1000,
+        maxRetries: MAX_RETRIES,
+        initialDelay: RETRY_INITIAL_DELAY_MS,
         backoff: 'exponential',
         retryable: (error) => {
           // Retry on network errors and 5xx errors

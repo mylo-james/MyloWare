@@ -7,6 +7,7 @@ import {
   boolean,
   jsonb,
   index,
+  uniqueIndex,
   check,
   customType,
   pgEnum,
@@ -42,6 +43,14 @@ const vector = customType<{ data: number[]; driverData: string }>({
     return value as number[];
   },
 });
+
+export const jobStatusEnum = pgEnum('job_status', [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'canceled',
+]);
 
 // Memories table
 export const memories = pgTable(
@@ -101,6 +110,7 @@ export const personas = pgTable('personas', {
   tone: text('tone').notNull(),
   defaultProject: text('default_project'),
   systemPrompt: text('system_prompt'),
+  allowedTools: text('allowed_tools').array().notNull().default(sql`ARRAY[]::text[]`),
   metadata: jsonb('metadata').notNull().default({}),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -111,7 +121,8 @@ export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
   description: text('description').notNull(),
-  workflows: text('workflows').array().notNull(),
+  workflow: text('workflow').array().notNull().default(sql`ARRAY[]::text[]`),
+  optionalSteps: text('optional_steps').array().notNull().default(sql`ARRAY[]::text[]`),
   guardrails: jsonb('guardrails').notNull().default({}),
   settings: jsonb('settings').notNull().default({}),
   metadata: jsonb('metadata').notNull().default({}),
@@ -138,29 +149,6 @@ export const sessions = pgTable(
   })
 );
 
-// Workflow registry table - maps memory IDs to n8n workflow IDs
-export const workflowRegistry = pgTable(
-  'workflow_registry',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    memoryId: uuid('memory_id')
-      .notNull()
-      .references(() => memories.id, { onDelete: 'cascade' }),
-    n8nWorkflowId: text('n8n_workflow_id').notNull(),
-    name: text('name').notNull(),
-    isActive: boolean('is_active').notNull().default(true),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    memoryIdIdx: index('workflow_registry_memory_id_idx').on(table.memoryId),
-    n8nWorkflowIdIdx: index('workflow_registry_n8n_workflow_id_idx').on(
-      table.n8nWorkflowId
-    ),
-    activeIdx: index('workflow_registry_active_idx').on(table.isActive),
-  })
-);
-
 // Workflow runs table
 export const workflowRuns = pgTable(
   'workflow_runs',
@@ -182,63 +170,6 @@ export const workflowRuns = pgTable(
   })
 );
 
-// Agent orchestration tables
-export const agentRuns = pgTable('agent_runs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: text('session_id'),
-  persona: text('persona').notNull(),
-  project: text('project').notNull(),
-  instructions: text('instructions'),
-  currentStep: text('current_step'),
-  status: text('status').notNull(), // new | in_progress | blocked | delegated | completed | failed
-  stateBlob: jsonb('state_blob').notNull().default({}),
-  custodianAgent: text('custodian_agent'),
-  lockedAt: timestamp('locked_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-export const handoffTasks = pgTable(
-  'handoff_tasks',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    runId: uuid('run_id')
-      .notNull()
-      .references(() => agentRuns.id, { onDelete: 'cascade' }),
-    fromPersona: text('from_persona'),
-    toPersona: text('to_persona').notNull(),
-    taskBrief: text('task_brief'),
-    requiredOutputs: jsonb('required_outputs').notNull().default({}),
-    status: text('status').notNull().default('pending'), // pending | in_progress | returned | done
-    custodianAgent: text('custodian_agent'),
-    lockedAt: timestamp('locked_at'),
-    completedAt: timestamp('completed_at'),
-    metadata: jsonb('metadata').notNull().default({}),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    runIdIdx: index('handoff_tasks_run_id_idx').on(table.runId),
-  })
-);
-
-export const runEvents = pgTable(
-  'run_events',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    runId: uuid('run_id')
-      .notNull()
-      .references(() => agentRuns.id, { onDelete: 'cascade' }),
-    eventType: text('event_type').notNull(),
-    actor: text('actor'),
-    payload: jsonb('payload').notNull().default({}),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    runIdIdx: index('run_events_run_id_idx').on(table.runId),
-  })
-);
-
 // Execution traces table - coordinates agent handoffs via traceId
 export const executionTraces = pgTable(
   'execution_traces',
@@ -247,6 +178,11 @@ export const executionTraces = pgTable(
     traceId: uuid('trace_id').notNull().unique(),
     projectId: text('project_id').notNull(),
     sessionId: text('session_id'),
+    // Ownership and workflow coordination
+    currentOwner: text('current_owner').notNull().default('casey'),
+    previousOwner: text('previous_owner'),
+    instructions: text('instructions').notNull().default(''),
+    workflowStep: integer('workflow_step').notNull().default(0),
     status: text('status').notNull().default('active'), // 'active', 'completed', 'failed'
     outputs: jsonb('outputs'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -256,6 +192,9 @@ export const executionTraces = pgTable(
   (table) => ({
     traceIdIdx: index('execution_traces_trace_id_idx').on(table.traceId),
     statusIdx: index('execution_traces_status_idx').on(table.status),
+    currentOwnerIdx: index('execution_traces_current_owner_idx').on(
+      table.currentOwner
+    ),
     createdAtIdx: index('execution_traces_created_at_idx').on(table.createdAt),
   })
 );
@@ -280,5 +219,59 @@ export const agentWebhooks = pgTable(
   (table) => ({
     agentNameIdx: index('agent_webhooks_agent_name_idx').on(table.agentName),
     isActiveIdx: index('agent_webhooks_is_active_idx').on(table.isActive),
+  })
+);
+
+// Video generation jobs table
+export const videoGenerationJobs = pgTable(
+  'video_generation_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    traceId: uuid('trace_id').notNull(),
+    scriptId: uuid('script_id'),
+    provider: text('provider').notNull(),
+    taskId: text('task_id').notNull(),
+    status: jobStatusEnum('status').notNull().default('queued'),
+    assetUrl: text('asset_url'),
+    error: text('error'),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    traceIdx: index('video_generation_jobs_trace_idx').on(table.traceId),
+    statusIdx: index('video_generation_jobs_status_idx').on(table.status),
+    providerTaskIdx: uniqueIndex('video_generation_jobs_provider_task_idx').on(
+      table.provider,
+      table.taskId
+    ),
+  })
+);
+
+// Edit jobs table
+export const editJobs = pgTable(
+  'edit_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    traceId: uuid('trace_id').notNull(),
+    provider: text('provider').notNull(),
+    taskId: text('task_id').notNull(),
+    status: jobStatusEnum('status').notNull().default('queued'),
+    finalUrl: text('final_url'),
+    error: text('error'),
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    traceIdx: index('edit_jobs_trace_idx').on(table.traceId),
+    providerTaskIdx: uniqueIndex('edit_jobs_provider_task_idx').on(
+      table.provider,
+      table.taskId
+    ),
   })
 );

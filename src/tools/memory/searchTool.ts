@@ -8,6 +8,7 @@ import { MemoryRepository } from '../../db/repositories/memory-repository.js';
 import { reciprocalRankFusion } from '../../utils/rrf.js';
 import { applyTemporalDecay } from '../../utils/temporal.js';
 import { expandMemoryGraph } from '../../utils/graphExpansion.js';
+import { TEMPORAL_DECAY_FACTOR } from '../../utils/constants.js';
 import { memorySearchDuration, memorySearchResults } from '../../utils/metrics.js';
 
 /**
@@ -75,7 +76,7 @@ export async function searchMemories(
 
   // 5. Apply temporal boosting if requested (integrate into RRF scores)
   if (params.temporalBoost) {
-    memories = applyTemporalDecay(memories, 0.1);
+    memories = applyTemporalDecay(memories, TEMPORAL_DECAY_FACTOR);
   }
 
   // 6. Expand graph if requested

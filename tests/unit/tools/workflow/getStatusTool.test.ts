@@ -3,21 +3,29 @@ import { getWorkflowStatus } from '@/tools/workflow/getStatusTool.js';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
 import { db } from '@/db/client.js';
 import { workflowRuns } from '@/db/schema.js';
-import { WorkflowRegistryRepository } from '@/db/repositories/workflow-registry-repository.js';
 import { N8nClient } from '@/integrations/n8n/client.js';
+import { MemoryRepository } from '@/db/repositories/memory-repository.js';
 
 describe('getWorkflowStatus', () => {
   beforeEach(async () => {
-    vi.spyOn(WorkflowRegistryRepository.prototype, 'findByMemoryId').mockImplementation(
+    vi.spyOn(MemoryRepository.prototype, 'findById').mockImplementation(
       async (memoryId: string) => ({
-        id: 'registry-id',
-        memoryId,
-        n8nWorkflowId: 'n8n-workflow-001',
-        name: `Test Workflow (${memoryId})`,
-        isActive: true,
+        id: memoryId,
+        content: 'Mock workflow memory',
+        summary: 'Mock summary',
+        embedding: [],
+        memoryType: 'procedural',
+        persona: ['casey'],
+        project: ['aismr'],
+        tags: [],
+        relatedTo: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+        metadata: {
+          workflow: { name: `Test Workflow (${memoryId})` },
+          n8nWorkflowId: 'n8n-workflow-001',
+        },
+      } as any)
     );
     vi.spyOn(N8nClient.prototype, 'executeWorkflow').mockResolvedValue('exec-xyz');
     vi.spyOn(N8nClient.prototype, 'waitForCompletion').mockResolvedValue({ status: 'ok' });

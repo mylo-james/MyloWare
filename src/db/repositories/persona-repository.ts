@@ -10,6 +10,7 @@ export interface Persona {
   tone: string;
   defaultProject: string | null;
   systemPrompt: string | null;
+  allowedTools: string[];
   metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;

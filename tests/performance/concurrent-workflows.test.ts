@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
-import { WorkflowRegistryRepository } from '@/db/repositories/workflow-registry-repository.js';
 import { MemoryRepository } from '@/db/repositories/memory-repository.js';
-import { randomUUID } from 'crypto';
 import { vi } from 'vitest';
 import { N8nClient } from '@/integrations/n8n/client.js';
 
@@ -18,13 +16,13 @@ vi.mock('@/integrations/n8n/client.js', () => {
 
 describe('Concurrent Workflow Execution Performance', () => {
   it('should handle 10 concurrent workflow executions', async () => {
-    const registryRepository = new WorkflowRegistryRepository();
     const memoryRepository = new MemoryRepository();
 
     // Create test workflows
     const workflows = await Promise.all(
       Array.from({ length: 10 }, async (_, i) => {
-        const memory = await memoryRepository.create({
+        const n8nId = `n8n-workflow-${i}`;
+        const memory = await memoryRepository.insert({
           content: `Test workflow ${i}`,
           embedding: new Array(1536).fill(0.1),
           memoryType: 'procedural',
@@ -34,14 +32,8 @@ describe('Concurrent Workflow Execution Performance', () => {
               description: 'Test',
               steps: [],
             },
+            n8nWorkflowId: n8nId,
           },
-        });
-
-        const n8nId = `n8n-workflow-${i}`;
-        await registryRepository.create({
-          memoryId: memory.id,
-          n8nWorkflowId: n8nId,
-          name: `Workflow ${i}`,
         });
 
         return memory.id;
@@ -73,10 +65,9 @@ describe('Concurrent Workflow Execution Performance', () => {
   });
 
   it('should handle workflow execution with waitForCompletion', async () => {
-    const registryRepository = new WorkflowRegistryRepository();
     const memoryRepository = new MemoryRepository();
 
-    const memory = await memoryRepository.create({
+    const memory = await memoryRepository.insert({
       content: 'Test workflow with completion',
       embedding: new Array(1536).fill(0.1),
       memoryType: 'procedural',
@@ -86,13 +77,8 @@ describe('Concurrent Workflow Execution Performance', () => {
           description: 'Test',
           steps: [],
         },
+        n8nWorkflowId: 'n8n-test-123',
       },
-    });
-
-    await registryRepository.create({
-      memoryId: memory.id,
-      n8nWorkflowId: 'n8n-test-123',
-      name: 'Test Workflow',
     });
 
     const start = Date.now();
@@ -110,4 +96,3 @@ describe('Concurrent Workflow Execution Performance', () => {
     expect(duration).toBeLessThan(1000);
   });
 });
-

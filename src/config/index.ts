@@ -66,6 +66,8 @@ const ConfigSchema = z.object({
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 
+type LogLevel = z.infer<typeof ConfigSchema>['logLevel'];
+
 const rawDatabaseUrl =
   process.env.DATABASE_URL ||
   (process.env.NODE_ENV === 'test'
@@ -114,5 +116,5 @@ export const config = ConfigSchema.parse({
     rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100'),
     rateLimitTimeWindow: process.env.RATE_LIMIT_TIME_WINDOW || '1 minute',
   },
-  logLevel: (process.env.LOG_LEVEL as any) || 'info',
+  logLevel: (process.env.LOG_LEVEL as LogLevel | undefined) || 'info',
 });

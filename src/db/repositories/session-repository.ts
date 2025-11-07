@@ -106,7 +106,7 @@ export class SessionRepository {
     await db
       .update(sessions)
       .set({
-        context: context as any,
+        context: context as Record<string, unknown>,
         updatedAt: new Date(),
       })
       .where(eq(sessions.id, sessionId));

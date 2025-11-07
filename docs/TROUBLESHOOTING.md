@@ -51,20 +51,22 @@ CREATE EXTENSION IF NOT EXISTS vector;
 \dx vector
 ```
 
-### Error: "workflow_registry table missing"
+### Error: "n8n workflow mapping missing"
 
 **Symptoms:**
 - Workflow execution fails with "No n8n workflow mapped"
-- Registry queries fail
+- Prompt/workflow delegation fails immediately
 
 **Solution:**
-```bash
-# Run migrations to create table
-npm run db:migrate
+1. Seed or import workflows so procedural memories exist: `npm run db:seed:workflows`
+2. Import the latest n8n workflows: `npm run import:workflows`
+3. Attach the n8n workflow IDs to the procedural memories either by setting the `N8N_WORKFLOW_ID_*` env vars before seeding or by running `REGISTER_WORKFLOWS=true npm run import:workflows`
+4. Verify each workflow memory contains `metadata.n8nWorkflowId`:
+   ```bash
+   psql $DATABASE_URL -c "SELECT id, metadata->>'n8nWorkflowId' AS n8n_id FROM memories WHERE memory_type='procedural';"
+   ```
 
-# Verify table exists
-psql $DATABASE_URL -c "\d workflow_registry"
-```
+If the column shows NULL, update the memory metadata (use `scripts/register-workflow-mappings.ts` or rerun the import with `REGISTER_WORKFLOWS=true`).
 
 ---
 
@@ -84,16 +86,9 @@ npm run db:seed:workflows
 # 2. Import workflows to n8n
 npm run import:workflows
 
-# 3. Get n8n workflow IDs from output and set env vars
-export N8N_WORKFLOW_ID_IDEAS=<id>
-export N8N_WORKFLOW_ID_SCRIPT=<id>
-# ... etc
-
-# 4. Re-seed with n8n IDs
-npm run db:seed:workflows
-
-# Or register manually
-REGISTER_WORKFLOWS=true npm run import:workflows
+# 3. Capture the n8n workflow IDs from the import output and either:
+#    a) set N8N_WORKFLOW_ID_* env vars before re-seeding, or
+#    b) run REGISTER_WORKFLOWS=true npm run import:workflows to attach IDs to existing memories
 ```
 
 ### Error: "Workflow execution timeout"
@@ -115,10 +110,10 @@ REGISTER_WORKFLOWS=true npm run import:workflows
 - n8n can't find workflow
 
 **Solution:**
-- Verify n8n workflow ID is correct in `workflow_registry` table
+- Verify the workflow memory has the correct `metadata.n8nWorkflowId`
 - Check if workflow exists in n8n: `curl https://n8n.yourdomain.com/api/v1/workflows/<id>`
 - Ensure workflow is active in n8n UI
-- Re-import workflow if needed
+- Re-import workflow or update metadata if needed
 
 ---
 
@@ -362,12 +357,12 @@ docker compose logs mcp-server | tail -50
 
 ### "No n8n workflow mapped to memory ID"
 
-**Cause:** Workflow not registered in `workflow_registry` table.
+**Cause:** The workflow memory is missing `metadata.n8nWorkflowId` (or the ID is stale).
 
 **Fix:**
 1. Import workflows: `npm run import:workflows`
 2. Seed workflows: `npm run db:seed:workflows`
-3. Register workflows: `REGISTER_WORKFLOWS=true npm run import:workflows`
+3. Attach IDs: `REGISTER_WORKFLOWS=true npm run import:workflows` or run `scripts/register-workflow-mappings.ts`
 
 ### "Workflow execution timeout"
 
@@ -392,7 +387,7 @@ docker compose logs mcp-server | tail -50
 **Cause:** n8n workflow ID doesn't exist or is incorrect.
 
 **Fix:**
-- Verify workflow ID in `workflow_registry` table
+- Verify the workflow memory has the correct `metadata.n8nWorkflowId` value
 - Check workflow exists in n8n
 - Re-import workflow if needed
 
@@ -412,9 +407,6 @@ docker compose restart mcp-server
 ```bash
 # Connect to database
 psql $DATABASE_URL
-
-# Check workflow registry
-SELECT * FROM workflow_registry;
 
 # Check recent memories
 SELECT id, content, memory_type FROM memories ORDER BY created_at DESC LIMIT 10;
@@ -499,7 +491,7 @@ If you're still experiencing issues:
 1. **Monitor health checks** - Set up alerts for `/health` endpoint
 2. **Log aggregation** - Use structured logging and aggregate logs
 3. **Metrics** - Monitor Prometheus metrics for anomalies
-4. **Backups** - Regular database backups, especially `workflow_registry`
+4. **Backups** - Regular database backups, especially memories (procedural workflows)
 5. **Testing** - Run integration tests before deployment
 6. **Documentation** - Keep deployment docs updated with changes
 

@@ -3,7 +3,7 @@ import type {
   WorkflowExecuteResult,
 } from '../../types/workflow.js';
 import { WorkflowRunRepository } from '../../db/repositories/workflow-run-repository.js';
-import { WorkflowRegistryRepository } from '../../db/repositories/workflow-registry-repository.js';
+import { MemoryRepository } from '../../db/repositories/memory-repository.js';
 import { workflowExecutions, workflowDuration } from '../../utils/metrics.js';
 import { N8nClient } from '../../integrations/n8n/client.js';
 import { config } from '../../config/index.js';
@@ -28,31 +28,57 @@ export async function executeWorkflow(
 ): Promise<WorkflowExecuteResult> {
   const timer = workflowDuration.startTimer({ workflow_name: params.workflowId });
   const repository = new WorkflowRunRepository();
-  const registryRepository = new WorkflowRegistryRepository();
+  const memoryRepository = new MemoryRepository();
+  let workflowIdentifier = params.workflowId;
+  let workflowName = params.workflowName || params.workflowId;
+  let memoryIdForLogging: string | undefined;
+  let n8nWorkflowId = params.n8nWorkflowId?.trim();
 
   try {
-    // 1. Look up n8n workflow ID from registry
-    // params.workflowId is a memory UUID, we need to map it to n8n workflow ID
-    const registryEntry = await registryRepository.findByMemoryId(params.workflowId);
-    
-    if (!registryEntry) {
-      throw new NotFoundError(
-        `No n8n workflow mapped to memory ID: ${params.workflowId}. ` +
-        `Ensure the workflow is registered in the workflow_registry table.`
-      );
+    // 1. Resolve n8n workflow ID either from params or memory metadata
+
+    if (!n8nWorkflowId) {
+      const workflowMemory = await memoryRepository.findById(params.workflowId);
+      if (!workflowMemory) {
+        throw new NotFoundError(
+          `Workflow memory not found: ${params.workflowId}. ` +
+          'Pass n8nWorkflowId directly to executeWorkflow or store metadata.n8nWorkflowId on the workflow memory.'
+        );
+      }
+
+      const metadataN8nId = (workflowMemory.metadata as Record<string, unknown> | null)?.n8nWorkflowId;
+      if (typeof metadataN8nId !== 'string' || !metadataN8nId.trim()) {
+        throw new NotFoundError(
+          `Workflow memory ${params.workflowId} is missing metadata.n8nWorkflowId.` +
+          ' Add the n8n workflow ID to the memory metadata or provide it directly to executeWorkflow.'
+        );
+      }
+
+      n8nWorkflowId = metadataN8nId.trim();
+      const metadataWorkflow = workflowMemory.metadata?.workflow as { name?: unknown } | undefined;
+      workflowName =
+        params.workflowName ||
+        (typeof metadataWorkflow?.name === 'string'
+          ? metadataWorkflow.name
+          : workflowMemory.summary || workflowMemory.content || workflowName);
+      memoryIdForLogging = workflowMemory.id;
+      workflowIdentifier = workflowMemory.id;
     }
 
-    const n8nWorkflowId = registryEntry.n8nWorkflowId;
+    if (!n8nWorkflowId) {
+      throw new NotFoundError('n8n workflow ID could not be resolved for executeWorkflow');
+    }
 
     // 2. Create workflow run record
     const run = await repository.create({
       sessionId: params.sessionId,
-      workflowName: registryEntry.name, // Use registry name, not memory ID
+      workflowName,
       input: params.input,
       metadata: {
         executionMode: 'n8n_delegation',
         waitForCompletion: params.waitForCompletion || false,
-        memoryId: params.workflowId,
+        memoryId: memoryIdForLogging,
+        providedWorkflowId: params.workflowId,
         n8nWorkflowId: n8nWorkflowId,
       },
     });
@@ -61,7 +87,7 @@ export async function executeWorkflow(
     logger.info({
       msg: 'Workflow execution started',
       workflowRunId: run.id,
-      workflowId: params.workflowId,
+      workflowId: workflowIdentifier,
       n8nWorkflowId,
       sessionId: params.sessionId,
       waitForCompletion: params.waitForCompletion || false,
@@ -103,7 +129,7 @@ export async function executeWorkflow(
           output: result as Record<string, unknown>,
         });
         timer();
-        workflowExecutions.inc({ workflow_name: params.workflowId, status: 'completed' });
+        workflowExecutions.inc({ workflow_name: workflowIdentifier, status: 'completed' });
         return {
           workflowRunId: run.id,
           status: 'completed',
@@ -129,11 +155,11 @@ export async function executeWorkflow(
           });
           
           timer();
-          workflowExecutions.inc({ workflow_name: params.workflowId, status: 'timeout' });
+          workflowExecutions.inc({ workflow_name: workflowIdentifier, status: 'timeout' });
           
           throw new WorkflowTimeoutError(
             `Workflow ${n8nWorkflowId} timed out after ${timeoutMs}ms`,
-            params.workflowId,
+            workflowIdentifier,
             executionId,
             timeoutMs
           );
@@ -153,11 +179,11 @@ export async function executeWorkflow(
         });
         
         timer();
-        workflowExecutions.inc({ workflow_name: params.workflowId, status: 'error' });
+          workflowExecutions.inc({ workflow_name: workflowIdentifier, status: 'error' });
         
         throw new WorkflowExecutionError(
           `Workflow execution failed: ${errorMessage}`,
-          params.workflowId,
+          workflowIdentifier,
           waitError instanceof Error ? waitError : new Error(String(waitError))
         );
       }
@@ -165,7 +191,7 @@ export async function executeWorkflow(
 
     // 7. Return immediately if not waiting
     timer();
-    workflowExecutions.inc({ workflow_name: params.workflowId, status: 'running' });
+    workflowExecutions.inc({ workflow_name: workflowIdentifier, status: 'running' });
     return {
       workflowRunId: run.id,
       status: 'running',
@@ -174,8 +200,7 @@ export async function executeWorkflow(
     };
   } catch (error) {
     timer();
-    workflowExecutions.inc({ workflow_name: params.workflowId, status: 'error' });
+    workflowExecutions.inc({ workflow_name: workflowIdentifier, status: 'error' });
     throw error;
   }
 }
-

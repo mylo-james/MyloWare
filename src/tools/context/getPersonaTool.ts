@@ -29,6 +29,7 @@ export async function getPersona(
       tone: persona.tone,
       defaultProject: persona.defaultProject,
       systemPrompt: persona.systemPrompt,
+      allowedTools: persona.allowedTools,
     },
     metadata: persona.metadata,
   };

@@ -6,12 +6,19 @@ import { getPersona } from '../tools/context/getPersonaTool.js';
 import { getProject } from '../tools/context/getProjectTool.js';
 import { SessionRepository } from '../db/repositories/session-repository.js';
 import type { SessionContext } from '../db/repositories/session-repository.js';
-import { MemoryRepository, TraceRepository, AgentWebhookRepository } from '../db/repositories/index.js';
+import { MemoryRepository, TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository } from '../db/repositories/index.js';
+import type { Trace } from '../db/repositories/trace-repository.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { stripEmbeddings } from '../utils/response-formatter.js';
+import { prepareTraceContext, type TracePrepParams } from '../utils/trace-prep.js';
 import { randomUUID } from 'crypto';
 import { config } from '../config/index.js';
 import { N8nClient } from '../integrations/n8n/client.js';
+import { withRetry } from '../utils/retry.js';
+import { db } from '../db/client.js';
+import { executionTraces } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+import { getTelegramClient } from '../integrations/telegram/client.js';
 
 export interface MCPTool {
   name: string;
@@ -161,7 +168,7 @@ const recordLike = () =>
   );
 
 const memorySearchInputSchema = z.object({
-  query: z.string(),
+  query: z.string().max(10000, 'Query must be 10000 characters or less'),
   memoryTypes: z.array(z.enum(['episodic', 'semantic', 'procedural'])).optional(),
   project: z.string().optional(),
   persona: z.string().optional(),
@@ -175,7 +182,7 @@ const memorySearchInputSchema = z.object({
 });
 
 const memoryStoreInputSchema = z.object({
-  content: z.string(),
+  content: z.string().max(50000, 'Content must be 50000 characters or less'),
   memoryType: z.enum(['episodic', 'semantic', 'procedural']),
   persona: stringArrayLike().optional(),
   project: stringArrayLike().optional(),
@@ -217,6 +224,50 @@ const sessionUpdateContextInputSchema = z.object({
   context: recordLike(),
 });
 
+const jobStatusValues = ['queued', 'running', 'succeeded', 'failed', 'canceled'] as const;
+
+// UUID validation helper
+const uuidSchema = z.string().uuid('traceId must be a valid UUID');
+
+const setProjectInputSchema = z.object({
+  traceId: uuidSchema, // Required: Use the exact traceId from your system prompt (TRACE ID field)
+  projectId: z.string().min(1, 'projectId is required'),
+});
+
+const traceUpdateInputSchema = z.object({
+  traceId: uuidSchema,
+  projectId: z.string().optional(),
+  instructions: z.string().max(10000, 'Instructions must be 10000 characters or less').optional(),
+  metadata: recordLike().optional(),
+});
+
+const tracePrepareInputSchema = z.object({
+  traceId: z.string().uuid('traceId must be a valid UUID').optional(),
+  instructions: z.string().max(10000, 'Instructions must be 10000 characters or less').optional(),
+  sessionId: z.string().optional(),
+  source: z.string().optional(),
+  metadata: recordLike().optional(),
+  memoryLimit: numberLike().optional(),
+});
+
+const jobUpsertInputSchema = z.object({
+  kind: z.enum(['video', 'edit']),
+  traceId: uuidSchema,
+  scriptId: z.string().uuid('scriptId must be a valid UUID').optional(),
+  provider: z.string(),
+  taskId: z.string(),
+  status: z.enum(jobStatusValues),
+  url: z.string().optional(),
+  error: z.string().optional(),
+  metadata: recordLike().optional(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+});
+
+const jobsSummaryInputSchema = z.object({
+  traceId: uuidSchema,
+});
+
 // Trace coordination schemas
 const traceCreateInputSchema = z.object({
   projectId: z.string(),
@@ -225,14 +276,14 @@ const traceCreateInputSchema = z.object({
 });
 
 const handoffToAgentInputSchema = z.object({
-  traceId: z.string(),
+  traceId: uuidSchema,
   toAgent: z.string(),
-  instructions: z.string(),
+  instructions: z.string().max(10000, 'Instructions must be 10000 characters or less'),
   metadata: recordLike().optional(),
 });
 
 const workflowCompleteInputSchema = z.object({
-  traceId: z.string(),
+  traceId: uuidSchema,
   status: z.enum(['completed', 'failed']),
   outputs: recordLike().optional(),
   notes: z.string().optional(),
@@ -250,7 +301,7 @@ const memorySearchByRunSchema = z.object({
 const memorySearchTool: MCPTool = {
   name: 'memory_search',
   title: 'Search Memories',
-  description: 'Use this to retrieve prior outputs via hybrid vector + keyword search (newest-first when traceId is provided)',
+  description: 'Search memories via hybrid vector + keyword search. **REQUIRED**: Always include traceId parameter from your system prompt (TRACE ID field). Example: memory_search({traceId: "trace-aismr-001", query: "modifiers", limit: 10}). When traceId is provided, returns newest-first results from that trace. Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
   inputSchema: memorySearchInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -276,7 +327,7 @@ const memorySearchTool: MCPTool = {
 const memoryStoreTool: MCPTool = {
   name: 'memory_store',
   title: 'Store Memory',
-  description: 'Log a single-line memory entry tagged with persona/project/traceId (array fields must always be JSON arrays, even for a single value)',
+  description: 'Store a single-line memory entry. **REQUIRED**: Always include traceId parameter from your system prompt (TRACE ID field). Example: memory_store({content: "Generated 12 modifiers", memoryType: "episodic", persona: ["iggy"], project: ["aismr"], traceId: "trace-aismr-001"}). Array fields (persona, project, tags, relatedTo) must always be JSON arrays, even for a single value. Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
   inputSchema: memoryStoreInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -314,7 +365,7 @@ const memoryStoreTool: MCPTool = {
 const memoryEvolveTool: MCPTool = {
   name: 'memory_evolve',
   title: 'Evolve Memory',
-  description: 'Update an existing memory (add/remove tags, links, or summary) without creating a new record',
+  description: 'Update an existing memory (add/remove tags, links, or summary) without creating a new record. **REQUIRED**: Always include memoryId parameter. If updating a memory tied to a trace, ensure the memoryId corresponds to a memory with the correct traceId in its metadata.',
   inputSchema: memoryEvolveInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -505,6 +556,128 @@ const memorySearchByRunTool: MCPTool = {
 };
 
 // Trace coordination tools
+const tracePrepareTool: MCPTool = {
+  name: 'trace_prepare',
+  title: 'Prepare Trace Context',
+  description: 'Create-or-load the active trace, build the persona/project prompt, and return the scoped MCP tool list',
+  inputSchema: tracePrepareInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = tracePrepareInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'trace_prepare',
+      params: sanitizeParams({ ...validated, instructions: validated.instructions ? '[redacted]' : undefined }),
+      requestId,
+    });
+
+    // Prepare trace context using shared utility
+    const tracePrepParams: TracePrepParams = {
+      traceId: validated.traceId,
+        instructions: validated.instructions,
+      sessionId: validated.sessionId,
+      source: validated.source,
+      metadata: validated.metadata,
+      memoryLimit: validated.memoryLimit,
+    };
+
+    const responsePayload = await prepareTraceContext(tracePrepParams);
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(responsePayload) }],
+      structuredContent: responsePayload,
+    };
+  },
+};
+
+
+const setProjectTool: MCPTool = {
+  name: 'set_project',
+  title: 'Set Project',
+  description: 'Set the project for the current trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: set_project({traceId: "trace-aismr-001", projectId: "aismr"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Parameters: traceId (UUID from system prompt TRACE ID field), projectId (project name/id like "aismr" or "genreact"). Validates that the project exists before setting it.',
+  inputSchema: setProjectInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = setProjectInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'set_project',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    // Validate project exists
+    const projectRepo = new ProjectRepository();
+    const project = await projectRepo.findByName(validated.projectId);
+    if (!project) {
+      throw new Error(
+        `Project not found: "${validated.projectId}". Use a valid project ID from the available projects list (e.g., "aismr", "genreact").`
+      );
+    }
+
+    // Update trace with validated projectId
+    const traceRepo = new TraceRepository();
+    const updatedTrace = await traceRepo.updateTrace(validated.traceId, {
+      projectId: validated.projectId,
+    });
+    
+    if (!updatedTrace) {
+      throw new Error(`Trace not found: ${validated.traceId}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(updatedTrace) }],
+      structuredContent: updatedTrace,
+    };
+  },
+};
+
+const traceUpdateTool: MCPTool = {
+  name: 'trace_update',
+  title: 'Update Trace',
+  description: 'Update project, instructions, or metadata for an existing trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: trace_update({traceId: "trace-aismr-001", projectId: "aismr", instructions: "..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Typically called by Casey after normalizing the request.',
+  inputSchema: traceUpdateInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = traceUpdateInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'trace_update',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const updatePayload: Record<string, unknown> = {};
+    if (typeof validated.projectId !== 'undefined') {
+      updatePayload.projectId = validated.projectId;
+    }
+    if (typeof validated.instructions !== 'undefined') {
+      updatePayload.instructions = validated.instructions;
+    }
+    if (typeof validated.metadata !== 'undefined') {
+      updatePayload.metadata = validated.metadata;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      throw new Error('trace_update requires at least one field: projectId, instructions, or metadata');
+    }
+
+    const traceRepo = new TraceRepository();
+    const updatedTrace = await traceRepo.updateTrace(validated.traceId, updatePayload);
+    if (!updatedTrace) {
+      throw new Error(`Trace not found: ${validated.traceId}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(updatedTrace) }],
+      structuredContent: updatedTrace,
+    };
+  },
+};
+
 const traceCreateTool: MCPTool = {
   name: 'trace_create',
   title: 'Create Trace',
@@ -538,7 +711,7 @@ const traceCreateTool: MCPTool = {
 const handoffToAgentTool: MCPTool = {
   name: 'handoff_to_agent',
   title: 'Handoff to Agent',
-  description: 'Resolve the target agent’s webhook, invoke n8n, and log the handoff (requires active traceId)',
+  description: '**REQUIRED**: You MUST call this tool to hand off work to another agent. Simply storing a memory about handoff is NOT sufficient. **CRITICAL**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: handoff_to_agent({traceId: "trace-aismr-001", toAgent: "iggy", instructions: "Generate 12 modifiers..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Parameters: traceId (UUID from system prompt TRACE ID field), toAgent (persona name like "iggy", "riley", "veo", "alex", "quinn", or "complete"/"error"), instructions (briefing for next agent).',
   inputSchema: handoffToAgentInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -552,9 +725,9 @@ const handoffToAgentTool: MCPTool = {
     });
 
     const traceRepo = new TraceRepository();
-    const webhookRepo = new AgentWebhookRepository();
 
     const targetAgent = validated.toAgent.trim().toLowerCase();
+    const isTerminalTarget = targetAgent === 'complete' || targetAgent === 'error';
 
     // Validate trace exists and is active
     const trace = await traceRepo.findByTraceId(validated.traceId);
@@ -565,17 +738,208 @@ const handoffToAgentTool: MCPTool = {
       throw new Error(`Trace is not active (status: ${trace.status})`);
     }
 
-    // Lookup agent webhook
-    const webhook = await webhookRepo.findByAgentName(targetAgent);
-    if (!webhook) {
-      throw new Error(`Agent webhook not found: ${validated.toAgent}`);
-    }
-    if (!webhook.isActive) {
-      throw new Error(`Agent webhook is not active: ${validated.toAgent}`);
+    const currentWorkflowStep = typeof trace.workflowStep === 'number' ? trace.workflowStep : 0;
+
+    if (isTerminalTarget) {
+      // Update trace and status atomically with optimistic locking and retry logic
+      const expectedCurrentOwner = trace.currentOwner;
+      const status = targetAgent === 'complete' ? 'completed' : 'failed';
+      const updatedTrace = await withRetry(
+        async () => {
+          // Use transaction to ensure atomicity of trace update and status update
+          return await db.transaction(async (tx) => {
+            // Update trace with optimistic locking check
+            const current = await traceRepo.findByTraceId(validated.traceId);
+            if (!current) {
+              throw new Error(`Trace not found: ${validated.traceId}`);
+            }
+            if (expectedCurrentOwner !== undefined && current.currentOwner !== expectedCurrentOwner) {
+              throw new Error(
+                `Trace ownership conflict: expected owner '${expectedCurrentOwner}', but current owner is '${current.currentOwner}'`
+              );
+            }
+
+            // Update trace ownership and workflow step
+            const [traceResult] = await tx
+              .update(executionTraces)
+              .set({
+                previousOwner: current.currentOwner,
+                currentOwner: targetAgent,
+                instructions: validated.instructions,
+                workflowStep: currentWorkflowStep + 1,
+                status,
+                completedAt: status === 'completed' ? new Date() : null,
+              })
+              .where(eq(executionTraces.traceId, validated.traceId))
+              .returning();
+
+            if (!traceResult) {
+        throw new Error(`Failed to update trace ownership for ${validated.traceId}`);
+      }
+
+            return traceResult as Trace;
+          });
+        },
+        {
+          maxRetries: 3,
+          initialDelay: 100,
+          maxDelay: 1000,
+          backoff: 'exponential',
+          retryable: (error) => {
+            // Retry on ownership conflicts
+            return error instanceof Error && error.message.includes('Trace ownership conflict');
+          },
+        }
+      );
+
+      try {
+        await storeMemory({
+          content: `Trace ${status} via ${targetAgent} handoff: ${validated.instructions}`,
+          memoryType: 'episodic',
+          tags: ['handoff', targetAgent, status],
+          metadata: {
+            traceId: validated.traceId,
+            toAgent: targetAgent,
+            status,
+            instructions: validated.instructions,
+            ...(validated.metadata || {}),
+          },
+        });
+      } catch (memoryError) {
+        logger.warn({
+          msg: 'Failed to store terminal handoff memory',
+          error: memoryError instanceof Error ? memoryError.message : String(memoryError),
+          requestId,
+        });
+      }
+
+      // Send Telegram notification when workflow completes
+      if (status === 'completed' && targetAgent === 'complete' && updatedTrace.sessionId) {
+        try {
+          const sessionId = updatedTrace.sessionId;
+          // Extract user ID from sessionId if it's a Telegram session
+          if (sessionId.startsWith('telegram:')) {
+            const userId = sessionId.replace('telegram:', '');
+            
+            // Extract publish URL from instructions or trace outputs
+            let publishUrl = '';
+            const urlMatch = validated.instructions.match(/URL:\s*(https?:\/\/[^\s]+)/i);
+            if (urlMatch) {
+              publishUrl = urlMatch[1];
+            } else if (updatedTrace.outputs && typeof updatedTrace.outputs === 'object' && 'url' in updatedTrace.outputs) {
+              publishUrl = String(updatedTrace.outputs.url);
+            }
+
+            // Build notification message
+            const projectName = updatedTrace.projectId !== 'unknown' ? updatedTrace.projectId.toUpperCase() : 'video';
+            const message = publishUrl
+              ? `✅ Your ${projectName} video is live!\n\nWatch: ${publishUrl}`
+              : `✅ Your ${projectName} video is live!\n\n${validated.instructions}`;
+
+            // Send notification (errors are logged but don't fail handoff)
+            const telegramClient = getTelegramClient();
+            if (telegramClient) {
+              await telegramClient.sendMessage(userId, message);
+              logger.info({
+                msg: 'Sent completion notification to user',
+                traceId: validated.traceId,
+                userId,
+                requestId,
+              });
+            } else {
+              logger.debug({
+                msg: 'Telegram client not available, skipping notification',
+                traceId: validated.traceId,
+                requestId,
+              });
+            }
+          }
+        } catch (notificationError) {
+          // Log but don't fail handoff if notification fails
+          logger.warn({
+            msg: 'Failed to send completion notification',
+            traceId: validated.traceId,
+            error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+            requestId,
+          });
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              traceId: validated.traceId,
+              status,
+              toAgent: targetAgent,
+            }),
+          },
+        ],
+        structuredContent: {
+          traceId: validated.traceId,
+          status,
+          toAgent: targetAgent,
+        },
+      };
     }
 
-    // Construct webhook URL
-    const webhookUrl = `${config.n8n.webhookUrl}${webhook.webhookPath}`;
+    // Universal workflow: All agents use the same webhook path
+    // The workflow determines which persona to use based on trace.currentOwner via trace_prep
+    // n8n webhooks: /webhook/<path> for production (active workflows), /webhook-test/<path> for testing
+    const webhookUrl = `${config.n8n.webhookUrl}/webhook/myloware/ingest`;
+
+    // Update trace and store memory atomically with optimistic locking and retry logic
+    const expectedCurrentOwner = trace.currentOwner;
+    await withRetry(
+      async () => {
+        // Use transaction to ensure atomicity of trace update and memory storage
+        return await db.transaction(async (tx) => {
+          // Update trace with optimistic locking check
+          const current = await traceRepo.findByTraceId(validated.traceId);
+          if (!current) {
+            throw new Error(`Trace not found: ${validated.traceId}`);
+    }
+          if (expectedCurrentOwner !== undefined && current.currentOwner !== expectedCurrentOwner) {
+            throw new Error(
+              `Trace ownership conflict: expected owner '${expectedCurrentOwner}', but current owner is '${current.currentOwner}'`
+            );
+          }
+
+          // Update trace
+          const [traceResult] = await tx
+            .update(executionTraces)
+            .set({
+              previousOwner: current.currentOwner,
+              currentOwner: targetAgent,
+              instructions: validated.instructions,
+              workflowStep: currentWorkflowStep + 1,
+            })
+            .where(eq(executionTraces.traceId, validated.traceId))
+            .returning();
+
+          if (!traceResult) {
+      throw new Error(`Failed to update trace ownership for ${validated.traceId}`);
+    }
+
+          // Store handoff memory (basic insert, embedding will be generated asynchronously if needed)
+          // For now, we'll store it outside the transaction since storeMemory does embedding generation
+          // The atomicity is ensured by the trace update succeeding before we proceed
+          
+          return traceResult as Trace;
+        });
+      },
+      {
+        maxRetries: 3,
+        initialDelay: 100,
+        maxDelay: 1000,
+        backoff: 'exponential',
+        retryable: (error) => {
+          // Retry on ownership conflicts
+          return error instanceof Error && error.message.includes('Trace ownership conflict');
+        },
+      }
+    );
 
     // Build payload
     const payload = {
@@ -586,22 +950,22 @@ const handoffToAgentTool: MCPTool = {
       sessionId: trace.sessionId,
     };
 
-    // Invoke webhook
+    // Invoke webhook (outside transaction to avoid holding it open)
     const n8nClient = new N8nClient({
       baseUrl: config.n8n.baseUrl || 'http://n8n:5678',
       apiKey: config.n8n.apiKey,
     });
 
     const webhookResponse = await n8nClient.invokeWebhook(webhookUrl, payload, {
-      method: webhook.method,
-      authType: webhook.authType as 'none' | 'header' | 'basic' | 'bearer',
-      authConfig: webhook.authConfig,
+      method: 'POST',
+      authType: 'none',
+      authConfig: {},
       authToken: config.n8n.webhookAuthToken,
       authHeaderName: config.n8n.webhookHeaderName,
-      timeoutMs: webhook.timeoutMs || undefined,
+      timeoutMs: 30000, // Default 30 second timeout
     });
 
-    // Store handoff event to memory
+    // Store handoff event to memory (after transaction commits and webhook succeeds)
     try {
       await storeMemory({
         content: `Handed off to ${validated.toAgent}: ${validated.instructions}`,
@@ -611,6 +975,8 @@ const handoffToAgentTool: MCPTool = {
           traceId: validated.traceId,
           toAgent: validated.toAgent,
           executionId: webhookResponse.executionId,
+          workflowStep: currentWorkflowStep + 1,
+          ...(validated.metadata || {}),
         },
       });
     } catch (memoryError) {
@@ -690,6 +1056,109 @@ const workflowCompleteTool: MCPTool = {
   },
 };
 
+const jobUpsertTool: MCPTool = {
+  name: 'job_upsert',
+  title: 'Upsert Async Job',
+  description: 'Record or update long-running video/edit jobs so Veo/Alex can report progress. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: job_upsert({kind: "video", traceId: "trace-aismr-001", provider: "runway", taskId: "task-123", status: "queued"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
+  inputSchema: jobUpsertInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = jobUpsertInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'job_upsert',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const parseDate = (value?: string) => {
+      if (!value) return undefined;
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new Error(`Invalid date value: ${value}`);
+      }
+      return parsed;
+    };
+
+    if (validated.kind === 'video') {
+      const repo = new VideoJobsRepository();
+      const job = await repo.upsertJob({
+        traceId: validated.traceId,
+        scriptId: validated.scriptId,
+        provider: validated.provider,
+        taskId: validated.taskId,
+        status: validated.status,
+        assetUrl: validated.url ?? null,
+        error: validated.error ?? null,
+        metadata: validated.metadata ?? {},
+        startedAt: parseDate(validated.startedAt) ?? null,
+        completedAt: parseDate(validated.completedAt) ?? null,
+      });
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(job) }],
+        structuredContent: job,
+      };
+    }
+
+    const repo = new EditJobsRepository();
+    const job = await repo.upsertJob({
+      traceId: validated.traceId,
+      provider: validated.provider,
+      taskId: validated.taskId,
+      status: validated.status,
+      finalUrl: validated.url ?? null,
+      error: validated.error ?? null,
+      metadata: validated.metadata ?? {},
+      startedAt: parseDate(validated.startedAt) ?? null,
+      completedAt: parseDate(validated.completedAt) ?? null,
+    });
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(job) }],
+      structuredContent: job,
+    };
+  },
+};
+
+const jobsSummaryTool: MCPTool = {
+  name: 'jobs_summary',
+  title: 'Summarize Async Jobs',
+  description: 'Return pending/completed/failed counts for video + edit jobs tied to a traceId. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: jobs_summary({traceId: "trace-aismr-001", kind: "video"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
+  inputSchema: jobsSummaryInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = jobsSummaryInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'jobs_summary',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const videoSummary = await new VideoJobsRepository().summaryByTrace(validated.traceId);
+    const editSummary = await new EditJobsRepository().summaryByTrace(validated.traceId);
+
+    const combined = {
+      total: videoSummary.total + editSummary.total,
+      completed: videoSummary.completed + editSummary.completed,
+      failed: videoSummary.failed + editSummary.failed,
+      pending: videoSummary.pending + editSummary.pending,
+      breakdown: {
+        video: videoSummary,
+        edit: editSummary,
+      },
+    };
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(combined) }],
+      structuredContent: combined,
+    };
+  },
+};
+
 /**
  * MCP Tools - Focus on memory operations and trace-based coordination
  * 
@@ -711,9 +1180,16 @@ export const mcpTools: MCPTool[] = [
   contextGetProjectTool,
 
   // Trace coordination tools
+  tracePrepareTool,
+  setProjectTool,
+  traceUpdateTool,
   traceCreateTool,
   handoffToAgentTool,
   workflowCompleteTool,
+
+  // Job ledger tools
+  jobUpsertTool,
+  jobsSummaryTool,
   
   // Session tools
   sessionGetContextTool,

@@ -1,0 +1,595 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "myloware/ingest",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-800, -96],
+      "id": "f5d3d9b3-35d3-43b6-a7f7-e7cd5e947d4e",
+      "name": "Webhook: Agent Handoff",
+      "webhookId": "myloware-agent-webhook",
+      "notes": "Receives handoff requests from other agents via handoff_to_agent tool. Path: /webhook/myloware/ingest"
+    },
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [-800, -288],
+      "id": "085114ae-1865-4f9d-ae76-6e24d337385c",
+      "name": "Trigger: Telegram Message",
+      "webhookId": "myloware-agent-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Triggers workflow when user sends a message via Telegram. Extracts user ID and message text."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [-800, 96],
+      "id": "a31e7d96-a88d-44b2-8772-6115c5e1824a",
+      "name": "Trigger: Chat Interface",
+      "webhookId": "myloware-agent-chat",
+      "notes": "Triggers workflow when user sends a message via the chat UI. Extracts sessionId and chatInput."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.instructions }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [256, -96],
+      "id": "2aa44d65-3f59-4256-905e-a08eb5946db1",
+      "name": "AI Agent: Persona Execution",
+      "retryOnFail": false,
+      "notes": "Universal AI agent that executes any persona (Casey, Iggy, Riley, Veo, Alex, Quinn) based on trace.currentOwner. System prompt and allowed tools are dynamically set from trace_prep output. Uses MCP tools and toolWorkflow nodes to complete tasks."
+    },
+    {
+      "parameters": {
+        "model": {
+          "value": "gpt-5-nano",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [-128, 128],
+      "id": "63406858-a304-4346-b60d-1d9178c9f0a8",
+      "name": "Language Model: GPT-5 Nano",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      },
+      "notes": "OpenAI language model (gpt-5-nano) used by the AI agent for reasoning and tool calling."
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp-vector.mjames.dev/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "headerAuth",
+        "include": "selected",
+        "includeTools": "={{ $('Prepare Trace Context').item.json.allowedTools }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [0, 128],
+      "id": "e2f62a8c-9ec0-4523-a239-0cb74fcffdab",
+      "name": "Tool: MCP Server Tools",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "MCP client that exposes MCP tools (memory_search, memory_store, trace_update, handoff_to_agent, etc.) to the AI agent. Tools are dynamically filtered by trace_prep.allowedTools based on persona capabilities."
+    },
+    {
+      "parameters": {
+        "description": "Upload files to Google Drive. Use this when you need to store or backup files, assets, or final video outputs. Typically called by Quinn when publishing assets.",
+        "workflowId": {
+          "__rl": true,
+          "value": "zvJoSOEUDr9hXOLV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zvJoSOEUDr9hXOLV",
+          "cachedResultName": "Upload file to Google Drive"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [128, 128],
+      "id": "c3c1b4a1-07f3-4d19-b01b-f1b9904a0737",
+      "name": "Tool: Upload to Google Drive",
+      "notes": "Tool workflow for uploading files to Google Drive. Called by AI agent when needed (e.g., Quinn publishing assets)."
+    },
+    {
+      "parameters": {
+        "description": "Upload videos to TikTok. Use this to publish final edited video compilations to TikTok. Called by Quinn persona when publishing final edits. Requires runId parameter.",
+        "workflowId": {
+          "__rl": true,
+          "value": "uIWB6d8OslTpJl1G",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/uIWB6d8OslTpJl1G",
+          "cachedResultName": "Upload to TikTok"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": ["runId"],
+          "schema": [
+            {
+              "id": "runId",
+              "displayName": "runId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [256, 128],
+      "id": "77adcef1-b6e4-492a-80d6-6d655d5d6b09",
+      "name": "Tool: Upload to TikTok",
+      "notes": "Tool workflow for uploading videos to TikTok. Called by Quinn persona when publishing final edits."
+    },
+    {
+      "parameters": {
+        "description": "Edit and stitch video compilations using Shotstack API. Use this to combine multiple video clips into a single final edit with transitions, effects, and audio mixing. Called by Alex persona to create final compilations. Requires traceId and videoUrls parameters.",
+        "workflowId": {
+          "__rl": true,
+          "value": "9bJoXKRxCLs0B0Ww",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9bJoXKRxCLs0B0Ww",
+          "cachedResultName": "Edit_AISMR"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": ["traceId"],
+          "schema": [
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "videoUrls",
+              "displayName": "videoUrls",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": false,
+              "type": "array"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [384, 128],
+      "id": "f8209701-be66-46b8-96ea-b50e6c502831",
+      "name": "Tool: Shotstack Video Editing",
+      "notes": "Tool workflow for video editing via Shotstack API. Called by Alex persona to stitch and edit video compilations. Requires traceId and videoUrls (array of video URL strings)."
+    },
+    {
+      "parameters": {
+        "description": "Generate individual video clips from screenplays. Use this to create video assets based on script content. Called by Veo persona to generate video clips for each screenplay. Requires traceId and screenplay parameters.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ZzHQ2hTTYcdwN63q",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZzHQ2hTTYcdwN63q",
+          "cachedResultName": "Generate Video"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": ["traceId"],
+          "schema": [
+            {
+              "id": "traceId",
+              "displayName": "traceId",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "screenplay",
+              "displayName": "screenplay",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": false,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [512, 128],
+      "id": "fdf27bb9-5d50-4e60-9204-fe17cd82ddf5",
+      "name": "Tool: Generate Video",
+      "notes": "Tool workflow for video generation. Called by Veo persona to generate individual video clips from screenplays. Requires traceId and screenplay (JSON object with script content)."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "traceId",
+              "name": "traceId",
+              "value": "={{ $json.body?.traceId || $json.traceId || null }}",
+              "type": "string"
+            },
+            {
+              "id": "sessionId",
+              "name": "sessionId",
+              "value": "={{ $json.from?.id || $json.userId || $json.sessionId || $json.body.sessionId || 'telegram:' + ( $json.message.chat.id|| 'unknown') }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $json.message?.text || $json.message || $json.body?.message || $json.chatInput || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "value": "={{ $json.body ? 'webhook' : ($json.from ? 'telegram' : 'chat') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-576, -96],
+      "id": "00ed5bd0-f9de-4bd8-90b3-80d3b8610cc4",
+      "name": "Normalize Input",
+      "notes": "Normalizes input from different sources (webhook, Telegram, chat) into consistent fields: traceId, sessionId, message, source"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp/trace_prep",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  traceId: $json.traceId,\n  sessionId: $json.sessionId,\n  instructions: $json.message,\n  source: $json.source,\n  metadata: {}\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [-352, -96],
+      "id": "abfbcd33-4b35-4f25-8d8c-700665aa95e2",
+      "name": "Prepare Trace Context",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Calls MCP trace_prep endpoint to: create/fetch trace, load persona config, fetch project context, retrieve relevant memories, build system prompt, derive allowed tools. Returns traceId, systemPrompt, allowedTools for the AI agent."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalize Input').item.json.sessionId.split(\":\")[1] }}",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [640, 128],
+      "id": "aa775d63-d480-4b47-8c3b-ce8d5a4c7925",
+      "name": "Tool: Send Telegram Message",
+      "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Tool for sending one-way Telegram messages. Used by agents to send status updates or notifications to users."
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Normalize Input').item.json.sessionId.split(\":\")[1] }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [768, 128],
+      "id": "8aac16c4-d800-4c3f-816e-a958296e4de9",
+      "name": "Tool: Telegram HITL (Human-in-the-Loop)",
+      "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Tool for sending Telegram messages and waiting for user response. Used for HITL approval flows (e.g., Iggy requesting approval for modifiers, Alex requesting approval for final edit)."
+    }
+  ],
+  "connections": {
+    "Webhook: Agent Handoff": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger: Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger: Chat Interface": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Language Model: GPT-5 Nano": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: MCP Server Tools": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Upload to Google Drive": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Upload to TikTok": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Shotstack Video Editing": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Generate Video": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Prepare Trace Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Trace Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Send Telegram Message": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Telegram HITL (Human-in-the-Loop)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Webhook: Agent Handoff": [
+      {
+        "headers": {
+          "host": "crocs93.app.n8n.cloud",
+          "user-agent": "node",
+          "content-length": "1003",
+          "accept": "*/*",
+          "accept-encoding": "gzip, br",
+          "accept-language": "*",
+          "cdn-loop": "cloudflare; loops=1; subreqs=1",
+          "cf-connecting-ip": "24.12.68.45",
+          "cf-ew-via": "15",
+          "cf-ipcountry": "US",
+          "cf-ray": "99ac76af9510f824-ORD",
+          "cf-visitor": "{\"scheme\":\"https\"}",
+          "cf-worker": "n8n.cloud",
+          "content-type": "application/json",
+          "sec-fetch-mode": "cors",
+          "x-forwarded-for": "24.12.68.45, 172.69.17.101",
+          "x-forwarded-host": "crocs93.app.n8n.cloud",
+          "x-forwarded-port": "443",
+          "x-forwarded-proto": "https",
+          "x-forwarded-server": "traefik-prod-users-gwc-89-8567ddc79c-fh6gl",
+          "x-is-trusted": "yes",
+          "x-real-ip": "24.12.68.45"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "traceId": "107b4a21-8ddc-4b6f-b551-f5430d475008",
+          "instructions": "AISMR project: Puppy video. Create a 60-second ASMR piece built from 12 modifiers, each 8 seconds long. For each modifier, specify: (a) audio texture (e.g., whisper, soft pant, paw taps, snuffles, toy squeak), (b) on-screen action (puppy-related visuals or close-ups), (c) camera/shot guidance (framing, movement), (d) any required prompts or talking points. Provide a complete modifier list with 12 entries, including exact timings (0:00-0:08, 0:08-0:16, ..., 0:52-1:00), and a brief description. Include production notes: lighting, mic setup (lav mic or shotgun + room tone), background, and safety/comfort guidelines for puppies. Deliverables: final 60-second edit, separate audio stems for each modifier, a shot list, and a locked script of 12 modifiers. Ensure the content is gentle, calming, and suitable for AISMR audiences. Use the traceId for traceability.",
+          "metadata": {},
+          "projectId": "unknown",
+          "sessionId": "telegram:6559268788"
+        },
+        "webhookUrl": "https://crocs93.app.n8n.cloud/webhook/myloware/ingest",
+        "executionMode": "production"
+      }
+    ],
+    "Trigger: Telegram Message": [
+      {
+        "update_id": 96972049,
+        "message": {
+          "message_id": 197,
+          "from": {
+            "id": 6559268788,
+            "is_bot": false,
+            "first_name": "Mylo",
+            "last_name": "James",
+            "language_code": "en"
+          },
+          "chat": {
+            "id": 6559268788,
+            "first_name": "Mylo",
+            "last_name": "James",
+            "type": "private"
+          },
+          "date": 1762513356,
+          "text": "Make an asmr video about puppies"
+        }
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d47e04d370a1b43496c097b567956ffb03a57fcf0b3917656c3ea43ad368f887"
+  }
+}
