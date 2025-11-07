@@ -4,7 +4,6 @@ import { storeMemory } from '@/tools/memory/storeTool.js';
 import { discoverWorkflow } from '@/tools/workflow/discoverTool.js';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
 import { getWorkflowStatus } from '@/tools/workflow/getStatusTool.js';
-import { clarifyAsk } from '@/tools/clarify/index.js';
 import { SessionRepository } from '@/db/repositories/session-repository.js';
 import { db } from '@/db/client.js';
 import { sessions, workflowRuns, memories } from '@/db/schema.js';
@@ -69,23 +68,6 @@ describe('Agent E2E Flow', () => {
       workflowRunId: execution.workflowRunId
     });
     expect(status.status).toBeDefined();
-  });
-  
-  it('should handle clarification flow', async () => {
-    // Ambiguous request
-    const clarification = clarifyAsk({
-      question: 'What would you like to create for AISMR?',
-      suggestedOptions: [
-        'Generate new video ideas',
-        'Write a screenplay',
-        'Check video status'
-      ]
-    });
-    
-    expect(clarification.needsResponse).toBe(true);
-    expect(clarification.formatted).toContain('1. Generate new video ideas');
-    expect(clarification.formatted).toContain('2. Write a screenplay');
-    expect(clarification.formatted).toContain('3. Check video status');
   });
   
   it('should handle workflow discovery with graph expansion', async () => {

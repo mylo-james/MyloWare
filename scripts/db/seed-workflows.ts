@@ -142,14 +142,24 @@ async function seedWorkflows() {
           },
           {
             id: 'select_idea',
-            type: 'mcp_call',
-            description: 'Ask user to select an idea',
-            mcp_call: {
-              tool: 'clarify_ask',
-              params: {
-                question: 'Which idea would you like to use?',
-                options: '${steps.generate_ideas.output.ideas}',
+            type: 'llm_generation',
+            description: 'Score generated ideas and pick the best match automatically',
+            dependsOn: ['generate_ideas'],
+            llm_generation: {
+              model: 'gpt-4o-mini',
+              prompt:
+                'Given the user instructions ${context.userInput} and the list of ideas ${steps.generate_ideas.output.ideas}, select the single best idea and explain the rationale in at most two sentences.',
+              schema: {
+                type: 'object',
+                properties: {
+                  idea: { type: 'string' },
+                  rationale: { type: 'string' },
+                },
+                required: ['idea', 'rationale'],
               },
+              structuredOutput: true,
+              temperature: 0.4,
+              storeAs: 'selectedIdea',
             },
           },
           {
@@ -161,7 +171,7 @@ async function seedWorkflows() {
               params: {
                 workflowId: seeded.find((w) => w.name === 'Write Script')
                   ?.memoryId,
-                input: { idea: '${steps.select_idea.response}' },
+                input: { idea: '${selectedIdea.idea}' },
               },
             },
           },
@@ -265,4 +275,3 @@ seedWorkflows().catch((error) => {
   console.error('Failed to seed workflows:', error);
   process.exit(1);
 });
-

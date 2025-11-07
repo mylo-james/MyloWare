@@ -19,6 +19,31 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 - [ ] Re-platforming away from Fastify, MCP SDK, Postgres/pgvector, or n8n
 - [ ] Building complex central run-state orchestration; state lives in memories + lightweight execution trace
 
+## 🔄 Status — November 7, 2025
+
+**Completed**
+
+- [x] Story 1.1 (`trace_create`) is live end-to-end: schema/migrations, tool implementation, repo + MCP tests, and docs.
+- [x] Agent webhook plumbing, `handoff_to_agent`, and `workflow_complete` tools exist with targeted unit + integration coverage (`tests/unit/mcp/trace-tools.test.ts`, `tests/integration/trace-coordination.test.ts`).
+- [x] Test harness resilience: disposable Postgres container now auto-discovers the Docker socket, chooses a free port, and reinitializes Drizzle/pg pools; developer guide updated.
+
+**Outstanding / In Progress**
+
+- [ ] Documentation still missing updates for `ARCHITECTURE.md`, prompt usage examples, and n8n workflow templates.
+- [ ] Epic 2 workflows (Casey → Quinn) are scoped but unimplemented; Story 2.1 is the next net-new build once Epic 1 closes.
+- [ ] Legacy tool deprecation plan (Story “Legacy Tool Deprecation”) not started.
+- [ ] Confirm unit-test coverage ≥ 80% after the latest green suite (`TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit` now passes as of Nov 7, 2025).
+
+**Immediate Next Steps**
+
+1. **Docs & Runbooks:** Finish `ARCHITECTURE.md` + MCP prompt notes updates so trace-based coordination is documented before kicking off new workflows.
+2. **Coverage & Reporting:** Capture the new green `npm run test:unit` baseline (≥80% target) and wire it into CI.
+3. **Legacy Cutover:** Inventory and yank deprecated MCP tools once parity is validated to prevent regression.
+4. **Start Story 2.1:** After Epic 1 DoD items are fully checked, begin Casey→Iggy workflow implementation in n8n using the new trace tools.
+2. **Docs & Runbooks:** Finish `ARCHITECTURE.md` + MCP prompt notes updates so trace-based coordination is documented before kicking off new workflows.
+3. **Legacy Cutover:** Inventory and yank deprecated MCP tools once parity is validated to prevent regression.
+4. **Start Story 2.1:** After Epic 1 DoD items are fully checked, begin Casey→Iggy workflow implementation in n8n using the new trace tools.
+
 ---
 
 ## 🎯 Epic 1 — Minimal MCP Surfaces
@@ -33,24 +58,24 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 
 **Acceptance Criteria:**
 
-- [ ] Given an authenticated request
-- [ ] When `trace_create` is called with project and session parameters
-- [ ] Then a unique `traceId` is generated and returned
-- [ ] And the trace is persisted in `execution_traces` table
-- [ ] And the trace status is set to 'active'
+- [x] Given an authenticated request
+- [x] When `trace_create` is called with project and session parameters
+- [x] Then a unique `traceId` is generated and returned
+- [x] And the trace is persisted in `execution_traces` table
+- [x] And the trace status is set to 'active'
 
 **Implementation Tasks:**
 
-- [ ] Create `execution_traces` table in Drizzle schema
-- [ ] Add fields: `id`, `traceId`, `projectId`, `sessionId`, `status`, `createdAt`, `completedAt`
-- [ ] Implement `trace_create` tool in `src/mcp/tools.ts`
-- [ ] Add input validation for required parameters
-- [ ] Generate unique `traceId` (UUID v4)
-- [ ] Persist trace to database
-- [ ] Return `traceId` to caller
-- [ ] Write unit tests for happy path
-- [ ] Write unit tests for validation errors
-- [ ] Write unit tests for database errors
+- [x] Create `execution_traces` table in Drizzle schema
+- [x] Add fields: `id`, `traceId`, `projectId`, `sessionId`, `status`, `createdAt`, `completedAt`
+- [x] Implement `trace_create` tool in `src/mcp/tools.ts`
+- [x] Add input validation for required parameters
+- [x] Generate unique `traceId` (UUID v4)
+- [x] Persist trace to database
+- [x] Return `traceId` to caller
+- [x] Write unit tests for happy path
+- [x] Write unit tests for validation errors
+- [x] Write unit tests for database errors
 
 #### Story 1.2: Agent Handoff Mechanism
 
@@ -58,26 +83,45 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 
 **Acceptance Criteria:**
 
-- [ ] Given a valid `traceId` and `toAgent` name
-- [ ] When `handoff_to_agent` is called with instructions
-- [ ] Then the target agent's webhook URL is returned
-- [ ] And the handoff is logged to memory with `traceId`
-- [ ] And the instructions are passed along
-- [ ] And error is thrown if `toAgent` is unknown
+- [x] Given a valid `traceId` and `toAgent` name
+- [x] When `handoff_to_agent` is called with instructions
+- [x] Then the target agent's webhook is invoked via n8n and execution status plus metadata (including the webhook URL) is returned
+- [x] And the handoff is logged to memory with `traceId`
+- [x] And the instructions are passed along
+- [x] And error is thrown if `toAgent` is unknown or the webhook invocation fails fast
 
 **Implementation Tasks:**
 
-- [ ] Create `agent_webhooks` table in Drizzle schema
-- [ ] Add fields: `id`, `agentName`, `webhookUrl`, `description`, `isActive`
-- [ ] Seed table with initial agent webhooks (casey, iggy, riley, veo, alex, quinn)
-- [ ] Implement `handoff_to_agent` tool in `src/mcp/tools.ts`
-- [ ] Validate `traceId` exists and is active
-- [ ] Lookup agent webhook by name
-- [ ] Store handoff event to memory with tags
-- [ ] Return webhook URL and any additional metadata
-- [ ] Write unit tests for successful handoff
-- [ ] Write unit tests for unknown agent
-- [ ] Write unit tests for inactive trace
+- [x] Create `agent_webhooks` table in Drizzle schema
+- [x] Add fields: `id`, `agentName`, `webhookUrl`, `description`, `isActive`
+- [x] Seed table with initial agent webhooks (casey, iggy, riley, veo, alex, quinn)
+- [x] Implement `handoff_to_agent` tool in `src/mcp/tools.ts`
+- [x] Validate `traceId` exists and is active
+- [x] Lookup agent webhook by name and load webhook configuration (URL, auth, method)
+- [x] Invoke the n8n webhook and capture the execution response (status, run identifiers, any payload)
+- [x] Store handoff event to memory with tags and response summary
+- [x] Return webhook URL, execution status, and run identifiers to caller
+- [x] Centralize webhook host/auth configuration (env or secrets manager) and document rotation steps (see `docs/n8n-webhook-config.md`)
+- [x] Keep `docs/n8n-webhook-config.md` updated with auth-handling, no-versioning rationale, and execution correlation expectations
+- [x] Write unit tests for successful handoff
+- [x] Write unit tests for unknown agent
+- [x] Write unit tests for inactive trace
+
+#### Legacy Tool Deprecation
+
+- [ ] Inventory existing MCP tools overlapping trace, handoff, or workflow completion responsibilities
+- [ ] Flag the following tools for removal in favor of `trace_create`/`handoff_to_agent`/`workflow_complete`:
+  - `run_state_createOrResume`
+  - `run_state_read`
+  - `run_state_update`
+  - `run_state_appendEvent`
+  - `handoff_create`
+  - `handoff_claim`
+  - `handoff_complete`
+  - `handoff_listPending`
+- [ ] Remove or disable deprecated tools immediately after replacements land, with hard failures on invocation
+- [ ] Update documentation and runbooks to reflect removals
+- [ ] Add CI guardrails preventing new references to deprecated tool names
 
 #### Story 1.3: Workflow Completion Signal
 
@@ -85,56 +129,60 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 
 **Acceptance Criteria:**
 
-- [ ] Given an active `traceId`
-- [ ] When `workflow_complete` is called with outputs and status
-- [ ] Then the trace status is updated to 'completed' or 'failed'
-- [ ] And the `completedAt` timestamp is set
-- [ ] And outputs are stored or referenced
-- [ ] And a completion event is logged to memory
+- [x] Given an active `traceId`
+- [x] When `workflow_complete` is called with outputs and status
+- [x] Then the trace status is updated to 'completed' or 'failed'
+- [x] And the `completedAt` timestamp is set
+- [x] And outputs are stored or referenced
+- [x] And a completion event is logged to memory
 
 **Implementation Tasks:**
 
-- [ ] Implement `workflow_complete` tool in `src/mcp/tools.ts`
-- [ ] Validate `traceId` exists
-- [ ] Update trace status in database
-- [ ] Set `completedAt` timestamp
-- [ ] Store outputs reference
-- [ ] Create completion memory entry
-- [ ] Write unit tests for successful completion
-- [ ] Write unit tests for failed completion
-- [ ] Write unit tests for already-completed trace
+- [x] Implement `workflow_complete` tool in `src/mcp/tools.ts`
+- [x] Validate `traceId` exists
+- [x] Update trace status in database
+- [x] Set `completedAt` timestamp
+- [x] Store outputs reference
+- [x] Create completion memory entry
+- [x] Write unit tests for successful completion
+- [x] Write unit tests for failed completion
+- [x] Write unit tests for already-completed trace
 
 ### Database Schema Tasks
 
-- [ ] Create Drizzle migration file for `execution_traces` table
-- [ ] Create Drizzle migration file for `agent_webhooks` table
-- [ ] Add indexes on `traceId` for fast lookups
-- [ ] Add indexes on `status` for filtering
-- [ ] Run migrations in local development
-- [ ] Verify schema with `drizzle-kit push`
+- [x] Create Drizzle migration file for `execution_traces` table
+- [x] Create Drizzle migration file for `agent_webhooks` table
+- [x] Add indexes on `traceId` for fast lookups
+- [x] Add indexes on `status` for filtering
+- [x] Run migrations in local development
+- [x] Verify schema with `drizzle-kit push`
 - [ ] Test rollback scenarios
 
 ### MCP Tool Registration
 
-- [ ] Register `trace_create` in MCP tools list
-- [ ] Register `handoff_to_agent` in MCP tools list
-- [ ] Register `workflow_complete` in MCP tools list
-- [ ] Verify tools appear in `/health` endpoint
-- [ ] Add tool descriptions and parameter schemas
+- [x] Register `trace_create` in MCP tools list
+- [x] Register `handoff_to_agent` in MCP tools list
+- [x] Register `workflow_complete` in MCP tools list
+- [x] Verify tools appear in `/health` endpoint
+- [x] Add tool descriptions and parameter schemas
 - [ ] Test tool invocation via MCP protocol
 
 ### Definition of Done
 
-- [ ] All three tools (`trace_create`, `handoff_to_agent`, `workflow_complete`) implemented
-- [ ] Database schema created and migrations applied
-- [ ] Tools registered and visible in `/health` tool list
-- [ ] Unit tests written for each tool (happy path + error cases)
-- [ ] Test coverage ≥ 80% for new tool code
-- [ ] Integration test: create trace → handoff → complete
+- [x] All three tools (`trace_create`, `handoff_to_agent`, `workflow_complete`) implemented
+- [x] Database schema created and migrations applied
+- [x] Tools registered and visible in `/health` tool list
+- [x] Unit tests written for each tool (happy path + error cases)
+- [ ] Test coverage ≥ 80% for new tool code _(blocked: broader unit suite currently red; see failing suites below)_
+- [x] Integration test: create trace → handoff → complete
 - [ ] Documentation updated in `ARCHITECTURE.md`
 - [ ] MCP prompt notes updated with tool usage examples
-- [ ] Code passes linting and type checks
+- [ ] Code passes linting and type checks _(fails until full `npm run test:unit` stabilizes)_
 - [ ] PR reviewed and approved
+
+#### Known Failing Tests
+
+- ✅ `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit` passed on November 7, 2025 (154 tests, 26 files). Track future regressions by re-running the same command.
 
 ### Success Metrics
 
@@ -606,26 +654,26 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 
 **Legacy Tools to Remove:**
 
-- [ ] `run_state_create`
-- [ ] `run_state_update`
-- [ ] `run_state_get`
-- [ ] `handoff_request` (old version, replaced by `handoff_to_agent`)
+- [x] `run_state_create`
+- [x] `run_state_update`
+- [x] `run_state_get`
+- [x] `handoff_request` (old version, replaced by `handoff_to_agent`)
 - [ ] `prompt_discover`
 - [ ] `clarify_ask`
 
 **Implementation Tasks:**
 
-- [ ] Search codebase for `run_state_create` and delete implementations
-- [ ] Search codebase for `run_state_update` and delete implementations
-- [ ] Search codebase for `run_state_get` and delete implementations
-- [ ] Search codebase for old `handoff_request` and delete implementations
+- [x] Search codebase for `run_state_create` and delete implementations
+- [x] Search codebase for `run_state_update` and delete implementations
+- [x] Search codebase for `run_state_get` and delete implementations
+- [x] Search codebase for old `handoff_request` and delete implementations
 - [ ] Search codebase for `prompt_discover` and delete implementations
 - [ ] Search codebase for `clarify_ask` and delete implementations
-- [ ] Remove tool registrations from `src/mcp/tools.ts`
-- [ ] Delete tool implementation files
+- [x] Remove tool registrations from `src/mcp/tools.ts`
+- [x] Delete tool implementation files
 - [ ] Remove exports from index files
 - [ ] Search workflows for legacy tool references and remove
-- [ ] Update any tests that reference legacy tools
+- [x] Update any tests that reference legacy tools
 - [ ] Verify server starts without registering removed tools
 
 #### Story 6.2: CI Checks for Removed Symbols
@@ -1097,7 +1145,7 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 - [ ] All Epic 1 and Epic 9 Definition of Done items completed
 - [ ] Unit test coverage ≥ 80% for new tools
 - [ ] Database migrations applied in dev and staging
-- [ ] Integration test: create trace → handoff → complete passes
+- [x] Integration test: create trace → handoff → complete passes
 
 **Deliverables:**
 
@@ -1308,3 +1356,10 @@ Create a multi-agent, memory-first "AI Production Studio" where Casey kicks off 
 ---
 
 **Ready to start? Begin with Milestone 1 → Epic 1 → Story 1.1!** 🚀
+
+## Implementation Notes
+
+- 2025-11-06: Rebuilt dev Postgres by tearing down Docker volumes, binding the container to host port 6543, and updating config normalization logic so local scripts rewrite `postgres` → `localhost`.
+- 2025-11-06: Ran `drizzle-kit push` against the fresh database and `npm run db:seed` to load personas/projects/workflows plus the new `agent_webhooks` directory (Casey → Quinn).
+- 2025-11-06: Confirmed `/health` reports `status":"healthy` both inside Docker and via `https://mcp-vector.mjames.dev/health`, covering database, OpenAI, and MCP tool registration checks.
+- 2025-11-06: Added dedicated Vitest DB bootstrap (`npm run db:setup:test`), `TEST_DB_URL`-first harness behavior, and `test:unit:local`/`test:unit:container` shortcuts so local runs avoid Testcontainers unless explicitly requested.

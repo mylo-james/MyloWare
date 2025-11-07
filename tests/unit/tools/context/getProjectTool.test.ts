@@ -25,9 +25,8 @@ describe('getProject', () => {
       projectName: 'aismr',
     });
 
-    expect(result.project.guardrails).toHaveProperty('runtime');
-    expect(result.project.guardrails).toHaveProperty('whisperTiming');
-    expect(result.project.guardrails).toHaveProperty('maxHands');
+    expect(result.project.guardrails).toHaveProperty('uniqueness_enforcement_strategy');
+    expect(result.project.guardrails).toHaveProperty('specification_loading_strategy');
+    expect(result.project.guardrails).toHaveProperty('quality_monitoring_strategy');
   });
 });
-

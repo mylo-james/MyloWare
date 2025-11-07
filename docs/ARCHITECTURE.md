@@ -44,16 +44,15 @@ V2 is built on three principles:
 ┌─────────────────────────────────────────────────┐
 │              MCP SERVER                         │
 │                                                 │
-│  Tool Registry (11 tools)                      │
+│  Tool Registry (10 tools)                      │
 │  ├── memory_search                             │
 │  ├── memory_store                              │
 │  ├── memory_evolve                             │
 │  ├── context_get_persona                       │
 │  ├── context_get_project                       │
-│  ├── workflow_discover                         │
-│  ├── workflow_execute                          │
-│  ├── workflow_status                           │
-│  ├── clarify_ask                               │
+│  ├── trace_create                              │
+│  ├── handoff_to_agent                          │
+│  ├── workflow_complete                         │
 │  ├── session_get_context                       │
 │  └── session_update_context                    │
 │                                                 │
@@ -82,7 +81,8 @@ V2 is built on three principles:
 │  ├── personas (AI identity configs)            │
 │  ├── projects (workflow collections)           │
 │  ├── sessions (conversation state)             │
-│  └── workflow_runs (execution tracking)        │
+│  ├── execution_traces (trace coordination)    │
+│  └── agent_webhooks (agent webhook configs)    │
 │                                                 │
 │  Indices:                                      │
 │  ├── HNSW (vector similarity)                  │
@@ -171,6 +171,105 @@ Stored in Postgres with:
 
 ---
 
+## Trace-Based Coordination
+
+Epic 1 introduces a trace-based coordination model for multi-agent workflows. This replaces the legacy run_state and handoff tools with a simpler, memory-first approach.
+
+### Data Flow: Trace Create → Handoff → Complete
+
+```
+Casey receives user request
+  │
+  ▼
+trace_create({ projectId: "aismr", sessionId: "..." })
+  │
+  ├─► Creates execution_traces row
+  ├─► Generates unique traceId (UUID)
+  └─► Returns traceId
+  │
+  ▼
+handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
+  │
+  ├─► Validates trace exists and is active
+  ├─► Looks up agent webhook from agent_webhooks table
+  ├─► Constructs webhook URL: config.n8n.webhookUrl + webhookPath
+  ├─► Invokes n8n webhook with payload:
+  │   { traceId, instructions, metadata, projectId, sessionId }
+  ├─► Captures executionId from n8n response
+  ├─► Stores handoff event to memory (tagged with traceId)
+  └─► Returns webhookUrl, executionId, status, toAgent
+  │
+  ▼
+Iggy workflow executes autonomously
+  │
+  ├─► Searches memory by traceId to find context
+  ├─► Generates outputs
+  ├─► Stores outputs to memory (tagged with traceId)
+  └─► Hands off to next agent (riley) via handoff_to_agent
+  │
+  ▼
+... (chain continues through all agents)
+  │
+  ▼
+workflow_complete({ traceId, status: "completed", outputs: {...} })
+  │
+  ├─► Updates execution_traces status to "completed"
+  ├─► Sets completedAt timestamp
+  ├─► Stores outputs reference
+  ├─► Creates completion memory entry (tagged with traceId)
+  └─► Returns traceId, status, completedAt, outputs
+```
+
+### Key Concepts
+
+**Execution Traces (`execution_traces` table):**
+- Each production run has a unique `traceId` (UUID)
+- Tracks status: `active`, `completed`, `failed`
+- Stores project context, session reference, and final outputs
+- All memories created during the run are tagged with `traceId` for discovery
+
+**Agent Webhooks (`agent_webhooks` table):**
+- Maps agent names (casey, iggy, riley, veo, alex, quinn) to n8n webhook paths
+- Configures authentication (none, header, basic, bearer)
+- Stores timeout and metadata per agent
+- Supports soft toggles via `isActive` flag
+
+**Memory Tagging:**
+- All memories created during a trace include `traceId` in metadata
+- Agents search memory by `traceId` to find prior outputs
+- Enables autonomous coordination without central state management
+- Full execution graph is reconstructable from memory
+
+### MCP Tools
+
+**`trace_create`:**
+- Creates a new execution trace
+- Parameters: `projectId` (required), `sessionId` (optional), `metadata` (optional)
+- Returns: `traceId`, `status`, `createdAt`
+
+**`handoff_to_agent`:**
+- Hands off work to another agent via n8n webhook
+- Parameters: `traceId` (required), `toAgent` (required), `instructions` (required), `metadata` (optional)
+- Validates trace is active and agent webhook exists
+- Invokes n8n webhook and stores handoff event to memory
+- Returns: `webhookUrl`, `executionId`, `status`, `toAgent`
+
+**`workflow_complete`:**
+- Marks a workflow trace as completed or failed
+- Parameters: `traceId` (required), `status` (required: 'completed' | 'failed'), `outputs` (optional), `notes` (optional)
+- Updates trace status and stores completion event to memory
+- Returns: `traceId`, `status`, `completedAt`, `outputs`
+
+### Benefits
+
+1. **Decentralized Coordination:** Agents coordinate via memory, not central state
+2. **Observability:** Full execution trace reconstructable from memory searches
+3. **Simplicity:** Three tools replace complex run_state and handoff machinery
+4. **Fail-Fast:** Invalid traces or inactive agents error immediately
+5. **Memory-First:** Coordination happens through tagged memories, enabling semantic discovery
+
+---
+
 ## Key Components
 
 ### MCP Server
@@ -241,6 +340,21 @@ Stored in Postgres with:
 - State tracking (sessions, workflow runs)
 - Configuration storage (personas, projects)
 - Full-text search (PostgreSQL tsvector)
+
+### Developer Test Harness
+
+The Vitest harness now provisions its own Postgres automatically, eliminating the “which port is Postgres on?” problem and keeping schema/seed data in sync.
+
+- `tests/setup/env.ts`
+  - Detects Colima (`~/.colima/default/docker.sock`) and Docker Desktop (`~/.docker/run/docker.sock`) sockets and exports `DOCKER_HOST`/`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`.
+  - When `TEST_DB_USE_CONTAINER=1`, clears any `.env` `POSTGRES_PORT` so Drizzle won’t rewrite the dynamic port Testcontainers selects.
+  - Falls back to the local reusable DB (`postgresql://test:test@127.0.0.1:6543/mcp_v2_test`) when containers are disabled.
+- `tests/setup/database.ts`
+  - Starts `pgvector/pgvector:pg16`, captures the mapped host port, and calls `resetDbClient()` so the shared pool points to the disposable database.
+  - Runs migrations + base seed data before each suite and tears the container down after.
+- Preferred command (CI + local): `TEST_DB_USE_CONTAINER=1 LOG_LEVEL=warn npx vitest run tests/unit`
+
+Developers who still want a persistent test DB can export `TEST_DB_URL` and use `npm run test:unit:local` (see `DEV_GUIDE.md`), but the containerized flow keeps the default path deterministic and conflict-free.
 
 **Memory Schema:**
 ```sql

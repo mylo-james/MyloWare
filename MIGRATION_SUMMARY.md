@@ -56,15 +56,12 @@ You can also use memory_search and memory_store tools
 - `workflow_execute` - No longer needed (AI calls n8n workflows directly)
 - `workflow_status` - No longer needed
 
-**Kept**:
-- `memory_search` - Core memory operations
-- `memory_store` - Core memory operations
-- `memory_evolve` - Core memory operations
-- `context_get_persona` - Context retrieval
-- `context_get_project` - Context retrieval
-- `clarify_ask` - User interaction
-- `session_get_context` - Session management
-- `session_update_context` - Session management
+**Kept/Added**:
+- `memory_search` / `memory_store` / `memory_evolve` / `memory_searchByRun` - Memory primitives
+- `context_get_persona` / `context_get_project` - Context retrieval
+- `trace_create` / `handoff_to_agent` / `workflow_complete` - Trace-based coordination
+- `session_get_context` / `session_update_context` - Session lifecycle helpers
+- (Removed) The old `clarify_ask` interaction tool is now handled by Telegram HITL nodes instead of an MCP tool.
 
 ### 3. ✅ Async Server Initialization
 **File**: `src/server.ts`
@@ -280,4 +277,3 @@ If you need to rollback:
 See `ARCHITECTURE.md` for detailed explanations of the new system.
 
 **Key Insight**: Prompts tell the AI **WHAT** to do (semantic guidance). The AI then decides **HOW** to do it using n8n workflows (programmatic tools) or memory operations.
-

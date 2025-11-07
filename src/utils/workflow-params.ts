@@ -96,16 +96,12 @@ export function mapWorkflowParams(
  * Returns only parameters that match tool schemas
  */
 export function stripWorkflowParams(params: WorkflowParams): Record<string, unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {
-    sessionId,
-    format,
-    searchMode,
-    role,
-    embeddingText,
-    ...toolParams
-  } = params;
-
+  const toolParams: Record<string, unknown> = { ...params };
+  delete toolParams.sessionId;
+  delete toolParams.format;
+  delete toolParams.searchMode;
+  delete toolParams.role;
+  delete toolParams.embeddingText;
   return toolParams;
 }
 

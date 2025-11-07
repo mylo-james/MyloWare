@@ -5,6 +5,7 @@ export function stripEmbeddings(obj: any): any {
   const strip = (item: any): any => {
     if (!item || typeof item !== 'object') return item;
     const { embedding, ...rest } = item;
+    void embedding;
     return rest;
   };
   
@@ -13,4 +14,3 @@ export function stripEmbeddings(obj: any): any {
 
 // Alias for backward compatibility
 export const formatForAPI = stripEmbeddings;
-

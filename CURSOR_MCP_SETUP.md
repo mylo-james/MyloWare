@@ -110,17 +110,19 @@ After adding the configuration:
 
 Once connected, you'll have access to:
 
-1. **memory_search** - Search memories using hybrid vector + keyword retrieval
-2. **memory_store** - Store new memory with auto-summarization
-3. **memory_evolve** - Update existing memory tags/links
-4. **context_get_persona** - Load AI persona configuration
-5. **context_get_project** - Load project specs
-6. **workflow_discover** - Find workflows by semantic intent
-7. **workflow_execute** - Execute discovered workflow
-8. **workflow_status** - Check workflow execution status
-9. **clarify_ask** - Request user clarification
-10. **session_get_context** - Load session state
-11. **session_update_context** - Update session state
+1. **memory_search** – Hybrid retrieval across vectors + keywords
+2. **memory_store** – Persist episodic/procedural memories with metadata
+3. **memory_evolve** – Update tags, links, and summaries in-place
+4. **memory_searchByRun** – Look up memories tied to a legacy `runId`
+5. **context_get_persona** – Load persona configuration & guardrails
+6. **context_get_project** – Load project-level constraints
+7. **trace_create** – Start a new trace + return a `traceId`
+8. **handoff_to_agent** – Resolve & invoke the next agent’s webhook via n8n
+9. **workflow_complete** – Mark traces as completed/failed with outputs
+10. **session_get_context** – Hydrate or create a chat session
+11. **session_update_context** – Persist session working memory
+
+Clarifications now happen through Telegram approval nodes, so there is no standalone `clarify_ask` tool anymore.
 
 ## Troubleshooting
 
@@ -181,4 +183,3 @@ If you want to use the production server instead:
 - View Docker status: `docker compose ps`
 - Health check: `curl http://localhost:3456/health`
 - Full docs: See [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md)
-

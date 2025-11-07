@@ -3,6 +3,7 @@ import { expandMemoryGraph } from '@/utils/graphExpansion.js';
 import { storeMemory } from '@/tools/memory/storeTool.js';
 import { db } from '@/db/client.js';
 import { memories } from '@/db/schema.js';
+import { MemoryRepository } from '@/db/repositories/memory-repository.js';
 
 describe('expandMemoryGraph', () => {
   beforeEach(async () => {
@@ -98,8 +99,10 @@ describe('expandMemoryGraph', () => {
   });
 
   it('should prevent circular references', async () => {
+    const memoryRepo = new MemoryRepository();
+
     // Create circular link: A <-> B
-    const memoryA = await storeMemory({
+    const originalA = await storeMemory({
       content: 'Memory A',
       memoryType: 'episodic',
       project: ['test'],
@@ -109,22 +112,22 @@ describe('expandMemoryGraph', () => {
       content: 'Memory B',
       memoryType: 'episodic',
       project: ['test'],
-      relatedTo: [memoryA.id],
+      relatedTo: [originalA.id],
     });
 
-    // Update A to link back to B
-    const updatedA = await storeMemory({
-      content: 'Memory A updated',
-      memoryType: 'episodic',
-      project: ['test'],
+    // Update A to link back to B (creating a cycle)
+    await memoryRepo.update(originalA.id, {
       relatedTo: [memoryB.id],
     });
 
+    const memoryA = await memoryRepo.findById(originalA.id);
+    expect(memoryA).not.toBeNull();
+
     // Should not cause infinite loop
-    const expanded = await expandMemoryGraph([memoryA], 3, 20);
+    const expanded = await expandMemoryGraph([memoryA!], 3, 20);
     const ids = expanded.map((m) => m.id);
     // Should contain both but not duplicate
-    expect(ids.filter((id) => id === memoryA.id).length).toBe(1);
+    expect(ids.filter((id) => id === memoryA!.id).length).toBe(1);
     expect(ids.filter((id) => id === memoryB.id).length).toBe(1);
   });
 
@@ -133,4 +136,3 @@ describe('expandMemoryGraph', () => {
     expect(expanded).toHaveLength(0);
   });
 });
-

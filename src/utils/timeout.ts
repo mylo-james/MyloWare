@@ -29,18 +29,24 @@ export async function withTimeout<T>(
 ): Promise<T> {
   const { timeout, message } = options;
 
-  return Promise.race([
-    fn(),
-    new Promise<T>((_, reject) => {
-      setTimeout(() => {
-        reject(
-          new TimeoutError(
-            message || `Operation timed out after ${timeout}ms`,
-            timeout
-          )
-        );
-      }, timeout);
-    }),
-  ]);
-}
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new TimeoutError(
+          message || `Operation timed out after ${timeout}ms`,
+          timeout
+        )
+      );
+    }, timeout);
 
+    fn()
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}

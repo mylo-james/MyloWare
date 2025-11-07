@@ -1,13 +1,34 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
 import { WorkflowRunRepository } from '@/db/repositories/workflow-run-repository.js';
+import { WorkflowRegistryRepository } from '@/db/repositories/workflow-registry-repository.js';
+import { N8nClient } from '@/integrations/n8n/client.js';
 import { db } from '@/db/client.js';
 import { workflowRuns } from '@/db/schema.js';
 
 describe('executeWorkflow', () => {
   beforeEach(async () => {
+    vi.spyOn(WorkflowRegistryRepository.prototype, 'findByMemoryId').mockImplementation(
+      async (memoryId: string) => ({
+        id: 'registry-id',
+        memoryId,
+        n8nWorkflowId: 'n8n-workflow-001',
+        name: `Test Workflow (${memoryId})`,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+    );
+
+    vi.spyOn(N8nClient.prototype, 'executeWorkflow').mockResolvedValue('exec-123');
+    vi.spyOn(N8nClient.prototype, 'waitForCompletion').mockResolvedValue({ status: 'ok' });
+
     // Clear workflow runs
     await db.delete(workflowRuns);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should create workflow run record', async () => {
@@ -24,7 +45,7 @@ describe('executeWorkflow', () => {
     const repository = new WorkflowRunRepository();
     const run = await repository.findById(result.workflowRunId);
     expect(run).toBeDefined();
-    expect(run!.workflowName).toBe('test-workflow-123');
+    expect(run!.workflowName).toBe('Test Workflow (test-workflow-123)');
     expect(run!.status).toBe('running');
   });
 
@@ -52,4 +73,3 @@ describe('executeWorkflow', () => {
     expect(run!.sessionId).toBe('session-123');
   });
 });
-

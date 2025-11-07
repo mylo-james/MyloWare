@@ -156,6 +156,27 @@ npm run db:seed
 npm run migrate:all
 ```
 
+### Fast Unit Tests (Reusable Test DB)
+
+Long-running Testcontainers startup is now optional. To get sub-second Vitest boots:
+
+1. Provision a dedicated test database once:
+   ```bash
+   export TEST_DB_SUPER_URL=postgresql://postgres:postgres@127.0.0.1:6543/postgres
+   export TEST_DB_URL=postgresql://mcp_test:test@127.0.0.1:6543/mcp_v2_test
+   npm run db:setup:test
+   ```
+   The script creates the `mcp_test` role, the `mcp_v2_test` database, and ensures the `vector` extension is installed.
+2. Export `TEST_DB_URL` (add it to your shell profile or `.env.test.local`).
+3. Run the focused Vitest target without containers:
+   ```bash
+   npm run test:unit:local
+   ```
+
+If you still need a disposable container (e.g. CI), run `npm run test:unit:container` or set `TEST_DB_USE_CONTAINER=1` before invoking any `vitest` command. The harness auto-detects Colima/Docker Desktop sockets, launches PostgreSQL on a random free host port, and propagates that port to Drizzle/`POSTGRES_PORT`. Set `TEST_DB_PORT` only if you truly need a fixed port; otherwise let the harness pick one to avoid clashing with a running dev database.
+
+> ⚠️ The dedicated test DB truncates tables during each run. Do not point it at your primary dev database.
+
 ---
 
 ## 🐛 Debugging
@@ -295,4 +316,3 @@ docker system prune -f
 - See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for production setup
 
 Happy coding! 🎉
-

@@ -55,15 +55,15 @@ describe('RunEventsRepository', () => {
         project: 'test-project',
       });
 
-      const event = await repository.append({
-        runId: run.id,
-        eventType: 'system_event',
-        payload: { message: 'test' },
-      });
-
-      expect(event.actor).toBeUndefined();
-      expect(event.payload).toEqual({ message: 'test' });
+    const event = await repository.append({
+      runId: run.id,
+      eventType: 'system_event',
+      payload: { message: 'test' },
     });
+
+    expect(event.actor).toBeNull();
+    expect(event.payload).toEqual({ message: 'test' });
+  });
   });
 
   describe('listForRun', () => {
@@ -153,4 +153,3 @@ describe('RunEventsRepository', () => {
     });
   });
 });
-

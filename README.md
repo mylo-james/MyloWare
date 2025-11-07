@@ -142,26 +142,28 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## 🛠️ Available Tools
 
-The agent has **11 MCP tools** organized into 4 categories:
+The server exposes **11 MCP tools** across four buckets:
 
 ### Memory Tools
-- `memory_search` - Hybrid vector + keyword search
-- `memory_store` - Store with auto-summarization and linking
-- `memory_evolve` - Update tags, links, summaries
+- `memory_search` – Hybrid vector + keyword search
+- `memory_store` – Persist episodic/procedural memories with link metadata
+- `memory_evolve` – Update tags, links, and summaries in-place
+- `memory_searchByRun` – Filter memories tied to a legacy `runId` (still useful for migrations)
 
 ### Context Tools
-- `context_get_persona` - Load AI persona configuration
-- `context_get_project` - Load project specs and guardrails
+- `context_get_persona` – Load persona configuration + guardrails
+- `context_get_project` – Load project configuration + constraints
 
-### Workflow Tools
-- `workflow_discover` - Find workflows by semantic intent
-- `workflow_execute` - Run discovered workflow
-- `workflow_status` - Check execution status
+### Trace Coordination Tools
+- `trace_create` – Create a new trace row and return a `traceId`
+- `handoff_to_agent` – Resolve the next agent’s webhook, invoke n8n, and log handoff metadata
+- `workflow_complete` – Mark a trace as completed/failed and capture outputs
 
-### Interaction Tools
-- `clarify_ask` - Request user clarification
-- `session_get_context` - Load session state
-- `session_update_context` - Save working memory
+### Session Tools
+- `session_get_context` – Hydrate or create a chat session, returning working memory
+- `session_update_context` – Persist session working memory blobs
+
+Interactive clarifications now run through Telegram HITL nodes inside n8n workflows, so the legacy `clarify_ask` tool has been removed.
 
 See [MCP_TOOLS.md](docs/MCP_TOOLS.md) for complete API reference.
 

@@ -13,35 +13,27 @@ export interface UpdateRunParams {
   currentStep?: string;
   status?: string;
   stateBlob?: Record<string, unknown>;
-  custodianAgent?: string;
+  custodianAgent?: string | null;
   lockedAt?: Date | null;
 }
 
 export class RunRepository {
   async create(params: CreateRunParams) {
-    const values: Record<string, unknown> = {
+    const values: typeof agentRuns.$inferInsert = {
       persona: params.persona,
       project: params.project,
       status: 'new',
       stateBlob: {},
+      ...(params.sessionId && { sessionId: params.sessionId }),
+      ...(params.instructions && { instructions: params.instructions }),
     };
-    
-    // Only add optional fields if they're defined
-    if (params.sessionId) values.sessionId = params.sessionId;
-    if (params.instructions) values.instructions = params.instructions;
-    
-    const [run] = await db
-      .insert(agentRuns)
-      .values(values as any)
-      .returning();
+
+    const [run] = await db.insert(agentRuns).values(values).returning();
     return run;
   }
 
   async findById(id: string) {
-    const [run] = await db
-      .select()
-      .from(agentRuns)
-      .where(eq(agentRuns.id, id));
+    const [run] = await db.select().from(agentRuns).where(eq(agentRuns.id, id));
     return run;
   }
 
@@ -77,7 +69,11 @@ export class RunRepository {
       .orderBy(sql`${agentRuns.createdAt} DESC`)
       .limit(1);
 
-    if (existing && existing.status !== 'completed' && existing.status !== 'failed') {
+    if (
+      existing &&
+      existing.status !== 'completed' &&
+      existing.status !== 'failed'
+    ) {
       return existing;
     }
 
@@ -109,4 +105,3 @@ export class RunRepository {
     return run ? { status: 'locked', run } : { status: 'conflict' };
   }
 }
-

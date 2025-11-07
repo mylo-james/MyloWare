@@ -4,13 +4,13 @@ import { storeMemory } from '../tools/memory/storeTool.js';
 import { evolveMemory } from '../tools/memory/evolveTool.js';
 import { getPersona } from '../tools/context/getPersonaTool.js';
 import { getProject } from '../tools/context/getProjectTool.js';
-import { clarifyAsk } from '../tools/clarify/index.js';
-import { discoverPrompts } from '../tools/prompt/discoverTool.js';
 import { SessionRepository } from '../db/repositories/session-repository.js';
-import { MemoryRepository, RunRepository, HandoffRepository, RunEventsRepository } from '../db/repositories/index.js';
+import { MemoryRepository, TraceRepository, AgentWebhookRepository } from '../db/repositories/index.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { stripEmbeddings } from '../utils/response-formatter.js';
 import { randomUUID } from 'crypto';
+import { config } from '../config/index.js';
+import { N8nClient } from '../integrations/n8n/client.js';
 
 export interface MCPTool {
   name: string;
@@ -68,7 +68,11 @@ function unwrapParams(params: unknown): unknown {
   }
 
   // Strip workflow-specific parameters that aren't part of tool schemas
-  const { sessionId, format, searchMode, role, embeddingText, ...toolParams } = workingObj;
+  const toolParams = { ...workingObj };
+  delete (toolParams as Record<string, unknown>).format;
+  delete (toolParams as Record<string, unknown>).searchMode;
+  delete (toolParams as Record<string, unknown>).role;
+  delete (toolParams as Record<string, unknown>).embeddingText;
   return toolParams;
 }
 
@@ -198,11 +202,6 @@ const contextGetProjectInputSchema = z.object({
   projectName: z.string(),
 });
 
-const clarifyAskInputSchema = z.object({
-  question: z.string(),
-  suggestedOptions: z.array(z.string()).optional(),
-});
-
 const sessionGetContextInputSchema = z.object({
   sessionId: z.string(),
   persona: z.string().optional(),
@@ -214,66 +213,25 @@ const sessionUpdateContextInputSchema = z.object({
   context: recordLike(),
 });
 
-const promptDiscoverInputSchema = z.object({
-  persona: z.string(),
-  project: z.string(),
-  intent: z.string().optional(),
-  limit: numberLike().optional(),
-});
-
-// Run state schemas
-const runStateCreateOrResumeSchema = z.object({
+// Trace coordination schemas
+const traceCreateInputSchema = z.object({
+  projectId: z.string(),
   sessionId: z.string().optional(),
-  persona: z.string(),
-  project: z.string(),
-  instructions: z.string().optional(),
+  metadata: recordLike().optional(),
 });
 
-const runStateReadSchema = z.object({
-  runId: z.string(),
+const handoffToAgentInputSchema = z.object({
+  traceId: z.string(),
+  toAgent: z.string(),
+  instructions: z.string(),
+  metadata: recordLike().optional(),
 });
 
-const runStateUpdateSchema = z.object({
-  runId: z.string(),
-  patch: z.object({
-    currentStep: z.string().optional(),
-    status: z.string().optional(),
-    stateBlob: recordLike().optional(),
-    custodianAgent: z.string().optional(),
-  }),
-});
-
-const runStateAppendEventSchema = z.object({
-  runId: z.string(),
-  eventType: z.string(),
-  actor: z.string().optional(),
-  payload: recordLike().optional(),
-});
-
-// Handoff schemas
-const handoffCreateSchema = z.object({
-  runId: z.string(),
-  toPersona: z.string(),
-  taskBrief: z.string().optional(),
-  requiredOutputs: recordLike().optional(),
-});
-
-const handoffClaimSchema = z.object({
-  handoffId: z.string(),
-  agentId: z.string(),
-  ttlMs: numberLike().optional(),
-});
-
-const handoffCompleteSchema = z.object({
-  handoffId: z.string(),
-  status: z.enum(['done', 'returned']),
+const workflowCompleteInputSchema = z.object({
+  traceId: z.string(),
+  status: z.enum(['completed', 'failed']),
   outputs: recordLike().optional(),
   notes: z.string().optional(),
-});
-
-const handoffListPendingSchema = z.object({
-  runId: z.string().optional(),
-  persona: z.string().optional(),
 });
 
 // Memory search by run schema
@@ -423,31 +381,6 @@ const contextGetProjectTool: MCPTool = {
   },
 };
 
-// Clarification tool
-const clarifyAskTool: MCPTool = {
-  name: 'clarify_ask',
-  title: 'Ask for Clarification',
-  description: 'Ask user for clarification with optional suggested options',
-  inputSchema: clarifyAskInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = clarifyAskInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'clarify_ask',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const result = await clarifyAsk(validated);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
 // Session tools
 const sessionGetContextTool: MCPTool = {
   name: 'session_get_context',
@@ -527,244 +460,6 @@ const sessionUpdateContextTool: MCPTool = {
   },
 };
 
-// Run state tools
-const runStateCreateOrResumeTool: MCPTool = {
-  name: 'run_state_createOrResume',
-  title: 'Create or Resume Agent Run',
-  description: 'Create a new agent run or resume an existing one for the session',
-  inputSchema: runStateCreateOrResumeSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = runStateCreateOrResumeSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'run_state_createOrResume',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new RunRepository();
-    const run = validated.sessionId
-      ? await repo.findOrCreateForSession(
-          validated.sessionId,
-          validated.persona,
-          validated.project,
-          validated.instructions
-        )
-      : await repo.create({
-          persona: validated.persona,
-          project: validated.project,
-          instructions: validated.instructions,
-        });
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ runId: run.id }) }],
-      structuredContent: { runId: run.id },
-    };
-  },
-};
-
-const runStateReadTool: MCPTool = {
-  name: 'run_state_read',
-  title: 'Read Agent Run',
-  description: 'Read the current state of an agent run',
-  inputSchema: runStateReadSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = runStateReadSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'run_state_read',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new RunRepository();
-    const run = await repo.findById(validated.runId);
-
-    if (!run) {
-      throw new Error(`Run not found: ${validated.runId}`);
-    }
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(run) }],
-      structuredContent: run,
-    };
-  },
-};
-
-const runStateUpdateTool: MCPTool = {
-  name: 'run_state_update',
-  title: 'Update Agent Run',
-  description: 'Update the state of an agent run',
-  inputSchema: runStateUpdateSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = runStateUpdateSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'run_state_update',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new RunRepository();
-    await repo.update(validated.runId, validated.patch);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
-      structuredContent: { ok: true },
-    };
-  },
-};
-
-const runStateAppendEventTool: MCPTool = {
-  name: 'run_state_appendEvent',
-  title: 'Append Event to Run',
-  description: 'Append an event to the run event log',
-  inputSchema: runStateAppendEventSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = runStateAppendEventSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'run_state_appendEvent',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new RunEventsRepository();
-    await repo.append({
-      runId: validated.runId,
-      eventType: validated.eventType,
-      actor: validated.actor,
-      payload: validated.payload,
-    });
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
-      structuredContent: { ok: true },
-    };
-  },
-};
-
-// Handoff tools
-const handoffCreateTool: MCPTool = {
-  name: 'handoff_create',
-  title: 'Create Handoff',
-  description: 'Create a handoff task to delegate work to another persona',
-  inputSchema: handoffCreateSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = handoffCreateSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'handoff_create',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new HandoffRepository();
-    const handoff = await repo.create(validated);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ handoffId: handoff.id }) }],
-      structuredContent: { handoffId: handoff.id },
-    };
-  },
-};
-
-const handoffClaimTool: MCPTool = {
-  name: 'handoff_claim',
-  title: 'Claim Handoff',
-  description: 'Claim a handoff task with a TTL lease',
-  inputSchema: handoffClaimSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = handoffClaimSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'handoff_claim',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new HandoffRepository();
-    const result = await repo.claim(
-      validated.handoffId,
-      validated.agentId,
-      validated.ttlMs || 300000 // 5 minutes default
-    );
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
-const handoffCompleteTool: MCPTool = {
-  name: 'handoff_complete',
-  title: 'Complete Handoff',
-  description: 'Mark a handoff task as complete',
-  inputSchema: handoffCompleteSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = handoffCompleteSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'handoff_complete',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new HandoffRepository();
-    await repo.complete(validated.handoffId, {
-      status: validated.status,
-      outputs: validated.outputs,
-      notes: validated.notes,
-    });
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
-      structuredContent: { ok: true },
-    };
-  },
-};
-
-const handoffListPendingTool: MCPTool = {
-  name: 'handoff_listPending',
-  title: 'List Pending Handoffs',
-  description: 'List pending handoff tasks',
-  inputSchema: handoffListPendingSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = handoffListPendingSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'handoff_listPending',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repo = new HandoffRepository();
-    const handoffs = await repo.listPending(validated.runId, validated.persona);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ handoffs }) }],
-      structuredContent: { handoffs },
-    };
-  },
-};
-
 // Memory search by run tool
 const memorySearchByRunTool: MCPTool = {
   name: 'memory_searchByRun',
@@ -804,38 +499,198 @@ const memorySearchByRunTool: MCPTool = {
   },
 };
 
-// Prompt discovery tool
-const promptDiscoverTool: MCPTool = {
-  name: 'prompt_discover',
-  title: 'Discover Prompts',
-  description: 'Discover available prompts for a persona and project',
-  inputSchema: promptDiscoverInputSchema,
+// Trace coordination tools
+const traceCreateTool: MCPTool = {
+  name: 'trace_create',
+  title: 'Create Trace',
+  description: 'Create a new execution trace to anchor a production run',
+  inputSchema: traceCreateInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
-    const validated = promptDiscoverInputSchema.parse(unwrapped);
+    const validated = traceCreateInputSchema.parse(unwrapped);
 
     logger.info({
       msg: 'MCP tool called',
-      tool: 'prompt_discover',
+      tool: 'trace_create',
       params: sanitizeParams(validated),
       requestId,
     });
 
-    const result = await discoverPrompts(validated);
+    const traceRepo = new TraceRepository();
+    const trace = await traceRepo.create({
+      projectId: validated.projectId,
+      sessionId: validated.sessionId,
+      metadata: validated.metadata,
+    });
+
     return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
+      content: [{ type: 'text', text: JSON.stringify({ traceId: trace.traceId, status: trace.status, createdAt: trace.createdAt }) }],
+      structuredContent: { traceId: trace.traceId, status: trace.status, createdAt: trace.createdAt },
+    };
+  },
+};
+
+const handoffToAgentTool: MCPTool = {
+  name: 'handoff_to_agent',
+  title: 'Handoff to Agent',
+  description: 'Hand off work to another agent via n8n webhook',
+  inputSchema: handoffToAgentInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = handoffToAgentInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'handoff_to_agent',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const traceRepo = new TraceRepository();
+    const webhookRepo = new AgentWebhookRepository();
+
+    // Validate trace exists and is active
+    const trace = await traceRepo.findByTraceId(validated.traceId);
+    if (!trace) {
+      throw new Error(`Trace not found: ${validated.traceId}`);
+    }
+    if (trace.status !== 'active') {
+      throw new Error(`Trace is not active (status: ${trace.status})`);
+    }
+
+    // Lookup agent webhook
+    const webhook = await webhookRepo.findByAgentName(validated.toAgent);
+    if (!webhook) {
+      throw new Error(`Agent webhook not found: ${validated.toAgent}`);
+    }
+    if (!webhook.isActive) {
+      throw new Error(`Agent webhook is not active: ${validated.toAgent}`);
+    }
+
+    // Construct webhook URL
+    const webhookUrl = `${config.n8n.webhookUrl}${webhook.webhookPath}`;
+
+    // Build payload
+    const payload = {
+      traceId: validated.traceId,
+      instructions: validated.instructions,
+      metadata: validated.metadata || {},
+      projectId: trace.projectId,
+      sessionId: trace.sessionId,
+    };
+
+    // Invoke webhook
+    const n8nClient = new N8nClient({
+      baseUrl: config.n8n.baseUrl || 'http://n8n:5678',
+      apiKey: config.n8n.apiKey,
+    });
+
+    const webhookResponse = await n8nClient.invokeWebhook(webhookUrl, payload, {
+      method: webhook.method,
+      authType: webhook.authType as 'none' | 'header' | 'basic' | 'bearer',
+      authConfig: webhook.authConfig,
+      authToken: config.n8n.webhookAuthToken,
+      authHeaderName: config.n8n.webhookHeaderName,
+      timeoutMs: webhook.timeoutMs || undefined,
+    });
+
+    // Store handoff event to memory
+    try {
+      await storeMemory({
+        content: `Handed off to ${validated.toAgent}: ${validated.instructions}`,
+        memoryType: 'episodic',
+        tags: ['handoff', validated.toAgent],
+        metadata: {
+          traceId: validated.traceId,
+          toAgent: validated.toAgent,
+          executionId: webhookResponse.executionId,
+        },
+      });
+    } catch (memoryError) {
+      logger.warn({
+        msg: 'Failed to store handoff memory',
+        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
+        requestId,
+      });
+    }
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ webhookUrl, executionId: webhookResponse.executionId, status: webhookResponse.status, toAgent: validated.toAgent }) }],
+      structuredContent: { webhookUrl, executionId: webhookResponse.executionId, status: webhookResponse.status, toAgent: validated.toAgent },
+    };
+  },
+};
+
+const workflowCompleteTool: MCPTool = {
+  name: 'workflow_complete',
+  title: 'Complete Workflow',
+  description: 'Mark a workflow trace as completed or failed',
+  inputSchema: workflowCompleteInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = workflowCompleteInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'workflow_complete',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const traceRepo = new TraceRepository();
+
+    // Validate trace exists
+    const trace = await traceRepo.findByTraceId(validated.traceId);
+    if (!trace) {
+      throw new Error(`Trace not found: ${validated.traceId}`);
+    }
+
+    // Update trace status
+    const updatedTrace = await traceRepo.updateStatus(
+      validated.traceId,
+      validated.status,
+      validated.outputs
+    );
+
+    if (!updatedTrace) {
+      throw new Error(`Failed to update trace: ${validated.traceId}`);
+    }
+
+    // Store completion event to memory
+    try {
+      await storeMemory({
+        content: `Workflow ${validated.status}: ${validated.notes || 'No notes'}`,
+        memoryType: 'episodic',
+        tags: ['workflow-complete', validated.status],
+        metadata: {
+          traceId: validated.traceId,
+          status: validated.status,
+          outputs: validated.outputs,
+        },
+      });
+    } catch (memoryError) {
+      logger.warn({
+        msg: 'Failed to store completion memory',
+        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
+        requestId,
+      });
+    }
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ traceId: updatedTrace.traceId, status: updatedTrace.status, completedAt: updatedTrace.completedAt, outputs: updatedTrace.outputs }) }],
+      structuredContent: { traceId: updatedTrace.traceId, status: updatedTrace.status, completedAt: updatedTrace.completedAt, outputs: updatedTrace.outputs },
     };
   },
 };
 
 /**
- * MCP Tools - Focus on memory operations
+ * MCP Tools - Focus on memory operations and trace-based coordination
  * 
  * Architecture change:
  * - Prompts are now exposed via MCP Prompt API (loaded from procedural memories)
  * - n8n workflows are exposed as toolWorkflow nodes in agent.workflow.json
- * - These tools focus on memory and session management
+ * - Trace-based coordination replaces legacy run_state and handoff tools
+ * - These tools focus on memory, session management, and agent coordination
  */
 export const mcpTools: MCPTool[] = [
   // Memory tools
@@ -847,22 +702,13 @@ export const mcpTools: MCPTool[] = [
   // Context tools
   contextGetPersonaTool,
   contextGetProjectTool,
+
+  // Trace coordination tools
+  traceCreateTool,
+  handoffToAgentTool,
+  workflowCompleteTool,
   
-  // Run state tools
-  runStateCreateOrResumeTool,
-  runStateReadTool,
-  runStateUpdateTool,
-  runStateAppendEventTool,
-  
-  // Handoff tools
-  handoffCreateTool,
-  handoffClaimTool,
-  handoffCompleteTool,
-  handoffListPendingTool,
-  
-  // Other tools
-  promptDiscoverTool,
-  clarifyAskTool,
+  // Session tools
   sessionGetContextTool,
   sessionUpdateContextTool,
 ];

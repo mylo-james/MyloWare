@@ -1,15 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { withRetry, isRetryableError } from '@/utils/retry.js';
 
 describe('retry', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('should succeed on first attempt', async () => {
     const fn = vi.fn().mockResolvedValue('success');
 
@@ -25,15 +17,10 @@ describe('retry', () => {
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValue('success');
 
-    const promise = withRetry(fn, {
+    const result = await withRetry(fn, {
       maxRetries: 3,
-      initialDelay: 100,
+      initialDelay: 5,
     });
-
-    // Fast-forward time for retry
-    await vi.advanceTimersByTimeAsync(100);
-
-    const result = await promise;
 
     expect(result).toBe('success');
     expect(fn).toHaveBeenCalledTimes(2);
@@ -43,32 +30,25 @@ describe('retry', () => {
     const error = new Error('Persistent error');
     const fn = vi.fn().mockRejectedValue(error);
 
-    const promise = withRetry(fn, {
-      maxRetries: 2,
-      initialDelay: 100,
-    });
-
-    // Fast-forward through all retries
-    await vi.advanceTimersByTimeAsync(300);
-
-    await expect(promise).rejects.toThrow('Persistent error');
+    await expect(
+      withRetry(fn, {
+        maxRetries: 2,
+        initialDelay: 5,
+      })
+    ).rejects.toThrow('Persistent error');
     expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
   });
 
   it('should use exponential backoff', async () => {
     const fn = vi.fn().mockRejectedValue(new Error('Error'));
-    const promise = withRetry(fn, {
-      maxRetries: 2,
-      initialDelay: 100,
-      backoff: 'exponential',
-      backoffMultiplier: 2,
-    });
-
-    // Advance time gradually to check delays
-    await vi.advanceTimersByTimeAsync(100); // First retry after 100ms
-    await vi.advanceTimersByTimeAsync(200); // Second retry after 200ms (100 * 2)
-
-    await expect(promise).rejects.toThrow();
+    await expect(
+      withRetry(fn, {
+        maxRetries: 2,
+        initialDelay: 5,
+        backoff: 'exponential',
+        backoffMultiplier: 2,
+      })
+    ).rejects.toThrow();
     expect(fn).toHaveBeenCalledTimes(3);
   });
 
@@ -81,18 +61,15 @@ describe('retry', () => {
       .mockRejectedValueOnce(retryableError)
       .mockRejectedValueOnce(nonRetryableError);
 
-    const promise = withRetry(fn, {
-      maxRetries: 3,
-      initialDelay: 100,
-      retryable: (error) => {
-        return error instanceof Error && error.message.includes('Network');
-      },
-    });
-
-    await vi.advanceTimersByTimeAsync(100);
-
-    // Should not retry non-retryable error
-    await expect(promise).rejects.toThrow('Validation error');
+    await expect(
+      withRetry(fn, {
+        maxRetries: 3,
+        initialDelay: 5,
+        retryable: (error) => {
+          return error instanceof Error && error.message.includes('Network');
+        },
+      })
+    ).rejects.toThrow('Validation error');
     expect(fn).toHaveBeenCalledTimes(2); // Initial + 1 retry, then stops
   });
 

@@ -1,15 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { withTimeout, TimeoutError } from '@/utils/timeout.js';
 
 describe('timeout', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('should return result if function completes before timeout', async () => {
     const fn = vi.fn().mockResolvedValue('success');
 
@@ -22,16 +14,13 @@ describe('timeout', () => {
 
   it('should throw TimeoutError if timeout exceeded', async () => {
     const fn = vi.fn().mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 2000))
+      () => new Promise((resolve) => setTimeout(resolve, 200))
     );
 
     const promise = withTimeout(fn, {
-      timeout: 1000,
+      timeout: 50,
       message: 'Custom timeout message',
     });
-
-    // Fast-forward past timeout
-    await vi.advanceTimersByTimeAsync(1000);
 
     await expect(promise).rejects.toThrow(TimeoutError);
     await expect(promise).rejects.toThrow('Custom timeout message');
@@ -39,21 +28,18 @@ describe('timeout', () => {
 
   it('should include timeout duration in error', async () => {
     const fn = vi.fn().mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 2000))
+      () => new Promise((resolve) => setTimeout(resolve, 200))
     );
 
-    const promise = withTimeout(fn, { timeout: 500 });
-
-    await vi.advanceTimersByTimeAsync(500);
+    const promise = withTimeout(fn, { timeout: 75 });
 
     try {
       await promise;
     } catch (error) {
       expect(error).toBeInstanceOf(TimeoutError);
       if (error instanceof TimeoutError) {
-        expect(error.timeout).toBe(500);
+        expect(error.timeout).toBe(75);
       }
     }
   });
 });
-

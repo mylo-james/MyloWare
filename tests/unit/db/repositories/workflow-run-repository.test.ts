@@ -94,7 +94,7 @@ describe('WorkflowRunRepository', () => {
     });
 
     it('should return null for non-existent ID', async () => {
-      const found = await repository.findById('non-existent-id');
+      const found = await repository.findById('00000000-0000-0000-0000-000000000000');
 
       expect(found).toBeNull();
     });

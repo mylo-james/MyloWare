@@ -7,4 +7,6 @@ export { SessionRepository } from './session-repository.js';
 export { RunRepository } from './run-repository.js';
 export { HandoffRepository } from './handoff-repository.js';
 export { RunEventsRepository } from './run-events-repository.js';
+export { TraceRepository } from './trace-repository.js';
+export { AgentWebhookRepository } from './agent-webhook-repository.js';
 

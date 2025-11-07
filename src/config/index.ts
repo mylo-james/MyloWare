@@ -3,6 +3,32 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+function normalizeDatabaseUrl(url: string | undefined): string | undefined {
+  if (!url) {
+    return url;
+  }
+
+  // If we're running outside Docker, rewrite the hostname so macOS can reach Postgres
+  const runningInDocker = process.env.DOCKER_CONTAINER === 'true';
+  try {
+    const parsed = new URL(url);
+    if (!runningInDocker) {
+      if (parsed.hostname === 'postgres') {
+        parsed.hostname = 'localhost';
+      }
+      if (process.env.POSTGRES_PORT) {
+        parsed.port = process.env.POSTGRES_PORT;
+      }
+      return parsed.toString();
+    }
+  } catch {
+    // If URL parsing fails, fall back to the raw string
+    return url;
+  }
+
+  return url;
+}
+
 const ConfigSchema = z.object({
   database: z.object({
     url: z.string().url(),
@@ -27,6 +53,8 @@ const ConfigSchema = z.object({
     baseUrl: z.string().url().optional(),
     apiKey: z.string().optional(),
     webhookUrl: z.string().url().optional(),
+    webhookAuthToken: z.string().optional(),
+    webhookHeaderName: z.string().default('x-api-key'),
   }),
   security: z
     .object({
@@ -38,13 +66,15 @@ const ConfigSchema = z.object({
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 
+const rawDatabaseUrl =
+  process.env.DATABASE_URL ||
+  (process.env.NODE_ENV === 'test'
+    ? 'postgresql://test:test@127.0.0.1:6543/mcp_v2_test'
+    : undefined);
+
 export const config = ConfigSchema.parse({
   database: {
-    url:
-      process.env.DATABASE_URL ||
-      (process.env.NODE_ENV === 'test'
-        ? 'postgresql://test:test@127.0.0.1:6543/mcp_v2_test'
-        : undefined),
+    url: normalizeDatabaseUrl(rawDatabaseUrl),
   },
   openai: {
     apiKey:
@@ -73,7 +103,9 @@ export const config = ConfigSchema.parse({
   n8n: {
     baseUrl: process.env.N8N_BASE_URL || 'http://n8n:5678',
     apiKey: process.env.N8N_API_KEY,
-    webhookUrl: process.env.N8N_WEBHOOK_URL || process.env.N8N_BASE_URL,
+    webhookUrl: process.env.N8N_WEBHOOK_URL || process.env.N8N_BASE_URL || 'http://n8n:5678',
+    webhookAuthToken: process.env.N8N_WEBHOOK_AUTH_TOKEN,
+    webhookHeaderName: process.env.N8N_WEBHOOK_HEADER_NAME || 'x-api-key',
   },
   security: {
     allowedOrigins: process.env.ALLOWED_ORIGINS

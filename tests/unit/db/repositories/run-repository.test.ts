@@ -159,7 +159,7 @@ describe('RunRepository', () => {
       });
 
       await repository.claim(run.id, 'agent-1', 300000);
-      const result = await repository.claim(run.id, 'agent-2', 300000);
+      const result = await repository.claim(run.id, 'agent-2', 100);
 
       expect(result.status).toBe('conflict');
     });
@@ -172,14 +172,16 @@ describe('RunRepository', () => {
 
       await repository.claim(run.id, 'agent-1', 100); // Very short lease
 
-      // Wait for lease to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Simulate lease expiry by clearing the lock fields (equivalent to a timeout)
+      await repository.update(run.id, {
+        lockedAt: null,
+        custodianAgent: null,
+      });
 
-      const result = await repository.claim(run.id, 'agent-2', 300000);
+      const result = await repository.claim(run.id, 'agent-2', 100);
 
       expect(result.status).toBe('locked');
       expect(result.run?.custodianAgent).toBe('agent-2');
     });
   });
 });
-

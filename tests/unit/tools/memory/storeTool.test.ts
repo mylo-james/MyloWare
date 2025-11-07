@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { storeMemory } from '@/tools/memory/storeTool.js';
-import { ValidationError } from '@/utils/validation.js';
 
 describe('storeMemory', () => {
   describe('input validation', () => {
@@ -10,7 +9,11 @@ describe('storeMemory', () => {
           content: 'line1\nline2',
           memoryType: 'episodic',
         })
-      ).rejects.toThrow(ValidationError);
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
+        field: 'content',
+      });
     });
 
     it('should accept single-line content', async () => {
@@ -26,4 +29,3 @@ describe('storeMemory', () => {
     });
   });
 });
-

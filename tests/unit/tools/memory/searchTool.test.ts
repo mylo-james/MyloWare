@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { searchMemories } from '@/tools/memory/searchTool.js';
-import { ValidationError } from '@/utils/validation.js';
 
 describe('searchMemories', () => {
   describe('input validation', () => {
     it('should reject query with newlines', async () => {
       await expect(
         searchMemories({ query: 'line1\nline2' })
-      ).rejects.toThrow(ValidationError);
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
+        field: 'content',
+      });
     });
 
     it('should accept single-line query', async () => {
@@ -21,4 +24,3 @@ describe('searchMemories', () => {
 
   // More tests will be added as we implement full functionality
 });
-

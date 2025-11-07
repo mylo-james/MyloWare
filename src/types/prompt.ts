@@ -1,20 +1,3 @@
-export interface PromptDiscoveryParams {
-  persona: string;
-  project: string;
-  intent?: string;
-  limit?: number;
-}
-
-export interface PromptDiscoveryResult {
-  prompts: Array<{
-    id: string;
-    name: string;
-    description: string;
-    steps: number;
-  }>;
-  totalFound: number;
-}
-
 export interface PromptExecuteParams {
   promptId: string;
   sessionId?: string;

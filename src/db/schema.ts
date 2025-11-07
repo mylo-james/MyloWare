@@ -238,3 +238,47 @@ export const runEvents = pgTable(
     runIdIdx: index('run_events_run_id_idx').on(table.runId),
   })
 );
+
+// Execution traces table - coordinates agent handoffs via traceId
+export const executionTraces = pgTable(
+  'execution_traces',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    traceId: uuid('trace_id').notNull().unique(),
+    projectId: text('project_id').notNull(),
+    sessionId: text('session_id'),
+    status: text('status').notNull().default('active'), // 'active', 'completed', 'failed'
+    outputs: jsonb('outputs'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+    metadata: jsonb('metadata').notNull().default({}),
+  },
+  (table) => ({
+    traceIdIdx: index('execution_traces_trace_id_idx').on(table.traceId),
+    statusIdx: index('execution_traces_status_idx').on(table.status),
+    createdAtIdx: index('execution_traces_created_at_idx').on(table.createdAt),
+  })
+);
+
+// Agent webhooks table - maps agent names to n8n webhook configurations
+export const agentWebhooks = pgTable(
+  'agent_webhooks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentName: text('agent_name').notNull().unique(),
+    webhookPath: text('webhook_path').notNull(),
+    method: text('method').notNull().default('POST'),
+    authType: text('auth_type').notNull().default('none'), // 'none', 'header', 'basic', 'bearer'
+    authConfig: jsonb('auth_config').notNull().default({}),
+    description: text('description'),
+    isActive: boolean('is_active').notNull().default(true),
+    timeoutMs: integer('timeout_ms'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    agentNameIdx: index('agent_webhooks_agent_name_idx').on(table.agentName),
+    isActiveIdx: index('agent_webhooks_is_active_idx').on(table.isActive),
+  })
+);

@@ -27,9 +27,11 @@ async function testAllTools() {
     await client.connect(transport);
     console.log(`✅ Connected to MCP server at ${serverUrl}\n`);
 
+    const totalTests = 12;
     let passed = 0;
     let failed = 0;
     let memoryId = '';
+    let traceId = '';
 
     // Test 1: memory_search - Should return workflow memories
     console.log('\n1️⃣  memory_search');
@@ -223,31 +225,8 @@ async function testAllTools() {
       failed++;
     }
 
-    // Test 9: clarify_ask
-    console.log('\n9️⃣  clarify_ask');
-    try {
-      const result = await client.callTool({
-        name: 'clarify_ask',
-        arguments: {
-          question: 'Which workflow would you like to run?',
-          suggestedOptions: ['Idea Generation', 'Screenplay', 'Video Generation'],
-        },
-      });
-      const data = JSON.parse(result.content[0].text);
-      if (data.formatted && data.formatted.includes('1.')) {
-        console.log('   ✅ PASS - Formatted clarification question');
-        passed++;
-      } else {
-        console.log('   ❌ FAIL - No formatted output');
-        failed++;
-      }
-    } catch (e) {
-      console.log('   ❌ FAIL -', e.message);
-      failed++;
-    }
-
-    // Test 10: session_get_context
-    console.log('\n🔟 session_get_context');
+    // Test 9: session_get_context
+    console.log('\n9️⃣  session_get_context');
     try {
       const result = await client.callTool({
         name: 'session_get_context',
@@ -270,8 +249,8 @@ async function testAllTools() {
       failed++;
     }
 
-    // Test 11: session_update_context
-    console.log('\n1️⃣1️⃣  session_update_context');
+    // Test 10: session_update_context
+    console.log('\n🔟 session_update_context');
     try {
       const result = await client.callTool({
         name: 'session_update_context',
@@ -296,17 +275,66 @@ async function testAllTools() {
       failed++;
     }
 
+    // Test 11: trace_create
+    console.log('\n1️⃣1️⃣  trace_create');
+    try {
+      const result = await client.callTool({
+        name: 'trace_create',
+        arguments: {
+          projectId: 'aismr',
+          metadata: { source: 'comprehensive-test' },
+        },
+      });
+      const data = JSON.parse(result.content[0].text);
+      if (data.traceId) {
+        traceId = data.traceId;
+        console.log('   ✅ PASS - Created trace:', traceId);
+        passed++;
+      } else {
+        console.log('   ❌ FAIL - No traceId returned');
+        failed++;
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL -', e.message);
+      failed++;
+    }
+
+    // Test 12: workflow_complete (without outputs)
+    console.log('\n1️⃣2️⃣  workflow_complete');
+    try {
+      if (!traceId) throw new Error('No traceId from trace_create');
+      const result = await client.callTool({
+        name: 'workflow_complete',
+        arguments: {
+          traceId,
+          status: 'failed',
+          notes: 'Marked by comprehensive MCP test script',
+        },
+      });
+      const data = JSON.parse(result.content[0].text);
+      if (data.status && data.traceId === traceId) {
+        console.log('   ✅ PASS - Trace marked as', data.status);
+        passed++;
+      } else {
+        console.log('   ❌ FAIL - Unexpected workflow_complete response');
+        failed++;
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL -', e.message);
+      failed++;
+    }
+
     // Final Summary
     console.log('\n' + '='.repeat(80));
     console.log('📊 FINAL TEST RESULTS');
     console.log('='.repeat(80));
-    console.log(`\n✅ PASSED: ${passed}/11`);
-    console.log(`❌ FAILED: ${failed}/11`);
-    console.log(`📈 SUCCESS RATE: ${Math.round((passed / 11) * 100)}%`);
+    console.log(`\n✅ PASSED: ${passed}/${totalTests}`);
+    console.log(`❌ FAILED: ${failed}/${totalTests}`);
+    console.log(`📈 SUCCESS RATE: ${Math.round((passed / totalTests) * 100)}%`);
     
-    if (passed === 11) {
+    if (passed === totalTests) {
       console.log('\n🎉 ALL TOOLS WORKING PERFECTLY!\n');
-    } else if (passed >= 9) {
+    } else if (passed >= totalTests - 2) {
       console.log('\n✨ EXCELLENT - Most tools working! Minor issues to address.\n');
     } else {
       console.log('\n⚠️  NEEDS ATTENTION - Several tools need fixes.\n');
@@ -321,4 +349,3 @@ async function testAllTools() {
 }
 
 testAllTools();
-
