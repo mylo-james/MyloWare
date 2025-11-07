@@ -37,7 +37,7 @@ const ConfigSchema = z.object({
     apiKey: z.string().startsWith('sk-'),
   }),
   mcp: z.object({
-    authKey: z.string().min(1).optional(),
+    authKey: z.string().min(1),
   }),
   server: z.object({
     port: z.number().default(3000),
@@ -58,7 +58,7 @@ const ConfigSchema = z.object({
   }),
   security: z
     .object({
-      allowedOrigins: z.array(z.string()).default(['*']),
+      allowedOrigins: z.array(z.string()).default(['http://localhost:5678', 'http://n8n:5678']),
       rateLimitMax: z.number().default(100),
       rateLimitTimeWindow: z.string().default('1 minute'),
     })
@@ -84,11 +84,24 @@ export const config = ConfigSchema.parse({
       (process.env.NODE_ENV === 'test' ? 'sk-test' : undefined),
   },
   mcp: {
-    authKey:
-      process.env.MCP_AUTH_KEY ||
-      (process.env.NODE_ENV === 'test'
-        ? '00000000-0000-0000-0000-000000000000'
-        : undefined),
+    authKey: (() => {
+      // In test environment, use default test key
+      if (process.env.NODE_ENV === 'test') {
+        return process.env.MCP_AUTH_KEY || '00000000-0000-0000-0000-000000000000';
+      }
+      // In production, require auth key
+      if (process.env.NODE_ENV === 'production') {
+        if (!process.env.MCP_AUTH_KEY) {
+          throw new Error('MCP_AUTH_KEY is required in production environment');
+        }
+        return process.env.MCP_AUTH_KEY;
+      }
+      // In development, allow optional but warn if missing
+      if (!process.env.MCP_AUTH_KEY) {
+        console.warn('⚠️  MCP_AUTH_KEY not set. Authentication is disabled. Set MCP_AUTH_KEY in production.');
+      }
+      return process.env.MCP_AUTH_KEY || '';
+    })(),
   },
   server: {
     port: parseInt(process.env.SERVER_PORT || '3000'),

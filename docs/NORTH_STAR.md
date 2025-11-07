@@ -263,27 +263,16 @@ await handoff_to_agent({
 // - Invokes Myloware Agent webhook with { traceId: "trace-001" }
 
 // ========================================
-// CASEY WAITING LOOP
+// CASEY'S COMPLETION SIGNAL
 // ========================================
-// Casey's workflow now polls trace status every 5 seconds
-while (true) {
-  const trace = await trace_prepare({ traceId: 'trace-001' });
-
-  if (trace.status === 'completed') {
-    await sendTelegram(
-      sessionId,
-      `✅ Your AISMR candles video is live! ${trace.outputs.url}`
-    );
-    break;
-  }
-
-  if (trace.status === 'failed') {
-    await sendTelegram(sessionId, `❌ Production failed: ${trace.error}`);
-    break;
-  }
-
-  await sleep(5000); // Poll every 5 seconds
-}
+// Casey's job ends after handoff to Iggy. When Quinn calls
+// handoff_to_agent({ toAgent: 'complete' }), the tool automatically:
+// 1. Sets trace status to 'completed'
+// 2. Extracts publish URL from instructions
+// 3. Sends Telegram notification to user directly
+// 4. No polling required - notification is immediate
+//
+// This is simpler and more efficient than the polling pattern.
 ```
 
 ### Step 2: Iggy (Creative Director)
@@ -606,10 +595,12 @@ await handoff_to_agent({
 // - Returns immediately
 
 // ========================================
-// CASEY'S WAITING LOOP UNBLOCKS
+// COMPLETION NOTIFICATION
 // ========================================
-// Casey's polling detects trace.status = "completed"
-// Casey sends notification to user:
+// handoff_to_agent({ toAgent: 'complete' }) automatically:
+// - Sets trace.status = "completed"
+// - Extracts publish URL from instructions
+// - Sends Telegram notification directly to user:
 
 "🎉 Your AISMR candles video is live!
 Watch: https://tiktok.com/@mylo_aismr/video/7234567890
@@ -896,14 +887,14 @@ await handoff_to_agent({ toAgent: "riley", ... });
 // Completion
 await handoff_to_agent({ toAgent: "complete", ... });
 // → Sets trace.status = "completed"
-// → NO webhook invoked
-// → Casey's waiting loop unblocks
+// → Extracts publish URL from instructions
+// → Sends Telegram notification to user directly
+// → NO webhook invoked (completion is terminal)
 
 // Error handling
 await handoff_to_agent({ toAgent: "error", ... });
 // → Sets trace.status = "failed"
-// → NO webhook invoked
-// → Casey's waiting loop unblocks
+// → NO webhook invoked (error is terminal)
 ```
 
 ### trace_update Tool (Casey Only)
@@ -986,26 +977,21 @@ await trace_update({
 
 **No postprocessing needed** - agents own their handoffs!
 
-### ✅ Casey Blocks Until Complete
+### ✅ Casey's Completion Signal
 
-After Casey hands off to Iggy, she enters a **waiting loop**:
+Casey's job ends after handoff to Iggy. When Quinn calls `handoff_to_agent({ toAgent: 'complete' })`, the tool automatically:
 
-```typescript
-while (true) {
-  const trace = await trace_prepare({ traceId });
+1. Sets trace status to 'completed'
+2. Extracts publish URL from instructions
+3. Sends Telegram notification to user directly
+4. No polling required - notification is immediate
 
-  if (trace.status === 'completed' || trace.status === 'failed') {
-    // Notify user and exit
-    break;
-  }
-
-  await sleep(5000); // Poll every 5 seconds
-}
-```
+This is simpler and more efficient than the polling pattern.
 
 **Benefits:**
 
-- Casey knows when workflow is complete
+- Immediate notification (no polling delay)
+- Simpler architecture (no wait loop needed)
 - User gets notified automatically
 - No separate completion signal mechanism needed
 - Simple polling pattern
@@ -1037,7 +1023,7 @@ User sends Telegram message
 │ • memory_store(kickoff)            │
 │ • handoff_to_agent(toAgent="iggy")│
 └────────┬───────────────────────────┘
-         ↓ (Casey enters wait loop)
+         ↓ (Casey's job complete - notification happens automatically)
 ┌────────────────────────────────────┐
 │ Myloware Agent (Webhook trigger)  │
 │ traceId = "trace-001"              │
@@ -1081,10 +1067,10 @@ User sends Telegram message
 │ • memory_store(post URL)           │
 │ • handoff_to_agent(toAgent="complete")│
 └────────┬───────────────────────────┘
-         ↓ (Sets trace.status = "completed")
+         ↓ (Sets trace.status = "completed", sends Telegram notification)
 ┌────────────────────────────────────┐
-│ Casey's Wait Loop Unblocks         │
-│ Notifies user: "Video is live!"    │
+│ User receives notification:        │
+│ "Video is live! [URL]"              │
 └────────────────────────────────────┘
 ```
 
@@ -1387,8 +1373,8 @@ Trace updated:
   status = "failed"
   completedAt = now
 
-Casey's wait loop detects trace.status === "failed"
-Casey notifies user with error details
+handoff_to_agent({ toAgent: "error" }) sets trace.status = "failed"
+Error notification sent automatically (if implemented)
 ```
 
 ---
@@ -1573,7 +1559,7 @@ await invokeWebhook('myloware-agent', { traceId });
 - [ ] Implement initialization node (create trace if needed)
 - [ ] Implement preprocessing node (discover persona + build prompt)
 - [ ] Configure AI Agent node with dynamic prompt and tools
-- [ ] Implement Casey's waiting loop
+- [x] Completion notification (direct from handoff_to_agent)
 - [ ] Archive old workflow files
 
 ### Epic 3: Project & Persona Configs
@@ -1628,9 +1614,9 @@ Projects don't just define specs—they define the entire workflow. Want a diffe
 
 Calling `handoff_to_agent` isn't just triggering a webhook—it's updating the state machine. The webhook invocation is a side effect.
 
-### 5. Casey's Wait Loop = Blocking Coordinator
+### 5. Direct Completion Notification
 
-Casey blocks after handoff, polling for completion. This is the simplest possible coordination: wait for trace status to change.
+Casey's job ends after handoff. Completion notification happens automatically when Quinn calls `handoff_to_agent({ toAgent: 'complete' })`. This is simpler and more efficient than polling.
 
 ---
 
@@ -1748,7 +1734,7 @@ Update `optionalSteps` based on data.
 │  │  • Initialization node                      │  │
 │  │  • Preprocessing node (MCP calls)           │  │
 │  │  • AI Agent node (OpenAI)                   │  │
-│  │  • Casey wait loop (after handoff)          │  │
+│  │  • Direct completion notification           │  │
 │  │                                             │  │
 │  │  Becomes any persona dynamically!           │  │
 │  └──────────────────────────────────────────────┘  │
@@ -1837,7 +1823,7 @@ Webhook → Myloware Agent (becomes Alex)
   ↓ handoff
 Webhook → Myloware Agent (becomes Quinn)
   ↓ handoff to "complete"
-Casey's wait loop unblocks → Notifies user
+handoff_to_agent({ toAgent: 'complete' }) → User notified automatically
 ```
 
 **Solutions:**
@@ -1953,23 +1939,16 @@ AI Agent Node:
 # - Full context to execute its role
 ```
 
-### Casey Wait Loop (Optional)
+### Completion Notification
 
-> **Note:** Casey can optionally poll the trace to notify the user when complete. Alternatively, Quinn can send the final notification directly.
+> **Note:** Completion notification happens automatically when Quinn calls `handoff_to_agent({ toAgent: 'complete' })`. The tool extracts the publish URL from instructions and sends a Telegram notification directly to the user. No polling loop is needed.
 
-```yaml
-Wait Loop Node:
-  type: 'Loop'
-  maxIterations: 120 # 120 * 5s = 10 minutes max
-
-  Loop Item:
-    - HTTP GET: /mcp/trace_prep?traceId={{traceId}}
-    - IF trace.status === "completed" → Exit loop, notify user
-    - IF trace.status === "failed" → Exit loop, notify user with error
-    - ELSE → Wait 5 seconds, continue loop
-# Simpler alternative: Let Quinn send the final Telegram notification
-# and skip the Casey wait loop entirely
-```
+**Implementation:**
+- Quinn calls `handoff_to_agent({ toAgent: 'complete', instructions: 'Published... URL: https://...' })`
+- Tool sets `trace.status = 'completed'`
+- Tool extracts URL from instructions (format: "URL: https://...")
+- Tool sends Telegram notification: "✅ Your [project] video is live!\n\nWatch: [URL]"
+- No webhook invocation (completion is terminal)
 
 ---
 

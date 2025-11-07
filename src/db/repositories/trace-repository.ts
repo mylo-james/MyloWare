@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 export interface CreateTraceParams {
-  projectId: string;
+  projectId: string; // UUID, not text slug
   sessionId?: string;
   metadata?: Record<string, unknown>;
   instructions?: string;
@@ -19,7 +19,7 @@ export interface UpdateTraceParams {
 export interface Trace {
   id: string;
   traceId: string;
-  projectId: string;
+  projectId: string; // Now UUID, not text slug
   sessionId: string | null;
   currentOwner: string;
   previousOwner: string | null;
@@ -28,6 +28,7 @@ export interface Trace {
   status: string;
   outputs: Record<string, unknown> | null;
   createdAt: Date;
+  updatedAt: Date;
   completedAt: Date | null;
   metadata: Record<string, unknown>;
 }
@@ -79,6 +80,7 @@ export class TraceRepository {
     const updateData: Record<string, unknown> = {
       status,
       completedAt: new Date(),
+      // updated_at is handled by trigger, don't set manually
     };
 
     if (outputs !== undefined) {

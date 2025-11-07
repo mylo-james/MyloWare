@@ -16,8 +16,9 @@ import { logger } from './utils/logger.js';
 import { pool } from './db/client.js';
 import { embedText } from './utils/embedding.js';
 import { register } from './utils/metrics.js';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { handleTracePrep } from './api/routes/trace-prep.js';
+import { startRetryQueueProcessor, stopRetryQueueProcessor } from './utils/retry-queue.js';
 const hashValue = (value: string) =>
   createHash('sha256').update(value).digest('hex');
 
@@ -179,10 +180,27 @@ const authenticateRequest = (
   }
 
   const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
-  const providedKey = apiKeyHeader?.trim();
+  const providedKey = apiKeyHeader?.trim() || '';
 
-  if (providedKey === config.mcp.authKey) {
-    return true;
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    const expectedKeyBuffer = Buffer.from(config.mcp.authKey, 'utf8');
+    const providedKeyBuffer = Buffer.from(providedKey, 'utf8');
+    
+    // If lengths differ, use timingSafeEqual with same-length buffers to prevent length-based timing leaks
+    if (expectedKeyBuffer.length !== providedKeyBuffer.length) {
+      // Compare with a dummy buffer of the same length as expected to maintain constant time
+      const dummyBuffer = Buffer.alloc(expectedKeyBuffer.length);
+      timingSafeEqual(expectedKeyBuffer, dummyBuffer);
+      return false;
+    }
+    
+    if (timingSafeEqual(expectedKeyBuffer, providedKeyBuffer)) {
+      return true;
+    }
+  } catch {
+    // If timingSafeEqual fails (shouldn't happen), fall back to false
+    return false;
   }
 
   // In production, log minimal info. In development, log detailed debug info.
@@ -496,7 +514,7 @@ const start = async () => {
     });
 
     await fastify.register(cors, {
-      origin: config.security?.allowedOrigins || ['*'],
+      origin: config.security?.allowedOrigins || ['http://localhost:5678', 'http://n8n:5678'],
       credentials: true,
     });
 
@@ -525,6 +543,9 @@ const start = async () => {
       maxSessions: MAX_SESSIONS,
     });
 
+    // Start retry queue processor
+    startRetryQueueProcessor();
+
     logger.info({
       msg: 'MCP server started',
       port: config.server.port,
@@ -547,6 +568,7 @@ process.on('SIGTERM', async () => {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
   }
+  stopRetryQueueProcessor();
   await fastify.close();
   await pool.end();
   process.exit(0);
@@ -558,6 +580,7 @@ process.on('SIGINT', async () => {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
   }
+  stopRetryQueueProcessor();
   await fastify.close();
   await pool.end();
   process.exit(0);

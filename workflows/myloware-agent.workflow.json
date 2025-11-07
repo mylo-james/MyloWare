@@ -8,8 +8,8 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [-800, -96],
-      "id": "f5d3d9b3-35d3-43b6-a7f7-e7cd5e947d4e",
+      "position": [-800, 112],
+      "id": "b570e5ca-25b9-4b7b-b620-5e6aeaf4c89f",
       "name": "Webhook: Agent Handoff",
       "webhookId": "myloware-agent-webhook",
       "notes": "Receives handoff requests from other agents via handoff_to_agent tool. Path: /webhook/myloware/ingest"
@@ -21,8 +21,8 @@
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [-800, -288],
-      "id": "085114ae-1865-4f9d-ae76-6e24d337385c",
+      "position": [-800, -80],
+      "id": "8c4f1bfd-cb25-4ad4-b4ce-5d10558e4c23",
       "name": "Trigger: Telegram Message",
       "webhookId": "myloware-agent-telegram",
       "credentials": {
@@ -39,8 +39,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.3,
-      "position": [-800, 96],
-      "id": "a31e7d96-a88d-44b2-8772-6115c5e1824a",
+      "position": [-800, 304],
+      "id": "6013dc7a-512a-4715-b5ba-8d8cf0362015",
       "name": "Trigger: Chat Interface",
       "webhookId": "myloware-agent-chat",
       "notes": "Triggers workflow when user sends a message via the chat UI. Extracts sessionId and chatInput."
@@ -55,8 +55,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
-      "position": [256, -96],
-      "id": "2aa44d65-3f59-4256-905e-a08eb5946db1",
+      "position": [536, 112],
+      "id": "941a74a0-3e22-4c1c-8d6e-633fd754a34a",
       "name": "AI Agent: Persona Execution",
       "retryOnFail": false,
       "notes": "Universal AI agent that executes any persona (Casey, Iggy, Riley, Veo, Alex, Quinn) based on trace.currentOwner. System prompt and allowed tools are dynamically set from trace_prep output. Uses MCP tools and toolWorkflow nodes to complete tasks."
@@ -71,8 +71,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [-128, 128],
-      "id": "63406858-a304-4346-b60d-1d9178c9f0a8",
+      "position": [96, 336],
+      "id": "91ca3db7-80d5-4b36-8837-8048afc7f969",
       "name": "Language Model: GPT-5 Nano",
       "credentials": {
         "openAiApi": {
@@ -93,8 +93,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
-      "position": [0, 128],
-      "id": "e2f62a8c-9ec0-4523-a239-0cb74fcffdab",
+      "position": [224, 336],
+      "id": "edf5f394-e0a9-4cef-9170-4f96f96e3f1c",
       "name": "Tool: MCP Server Tools",
       "credentials": {
         "httpHeaderAuth": {
@@ -136,8 +136,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [128, 128],
-      "id": "c3c1b4a1-07f3-4d19-b01b-f1b9904a0737",
+      "position": [352, 336],
+      "id": "d6d15378-349f-429d-85e1-b2267bea7cdf",
       "name": "Tool: Upload to Google Drive",
       "notes": "Tool workflow for uploading files to Google Drive. Called by AI agent when needed (e.g., Quinn publishing assets)."
     },
@@ -173,8 +173,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [256, 128],
-      "id": "77adcef1-b6e4-492a-80d6-6d655d5d6b09",
+      "position": [480, 336],
+      "id": "4fe8ec6e-8ff9-400a-b07c-d81f737bfdbd",
       "name": "Tool: Upload to TikTok",
       "notes": "Tool workflow for uploading videos to TikTok. Called by Quinn persona when publishing final edits."
     },
@@ -218,8 +218,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [384, 128],
-      "id": "f8209701-be66-46b8-96ea-b50e6c502831",
+      "position": [608, 336],
+      "id": "d84834a2-97ea-45c1-9d12-a400e482fb12",
       "name": "Tool: Shotstack Video Editing",
       "notes": "Tool workflow for video editing via Shotstack API. Called by Alex persona to stitch and edit video compilations. Requires traceId and videoUrls (array of video URL strings)."
     },
@@ -263,8 +263,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [512, 128],
-      "id": "fdf27bb9-5d50-4e60-9204-fe17cd82ddf5",
+      "position": [736, 336],
+      "id": "344208a1-1588-4426-ab2f-e160f41a2d5e",
       "name": "Tool: Generate Video",
       "notes": "Tool workflow for video generation. Called by Veo persona to generate individual video clips from screenplays. Requires traceId and screenplay (JSON object with script content)."
     },
@@ -281,7 +281,7 @@
             {
               "id": "sessionId",
               "name": "sessionId",
-              "value": "={{ $json.from?.id || $json.userId || $json.sessionId || $json.body.sessionId || 'telegram:' + ( $json.message.chat.id|| 'unknown') }}",
+              "value": "={{ $json.body?.sessionId ? $json.body.sessionId : ($json.sessionId ? $json.sessionId : ($json.from?.id ? 'telegram:' + $json.from.id : ($json.userId ? 'chat:' + $json.userId : ($json.message?.chat?.id ? 'telegram:' + $json.message.chat.id : 'webhook:' + $now)))) }}",
               "type": "string"
             },
             {
@@ -302,10 +302,32 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-576, -96],
-      "id": "00ed5bd0-f9de-4bd8-90b3-80d3b8610cc4",
+      "position": [-576, 112],
+      "id": "dc4e1dbd-cdc4-476e-9097-d774145ffc1d",
       "name": "Normalize Input",
       "notes": "Normalizes input from different sources (webhook, Telegram, chat) into consistent fields: traceId, sessionId, message, source"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ensure telegram: prefix for sessionId when source is telegram\nconst item = $input.item;\n\nif (item.json.source === 'telegram' && !item.json.sessionId.startsWith('telegram:')) {\n  item.json.sessionId = 'telegram:' + item.json.sessionId;\n}\n\n// Ensure chat: prefix for chat sessions\nif (item.json.source === 'chat' && !item.json.sessionId.startsWith('chat:')) {\n  item.json.sessionId = 'chat:' + item.json.sessionId;\n}\n\n// Ensure webhook: prefix for webhook sessions\nif (item.json.source === 'webhook' && !item.json.sessionId.startsWith('webhook:')) {\n  item.json.sessionId = 'webhook:' + item.json.sessionId;\n}\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-352, 112],
+      "id": "eaa21ab1-c32f-40e3-b1a4-45509a452e00",
+      "name": "Normalize SessionId",
+      "notes": "Ensures sessionId has proper channel prefix (telegram:, chat:, webhook:) based on source"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate required fields and formats\nconst item = $input.item;\nconst errors = [];\n\n// Validate sessionId format (must have channel prefix)\nif (!item.json.sessionId) {\n  errors.push('sessionId is required');\n} else if (!/^(telegram|chat|webhook):/.test(item.json.sessionId)) {\n  errors.push(`sessionId must start with telegram:, chat:, or webhook:. Got: ${item.json.sessionId}`);\n}\n\n// Validate traceId format (UUID or null)\nif (item.json.traceId !== null && item.json.traceId !== undefined) {\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n  if (!uuidRegex.test(item.json.traceId)) {\n    errors.push(`Invalid traceId format: ${item.json.traceId}. Must be UUID or null.`);\n  }\n}\n\n// Validate source\nconst validSources = ['webhook', 'telegram', 'chat'];\nif (!validSources.includes(item.json.source)) {\n  errors.push(`Invalid source: ${item.json.source}. Must be one of: ${validSources.join(', ')}`);\n}\n\n// Validate message is not empty\nif (!item.json.message || item.json.message.trim() === '') {\n  errors.push('message cannot be empty');\n}\n\nif (errors.length > 0) {\n  throw new Error(`Validation failed: ${errors.join('; ')}`);\n}\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-128, 112],
+      "id": "validate-input",
+      "name": "Validate Input",
+      "notes": "Validates sessionId format, traceId format (UUID or null), source value, and message presence"
     },
     {
       "parameters": {
@@ -320,20 +342,106 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  traceId: $json.traceId,\n  sessionId: $json.sessionId,\n  instructions: $json.message,\n  source: $json.source,\n  metadata: {}\n}) }}",
-        "options": {}
+        "options": {
+          "timeout": 30000
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
-      "position": [-352, -96],
-      "id": "abfbcd33-4b35-4f25-8d8c-700665aa95e2",
+      "position": [96, 112],
+      "id": "d5394a70-ee5c-49e9-8beb-e6f5e4b02980",
       "name": "Prepare Trace Context",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
       "credentials": {
         "httpHeaderAuth": {
           "id": "PDRTlQZsKzQBcv6T",
           "name": "Mylo MCP"
         }
       },
-      "notes": "Calls MCP trace_prep endpoint to: create/fetch trace, load persona config, fetch project context, retrieve relevant memories, build system prompt, derive allowed tools. Returns traceId, systemPrompt, allowedTools for the AI agent."
+      "notes": "Calls MCP trace_prep endpoint to: create/fetch trace, load persona config, fetch project context, retrieve relevant memories, build system prompt, derive allowed tools. Returns traceId, systemPrompt, allowedTools for the AI agent. Configured with 3 retries and 30s timeout."
+    },
+    {
+      "parameters": {
+        "mode": "check",
+        "text": "={{ $json.instructions }}",
+        "options": {
+          "sanitize": true,
+          "checkForPII": true,
+          "checkForJailbreak": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.guardrails",
+      "typeVersion": 1,
+      "position": [320, 112],
+      "id": "guardrails-node",
+      "name": "Guardrails",
+      "notes": "Validates instructions for prompt injection, PII, and jailbreak attempts. Sanitizes input before passing to AI agent."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log guardrail violations if detected\nconst item = $input.item;\nconst guardrailResult = item.json;\n\n// Check if guardrails detected violations\nif (guardrailResult.violations && guardrailResult.violations.length > 0) {\n  // Store violation in memory via HTTP request (will be handled by error workflow if this fails)\n  const violationData = {\n    tool: 'memory_store',\n    arguments: {\n      content: `Guardrail violation detected: ${guardrailResult.violations.map(v => v.type).join(', ')}`,\n      memoryType: 'episodic',\n      tags: ['security', 'guardrail-violation'],\n      metadata: {\n        traceId: item.json.traceId,\n        violationTypes: guardrailResult.violations.map(v => v.type),\n        originalInstructions: item.json.instructions,\n        sanitizedInstructions: guardrailResult.sanitized || item.json.instructions\n      }\n    }\n  };\n  \n  // Store violation data for later logging\n  item.json.guardrailViolations = guardrailResult.violations;\n  item.json.violationData = violationData;\n}\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 112],
+      "id": "log-guardrail-violations",
+      "name": "Log Guardrail Violations",
+      "notes": "Logs guardrail violations to memory for security monitoring. Violations are stored with traceId for correlation."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.violationData ? JSON.stringify($json.violationData) : '{}' }}",
+        "options": {
+          "timeout": 10000
+        },
+        "continueOnFail": true
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [640, 112],
+      "id": "store-violation-memory",
+      "name": "Store Violation Memory",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Stores guardrail violations in memory. Continues on fail to avoid blocking workflow execution."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guard: Only allow Telegram tools for telegram: sessions\nconst sessionId = $input.item.json.sessionId;\nif (!sessionId || !sessionId.startsWith('telegram:')) {\n  throw new Error(`Telegram tool called for non-Telegram session: ${sessionId}`);\n}\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [864, 336],
+      "id": "telegram-guard-send",
+      "name": "Guard: Telegram Send",
+      "notes": "Validates sessionId starts with telegram: before allowing Telegram send tool"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guard: Only allow Telegram HITL for telegram: sessions\nconst sessionId = $input.item.json.sessionId;\nif (!sessionId || !sessionId.startsWith('telegram:')) {\n  throw new Error(`Telegram HITL tool called for non-Telegram session: ${sessionId}`);\n}\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [992, 336],
+      "id": "telegram-guard-hitl",
+      "name": "Guard: Telegram HITL",
+      "notes": "Validates sessionId starts with telegram: before allowing Telegram HITL tool"
     },
     {
       "parameters": {
@@ -345,8 +453,8 @@
       },
       "type": "n8n-nodes-base.telegramTool",
       "typeVersion": 1.2,
-      "position": [640, 128],
-      "id": "aa775d63-d480-4b47-8c3b-ce8d5a4c7925",
+      "position": [1088, 336],
+      "id": "cbf99aaf-98ef-42de-9d91-a262ec5a121b",
       "name": "Tool: Send Telegram Message",
       "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
       "credentials": {
@@ -362,12 +470,14 @@
         "operation": "sendAndWait",
         "chatId": "={{ $('Normalize Input').item.json.sessionId.split(\":\")[1] }}",
         "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
-        "options": {}
+        "options": {
+          "timeout": 3600
+        }
       },
       "type": "n8n-nodes-base.telegramTool",
       "typeVersion": 1.2,
-      "position": [768, 128],
-      "id": "8aac16c4-d800-4c3f-816e-a958296e4de9",
+      "position": [1216, 336],
+      "id": "9ba5ff22-cc3d-424c-b41c-d1d7472b8e22",
       "name": "Tool: Telegram HITL (Human-in-the-Loop)",
       "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
       "credentials": {
@@ -376,7 +486,17 @@
           "name": "Telegram account"
         }
       },
-      "notes": "Tool for sending Telegram messages and waiting for user response. Used for HITL approval flows (e.g., Iggy requesting approval for modifiers, Alex requesting approval for final edit)."
+      "notes": "Tool for sending Telegram messages and waiting for user response. Used for HITL approval flows (e.g., Iggy requesting approval for modifiers, Alex requesting approval for final edit). Configured with 1-hour timeout."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [1120, 336],
+      "id": "ac8c51f0-064c-47a0-a64f-154f7c571925",
+      "name": "HTTP Request"
     }
   ],
   "connections": {
@@ -483,6 +603,28 @@
       "main": [
         [
           {
+            "node": "Normalize Telegram SessionId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize SessionId": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
             "node": "Prepare Trace Context",
             "type": "main",
             "index": 0
@@ -494,8 +636,52 @@
       "main": [
         [
           {
+            "node": "Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Log Guardrail Violations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Guardrail Violations": {
+      "main": [
+        [
+          {
+            "node": "Store Violation Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Violation Memory": {
+      "main": [
+        [
+          {
             "node": "AI Agent: Persona Execution",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: Telegram Send": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tool: Send Telegram Message",
+            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -512,7 +698,29 @@
         ]
       ]
     },
+    "Guard: Telegram HITL": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tool: Telegram HITL (Human-in-the-Loop)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Tool: Telegram HITL (Human-in-the-Loop)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
       "ai_tool": [
         [
           {
@@ -524,69 +732,16 @@
       ]
     }
   },
-  "pinData": {
-    "Webhook: Agent Handoff": [
-      {
-        "headers": {
-          "host": "crocs93.app.n8n.cloud",
-          "user-agent": "node",
-          "content-length": "1003",
-          "accept": "*/*",
-          "accept-encoding": "gzip, br",
-          "accept-language": "*",
-          "cdn-loop": "cloudflare; loops=1; subreqs=1",
-          "cf-connecting-ip": "24.12.68.45",
-          "cf-ew-via": "15",
-          "cf-ipcountry": "US",
-          "cf-ray": "99ac76af9510f824-ORD",
-          "cf-visitor": "{\"scheme\":\"https\"}",
-          "cf-worker": "n8n.cloud",
-          "content-type": "application/json",
-          "sec-fetch-mode": "cors",
-          "x-forwarded-for": "24.12.68.45, 172.69.17.101",
-          "x-forwarded-host": "crocs93.app.n8n.cloud",
-          "x-forwarded-port": "443",
-          "x-forwarded-proto": "https",
-          "x-forwarded-server": "traefik-prod-users-gwc-89-8567ddc79c-fh6gl",
-          "x-is-trusted": "yes",
-          "x-real-ip": "24.12.68.45"
-        },
-        "params": {},
-        "query": {},
-        "body": {
-          "traceId": "107b4a21-8ddc-4b6f-b551-f5430d475008",
-          "instructions": "AISMR project: Puppy video. Create a 60-second ASMR piece built from 12 modifiers, each 8 seconds long. For each modifier, specify: (a) audio texture (e.g., whisper, soft pant, paw taps, snuffles, toy squeak), (b) on-screen action (puppy-related visuals or close-ups), (c) camera/shot guidance (framing, movement), (d) any required prompts or talking points. Provide a complete modifier list with 12 entries, including exact timings (0:00-0:08, 0:08-0:16, ..., 0:52-1:00), and a brief description. Include production notes: lighting, mic setup (lav mic or shotgun + room tone), background, and safety/comfort guidelines for puppies. Deliverables: final 60-second edit, separate audio stems for each modifier, a shot list, and a locked script of 12 modifiers. Ensure the content is gentle, calming, and suitable for AISMR audiences. Use the traceId for traceability.",
-          "metadata": {},
-          "projectId": "unknown",
-          "sessionId": "telegram:6559268788"
-        },
-        "webhookUrl": "https://crocs93.app.n8n.cloud/webhook/myloware/ingest",
-        "executionMode": "production"
-      }
-    ],
-    "Trigger: Telegram Message": [
-      {
-        "update_id": 96972049,
-        "message": {
-          "message_id": 197,
-          "from": {
-            "id": 6559268788,
-            "is_bot": false,
-            "first_name": "Mylo",
-            "last_name": "James",
-            "language_code": "en"
-          },
-          "chat": {
-            "id": 6559268788,
-            "first_name": "Mylo",
-            "last_name": "James",
-            "type": "private"
-          },
-          "date": 1762513356,
-          "text": "Make an asmr video about puppies"
-        }
-      }
-    ]
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/New_York",
+    "executionTimeout": 3600,
+    "errorWorkflow": "error-handler-workflow-id"
   },
   "meta": {
     "templateCredsSetupCompleted": true,

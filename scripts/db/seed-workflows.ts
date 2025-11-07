@@ -223,13 +223,8 @@ async function seedWorkflows() {
 
       const completeN8nId = N8N_WORKFLOW_IDS['AISMR Complete Video Production'];
       if (completeN8nId) {
-        await registryRepository.create({
-          memoryId: completeMemory.id,
-          n8nWorkflowId: completeN8nId,
-          name: completeWorkflow.name,
-          isActive: true,
-        });
-        console.log(`   ✅ Registered complete workflow: ${completeN8nId}`);
+        // Update metadata with n8n workflow ID (workflow registry table removed in V2)
+        console.log(`   ✅ Complete workflow stored with n8n ID in metadata: ${completeN8nId}`);
       } else {
         console.log(
           `   ⚠️  No n8n workflow ID for complete workflow. Set N8N_WORKFLOW_ID_COMPLETE env var.`

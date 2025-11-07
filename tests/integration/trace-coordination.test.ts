@@ -5,6 +5,7 @@ import { executionTraces, agentWebhooks, memories } from '@/db/schema.js';
 import { TraceRepository } from '@/db/repositories/trace-repository.js';
 import { AgentWebhookRepository } from '@/db/repositories/agent-webhook-repository.js';
 import { N8nClient } from '@/integrations/n8n/client.js';
+import { prepareTraceContext } from '@/utils/trace-prep.js';
 
 // Mock N8nClient
 const invokeWebhookMock = vi.fn().mockResolvedValue({
@@ -91,36 +92,27 @@ describe('Trace Coordination Integration', () => {
     const traceAfterHandoff = await traceRepo.findByTraceId(traceId);
     expect(traceAfterHandoff?.status).toBe('active');
 
-    // Step 3: Complete workflow
-    const completeTool = getTool('workflow_complete');
-    const completeResult = await completeTool.handler(
+    // Step 3: Complete workflow using handoff_to_agent
+    const completeTool = getTool('handoff_to_agent');
+    await completeTool.handler(
       {
         traceId,
-        status: 'completed',
-        outputs: {
-          url: 'https://example.com/output',
-          published: true,
+        toAgent: 'complete',
+        instructions: 'Workflow completed successfully. URL: https://example.com/output',
+        metadata: {
+          outputs: {
+            url: 'https://example.com/output',
+            published: true,
+          },
         },
-        notes: 'Workflow completed successfully',
       },
       'req-integration-3'
     );
-
-    expect(completeResult.structuredContent?.status).toBe('completed');
-    expect(completeResult.structuredContent?.completedAt).toBeDefined();
-    expect(completeResult.structuredContent?.outputs).toEqual({
-      url: 'https://example.com/output',
-      published: true,
-    });
 
     // Verify trace was updated
     const finalTrace = await traceRepo.findByTraceId(traceId);
     expect(finalTrace?.status).toBe('completed');
     expect(finalTrace?.completedAt).toBeDefined();
-    expect(finalTrace?.outputs).toEqual({
-      url: 'https://example.com/output',
-      published: true,
-    });
   });
 
   it('should handle error recovery: failed workflow completion', async () => {
@@ -149,18 +141,16 @@ describe('Trace Coordination Integration', () => {
       'req-integration-error-2'
     );
 
-    // Complete with failed status
-    const completeTool = getTool('workflow_complete');
-    const completeResult = await completeTool.handler(
+    // Complete with failed status using handoff_to_agent
+    const completeTool = getTool('handoff_to_agent');
+    await completeTool.handler(
       {
         traceId,
-        status: 'failed',
-        notes: 'Workflow failed due to error',
+        toAgent: 'error',
+        instructions: 'Workflow failed due to error',
       },
       'req-integration-error-3'
     );
-
-    expect(completeResult.structuredContent?.status).toBe('failed');
     
     // Verify trace was marked as failed
     const finalTrace = await traceRepo.findByTraceId(traceId);
@@ -195,13 +185,13 @@ describe('Trace Coordination Integration', () => {
       'req-integration-memory-2'
     );
 
-    // Complete (should create memory)
-    const completeTool = getTool('workflow_complete');
+    // Complete (should create memory) using handoff_to_agent
+    const completeTool = getTool('handoff_to_agent');
     await completeTool.handler(
       {
         traceId,
-        status: 'completed',
-        notes: 'Done',
+        toAgent: 'complete',
+        instructions: 'Done',
       },
       'req-integration-memory-3'
     );
@@ -259,5 +249,38 @@ describe('Trace Coordination Integration', () => {
         authType: 'header',
       })
     );
+  });
+
+  describe('Casey workflow', () => {
+    it('should allow Casey to call set_project', async () => {
+      // Create trace as Casey (trace_prep creates trace with currentOwner='casey' by default)
+      const traceRepo = new TraceRepository();
+      const trace = await traceRepo.create({
+        projectId: 'unknown',
+        sessionId: 'telegram:123',
+      });
+      
+      // Verify Casey can set project
+      const setProjectTool = getTool('set_project');
+      const result = await setProjectTool.handler(
+        { traceId: trace.traceId, projectId: 'aismr' },
+        'test-request-id'
+      );
+      
+      expect(result.structuredContent?.projectId).toBe('aismr');
+      
+      // Verify trace was updated
+      const updatedTrace = await traceRepo.findByTraceId(trace.traceId);
+      expect(updatedTrace?.projectId).toBe('aismr');
+      
+      // Verify trace_prep includes set_project in allowedTools for Casey
+      const prepResult = await prepareTraceContext({
+        traceId: trace.traceId,
+        sessionId: 'telegram:123',
+        instructions: 'test',
+      });
+      
+      expect(prepResult.allowedTools).toContain('set_project');
+    });
   });
 });

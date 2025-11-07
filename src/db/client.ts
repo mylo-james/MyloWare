@@ -4,7 +4,13 @@ import { config } from '../config/index.js';
 
 const { Pool } = pg;
 
-const resolveConnectionString = () => process.env.DATABASE_URL || config.database.url;
+const resolveConnectionString = () => {
+  if (!config.database.url) {
+    throw new Error('DATABASE_URL is not configured.');
+  }
+
+  return config.database.url;
+};
 
 export let pool = new Pool({
   connectionString: resolveConnectionString(),

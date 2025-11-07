@@ -83,9 +83,24 @@ docker run -d \
 
 ### 2.2 Run Migrations
 
+The database uses a single squashed migration (`drizzle/0000_initial_schema.sql`) that includes all schema, foreign keys, triggers, constraints, and indexes.
+
 ```bash
 export DATABASE_URL=postgresql://user:password@prod-db:5432/mcp_prompts
 npm run db:migrate
+```
+
+**Migration Policy:**
+- Single squashed migration approach (no incremental migrations)
+- Legacy migrations archived in `drizzle/archive/`
+- Schema changes require updating the squashed migration file
+- See `docs/DATABASE_SCHEMA.md` for complete schema reference
+
+**For Local Development:**
+After pulling changes that modify the schema, reset your local database:
+```bash
+npm run db:reset -- --force  # Requires --force flag for safety
+npm run db:bootstrap -- --seed  # Reset + migrate + seed
 ```
 
 ### 2.3 Seed Initial Data

@@ -184,12 +184,6 @@ export function deriveAllowedTools(params: {
     }
   }
 
-  if (params.projectKnown && params.personaName === 'quinn') {
-    if (!allowed.includes('workflow_complete')) {
-      allowed.push('workflow_complete');
-    }
-  }
-
   return Array.from(new Set(allowed));
 }
 

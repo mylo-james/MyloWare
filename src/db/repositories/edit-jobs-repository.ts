@@ -43,7 +43,7 @@ export class EditJobsRepository {
       startedAt: params.startedAt ?? null,
       completedAt: params.completedAt ?? null,
       metadata: params.metadata ?? {},
-      updatedAt: now,
+      // updated_at is handled by trigger, don't set manually
     };
 
     const [result] = await db

@@ -80,15 +80,26 @@ V2 is built on three principles:
 │                                                 │
 │  SQL Database:                                 │
 │  ├── personas (AI identity configs)            │
-│  ├── projects (workflow collections)           │
-│  ├── sessions (conversation state)             │
+│  ├── projects (workflow collections)          │
+│  ├── sessions (conversation state)            │
 │  ├── execution_traces (trace coordination)    │
-│  └── agent_webhooks (agent webhook configs)    │
+│  ├── workflow_runs (legacy workflow tracking)  │
+│  ├── memories (vector + relational)            │
+│  ├── agent_webhooks (agent webhook configs)   │
+│  ├── video_generation_jobs (job tracking)     │
+│  └── edit_jobs (job tracking)                 │
+│                                                 │
+│  Schema Features:                              │
+│  ├── Foreign keys (referential integrity)     │
+│  ├── Enums (status field validation)           │
+│  ├── Triggers (auto-update updated_at)         │
+│  └── Check constraints (state machine rules)  │
 │                                                 │
 │  Indices:                                      │
 │  ├── HNSW (vector similarity)                  │
 │  ├── GIN (array containment)                   │
-│  └── Full-text (keyword search)                │
+│  ├── Full-text (keyword search)                │
+│  └── Covering indexes (hot query optimization)│
 └─────────────────────────────────────────────────┘
 ```
 
@@ -192,7 +203,7 @@ AI Agent Node (becomes Casey)
   ├─► Has access to: trace_update, memory_search, memory_store, handoff_to_agent
   │
   ├─► Determines project = "aismr"
-  ├─► Calls trace_update({ traceId, projectId: "aismr" })
+  ├─► Calls trace_update({ traceId, projectId: "550e8400-e29b-41d4-a716-446655440000" }) // Project UUID
   ├─► Stores kickoff memory
   └─► Calls handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
   │
@@ -331,7 +342,7 @@ trace_prep HTTP endpoint (no traceId)
 AI Agent (becomes Casey)
   │
   ├─► Determines project = "aismr"
-  ├─► Calls trace_update({ traceId, projectId: "aismr" })
+  ├─► Calls trace_update({ traceId, projectId: "550e8400-e29b-41d4-a716-446655440000" }) // Project UUID
   ├─► Stores kickoff memory
   └─► Calls handoff_to_agent({ traceId, toAgent: "iggy", instructions: "..." })
   │

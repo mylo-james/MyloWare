@@ -1,0 +1,271 @@
+{
+  "name": "Error Handler - Agent Workflows",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "error-trigger-001",
+      "name": "Error Trigger",
+      "notes": "Triggers when any monitored workflow fails. Extracts error details from execution data."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract traceId from execution metadata or workflow context\nconst errorData = $input.item.json;\nconst execution = errorData.execution || {};\nconst workflow = errorData.workflow || {};\n\n// Try to extract traceId from various sources\nlet traceId = null;\nlet sessionId = null;\n\n// Check execution metadata\nif (execution.metadata && execution.metadata.traceId) {\n  traceId = execution.metadata.traceId;\n}\n\n// Check execution data for traceId\nif (!traceId && execution.data) {\n  const data = Array.isArray(execution.data) ? execution.data[0] : execution.data;\n  if (data && data.json && data.json.traceId) {\n    traceId = data.json.traceId;\n    sessionId = data.json.sessionId;\n  }\n}\n\n// Check workflow metadata\nif (!traceId && workflow.metadata && workflow.metadata.traceId) {\n  traceId = workflow.metadata.traceId;\n}\n\n// Extract error details\nconst errorMessage = execution.error?.message || execution.error?.name || 'Unknown error';\nconst errorStack = execution.error?.stack || '';\nconst lastNode = execution.lastNodeExecuted || 'Unknown node';\nconst executionId = execution.id || null;\nconst executionUrl = execution.url || null;\n\nreturn [{\n  json: {\n    traceId,\n    sessionId,\n    errorMessage,\n    errorStack,\n    lastNode,\n    executionId,\n    executionUrl,\n    workflowId: workflow.id || null,\n    workflowName: workflow.name || 'Unknown workflow',\n    mode: execution.mode || 'unknown'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "extract-error-data",
+      "name": "Extract Error Data",
+      "notes": "Extracts traceId, sessionId, and error details from error trigger payload"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-trace-id",
+              "leftValue": "={{ $json.traceId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "check-trace-id",
+      "name": "Has Trace ID?",
+      "notes": "Routes to trace update if traceId exists, otherwise just logs error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'handoff_to_agent',\n  arguments: {\n    traceId: $json.traceId,\n    toAgent: 'error',\n    instructions: `Workflow failed at node: ${$json.lastNode}. Error: ${$json.errorMessage}`,\n    metadata: {\n      executionId: $json.executionId,\n      executionUrl: $json.executionUrl,\n      workflowName: $json.workflowName,\n      errorStack: $json.errorStack\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [900, 200],
+      "id": "update-trace-status",
+      "name": "Update Trace Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Calls MCP handoff_to_agent with toAgent: 'error' to mark trace as failed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'memory_store',\n  arguments: {\n    content: `Workflow failure: ${$json.workflowName} failed at ${$json.lastNode}. ${$json.errorMessage}`,\n    memoryType: 'episodic',\n    tags: ['error', 'workflow-failure'],\n    metadata: {\n      traceId: $json.traceId,\n      executionId: $json.executionId,\n      executionUrl: $json.executionUrl,\n      workflowName: $json.workflowName,\n      lastNode: $json.lastNode,\n      errorMessage: $json.errorMessage,\n      errorStack: $json.errorStack\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1120, 200],
+      "id": "store-error-memory",
+      "name": "Store Error Memory",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Stores error details in memory for observability and debugging"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-telegram-session",
+              "leftValue": "={{ $json.sessionId }}",
+              "rightValue": "telegram:",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 200],
+      "id": "check-telegram-session",
+      "name": "Is Telegram Session?",
+      "notes": "Routes to Telegram notification if sessionId starts with telegram:"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.sessionId.split(':')[1] }}",
+        "text": "={{ `⚠️ Workflow Error\n\nYour workflow failed:\n\nWorkflow: ${$json.workflowName}\nNode: ${$json.lastNode}\nError: ${$json.errorMessage}\n\nExecution: ${$json.executionUrl || 'N/A'}` }}",
+        "additionalFields": {
+          "parseMode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [1560, 100],
+      "id": "notify-user",
+      "name": "Notify User via Telegram",
+      "webhookId": "error-handler-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Sends error notification to user via Telegram if sessionId is a Telegram session"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log error for non-Telegram sessions or when Telegram notification fails\nconst errorData = $input.item.json;\nconsole.log(JSON.stringify({\n  event: 'workflow_error_handled',\n  traceId: errorData.traceId,\n  workflowName: errorData.workflowName,\n  lastNode: errorData.lastNode,\n  errorMessage: errorData.errorMessage,\n  timestamp: new Date().toISOString()\n}));\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "log-error",
+      "name": "Log Error",
+      "notes": "Logs error details for observability (fallback path for non-Telegram sessions)"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Error Data": {
+      "main": [
+        [
+          {
+            "node": "Has Trace ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Trace ID?": {
+      "main": [
+        [
+          {
+            "node": "Update Trace Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Trace Status": {
+      "main": [
+        [
+          {
+            "node": "Store Error Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Error Memory": {
+      "main": [
+        [
+          {
+            "node": "Is Telegram Session?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Telegram Session?": {
+      "main": [
+        [
+          {
+            "node": "Notify User via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "error-handler-workflow-instance"
+  }
+}
+

@@ -48,6 +48,7 @@
   "allowedTools": [
     "trace_create",
     "trace_update",
+    "set_project",
     "context_get_project",
     "context_get_persona",
     "memory_search",

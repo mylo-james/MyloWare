@@ -10,6 +10,7 @@ import { mcpTools, generateRequestId } from './tools.js';
 // import { registerMCPPrompts } from './prompts.js';
 import { logger } from '../utils/logger.js';
 import { toolCallDuration, toolCallErrors } from '../utils/metrics.js';
+import { MCPError, MCPErrorCode } from '../utils/errors.js';
 
 type JsonSchema = ReturnType<typeof zodToJsonSchema>;
 
@@ -149,10 +150,10 @@ export function registerMCPTools(server: McpServer): void {
         return response;
       } catch (error) {
         timer({ status: 'error' });
+        const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
         toolCallErrors.inc({
           tool_name: tool.name,
-          error_type:
-            error instanceof Error ? error.constructor.name : 'UnknownError',
+          error_type: errorType,
         });
 
         logger.error({
@@ -160,14 +161,39 @@ export function registerMCPTools(server: McpServer): void {
           tool: tool.name,
           requestId,
           error: error instanceof Error ? error.message : String(error),
+          errorCode: error instanceof MCPError ? error.code : undefined,
         });
 
+        // If it's an MCPError, use its JSON-RPC format
+        if (error instanceof MCPError) {
+          const jsonRpcError = error.toJSONRPC(null);
+          const response: CallToolResult = {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  jsonrpc: jsonRpcError.jsonrpc,
+                  error: jsonRpcError.error,
+                }),
+              },
+            ],
+            isError: true,
+          };
+          return response;
+        }
+
+        // For other errors, map to appropriate JSON-RPC error code
+        const errorMessage = error instanceof Error ? error.message : String(error);
         const response: CallToolResult = {
           content: [
             {
               type: 'text',
               text: JSON.stringify({
-                error: error instanceof Error ? error.message : String(error),
+                jsonrpc: '2.0',
+                error: {
+                  code: MCPErrorCode.INTERNAL_ERROR,
+                  message: errorMessage,
+                },
               }),
             },
           ],

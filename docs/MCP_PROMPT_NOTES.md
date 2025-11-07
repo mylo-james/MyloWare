@@ -1,6 +1,6 @@
 # MCP Prompt Notes
 
-These notes define the **authoritative prompt patterns** for every n8n AI Agent workflow. Use them when configuring the `@n8n/n8n-nodes-langchain.agent` node so each persona calls the correct MCP tools (`trace_create`, `handoff_to_agent`, `memory_store`, `memory_search`, `workflow_complete`) and tags all memories with the active `traceId`.
+These notes define the **authoritative prompt patterns** for every n8n AI Agent workflow. Use them when configuring the `@n8n/n8n-nodes-langchain.agent` node so each persona calls the correct MCP tools (`trace_create`, `handoff_to_agent`, `memory_store`, `memory_search`) and tags all memories with the active `traceId`.
 
 > **Audience:** Operators wiring n8n workflows, prompt engineers updating agent behavior, and reviewers validating that prompts match the plan in `plan.md`.
 
@@ -51,11 +51,11 @@ You are part of the AISMR production line. Follow this contract:
 | `trace_prep` (HTTP) | Called by n8n workflow (not AI agent). Creates/loads trace, hydrates persona + project context, returns `{ systemPrompt, allowedTools, instructions, traceId }`. Used in universal workflow pattern. | HTTP POST to `/mcp/trace_prep` with `{ traceId?, sessionId?, instructions?, source? }` |
 | `trace_prepare` (MCP) | MCP tool version of trace_prep. Same functionality, available for direct MCP calls. | ```json\n{\"name\":\"trace_prepare\",\"arguments\":{\"traceId\":\"{{traceId}}\",\"instructions\":\"{{message}}\",\"sessionId\":\"{{sessionId}}\",\"source\":\"{{source}}\"}}\n``` |
 | `trace_update` | Casey uses this right after `trace_create` to persist normalized instructions, project switches, and metadata for downstream agents. | ```json\n{\"name\":\"trace_update\",\"arguments\":{\"traceId\":\"{{traceId}}\",\"instructions\":\"Focus on neon AISMR candles\",\"metadata\":{\"sessionId\":\"telegram:123\"}}}\n``` |
-| `trace_create` | Casey must call this before the first handoff to anchor the run. Capture `{projectId, sessionId}`. | ```json\n{\"name\":\"trace_create\",\"arguments\":{\"projectId\":\"aismr\",\"sessionId\":\"telegram:123\"}}\n``` |
+| `trace_create` | Casey must call this before the first handoff to anchor the run. Capture `{projectId, sessionId}`. Prefer project UUIDs, but slugs are accepted for backward compatibility. | ```json\n{\"name\":\"trace_create\",\"arguments\":{\"projectId\":\"550e8400-e29b-41d4-a716-446655440000\",\"sessionId\":\"telegram:123\"}}\n``` |
 | `handoff_to_agent` | Always include the `traceId`, target persona, and natural instructions. Mention what the next agent should retrieve from memory. | ```json\n{\"name\":\"handoff_to_agent\",\"arguments\":{\"traceId\":\"{{traceId}}\",\"toAgent\":\"iggy\",\"instructions\":\"Generate 12 modifiers and store them with traceId {{traceId}}.\"}}\n``` |
 | `memory_store` | One-line content, include persona + project arrays, and pass the `traceId` field so it lands in metadata. | ```json\n{\"name\":\"memory_store\",\"arguments\":{\"content\":\"Generated 12 AISMR modifiers about rain.\",\"memoryType\":\"episodic\",\"persona\":[\"iggy\"],\"project\":[\"aismr\"],\"traceId\":\"{{traceId}}\"}}\n``` |
 | `memory_search` | Use when you need upstream outputs. Filter by `traceId` and use `offset` to walk long traces. | ```json\n{\"name\":\"memory_search\",\"arguments\":{\"query\":\"modifiers for {{traceId}}\",\"project\":\"aismr\",\"traceId\":\"{{traceId}}\",\"limit\":10,\"offset\":20}}\n``` |
-| `workflow_complete` | Quinn calls this once publishing finishes. Include final URLs in `outputs`. | ```json\n{\"name\":\"workflow_complete\",\"arguments\":{\"traceId\":\"{{traceId}}\",\"status\":\"completed\",\"outputs\":{\"tiktokUrl\":\"https://tiktok.com/...\"}}}\n``` |
+| `handoff_to_agent` (completion) | Quinn (or any final agent) calls this with `toAgent: "complete"` once publishing finishes. Include final URLs in `instructions` or trace `outputs`. | ```json\n{\"name\":\"handoff_to_agent\",\"arguments\":{\"traceId\":\"{{traceId}}\",\"toAgent\":\"complete\",\"instructions\":\"Published to TikTok: https://tiktok.com/...\"}}\n``` |
 | `job_upsert` | Veo/Alex log external provider work (video/edit) so downstream agents can check progress. Provider + taskId is idempotent. | ```json\n{\"name\":\"job_upsert\",\"arguments\":{\"kind\":\"video\",\"traceId\":\"{{traceId}}\",\"provider\":\"runway\",\"taskId\":\"{{jobId}}\",\"status\":\"running\"}}\n``` |
 | `jobs_summary` | Before handing off, confirm all assets are ready (pending/completed counts). | ```json\n{\"name\":\"jobs_summary\",\"arguments\":{\"traceId\":\"{{traceId}}\"}}\n``` |
 
@@ -97,7 +97,8 @@ USER MESSAGE: "Make an AISMR video about candles"
 
 TASK:
 1. Determine which project this is for by matching the user message to one of the available projects below
-2. Use set_project tool to set the project: set_project({traceId: "trace-aismr-001", projectId: "aismr"})
+2. Use set_project tool to set the project: set_project({traceId: "trace-aismr-001", projectId: "550e8400-e29b-41d4-a716-446655440000"})
+   Note: Prefer passing project UUIDs directly. For backward compatibility, project slugs (e.g., "aismr") are accepted and will be resolved to UUIDs internally.
 3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="trace-aismr-001" and the appropriate persona
    - Do NOT just store a memory about handoff - you MUST actually call the handoff_to_agent tool
    - Example: handoff_to_agent({traceId: "trace-aismr-001", toAgent: "iggy", instructions: "Generate 12 modifiers..."})

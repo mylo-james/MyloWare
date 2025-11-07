@@ -163,7 +163,7 @@ ${persona.workflow?.definition_of_success ? `Definition of success: ${persona.wo
       description: 'Social Media Manager',
       capabilities: ['publishing', 'captioning', 'workflow-complete'],
       tone: 'upbeat',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'workflow_complete'],
+      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
     },
   ];
 

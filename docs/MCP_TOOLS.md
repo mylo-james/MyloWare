@@ -327,7 +327,7 @@ Create a new execution trace to coordinate multi-agent workflows.
 **Parameters:**
 ```typescript
 {
-  projectId: string;     // Project identifier (e.g., 'aismr', 'genreact')
+  projectId: string;     // Project UUID (preferred) or project slug (e.g., 'aismr') for backward compatibility
   sessionId?: string;    // Optional session reference
   metadata?: Record<string, unknown>; // Additional context
 }
@@ -345,7 +345,7 @@ Create a new execution trace to coordinate multi-agent workflows.
 **Example:**
 ```json
 {
-  "projectId": "aismr",
+  "projectId": "550e8400-e29b-41d4-a716-446655440000",
   "sessionId": "telegram:6559268788",
   "metadata": {
     "object": "candles",
@@ -405,47 +405,7 @@ Use these terminal targets when Quinn (or any persona) needs to finish or abort 
 
 **Notification:** When `toAgent === 'complete'` and the trace has a `sessionId` starting with `'telegram:'`, the tool automatically sends a Telegram notification to the user with the completion message and publish URL (if available). Notification failures are logged but do not fail the handoff operation.
 
----
-
-### workflow_complete
-
-Signal that a workflow trace has completed (or failed).
-
-**Parameters:**
-```typescript
-{
-  traceId: string;       // Active trace ID
-  status: 'completed' | 'failed';
-  outputs?: Record<string, unknown>; // Final outputs
-  notes?: string;        // Optional completion notes
-}
-```
-
-**Returns:**
-```typescript
-{
-  traceId: string;       // Echo of trace ID
-  status: string;        // 'completed' or 'failed'
-  completedAt: string;   // ISO timestamp
-  outputs?: Record<string, unknown>;
-}
-```
-
-**Example:**
-```json
-{
-  "traceId": "trace-aismr-001",
-  "status": "completed",
-  "outputs": {
-    "postUrl": "https://tiktok.com/@mylo_aismr/video/7234567890",
-    "platform": "tiktok",
-    "duration": 110
-  },
-  "notes": "Published successfully to TikTok"
-}
-```
-
-**Usage:** The final agent (typically Quinn) calls this after publishing is complete. Casey receives the completion signal and notifies the user.
+**Workflow Completion:** To signal that a workflow has completed, any agent should call `handoff_to_agent` with `toAgent: 'complete'`. This updates the trace status to `'completed'` and triggers completion notifications. There is no separate `workflow_complete` tool - use `handoff_to_agent` for all completion signaling.
 
 ---
 
@@ -641,11 +601,11 @@ await handoff_to_agent({
 // ... chain continues through Riley → Veo → Alex → Quinn ...
 
 // 5. Quinn signals completion
-await workflow_complete({
+await handoff_to_agent({
   traceId: trace.traceId,
-  status: 'completed',
-  outputs: {
-    postUrl: 'https://tiktok.com/@mylo_aismr/video/...',
+  toAgent: 'complete',
+  instructions: 'Published to TikTok: https://tiktok.com/@mylo_aismr/video/...',
+  metadata: {
     platform: 'tiktok'
   }
 });
@@ -662,8 +622,7 @@ All tools are optimized for speed:
 - `memory_search`: < 100ms (p95)
 - `memory_store`: ~500ms (includes embedding generation)
 - `trace_create`: < 20ms (p95)
-- `handoff_to_agent`: < 500ms (includes webhook invocation)
-- `workflow_complete`: < 50ms (p95)
+- `handoff_to_agent`: < 500ms (includes webhook invocation, or < 50ms for terminal targets)
 - Other tools: < 50ms (p95)
 
 Monitor via `/metrics` endpoint.

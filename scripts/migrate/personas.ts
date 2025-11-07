@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { PersonaRepository } from '../../src/db/repositories/persona-repository.js';
 import { pool } from '../../src/db/client.js';
 import { cleanForAI } from '../../src/utils/validation.js';
+import { Client } from 'pg';
+import { config } from '../../src/config/index.js';
 
 interface V1Persona {
   agent: {
@@ -28,8 +30,41 @@ interface V1Persona {
   };
 }
 
+async function waitForDatabase(retries = 10, delayMs = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const client = new Client({ connectionString: config.database.url });
+      await client.connect();
+      await client.end();
+      return;
+    } catch (error) {
+      if (attempt === retries) {
+        throw new Error(
+          `Failed to connect to database after ${retries} attempts: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      console.log(`  ⏳ Waiting for database... (attempt ${attempt}/${retries})`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function migratePersonas() {
   console.log('🔄 Migrating personas from V1...');
+
+  // Wait for database to be available (with retries)
+  try {
+    await waitForDatabase();
+    console.log('  ✓ Database connection established');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error instanceof Error ? error.message : String(error));
+    console.error('   Make sure your database is running and DATABASE_URL is set correctly.');
+    console.error('   💡 Tips:');
+    console.error('      - Local: Check if PostgreSQL is running (`pg_isready` or `psql`)');
+    console.error('      - Docker: Run `npm run dev:docker` or check container status');
+    console.error('      - Remote: Verify DATABASE_URL is correct and accessible');
+    process.exit(1);
+  }
 
   const repository = new PersonaRepository();
 
@@ -96,6 +131,18 @@ When to use you: ${chat.agent.whentouse}
           'Always tag memories with traceId and persona. After handoff to Iggy, go idle and wait for Quinn to signal completion.'
       );
 
+      // Load allowedTools from casey.json file
+      const caseyAllowedTools = caseyDoc.allowedTools || [
+        'trace_create',
+        'trace_update',
+        'set_project',
+        'context_get_project',
+        'context_get_persona',
+        'memory_search',
+        'memory_store',
+        'handoff_to_agent',
+      ];
+
       await repository.insert({
         name: 'casey',
         description: caseyDoc.title || 'Showrunner',
@@ -103,7 +150,7 @@ When to use you: ${chat.agent.whentouse}
         tone: 'confident',
         defaultProject: 'aismr',
         systemPrompt: caseySystemPrompt,
-        allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+        allowedTools: caseyAllowedTools,
         metadata: { v1Source: 'casey.json', role: 'showrunner' },
       });
 
@@ -279,17 +326,32 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
     console.log('  - Ensuring Quinn (Publisher) exists...');
     const existingQuinn = await repository.findByName('quinn');
     if (!existingQuinn) {
-      const quinnPrompt = cleanForAI(
-        'You are Quinn, Publisher. Retrieve the final edit by traceId, publish to platforms (TikTok/YouTube), store platform URLs with traceId, and call workflow_complete with outputs.'
+      // Load Quinn's config from JSON file
+      const quinnJsonPath = path.join(dataDir, 'quinn.json');
+      let quinnAllowedTools = ['memory_search', 'memory_store', 'handoff_to_agent'];
+      let quinnSystemPrompt = cleanForAI(
+        'You are Quinn, Publisher. Retrieve the final edit by traceId, publish to platforms (TikTok/YouTube), store platform URLs with traceId, and call handoff_to_agent({toAgent: "complete"}) to signal completion.'
       );
+      
+      try {
+        const quinnJson = await readFile(quinnJsonPath, 'utf-8');
+        const quinnDoc = JSON.parse(quinnJson);
+        quinnAllowedTools = quinnDoc.allowedTools || quinnAllowedTools;
+        if (quinnDoc.systemPrompt) {
+          quinnSystemPrompt = cleanForAI(quinnDoc.systemPrompt);
+        }
+      } catch (error) {
+        // Use defaults if file doesn't exist
+      }
+
       await repository.insert({
         name: 'quinn',
         description: 'Social Media Manager',
-        capabilities: ['publishing', 'captioning', 'workflow-complete'],
+        capabilities: ['publishing', 'captioning', 'completion-signal'],
         tone: 'upbeat',
         defaultProject: 'aismr',
-        systemPrompt: quinnPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'workflow_complete'],
+        systemPrompt: quinnSystemPrompt,
+        allowedTools: quinnAllowedTools,
         metadata: {},
       });
       console.log('    ✓ Quinn persona created');

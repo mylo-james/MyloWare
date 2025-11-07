@@ -35,8 +35,34 @@ npm run import:workflows   # now also syncs workflows/myloware-agent.workflow.js
 
 If you are importing manually, register the webhook path `myloware/ingest` inside the `agent_webhooks` table so `handoff_to_agent` resolves to this workflow for every persona.
 
+## Archived Workflows
+
+The `archive/` directory contains legacy persona-specific workflows that have been replaced by the universal workflow (`myloware-agent.workflow.json`). These are kept for historical reference only and should not be imported or activated.
+
+### Migration Status
+
+- **Universal workflow is now the single source of truth**
+- All personas (Casey → Quinn) execute via `myloware-agent.workflow.json`
+- Legacy workflows archived as of January 2025
+- Parity tests confirm universal workflow covers all persona capabilities
+
+### Archived Files
+
+- `casey.workflow.json` - Legacy Casey workflow (replaced by universal workflow)
+- `iggy.workflow.json` - Legacy Iggy workflow (replaced by universal workflow)
+- `riley.workflow.json` - Legacy Riley workflow (replaced by universal workflow)
+- `veo.workflow.json` - Legacy Veo workflow (replaced by universal workflow)
+- `alex.workflow.json` - Legacy Alex workflow (replaced by universal workflow)
+- `quinn.workflow.json` - Legacy Quinn workflow (replaced by universal workflow)
+
+### Production Workflows
+
+- `myloware-agent.workflow.json` - Universal workflow for all personas
+- `error-handler.workflow.json` - Error handling workflow (linked via settings.errorWorkflow)
+- `mcp-health-check.workflow.json` - MCP server health monitoring workflow
+
 ## Next Steps
 
-- Add Casey’s post-handoff blocking/waiting loop so Telegram users get the completion ping when Quinn calls `workflow_complete`.
+- Add Casey's post-handoff blocking/waiting loop so Telegram users get the completion ping when Quinn calls `workflow_complete`.
 - Bolt on the HITL Send-and-Wait nodes for Iggy and Alex once their personas are migrated into the universal workflow.
 - Revive the deterministic sub-workflows (`generate-video`, `edit-aismr`) and expose them via MCP `toolWorkflow` calls for Veo/Alex fan-out steps.

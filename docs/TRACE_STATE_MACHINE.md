@@ -360,7 +360,7 @@ This ensures only one handoff succeeds if two agents try to hand off simultaneou
 
 2. INITIALIZE
    Casey determines project
-   → Updates trace: projectId="aismr"
+   → Updates trace: projectId="550e8400-e29b-41d4-a716-446655440000" // Project UUID
 
 3. HANDOFF LOOP
    Casey → Iggy → Riley → Veo → Alex → Quinn

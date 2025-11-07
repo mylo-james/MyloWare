@@ -1,0 +1,184 @@
+{
+  "name": "MCP Health Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "schedule-trigger",
+      "name": "Schedule Every 5min",
+      "notes": "Runs every 5 minutes to check MCP server health"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mcp-vector.mjames.dev/health",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [460, 300],
+      "id": "check-health",
+      "name": "Check MCP Health",
+      "notes": "Calls MCP server health endpoint with 5s timeout"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-not-200",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "notEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "check-status",
+      "name": "If Unhealthy",
+      "notes": "Routes to alert if health check returns non-200 status"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID || 'ADMIN_CHAT_ID' }}",
+        "text": "={{ `🚨 MCP Server Health Check Failed!\n\nStatus: ${$json.statusCode}\nTime: ${new Date().toISOString()}\n\nPlease check the MCP server immediately.` }}",
+        "additionalFields": {
+          "parseMode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [900, 200],
+      "id": "alert-admin",
+      "name": "Alert Admin",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Sends Telegram alert to admin when health check fails"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'memory_store',\n  arguments: {\n    content: `MCP health check: Status ${$json.statusCode} at ${new Date().toISOString()}`,\n    memoryType: 'episodic',\n    tags: ['health-check', $json.statusCode === 200 ? 'healthy' : 'unhealthy'],\n    metadata: {\n      statusCode: $json.statusCode,\n      timestamp: new Date().toISOString(),\n      checkType: 'mcp-health'\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [900, 400],
+      "id": "store-health-result",
+      "name": "Store Health Result",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Stores health check result in memory for trending and analysis"
+    }
+  ],
+  "connections": {
+    "Schedule Every 5min": {
+      "main": [
+        [
+          {
+            "node": "Check MCP Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check MCP Health": {
+      "main": [
+        [
+          {
+            "node": "If Unhealthy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Unhealthy": {
+      "main": [
+        [
+          {
+            "node": "Alert Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Health Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Admin": {
+      "main": [
+        [
+          {
+            "node": "Store Health Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "mcp-health-check-workflow-instance"
+  }
+}
+

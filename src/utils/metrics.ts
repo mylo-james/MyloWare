@@ -57,5 +57,17 @@ export const activeSessions = new Gauge({
   help: 'Number of active sessions',
 });
 
+// Retry queue metrics
+export const retryQueueSize = new Gauge({
+  name: 'retry_queue_size',
+  help: 'Number of items in retry queue',
+});
+
+export const retryQueueFailures = new Counter({
+  name: 'retry_queue_failures_total',
+  help: 'Total retry queue failures',
+  labelNames: ['task', 'reason'],
+});
+
 export { register };
 

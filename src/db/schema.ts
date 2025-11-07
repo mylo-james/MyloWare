@@ -11,6 +11,7 @@ import {
   check,
   customType,
   pgEnum,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -22,6 +23,48 @@ export const memoryTypeEnum = pgEnum('memory_type', [
   'episodic',
   'semantic',
   'procedural',
+]);
+
+// Trace status enum
+export const traceStatusEnum = pgEnum('trace_status', [
+  'active',
+  'completed',
+  'failed',
+]);
+
+// Persona name enum
+export const personaNameEnum = pgEnum('persona_name', [
+  'casey',
+  'iggy',
+  'riley',
+  'veo',
+  'alex',
+  'quinn',
+]);
+
+// Workflow run status enum
+export const workflowRunStatusEnum = pgEnum('workflow_run_status', [
+  'running',
+  'completed',
+  'failed',
+  'canceled',
+]);
+
+// HTTP method enum
+export const httpMethodEnum = pgEnum('http_method', [
+  'GET',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+]);
+
+// Auth type enum
+export const authTypeEnum = pgEnum('auth_type_enum', [
+  'none',
+  'header',
+  'basic',
+  'bearer',
 ]);
 
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -70,6 +113,8 @@ export const memories = pgTable(
       .notNull()
       .default(sql`ARRAY[]::uuid[]`),
 
+    traceId: uuid('trace_id'),
+
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
     lastAccessedAt: timestamp('last_accessed_at'),
@@ -91,6 +136,10 @@ export const memories = pgTable(
     tagsIdx: index('memories_tags_idx').using('gin', table.tags),
     relatedToIdx: index('memories_related_to_idx').using('gin', table.relatedTo),
     temporalIdx: index('memories_created_at_idx').on(table.createdAt),
+    traceIdIdx: index('memories_trace_id_idx').on(table.traceId),
+
+    // Foreign key to execution_traces will be added in migration SQL
+    // (executionTraces is defined later in this file)
 
     // Check constraints - enforce single-line content
     contentNoNewlines: check('content_no_newlines', sql`content !~ E'\\n'`),
@@ -139,6 +188,7 @@ export const sessions = pgTable(
     persona: text('persona').notNull(),
     project: text('project').notNull(),
     lastInteractionAt: timestamp('last_interaction_at').notNull().defaultNow(),
+    expiresAt: timestamp('expires_at'),
     context: jsonb('context').notNull().default({}),
     metadata: jsonb('metadata').notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -146,6 +196,18 @@ export const sessions = pgTable(
   },
   (table) => ({
     userIdx: index('sessions_user_idx').on(table.userId),
+    expiresAtIdx: index('sessions_expires_at_idx').on(table.expiresAt),
+    // Foreign keys to personas and projects (by name, not UUID)
+    personaFk: foreignKey({
+      columns: [table.persona],
+      foreignColumns: [personas.name],
+      name: 'sessions_persona_fk',
+    }).onDelete('restrict'),
+    projectFk: foreignKey({
+      columns: [table.project],
+      foreignColumns: [projects.name],
+      name: 'sessions_project_fk',
+    }).onDelete('restrict'),
   })
 );
 
@@ -156,7 +218,7 @@ export const workflowRuns = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     sessionId: text('session_id'),
     workflowName: text('workflow_name').notNull(),
-    status: text('status').notNull(),
+    status: workflowRunStatusEnum('status').notNull(),
     input: jsonb('input'),
     output: jsonb('output'),
     error: text('error'),
@@ -167,6 +229,16 @@ export const workflowRuns = pgTable(
   },
   (table) => ({
     workflowSessionIdx: index('workflow_runs_session_idx').on(table.sessionId),
+    // Foreign key to sessions
+    sessionIdFk: foreignKey({
+      columns: [table.sessionId],
+      foreignColumns: [sessions.id],
+      name: 'workflow_runs_session_id_fk',
+    }).onDelete('cascade'),
+    startedAtLteCompletedAt: check(
+      'workflow_runs_started_at_lte_completed_at',
+      sql`${table.startedAt} <= ${table.completedAt} OR ${table.completedAt} IS NULL`
+    ),
   })
 );
 
@@ -176,16 +248,17 @@ export const executionTraces = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     traceId: uuid('trace_id').notNull().unique(),
-    projectId: text('project_id').notNull(),
+    projectId: uuid('project_id').notNull(),
     sessionId: text('session_id'),
     // Ownership and workflow coordination
     currentOwner: text('current_owner').notNull().default('casey'),
     previousOwner: text('previous_owner'),
     instructions: text('instructions').notNull().default(''),
     workflowStep: integer('workflow_step').notNull().default(0),
-    status: text('status').notNull().default('active'), // 'active', 'completed', 'failed'
+    status: traceStatusEnum('status').notNull().default('active'),
     outputs: jsonb('outputs'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
     completedAt: timestamp('completed_at'),
     metadata: jsonb('metadata').notNull().default({}),
   },
@@ -196,6 +269,30 @@ export const executionTraces = pgTable(
       table.currentOwner
     ),
     createdAtIdx: index('execution_traces_created_at_idx').on(table.createdAt),
+    // Covering index for active traces by project
+    statusProjectIdx: index('execution_traces_status_project_idx')
+      .on(table.status, table.projectId)
+      .where(sql`${table.status} = 'active'`),
+    // Foreign keys
+    projectIdFk: foreignKey({
+      columns: [table.projectId],
+      foreignColumns: [projects.id],
+      name: 'execution_traces_project_id_fk',
+    }).onDelete('restrict'),
+    sessionIdFk: foreignKey({
+      columns: [table.sessionId],
+      foreignColumns: [sessions.id],
+      name: 'execution_traces_session_id_fk',
+    }).onDelete('set null'),
+    currentOwnerFk: foreignKey({
+      columns: [table.currentOwner],
+      foreignColumns: [personas.name],
+      name: 'execution_traces_current_owner_fk',
+    }).onDelete('restrict'),
+    workflowStepNonNegative: check(
+      'execution_traces_workflow_step_non_negative',
+      sql`${table.workflowStep} >= 0`
+    ),
   })
 );
 
@@ -206,8 +303,8 @@ export const agentWebhooks = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     agentName: text('agent_name').notNull().unique(),
     webhookPath: text('webhook_path').notNull(),
-    method: text('method').notNull().default('POST'),
-    authType: text('auth_type').notNull().default('none'), // 'none', 'header', 'basic', 'bearer'
+    method: httpMethodEnum('method').notNull().default('POST'),
+    authType: authTypeEnum('auth_type').notNull().default('none'),
     authConfig: jsonb('auth_config').notNull().default({}),
     description: text('description'),
     isActive: boolean('is_active').notNull().default(true),
@@ -243,9 +340,29 @@ export const videoGenerationJobs = pgTable(
   (table) => ({
     traceIdx: index('video_generation_jobs_trace_idx').on(table.traceId),
     statusIdx: index('video_generation_jobs_status_idx').on(table.status),
+    // Covering index for trace_id + status queries
+    traceStatusIdx: index('video_generation_jobs_trace_status_idx').on(
+      table.traceId,
+      table.status
+    ),
     providerTaskIdx: uniqueIndex('video_generation_jobs_provider_task_idx').on(
       table.provider,
       table.taskId
+    ),
+    // Foreign key to execution_traces
+    traceIdFk: foreignKey({
+      columns: [table.traceId],
+      foreignColumns: [executionTraces.traceId],
+      name: 'video_generation_jobs_trace_id_fk',
+    }).onDelete('cascade'),
+    // Check constraints for job state machine
+    completedAtRequiredForTerminal: check(
+      'video_generation_jobs_completed_at_required',
+      sql`(${table.status} NOT IN ('succeeded', 'failed')) OR ${table.completedAt} IS NOT NULL`
+    ),
+    startedAtLteCompletedAt: check(
+      'video_generation_jobs_started_at_lte_completed_at',
+      sql`${table.startedAt} IS NULL OR ${table.completedAt} IS NULL OR ${table.startedAt} <= ${table.completedAt}`
     ),
   })
 );
@@ -269,9 +386,76 @@ export const editJobs = pgTable(
   },
   (table) => ({
     traceIdx: index('edit_jobs_trace_idx').on(table.traceId),
+    // Covering index for trace_id + status queries
+    traceStatusIdx: index('edit_jobs_trace_status_idx').on(
+      table.traceId,
+      table.status
+    ),
     providerTaskIdx: uniqueIndex('edit_jobs_provider_task_idx').on(
       table.provider,
       table.taskId
+    ),
+    // Foreign key to execution_traces
+    traceIdFk: foreignKey({
+      columns: [table.traceId],
+      foreignColumns: [executionTraces.traceId],
+      name: 'edit_jobs_trace_id_fk',
+    }).onDelete('cascade'),
+    // Check constraints for job state machine
+    completedAtRequiredForTerminal: check(
+      'edit_jobs_completed_at_required',
+      sql`(${table.status} NOT IN ('succeeded', 'failed')) OR ${table.completedAt} IS NOT NULL`
+    ),
+    startedAtLteCompletedAt: check(
+      'edit_jobs_started_at_lte_completed_at',
+      sql`${table.startedAt} IS NULL OR ${table.completedAt} IS NULL OR ${table.startedAt} <= ${table.completedAt}`
+    ),
+  })
+);
+
+// Retry queue for failed memory operations
+export const retryQueue = pgTable(
+  'retry_queue',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    task: text('task').notNull(), // 'memory_store'
+    payload: jsonb('payload').notNull(), // Serialized operation parameters
+    attempts: integer('attempts').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull().default(5),
+    nextRetry: timestamp('next_retry').notNull(),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nextRetryIdx: index('retry_queue_next_retry_idx').on(table.nextRetry),
+    taskIdx: index('retry_queue_task_idx').on(table.task),
+  })
+);
+
+// Workflow mappings table - maps human-readable workflow keys to n8n workflow IDs
+export const workflowMappings = pgTable(
+  'workflow_mappings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workflowKey: text('workflow_key').notNull().unique(), // e.g., 'upload-google-drive'
+    workflowId: text('workflow_id').notNull(), // n8n workflow ID (instance-specific)
+    workflowName: text('workflow_name').notNull(), // Human-readable name
+    environment: text('environment').notNull().default('production'), // 'production', 'staging', 'development'
+    description: text('description'),
+    isActive: boolean('is_active').notNull().default(true),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    workflowKeyIdx: index('workflow_mappings_workflow_key_idx').on(table.workflowKey),
+    environmentIdx: index('workflow_mappings_environment_idx').on(table.environment),
+    isActiveIdx: index('workflow_mappings_is_active_idx').on(table.isActive),
+    // Unique constraint on workflowKey + environment
+    workflowKeyEnvironmentIdx: uniqueIndex('workflow_mappings_key_env_idx').on(
+      table.workflowKey,
+      table.environment
     ),
   })
 );

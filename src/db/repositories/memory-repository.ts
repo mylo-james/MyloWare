@@ -121,7 +121,13 @@ export class MemoryRepository {
   }
 
   async insert(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>): Promise<Memory> {
-    const [result] = await db.insert(memories).values(memory).returning();
+    // Extract trace_id from metadata if present
+    const traceId = memory.metadata?.traceId as string | undefined;
+    const insertValues = {
+      ...memory,
+      traceId: traceId || null,
+    };
+    const [result] = await db.insert(memories).values(insertValues).returning();
     return result as Memory;
   }
 
@@ -139,12 +145,17 @@ export class MemoryRepository {
     id: string,
     updates: Partial<Memory>
   ): Promise<Memory> {
+    // Extract trace_id from metadata if present in updates
+    const updateData: Record<string, unknown> = { ...updates };
+    if (updates.metadata?.traceId) {
+      updateData.traceId = updates.metadata.traceId as string;
+    }
+    // updated_at is handled by trigger, don't set manually
+    delete updateData.updatedAt;
+
     const [result] = await db
       .update(memories)
-      .set({
-        ...updates,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(memories.id, id))
       .returning();
 

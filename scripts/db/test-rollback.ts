@@ -44,8 +44,16 @@ async function main() {
   log('Schema dropped (simulated rollback). Reapplying migrations...');
   await ensureVectorExtension(databaseUrl);
 
-  await runMigrations(databaseUrl, 'Reapply after rollback');
+    await runMigrations(databaseUrl, 'Reapply after rollback');
     await assertTableExists(databaseUrl, 'execution_traces');
+
+    // Assert FK, enum, and trigger counts
+    await assertForeignKeyCount(databaseUrl);
+    await assertEnumCount(databaseUrl);
+    await assertTriggerCount(databaseUrl);
+
+    // Regression test: attempt to insert orphaned job (should fail with FK violation)
+    await assertForeignKeyEnforcement(databaseUrl);
 
     log('Rollback smoke test succeeded. Migrations can be re-applied cleanly after a drop.');
   } finally {
@@ -154,6 +162,93 @@ function runCommand(command: string, args: string[], env: NodeJS.ProcessEnv) {
     });
     child.on('error', (error) => reject(error));
   });
+}
+
+async function assertForeignKeyCount(url: string) {
+  log('Verifying foreign key count...');
+  const pool = new Pool({ connectionString: url });
+  try {
+    const result = await pool.query<{ count: string }>(
+      `SELECT COUNT(*) as count
+       FROM information_schema.table_constraints
+       WHERE constraint_type = 'FOREIGN KEY'
+         AND table_schema = 'public';`
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    // Expected: sessions (2), execution_traces (3), workflow_runs (1), memories (1), video_generation_jobs (1), edit_jobs (1) = 9 FKs
+    if (count < 9) {
+      throw new Error(`Expected at least 9 foreign keys, found ${count}`);
+    }
+    log(`Confirmed ${count} foreign keys exist.`);
+  } finally {
+    await pool.end();
+  }
+}
+
+async function assertEnumCount(url: string) {
+  log('Verifying enum count...');
+  const pool = new Pool({ connectionString: url });
+  try {
+    const result = await pool.query<{ count: string }>(
+      `SELECT COUNT(*) as count
+       FROM pg_type
+       WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+         AND typtype = 'e';`
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    // Expected: memory_type, trace_status, persona_name, workflow_run_status, http_method, auth_type_enum, job_status = 7 enums
+    if (count < 7) {
+      throw new Error(`Expected at least 7 enums, found ${count}`);
+    }
+    log(`Confirmed ${count} enums exist.`);
+  } finally {
+    await pool.end();
+  }
+}
+
+async function assertTriggerCount(url: string) {
+  log('Verifying trigger count...');
+  const pool = new Pool({ connectionString: url });
+  try {
+    const result = await pool.query<{ count: string }>(
+      `SELECT COUNT(*) as count
+       FROM information_schema.triggers
+       WHERE trigger_schema = 'public'
+         AND trigger_name LIKE 'update_%_updated_at';`
+    );
+    const count = Number(result.rows[0]?.count ?? 0);
+    // Expected: personas, projects, sessions, execution_traces, memories, agent_webhooks, video_generation_jobs, edit_jobs = 8 triggers
+    if (count < 8) {
+      throw new Error(`Expected at least 8 updated_at triggers, found ${count}`);
+    }
+    log(`Confirmed ${count} updated_at triggers exist.`);
+  } finally {
+    await pool.end();
+  }
+}
+
+async function assertForeignKeyEnforcement(url: string) {
+  log('Testing foreign key enforcement (attempting orphaned job insert)...');
+  const pool = new Pool({ connectionString: url });
+  try {
+    // Attempt to insert a job with a non-existent trace_id (should fail)
+    const fakeTraceId = '00000000-0000-0000-0000-000000000000';
+    await pool.query(
+      `INSERT INTO video_generation_jobs (trace_id, provider, task_id, status)
+       VALUES ($1, 'test', 'test-task', 'queued');`,
+      [fakeTraceId]
+    );
+    throw new Error('Foreign key constraint violation expected but insert succeeded');
+  } catch (error) {
+    const errorMessage = String(error);
+    if (errorMessage.includes('foreign key') || errorMessage.includes('violates foreign key')) {
+      log('Foreign key enforcement confirmed: orphaned insert correctly rejected.');
+    } else {
+      throw error;
+    }
+  } finally {
+    await pool.end();
+  }
 }
 
 function log(message: string) {

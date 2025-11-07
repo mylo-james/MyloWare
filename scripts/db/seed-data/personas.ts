@@ -13,7 +13,7 @@ const caseyPersonaDoc = JSON.parse(readFileSync(caseyPersonaPath, 'utf-8'));
 export const testPersonas: TestPersona[] = [
   {
     name: 'casey',
-    description: 'The Showrunner - Coordinates production kickoff and completion',
+    description: caseyPersonaDoc.title || 'The Showrunner - Coordinates production kickoff and completion',
     capabilities: ['workflow-coordination', 'trace-creation', 'agent-handoff'],
     tone: 'confident',
     defaultProject: 'aismr',

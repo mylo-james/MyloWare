@@ -6,7 +6,7 @@ import { getPersona } from '../tools/context/getPersonaTool.js';
 import { getProject } from '../tools/context/getProjectTool.js';
 import { SessionRepository } from '../db/repositories/session-repository.js';
 import type { SessionContext } from '../db/repositories/session-repository.js';
-import { MemoryRepository, TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository } from '../db/repositories/index.js';
+import { MemoryRepository, TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository, WorkflowMappingRepository } from '../db/repositories/index.js';
 import type { Trace } from '../db/repositories/trace-repository.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { stripEmbeddings } from '../utils/response-formatter.js';
@@ -19,6 +19,9 @@ import { db } from '../db/client.js';
 import { executionTraces } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getTelegramClient } from '../integrations/telegram/client.js';
+import { enqueueMemoryRetry } from '../utils/retry-queue.js';
+import { MCPError, MCPErrorCode, NotFoundError } from '../utils/errors.js';
+import { sanitizeMetadata } from '../utils/metadata-sanitizer.js';
 
 export interface MCPTool {
   name: string;
@@ -282,13 +285,6 @@ const handoffToAgentInputSchema = z.object({
   metadata: recordLike().optional(),
 });
 
-const workflowCompleteInputSchema = z.object({
-  traceId: uuidSchema,
-  status: z.enum(['completed', 'failed']),
-  outputs: recordLike().optional(),
-  notes: z.string().optional(),
-});
-
 // Memory search by run schema
 const memorySearchByRunSchema = z.object({
   runId: z.string(),
@@ -341,8 +337,12 @@ const memoryStoreTool: MCPTool = {
     });
 
     const { traceId, runId, handoffId, relatedTo, ...rest } = validated;
+    // Sanitize user-provided metadata before merging with reserved keys
+    const sanitizedUserMetadata = rest.metadata
+      ? sanitizeMetadata(rest.metadata as Record<string, unknown>)
+      : {};
     const metadata = {
-      ...(rest.metadata || {}),
+      ...sanitizedUserMetadata,
       ...(traceId ? { traceId } : {}),
       ...(runId ? { runId } : {}),
       ...(handoffId ? { handoffId } : {}),
@@ -516,6 +516,59 @@ const sessionUpdateContextTool: MCPTool = {
   },
 };
 
+// Workflow resolution tool
+const workflowResolveInputSchema = z.object({
+  workflowKey: z.string().min(1).describe('Human-readable workflow key (e.g., upload-google-drive)'),
+  environment: z.string().default('production').describe('Environment (production, staging, development)'),
+});
+
+const workflowResolveTool: MCPTool = {
+  name: 'workflow_resolve',
+  title: 'Resolve Workflow ID',
+  description: 'Resolves a human-readable workflow key to the current n8n workflow ID for the specified environment. Use this to get the correct workflow ID before calling toolWorkflow nodes.',
+  inputSchema: workflowResolveInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = workflowResolveInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'workflow_resolve',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const repository = new WorkflowMappingRepository();
+    const mapping = await repository.findByKey(validated.workflowKey, validated.environment);
+
+    if (!mapping) {
+      throw new NotFoundError(
+        `Workflow mapping not found for key: ${validated.workflowKey} in environment: ${validated.environment}`
+      );
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            workflowKey: mapping.workflowKey,
+            workflowId: mapping.workflowId,
+            workflowName: mapping.workflowName,
+            environment: mapping.environment,
+          }),
+        },
+      ],
+      structuredContent: {
+        workflowKey: mapping.workflowKey,
+        workflowId: mapping.workflowId,
+        workflowName: mapping.workflowName,
+        environment: mapping.environment,
+      },
+    };
+  },
+};
+
 // Memory search by run tool
 const memorySearchByRunTool: MCPTool = {
   name: 'memory_searchByRun',
@@ -608,7 +661,7 @@ const setProjectTool: MCPTool = {
       requestId,
     });
 
-    // Validate project exists
+    // Validate project exists and get UUID
     const projectRepo = new ProjectRepository();
     const project = await projectRepo.findByName(validated.projectId);
     if (!project) {
@@ -617,14 +670,14 @@ const setProjectTool: MCPTool = {
       );
     }
 
-    // Update trace with validated projectId
+    // Update trace with project UUID (not slug)
     const traceRepo = new TraceRepository();
     const updatedTrace = await traceRepo.updateTrace(validated.traceId, {
-      projectId: validated.projectId,
+      projectId: project.id,
     });
     
     if (!updatedTrace) {
-      throw new Error(`Trace not found: ${validated.traceId}`);
+      throw new NotFoundError(`Trace not found: ${validated.traceId}`, 'trace', MCPErrorCode.TRACE_NOT_FOUND);
     }
 
     return {
@@ -637,7 +690,7 @@ const setProjectTool: MCPTool = {
 const traceUpdateTool: MCPTool = {
   name: 'trace_update',
   title: 'Update Trace',
-  description: 'Update project, instructions, or metadata for an existing trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: trace_update({traceId: "trace-aismr-001", projectId: "aismr", instructions: "..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Typically called by Casey after normalizing the request.',
+  description: 'Update project, instructions, or metadata for an existing trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). **IMPORTANT**: projectId should be a canonical project UUID. For backward compatibility, project slugs (e.g., "aismr") are accepted but will be resolved to UUIDs. Example: trace_update({traceId: "trace-aismr-001", projectId: "550e8400-e29b-41d4-a716-446655440000", instructions: "..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Typically called by Casey after normalizing the request.',
   inputSchema: traceUpdateInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -652,13 +705,32 @@ const traceUpdateTool: MCPTool = {
 
     const updatePayload: Record<string, unknown> = {};
     if (typeof validated.projectId !== 'undefined') {
-      updatePayload.projectId = validated.projectId;
+      // Resolve project slug to UUID (for backward compatibility)
+      // Prefer passing UUIDs directly for better performance
+      const projectRepo = new ProjectRepository();
+      const project = await projectRepo.findByName(validated.projectId);
+      if (!project) {
+        // If not found by name, try treating it as a UUID
+        // This allows both slug and UUID inputs
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.projectId);
+        if (isValidUUID) {
+          // Assume it's a UUID - let the database FK constraint validate it
+          updatePayload.projectId = validated.projectId;
+        } else {
+          throw new Error(
+            `Project not found: "${validated.projectId}". Use a valid project name (e.g., "aismr", "genreact") or project UUID.`
+          );
+        }
+      } else {
+        // Resolved slug to UUID
+        updatePayload.projectId = project.id;
+      }
     }
     if (typeof validated.instructions !== 'undefined') {
       updatePayload.instructions = validated.instructions;
     }
     if (typeof validated.metadata !== 'undefined') {
-      updatePayload.metadata = validated.metadata;
+      updatePayload.metadata = sanitizeMetadata(validated.metadata as Record<string, unknown>);
     }
 
     if (Object.keys(updatePayload).length === 0) {
@@ -668,7 +740,7 @@ const traceUpdateTool: MCPTool = {
     const traceRepo = new TraceRepository();
     const updatedTrace = await traceRepo.updateTrace(validated.traceId, updatePayload);
     if (!updatedTrace) {
-      throw new Error(`Trace not found: ${validated.traceId}`);
+      throw new NotFoundError(`Trace not found: ${validated.traceId}`, 'trace', MCPErrorCode.TRACE_NOT_FOUND);
     }
 
     return {
@@ -681,7 +753,7 @@ const traceUpdateTool: MCPTool = {
 const traceCreateTool: MCPTool = {
   name: 'trace_create',
   title: 'Create Trace',
-  description: 'Always call this at the start of a production run to mint the shared traceId',
+  description: 'Always call this at the start of a production run to mint the shared traceId. **IMPORTANT**: projectId should be a canonical project UUID. For backward compatibility, project slugs (e.g., "aismr") are accepted but will be resolved to UUIDs.',
   inputSchema: traceCreateInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -694,9 +766,29 @@ const traceCreateTool: MCPTool = {
       requestId,
     });
 
+    // Resolve project slug to UUID (for backward compatibility)
+    const projectRepo = new ProjectRepository();
+    const project = await projectRepo.findByName(validated.projectId);
+    let resolvedProjectId: string;
+    if (!project) {
+      // If not found by name, try treating it as a UUID
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.projectId);
+      if (isValidUUID) {
+        // Assume it's a UUID - let the database FK constraint validate it
+        resolvedProjectId = validated.projectId;
+      } else {
+        throw new Error(
+          `Project not found: "${validated.projectId}". Use a valid project name (e.g., "aismr", "genreact") or project UUID.`
+        );
+      }
+    } else {
+      // Resolved slug to UUID
+      resolvedProjectId = project.id;
+    }
+
     const traceRepo = new TraceRepository();
     const trace = await traceRepo.create({
-      projectId: validated.projectId,
+      projectId: resolvedProjectId,
       sessionId: validated.sessionId,
       metadata: validated.metadata,
     });
@@ -802,15 +894,34 @@ const handoffToAgentTool: MCPTool = {
             toAgent: targetAgent,
             status,
             instructions: validated.instructions,
-            ...(validated.metadata || {}),
+            ...(validated.metadata
+              ? sanitizeMetadata(validated.metadata as Record<string, unknown>)
+              : {}),
           },
         });
       } catch (memoryError) {
+        const error = memoryError instanceof Error ? memoryError : new Error(String(memoryError));
         logger.warn({
-          msg: 'Failed to store terminal handoff memory',
-          error: memoryError instanceof Error ? memoryError.message : String(memoryError),
+          msg: 'Failed to store terminal handoff memory, enqueueing for retry',
+          error: error.message,
           requestId,
         });
+        // Enqueue for retry instead of just logging
+        await enqueueMemoryRetry(
+          {
+            content: `Trace ${status} via ${targetAgent} handoff: ${validated.instructions}`,
+            memoryType: 'episodic',
+            tags: ['handoff', targetAgent, status],
+            metadata: {
+              traceId: validated.traceId,
+              toAgent: targetAgent,
+              status,
+              instructions: validated.instructions,
+              ...(validated.metadata || {}),
+            },
+          },
+          error
+        );
       }
 
       // Send Telegram notification when workflow completes
@@ -976,82 +1087,39 @@ const handoffToAgentTool: MCPTool = {
           toAgent: validated.toAgent,
           executionId: webhookResponse.executionId,
           workflowStep: currentWorkflowStep + 1,
-          ...(validated.metadata || {}),
+          ...(validated.metadata
+            ? sanitizeMetadata(validated.metadata as Record<string, unknown>)
+            : {}),
         },
       });
     } catch (memoryError) {
+      const error = memoryError instanceof Error ? memoryError : new Error(String(memoryError));
       logger.warn({
-        msg: 'Failed to store handoff memory',
-        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
+        msg: 'Failed to store handoff memory, enqueueing for retry',
+        error: error.message,
         requestId,
       });
+      // Enqueue for retry instead of just logging
+      await enqueueMemoryRetry(
+        {
+          content: `Handed off to ${validated.toAgent}: ${validated.instructions}`,
+          memoryType: 'episodic',
+          tags: ['handoff', validated.toAgent],
+          metadata: {
+            traceId: validated.traceId,
+            toAgent: validated.toAgent,
+            executionId: webhookResponse.executionId,
+            workflowStep: currentWorkflowStep + 1,
+            ...(validated.metadata || {}),
+          },
+        },
+        error
+      );
     }
 
     return {
       content: [{ type: 'text', text: JSON.stringify({ webhookUrl, executionId: webhookResponse.executionId, status: webhookResponse.status, toAgent: validated.toAgent }) }],
       structuredContent: { webhookUrl, executionId: webhookResponse.executionId, status: webhookResponse.status, toAgent: validated.toAgent },
-    };
-  },
-};
-
-const workflowCompleteTool: MCPTool = {
-  name: 'workflow_complete',
-  title: 'Complete Workflow',
-  description: 'Mark the trace as completed/failed and attach final outputs for Casey/Quinn',
-  inputSchema: workflowCompleteInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = workflowCompleteInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'workflow_complete',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const traceRepo = new TraceRepository();
-
-    // Validate trace exists
-    const trace = await traceRepo.findByTraceId(validated.traceId);
-    if (!trace) {
-      throw new Error(`Trace not found: ${validated.traceId}`);
-    }
-
-    // Update trace status
-    const updatedTrace = await traceRepo.updateStatus(
-      validated.traceId,
-      validated.status,
-      validated.outputs
-    );
-
-    if (!updatedTrace) {
-      throw new Error(`Failed to update trace: ${validated.traceId}`);
-    }
-
-    // Store completion event to memory
-    try {
-      await storeMemory({
-        content: `Workflow ${validated.status}: ${validated.notes || 'No notes'}`,
-        memoryType: 'episodic',
-        tags: ['workflow-complete', validated.status],
-        metadata: {
-          traceId: validated.traceId,
-          status: validated.status,
-          outputs: validated.outputs,
-        },
-      });
-    } catch (memoryError) {
-      logger.warn({
-        msg: 'Failed to store completion memory',
-        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
-        requestId,
-      });
-    }
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ traceId: updatedTrace.traceId, status: updatedTrace.status, completedAt: updatedTrace.completedAt, outputs: updatedTrace.outputs }) }],
-      structuredContent: { traceId: updatedTrace.traceId, status: updatedTrace.status, completedAt: updatedTrace.completedAt, outputs: updatedTrace.outputs },
     };
   },
 };
@@ -1185,7 +1253,6 @@ export const mcpTools: MCPTool[] = [
   traceUpdateTool,
   traceCreateTool,
   handoffToAgentTool,
-  workflowCompleteTool,
 
   // Job ledger tools
   jobUpsertTool,
@@ -1194,6 +1261,9 @@ export const mcpTools: MCPTool[] = [
   // Session tools
   sessionGetContextTool,
   sessionUpdateContextTool,
+  
+  // Workflow tools
+  workflowResolveTool,
 ];
 
 export function generateRequestId(): string {

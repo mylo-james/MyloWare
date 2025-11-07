@@ -7,3 +7,4 @@ export { TraceRepository } from './trace-repository.js';
 export { AgentWebhookRepository } from './agent-webhook-repository.js';
 export { VideoJobsRepository } from './video-jobs-repository.js';
 export { EditJobsRepository } from './edit-jobs-repository.js';
+export { WorkflowMappingRepository } from './workflow-mapping-repository.js';

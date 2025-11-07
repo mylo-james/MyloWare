@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ProjectRepository } from '../../src/db/repositories/project-repository.js';
 import { pool } from '../../src/db/client.js';
+import { Client } from 'pg';
+import { config } from '../../src/config/index.js';
 
 interface V1Project {
   title: string;
@@ -26,8 +28,41 @@ interface V1Project {
   };
 }
 
+async function waitForDatabase(retries = 10, delayMs = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const client = new Client({ connectionString: config.database.url });
+      await client.connect();
+      await client.end();
+      return;
+    } catch (error) {
+      if (attempt === retries) {
+        throw new Error(
+          `Failed to connect to database after ${retries} attempts: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      console.log(`  ⏳ Waiting for database... (attempt ${attempt}/${retries})`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 async function migrateProjects() {
   console.log('🔄 Migrating projects from V1...');
+
+  // Wait for database to be available (with retries)
+  try {
+    await waitForDatabase();
+    console.log('  ✓ Database connection established');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error instanceof Error ? error.message : String(error));
+    console.error('   Make sure your database is running and DATABASE_URL is set correctly.');
+    console.error('   💡 Tips:');
+    console.error('      - Local: Check if PostgreSQL is running (`pg_isready` or `psql`)');
+    console.error('      - Docker: Run `npm run dev:docker` or check container status');
+    console.error('      - Remote: Verify DATABASE_URL is correct and accessible');
+    process.exit(1);
+  }
 
   const repository = new ProjectRepository();
   const dataDir = path.resolve(
@@ -148,9 +183,60 @@ async function migrateProjects() {
       console.log('    ✓ GenReact project created');
     }
 
+    // Create Test Video Gen project
+    console.log('  - Creating Test Video Gen project...');
+    const existingTestVideoGen = await repository.findByName('test_video_gen');
+    if (existingTestVideoGen) {
+      console.log('    ⏭️  Test Video Gen project already exists, skipping');
+    } else {
+      const testVideoGenPath = path.join(dataDir, 'test_video_gen.json');
+      let testVideoGen: V1Project | null = null;
+      try {
+        const testVideoGenJson = await readFile(testVideoGenPath, 'utf-8');
+        testVideoGen = JSON.parse(testVideoGenJson) as V1Project;
+      } catch (error) {
+        // File doesn't exist, use defaults
+        testVideoGen = {
+          title: 'Test Video Generation',
+          workflow: ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+          optionalSteps: [],
+          specs: {
+            videoCount: 2,
+            videoDuration: 10.0,
+          },
+        };
+      }
+
+      await repository.insert({
+        name: 'test_video_gen',
+        description: testVideoGen.title,
+        workflow: testVideoGen.workflow || testVideoGen.workflows || ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+        optionalSteps: testVideoGen.optionalSteps || [],
+        guardrails: testVideoGen.guardrails || {},
+        settings: {
+          videoCount: testVideoGen.specs?.videoCount || 2,
+          videoDuration: testVideoGen.specs?.videoDuration || 10.0,
+          testAccount: true,
+          outputPlatforms: ['tiktok'],
+          defaultPlatform: 'tiktok',
+        },
+        metadata: {
+          v1Source: 'test_video_gen.json',
+        },
+      });
+
+      console.log('    ✓ Test Video Gen project created');
+    }
+
     console.log('✅ Project migration complete');
   } catch (error) {
     console.error('❌ Project migration failed:', error);
+    if (error instanceof Error && error.message.includes('Connection')) {
+      console.error('   💡 Tip: Make sure your database is running:');
+      console.error('      - Local: Check if PostgreSQL is running');
+      console.error('      - Docker: Run `npm run dev:docker` or check container status');
+      console.error('      - Remote: Verify DATABASE_URL is correct and accessible');
+    }
     process.exit(1);
   } finally {
     await pool.end();
