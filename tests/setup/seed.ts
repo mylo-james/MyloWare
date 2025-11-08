@@ -83,45 +83,76 @@ async function clearTables() {
 
 async function seedPersonas() {
   const personaRepository = new PersonaRepository();
-  const files = ['chat.json', 'ideagenerator.json', 'screenwriter.json', 'casey.json'];
-  const capabilityMap: Record<string, string[]> = {
-    chat: ['conversation', 'workflow-discovery', 'orchestration'],
-    ideagenerator: ['idea-generation', 'uniqueness-verification', 'memory-search'],
-    screenwriter: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
-    casey: ['trace-coordination', 'handoff', 'memory-management'],
-  };
-  const allowedToolsMap: Record<string, string[]> = {
-    chat: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    ideagenerator: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    screenwriter: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    casey: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
-  };
+  const files = ['casey.json', 'iggy.json', 'riley.json', 'veo.json', 'alex.json', 'quinn.json'];
 
   for (const file of files) {
     const raw = await readFile(path.join(dataDir('personas'), file), 'utf-8');
     const persona = JSON.parse(raw) as V1Persona;
 
-    const systemPrompt = cleanForAI(`
-You are ${persona.agent.name}, a ${persona.persona.role}.
-Your style: ${persona.persona.style}.
-Your identity: ${persona.persona.identity}.
-Your focus areas: ${persona.persona.focus}.
+    const role =
+      persona.persona?.role ??
+      persona.agent?.role ??
+      persona.agent?.title ??
+      'teammate';
+    const style =
+      persona.persona?.style ??
+      persona.identity?.style ??
+      persona.identity?.tone ??
+      'helpful';
+    const identityDescription =
+      persona.persona?.identity ??
+      persona.identity?.who_you_are ??
+      persona.agent?.description ??
+      '';
+    const focusAreas =
+      persona.persona?.focus ??
+      persona.identity?.your_expertise ??
+      [];
+    const corePrinciples =
+      persona.persona?.core_principles ??
+      persona.identity?.core_principles ??
+      [];
+    const whenToUse =
+      persona.agent?.whentouse ??
+      persona.workflow?.overview ??
+      'Follow the documented workflow steps.';
+    const definitionOfSuccess =
+      persona.workflow?.definition_of_success ??
+      (Array.isArray(persona.validation_checklist?.definition_of_done)
+        ? persona.validation_checklist?.definition_of_done.join(' ')
+        : '');
+    const tone =
+      persona.identity?.style ??
+      persona.persona?.style ??
+      persona.identity?.tone ??
+      'helpful';
+
+    const systemPrompt = cleanForAI(
+      `
+You are ${persona.agent?.name ?? 'a teammate'}, a ${role}.
+Your style: ${style}.
+Your identity: ${identityDescription}.
+Your focus areas: ${focusAreas.join(', ')}.
 
 Core principles:
-${(persona.persona.core_principles || []).map((p, i) => `${i + 1}. ${p}`).join(' ')}
+${corePrinciples.map((p, i) => `${i + 1}. ${p}`).join(' ')}
 
-When to use you: ${persona.agent.whentouse}
-${persona.workflow?.definition_of_success ? `Definition of success: ${persona.workflow.definition_of_success}` : ''}
-    `.trim());
+When to use you: ${whenToUse}
+${definitionOfSuccess ? `Definition of success: ${definitionOfSuccess}` : ''}
+    `.trim()
+    );
 
     await personaRepository.insert({
       name: persona.agent.id,
       description: persona.agent.title,
-      capabilities: capabilityMap[persona.agent.id] || ['conversation'],
-      tone: persona.persona.style,
+      capabilities:
+        persona.capabilities ||
+        persona.identity?.your_expertise ||
+        ['conversation'],
+      tone,
       defaultProject: 'aismr',
       systemPrompt,
-      allowedTools: allowedToolsMap[persona.agent.id] || ['memory_search', 'memory_store', 'handoff_to_agent'],
+      allowedTools: persona.allowedTools || ['memory_search', 'memory_store', 'handoff_to_agent'],
       metadata: {
         v1Source: file,
       },
@@ -130,41 +161,6 @@ ${persona.workflow?.definition_of_success ? `Definition of success: ${persona.wo
 
   // Seed additional personas that don't have JSON files
   const additionalPersonas = [
-    {
-      name: 'iggy',
-      description: 'Creative Director',
-      capabilities: ['idea-generation', 'uniqueness-verification', 'handoff'],
-      tone: 'creative',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    },
-    {
-      name: 'riley',
-      description: 'Head Writer',
-      capabilities: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
-      tone: 'precise',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    },
-    {
-      name: 'veo',
-      description: 'Production (Video Generation)',
-      capabilities: ['video-generation', 'batch-processing', 'handoff'],
-      tone: 'efficient',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
-    },
-    {
-      name: 'alex',
-      description: 'Editor (Post-Production)',
-      capabilities: ['editing', 'compilation', 'handoff'],
-      tone: 'meticulous',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
-    },
-    {
-      name: 'quinn',
-      description: 'Social Media Manager',
-      capabilities: ['publishing', 'captioning', 'workflow-complete'],
-      tone: 'upbeat',
-      allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-    },
   ];
 
   for (const persona of additionalPersonas) {

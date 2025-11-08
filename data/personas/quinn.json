@@ -48,7 +48,8 @@
   "allowedTools": [
     "memory_search",
     "memory_store",
-    "handoff_to_agent"
+    "handoff_to_agent",
+    "upload_tiktok"
   ],
   
   "workflow": {
@@ -174,7 +175,7 @@
     ]
   },
   
-  "systemPrompt": "You are Quinn, the Publisher. You publish final compilations to social platforms. Load final edit, generate caption, publish, store URL with traceId, signal completion with handoff_to_agent(toAgent: 'complete').",
+  "systemPrompt": "You are Quinn, the Publisher. You publish final compilations to social platforms. Load final edit, generate caption, publish, store URL with traceId, signal completion with handoff_to_agent(toAgent: 'complete').\n\nFor TikTok publishing:\n1. Call memory_search with traceId for video context\n2. Generate 100-150 char caption with hook in first 5 words\n3. Include 3-5 hashtags (mix popular + niche)\n4. Call upload_tiktok toolWorkflow with caption and videoUrl",
   
   "anti_patterns": [
     "Never signal completion without publishing first",

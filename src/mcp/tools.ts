@@ -20,7 +20,7 @@ import { executionTraces } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getTelegramClient } from '../integrations/telegram/client.js';
 import { enqueueMemoryRetry } from '../utils/retry-queue.js';
-import { MCPError, MCPErrorCode, NotFoundError } from '../utils/errors.js';
+import { MCPErrorCode, NotFoundError } from '../utils/errors.js';
 import { sanitizeMetadata } from '../utils/metadata-sanitizer.js';
 
 export interface MCPTool {
@@ -216,6 +216,11 @@ const contextGetProjectInputSchema = z.object({
   projectName: z.string(),
 });
 
+const projectSearchInputSchema = z.object({
+  query: z.string().min(1, 'query is required'),
+  limit: numberLike().optional(),
+});
+
 const sessionGetContextInputSchema = z.object({
   sessionId: z.string(),
   persona: z.string().optional(),
@@ -234,12 +239,12 @@ const uuidSchema = z.string().uuid('traceId must be a valid UUID');
 
 const setProjectInputSchema = z.object({
   traceId: uuidSchema, // Required: Use the exact traceId from your system prompt (TRACE ID field)
-  projectId: z.string().min(1, 'projectId is required'),
+  projectId: uuidSchema,
 });
 
 const traceUpdateInputSchema = z.object({
   traceId: uuidSchema,
-  projectId: z.string().optional(),
+  projectId: uuidSchema.optional(),
   instructions: z.string().max(10000, 'Instructions must be 10000 characters or less').optional(),
   metadata: recordLike().optional(),
 });
@@ -273,7 +278,7 @@ const jobsSummaryInputSchema = z.object({
 
 // Trace coordination schemas
 const traceCreateInputSchema = z.object({
-  projectId: z.string(),
+  projectId: uuidSchema,
   sessionId: z.string().optional(),
   metadata: recordLike().optional(),
 });
@@ -430,6 +435,42 @@ const contextGetProjectTool: MCPTool = {
     });
 
     const result = await getProject(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
+const contextSearchProjectsTool: MCPTool = {
+  name: 'context_search_projects',
+  title: 'Search Projects',
+  description: 'Discover available projects by keyword. Returns project UUIDs plus descriptions so you can call context_get_project or set_project with the correct id.',
+  inputSchema: projectSearchInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = projectSearchInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'context_search_projects',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const repository = new ProjectRepository();
+    const projects = await repository.search(validated.query, validated.limit ?? 5);
+
+    const result = {
+      projects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        guardrails: project.guardrails,
+        settings: project.settings,
+      })),
+    };
+
     return {
       content: [{ type: 'text', text: JSON.stringify(result) }],
       structuredContent: result,
@@ -663,14 +704,14 @@ const setProjectTool: MCPTool = {
 
     // Validate project exists and get UUID
     const projectRepo = new ProjectRepository();
-    const project = await projectRepo.findByName(validated.projectId);
+    const project = await projectRepo.findById(validated.projectId);
     if (!project) {
       throw new Error(
-        `Project not found: "${validated.projectId}". Use a valid project ID from the available projects list (e.g., "aismr", "genreact").`
+        `Project not found: "${validated.projectId}". Provide a valid project UUID from the available projects list.`
       );
     }
 
-    // Update trace with project UUID (not slug)
+    // Update trace with project UUID
     const traceRepo = new TraceRepository();
     const updatedTrace = await traceRepo.updateTrace(validated.traceId, {
       projectId: project.id,
@@ -705,26 +746,7 @@ const traceUpdateTool: MCPTool = {
 
     const updatePayload: Record<string, unknown> = {};
     if (typeof validated.projectId !== 'undefined') {
-      // Resolve project slug to UUID (for backward compatibility)
-      // Prefer passing UUIDs directly for better performance
-      const projectRepo = new ProjectRepository();
-      const project = await projectRepo.findByName(validated.projectId);
-      if (!project) {
-        // If not found by name, try treating it as a UUID
-        // This allows both slug and UUID inputs
-        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.projectId);
-        if (isValidUUID) {
-          // Assume it's a UUID - let the database FK constraint validate it
-          updatePayload.projectId = validated.projectId;
-        } else {
-          throw new Error(
-            `Project not found: "${validated.projectId}". Use a valid project name (e.g., "aismr", "genreact") or project UUID.`
-          );
-        }
-      } else {
-        // Resolved slug to UUID
-        updatePayload.projectId = project.id;
-      }
+      updatePayload.projectId = validated.projectId;
     }
     if (typeof validated.instructions !== 'undefined') {
       updatePayload.instructions = validated.instructions;
@@ -767,24 +789,7 @@ const traceCreateTool: MCPTool = {
     });
 
     // Resolve project slug to UUID (for backward compatibility)
-    const projectRepo = new ProjectRepository();
-    const project = await projectRepo.findByName(validated.projectId);
-    let resolvedProjectId: string;
-    if (!project) {
-      // If not found by name, try treating it as a UUID
-      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.projectId);
-      if (isValidUUID) {
-        // Assume it's a UUID - let the database FK constraint validate it
-        resolvedProjectId = validated.projectId;
-      } else {
-        throw new Error(
-          `Project not found: "${validated.projectId}". Use a valid project name (e.g., "aismr", "genreact") or project UUID.`
-        );
-      }
-    } else {
-      // Resolved slug to UUID
-      resolvedProjectId = project.id;
-    }
+    const resolvedProjectId = validated.projectId;
 
     const traceRepo = new TraceRepository();
     const trace = await traceRepo.create({
@@ -941,8 +946,29 @@ const handoffToAgentTool: MCPTool = {
               publishUrl = String(updatedTrace.outputs.url);
             }
 
+            // Resolve project display name
+            let projectName = 'video';
+            if (updatedTrace.projectId) {
+              try {
+                const projectRepo = new ProjectRepository();
+                const projectRecord = await projectRepo.findById(updatedTrace.projectId);
+                if (projectRecord) {
+                  projectName = projectRecord.name.toUpperCase();
+                }
+              } catch (projectLookupError) {
+                logger.warn({
+                  msg: 'Failed to resolve project name for completion notification',
+                  traceId: validated.traceId,
+                  error:
+                    projectLookupError instanceof Error
+                      ? projectLookupError.message
+                      : String(projectLookupError),
+                  requestId,
+                });
+              }
+            }
+
             // Build notification message
-            const projectName = updatedTrace.projectId !== 'unknown' ? updatedTrace.projectId.toUpperCase() : 'video';
             const message = publishUrl
               ? `✅ Your ${projectName} video is live!\n\nWatch: ${publishUrl}`
               : `✅ Your ${projectName} video is live!\n\n${validated.instructions}`;
@@ -1246,6 +1272,7 @@ export const mcpTools: MCPTool[] = [
   // Context tools
   contextGetPersonaTool,
   contextGetProjectTool,
+  contextSearchProjectsTool,
 
   // Trace coordination tools
   tracePrepareTool,

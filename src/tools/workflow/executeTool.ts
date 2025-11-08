@@ -15,6 +15,13 @@ import {
 import { withTimeout, TimeoutError } from '../../utils/timeout.js';
 import { logger } from '../../utils/logger.js';
 
+function toRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
 /**
  * Execute a workflow and track its execution
  *
@@ -109,7 +116,7 @@ export async function executeWorkflow(
     await repository.update(run.id, {
       status: 'running',
       metadata: {
-        ...run.metadata,
+        ...toRecord(run.metadata),
         n8nExecutionId: executionId,
       },
     });

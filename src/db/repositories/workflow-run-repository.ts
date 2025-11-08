@@ -2,19 +2,9 @@ import { db } from '../client.js';
 import { workflowRuns } from '../schema.js';
 import { eq, desc } from 'drizzle-orm';
 
-export interface WorkflowRun {
-  id: string;
-  sessionId: string | null;
-  workflowName: string;
-  status: string;
-  input: Record<string, unknown> | null;
-  output: Record<string, unknown> | null;
-  error: string | null;
-  startedAt: Date;
-  completedAt: Date | null;
-  metadata: Record<string, unknown>;
-  createdAt: Date;
-}
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
+type WorkflowRunInsert = typeof workflowRuns.$inferInsert;
+type WorkflowRunStatus = WorkflowRun['status'];
 
 export class WorkflowRunRepository {
   async create(run: {
@@ -23,42 +13,42 @@ export class WorkflowRunRepository {
     input?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
   }): Promise<WorkflowRun> {
-    const [result] = await db
-      .insert(workflowRuns)
-      .values({
-        sessionId: run.sessionId || null,
-        workflowName: run.workflowName,
-        status: 'pending',
-        input: run.input || null,
-        output: null,
-        error: null,
-        completedAt: null,
-        metadata: run.metadata || {},
-      })
-      .returning();
+    const insertValues: WorkflowRunInsert = {
+      sessionId: run.sessionId ?? null,
+      workflowName: run.workflowName,
+      status: 'running',
+      input: run.input ?? null,
+      output: null,
+      error: null,
+      completedAt: null,
+      metadata: run.metadata ?? {},
+    };
+
+    const [result] = await db.insert(workflowRuns).values(insertValues).returning();
 
     return result as WorkflowRun;
   }
 
   async updateStatus(
     id: string,
-    status: string,
+    status: WorkflowRunStatus,
     updates?: {
       output?: Record<string, unknown>;
       error?: string;
     }
   ): Promise<WorkflowRun> {
-    const setValues: {
-      status: string;
-      output?: Record<string, unknown>;
-      error?: string;
-      completedAt?: Date;
-    } = {
+    const setValues: Partial<WorkflowRunInsert> = {
       status,
-      ...(updates || {}),
     };
 
-    if (status === 'completed' || status === 'failed') {
+    if (updates?.output) {
+      setValues.output = updates.output;
+    }
+    if (typeof updates?.error === 'string') {
+      setValues.error = updates.error;
+    }
+
+    if (status === 'completed' || status === 'failed' || status === 'canceled') {
       setValues.completedAt = new Date();
     }
 
@@ -104,21 +94,17 @@ export class WorkflowRunRepository {
   async update(
     id: string,
     updates: {
-      status?: string;
+      status?: WorkflowRunStatus;
       output?: Record<string, unknown>;
       error?: string;
       metadata?: Record<string, unknown>;
     }
   ): Promise<WorkflowRun> {
-    const setValues: {
-      status?: string;
-      output?: Record<string, unknown>;
-      error?: string;
-      metadata?: Record<string, unknown>;
-      completedAt?: Date;
-    } = { ...updates };
+    const setValues: Partial<WorkflowRunInsert> = {
+      ...updates,
+    };
 
-    if (updates.status === 'completed' || updates.status === 'failed') {
+    if (updates.status === 'completed' || updates.status === 'failed' || updates.status === 'canceled') {
       setValues.completedAt = new Date();
     }
 

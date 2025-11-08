@@ -141,6 +141,7 @@ export class N8nClient {
       '/api/v1/workflows',
       workflow
     );
+
     return result.id;
   }
 
@@ -158,6 +159,27 @@ export class N8nClient {
       `/api/v1/workflows?limit=${limit}`
     );
     return result.data || [];
+  }
+
+  /**
+   * Get all workflows (alias for listWorkflows for consistency with plan)
+   */
+  async getWorkflows(): Promise<Array<{ id: string; name: string; active: boolean }>> {
+    return this.listWorkflows();
+  }
+
+  /**
+   * Get a single workflow by ID
+   */
+  async getWorkflow(workflowId: string): Promise<{ id: string; name: string; active: boolean; [key: string]: unknown }> {
+    return this.request<{ id: string; name: string; active: boolean; [key: string]: unknown }>(
+      'GET',
+      `/api/v1/workflows/${workflowId}`
+    );
+  }
+
+  async deleteWorkflow(id: string): Promise<void> {
+    await this.request<void>('DELETE', `/api/v1/workflows/${id}`);
   }
 
   async listExecutions(filter?: {

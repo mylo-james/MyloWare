@@ -1,6 +1,5 @@
 #!/usr/bin/env tsx
 import { WorkflowMappingRepository } from '../src/db/repositories/workflow-mapping-repository.js';
-import { config } from '../src/config/index.js';
 
 /**
  * Register workflow mappings: human-readable keys → n8n workflow IDs
@@ -59,7 +58,7 @@ async function registerWorkflowMappings() {
         continue;
       }
 
-      const result = await repository.upsert({
+      await repository.upsert({
         workflowKey: mapping.workflowKey,
         workflowId: mapping.workflowId,
         workflowName: mapping.workflowName,

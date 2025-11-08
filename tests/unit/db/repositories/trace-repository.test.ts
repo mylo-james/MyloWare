@@ -5,6 +5,9 @@ import { executionTraces } from '@/db/schema.js';
 
 describe('TraceRepository', () => {
   const repository = new TraceRepository();
+  const project1Id = '00000000-0000-4000-8000-000000000011';
+  const project2Id = '00000000-0000-4000-8000-000000000012';
+  const project3Id = '00000000-0000-4000-8000-000000000013';
 
   beforeEach(async () => {
     await db.delete(executionTraces);
@@ -13,14 +16,14 @@ describe('TraceRepository', () => {
   describe('create', () => {
     it('should create a new trace with all parameters', async () => {
       const trace = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
         metadata: { key: 'value' },
       });
 
       expect(trace.id).toBeDefined();
       expect(trace.traceId).toBeDefined();
-      expect(trace.projectId).toBe('test-project');
+      expect(trace.projectId).toBeNull();
       expect(trace.sessionId).toBe('test-session');
       expect(trace.status).toBe('active');
       expect(trace.metadata).toEqual({ key: 'value' });
@@ -29,19 +32,19 @@ describe('TraceRepository', () => {
 
     it('should create a trace with minimal parameters', async () => {
       const trace = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
       });
 
       expect(trace.traceId).toBeDefined();
-      expect(trace.projectId).toBe('test-project');
+      expect(trace.projectId).toBeNull();
       expect(trace.sessionId).toBeNull();
       expect(trace.status).toBe('active');
       expect(trace.metadata).toEqual({});
     });
 
     it('should generate unique traceId for each trace', async () => {
-      const trace1 = await repository.create({ projectId: 'test-project' });
-      const trace2 = await repository.create({ projectId: 'test-project' });
+      const trace1 = await repository.create({ projectId: null });
+      const trace2 = await repository.create({ projectId: null });
 
       expect(trace1.traceId).not.toBe(trace2.traceId);
     });
@@ -50,7 +53,7 @@ describe('TraceRepository', () => {
   describe('findByTraceId', () => {
     it('should find a trace by traceId', async () => {
       const created = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
       });
 
@@ -58,7 +61,7 @@ describe('TraceRepository', () => {
 
       expect(found).toBeDefined();
       expect(found?.traceId).toBe(created.traceId);
-      expect(found?.projectId).toBe('test-project');
+      expect(found?.projectId).toBeNull();
     });
 
     it('should return null for non-existent traceId', async () => {
@@ -70,7 +73,7 @@ describe('TraceRepository', () => {
   describe('updateStatus', () => {
     it('should update trace status to completed', async () => {
       const trace = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
       });
 
       const outputs = { url: 'https://example.com' };
@@ -84,7 +87,7 @@ describe('TraceRepository', () => {
 
     it('should update trace status to failed', async () => {
       const trace = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
       });
 
       const updated = await repository.updateStatus(trace.traceId, 'failed');
@@ -96,7 +99,7 @@ describe('TraceRepository', () => {
 
     it('should update without outputs if not provided', async () => {
       const trace = await repository.create({
-        projectId: 'test-project',
+        projectId: null,
       });
 
       const updated = await repository.updateStatus(trace.traceId, 'completed');
@@ -108,9 +111,9 @@ describe('TraceRepository', () => {
 
   describe('findActiveTraces', () => {
     it('should find all active traces', async () => {
-      await repository.create({ projectId: 'project-1' });
-      await repository.create({ projectId: 'project-2' });
-      const completed = await repository.create({ projectId: 'project-3' });
+      await repository.create({ projectId: project1Id });
+      await repository.create({ projectId: project2Id });
+      const completed = await repository.create({ projectId: project3Id });
       await repository.updateStatus(completed.traceId, 'completed');
 
       const active = await repository.findActiveTraces();
@@ -120,18 +123,18 @@ describe('TraceRepository', () => {
     });
 
     it('should filter by projectId when provided', async () => {
-      await repository.create({ projectId: 'project-1' });
-      await repository.create({ projectId: 'project-2' });
-      await repository.create({ projectId: 'project-1' });
+      await repository.create({ projectId: project1Id });
+      await repository.create({ projectId: project2Id });
+      await repository.create({ projectId: project1Id });
 
-      const active = await repository.findActiveTraces('project-1');
+      const active = await repository.findActiveTraces(project1Id);
 
       expect(active.length).toBe(2);
-      expect(active.every(t => t.projectId === 'project-1')).toBe(true);
+      expect(active.every(t => t.projectId === project1Id)).toBe(true);
     });
 
     it('should return empty array when no active traces', async () => {
-      const trace = await repository.create({ projectId: 'project-1' });
+      const trace = await repository.create({ projectId: project1Id });
       await repository.updateStatus(trace.traceId, 'completed');
 
       const active = await repository.findActiveTraces();

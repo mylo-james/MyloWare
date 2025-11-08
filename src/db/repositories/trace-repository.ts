@@ -1,10 +1,11 @@
 import { db } from '../client.js';
-import { executionTraces } from '../schema.js';
+import { executionTraces, sessions } from '../schema.js';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import { logger } from '../../utils/logger.js';
 
 export interface CreateTraceParams {
-  projectId: string; // UUID, not text slug
+  projectId?: string | null; // UUID, not text slug
   sessionId?: string;
   metadata?: Record<string, unknown>;
   instructions?: string;
@@ -19,7 +20,7 @@ export interface UpdateTraceParams {
 export interface Trace {
   id: string;
   traceId: string;
-  projectId: string; // Now UUID, not text slug
+  projectId: string | null; // UUID when set, null otherwise
   sessionId: string | null;
   currentOwner: string;
   previousOwner: string | null;
@@ -36,13 +37,40 @@ export interface Trace {
 export class TraceRepository {
   async create(params: CreateTraceParams): Promise<Trace> {
     const traceId = randomUUID();
-    
+
+    let sessionId: string | null = null;
+    if (params.sessionId) {
+      try {
+        const [existingSession] = await db
+          .select({ id: sessions.id })
+          .from(sessions)
+          .where(eq(sessions.id, params.sessionId))
+          .limit(1);
+        if (existingSession) {
+          sessionId = params.sessionId;
+        } else {
+          logger.warn({
+            msg: 'Session not found, trace will be created without sessionId',
+            sessionId: params.sessionId,
+            traceId,
+          });
+        }
+      } catch (error) {
+        logger.warn({
+          msg: 'Failed to validate session for trace creation, ignoring sessionId',
+          sessionId: params.sessionId,
+          traceId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     // Build insert values, omitting previousOwner to let DB default to NULL
     // This avoids issues with Drizzle potentially converting null to empty string
     const insertValues = {
       traceId,
-      projectId: params.projectId,
-      sessionId: params.sessionId ?? null,
+      projectId: params.projectId ?? null,
+      sessionId,
       currentOwner: 'casey' as const,
       instructions: params.instructions ?? '',
       workflowStep: 0,

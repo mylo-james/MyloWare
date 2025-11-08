@@ -65,7 +65,34 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID || 'ADMIN_CHAT_ID' }}",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "adminChatId",
+              "name": "adminChatId",
+              "value": "={{ $workflow.staticData.adminChatId || 'REPLACE_WITH_TELEGRAM_ADMIN_CHAT_ID' }}",
+              "type": "string"
+            },
+            {
+              "id": "statusCode",
+              "name": "statusCode",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [800, 200],
+      "id": "set-admin-chat-id",
+      "name": "Set Admin Chat ID",
+      "notes": "Reads admin chat ID from workflow static data. Configure in workflow settings > Static Data > adminChatId"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.adminChatId }}",
         "text": "={{ `🚨 MCP Server Health Check Failed!\n\nStatus: ${$json.statusCode}\nTime: ${new Date().toISOString()}\n\nPlease check the MCP server immediately.` }}",
         "additionalFields": {
           "parseMode": "Markdown"
@@ -82,7 +109,7 @@
           "name": "Telegram account"
         }
       },
-      "notes": "Sends Telegram alert to admin when health check fails"
+      "notes": "Sends Telegram alert to admin when health check fails. Requires adminChatId in workflow static data."
     },
     {
       "parameters": {
@@ -142,7 +169,7 @@
       "main": [
         [
           {
-            "node": "Alert Admin",
+            "node": "Set Admin Chat ID",
             "type": "main",
             "index": 0
           }
@@ -150,6 +177,17 @@
         [
           {
             "node": "Store Health Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Admin Chat ID": {
+      "main": [
+        [
+          {
+            "node": "Alert Admin",
             "type": "main",
             "index": 0
           }

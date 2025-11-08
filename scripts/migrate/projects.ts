@@ -18,7 +18,7 @@ interface V1Project {
     key_metrics?: string[];
   };
   operating_notes?: {
-    uniqueness_enforcement_strategy?: any;
+    uniqueness_enforcement_strategy?: unknown;
     specification_loading_strategy?: string[];
   };
   specs?: {
@@ -150,7 +150,7 @@ async function migrateProjects() {
       try {
         const genreactJson = await readFile(genreactPath, 'utf-8');
         genreact = JSON.parse(genreactJson) as V1Project;
-      } catch (error) {
+      } catch {
         // File doesn't exist, use defaults
         genreact = {
           title: 'GenReact Project',
@@ -194,7 +194,7 @@ async function migrateProjects() {
       try {
         const testVideoGenJson = await readFile(testVideoGenPath, 'utf-8');
         testVideoGen = JSON.parse(testVideoGenJson) as V1Project;
-      } catch (error) {
+      } catch {
         // File doesn't exist, use defaults
         testVideoGen = {
           title: 'Test Video Generation',

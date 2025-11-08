@@ -1,11 +1,10 @@
 {
-  "name": "Error Handler - Agent Workflows",
   "nodes": [
     {
       "parameters": {},
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [240, 168],
       "id": "error-trigger-001",
       "name": "Error Trigger",
       "notes": "Triggers when any monitored workflow fails. Extracts error details from execution data."
@@ -16,7 +15,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
+      "position": [464, 168],
       "id": "extract-error-data",
       "name": "Extract Error Data",
       "notes": "Extracts traceId, sessionId, and error details from error trigger payload"
@@ -41,11 +40,12 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [688, 168],
       "id": "check-trace-id",
       "name": "Has Trace ID?",
       "notes": "Routes to trace update if traceId exists, otherwise just logs error"
@@ -60,16 +60,16 @@
         "headerParameters": {
           "parameters": [{}]
         },
-        "sendBody": "json",
+        "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'handoff_to_agent',\n  arguments: {\n    traceId: $json.traceId,\n    toAgent: 'error',\n    instructions: `Workflow failed at node: ${$json.lastNode}. Error: ${$json.errorMessage}`,\n    metadata: {\n      executionId: $json.executionId,\n      executionUrl: $json.executionUrl,\n      workflowName: $json.workflowName,\n      errorStack: $json.errorStack\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'handoff_to_agent',\n  arguments: {\n    traceId: $json.traceId,\n    toAgent: 'error',\n    instructions: `Workflow failed: ${$json.errorMessage} at node ${$json.lastNode}`\n  }\n}) }}",
         "options": {
           "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
-      "position": [900, 200],
+      "position": [912, 96],
       "id": "update-trace-status",
       "name": "Update Trace Status",
       "credentials": {
@@ -90,16 +90,16 @@
         "headerParameters": {
           "parameters": [{}]
         },
-        "sendBody": "json",
+        "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'memory_store',\n  arguments: {\n    content: `Workflow failure: ${$json.workflowName} failed at ${$json.lastNode}. ${$json.errorMessage}`,\n    memoryType: 'episodic',\n    tags: ['error', 'workflow-failure'],\n    metadata: {\n      traceId: $json.traceId,\n      executionId: $json.executionId,\n      executionUrl: $json.executionUrl,\n      workflowName: $json.workflowName,\n      lastNode: $json.lastNode,\n      errorMessage: $json.errorMessage,\n      errorStack: $json.errorStack\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'memory_store',\n  arguments: {\n    content: `Workflow error: ${$json.errorMessage}`,\n    memoryType: 'episodic',\n    tags: ['error', 'workflow-failure'],\n    persona: ['system'],\n    metadata: {\n      traceId: $json.traceId,\n      workflowId: $json.workflowId,\n      workflowName: $json.workflowName,\n      lastNode: $json.lastNode,\n      errorStack: $json.errorStack,\n      executionId: $json.executionId\n    }\n  }\n}) }}",
         "options": {
           "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
-      "position": [1120, 200],
+      "position": [1136, 96],
       "id": "store-error-memory",
       "name": "Store Error Memory",
       "credentials": {
@@ -130,36 +130,15 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 200],
+      "position": [1360, 96],
       "id": "check-telegram-session",
       "name": "Is Telegram Session?",
       "notes": "Routes to Telegram notification if sessionId starts with telegram:"
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $json.sessionId.split(':')[1] }}",
-        "text": "={{ `⚠️ Workflow Error\n\nYour workflow failed:\n\nWorkflow: ${$json.workflowName}\nNode: ${$json.lastNode}\nError: ${$json.errorMessage}\n\nExecution: ${$json.executionUrl || 'N/A'}` }}",
-        "additionalFields": {
-          "parseMode": "Markdown"
-        }
-      },
-      "type": "n8n-nodes-base.telegramTool",
-      "typeVersion": 1.2,
-      "position": [1560, 100],
-      "id": "notify-user",
-      "name": "Notify User via Telegram",
-      "webhookId": "error-handler-telegram",
-      "credentials": {
-        "telegramApi": {
-          "id": "eC8lO0ynjt4o2RIL",
-          "name": "Telegram account"
-        }
-      },
-      "notes": "Sends error notification to user via Telegram if sessionId is a Telegram session"
     },
     {
       "parameters": {
@@ -167,10 +146,29 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 300],
+      "position": [1584, 264],
       "id": "log-error",
       "name": "Log Error",
       "notes": "Logs error details for observability (fallback path for non-Telegram sessions)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.sessionId.split(':')[1] }}",
+        "text": "={{ `⚠️ Workflow Error  Your workflow failed:  Workflow: ${$json.workflowName} Node: ${$json.lastNode} Error: ${$json.errorMessage}  Execution: ${$json.executionUrl || 'N/A'}` }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1584, 48],
+      "id": "34b93fa2-b136-4ca0-9ea8-17a20e1ba31e",
+      "name": "Send a text message",
+      "webhookId": "28c81e06-0418-4f3f-8299-d69b4d12652b",
+      "credentials": {
+        "telegramApi": {
+          "id": "eC8lO0ynjt4o2RIL",
+          "name": "Telegram account"
+        }
+      }
     }
   ],
   "connections": {
@@ -240,7 +238,7 @@
       "main": [
         [
           {
-            "node": "Notify User via Telegram",
+            "node": "Send a text message",
             "type": "main",
             "index": 0
           }
@@ -256,16 +254,8 @@
     }
   },
   "pinData": {},
-  "settings": {
-    "executionOrder": "v1",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
-    "saveManualExecutions": true,
-    "saveExecutionProgress": true
-  },
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "error-handler-workflow-instance"
+    "instanceId": "d47e04d370a1b43496c097b567956ffb03a57fcf0b3917656c3ea43ad368f887"
   }
 }
-

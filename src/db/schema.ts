@@ -248,7 +248,7 @@ export const executionTraces = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     traceId: uuid('trace_id').notNull().unique(),
-    projectId: uuid('project_id').notNull(),
+    projectId: uuid('project_id'),
     sessionId: text('session_id'),
     // Ownership and workflow coordination
     currentOwner: text('current_owner').notNull().default('casey'),

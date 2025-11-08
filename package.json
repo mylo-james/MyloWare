@@ -44,7 +44,9 @@
     "migrate:all": "npm run migrate:personas && npm run migrate:projects && npm run migrate:workflows",
     "test:mcp": "tsx scripts/test-mcp-tools.ts",
     "import:workflows": "tsx scripts/import-workflows.ts",
-    "register:workflows": "tsx scripts/register-workflow-mappings.ts"
+    "register:workflows": "tsx scripts/register-workflow-mappings.ts",
+    "sync:n8n-ids": "tsx scripts/sync-n8n-workflow-ids.ts",
+    "validate:n8n-ids": "tsx scripts/validate-workflow-ids.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

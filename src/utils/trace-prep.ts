@@ -1,7 +1,6 @@
 import { TraceRepository, ProjectRepository } from '../db/repositories/index.js';
 import type { Trace } from '../db/repositories/trace-repository.js';
 import { getPersona } from '../tools/context/getPersonaTool.js';
-import { getProject } from '../tools/context/getProjectTool.js';
 import { searchMemories } from '../tools/memory/searchTool.js';
 import { stripEmbeddings } from './response-formatter.js';
 import { logger } from './logger.js';
@@ -19,7 +18,7 @@ export interface TracePrepParams {
 export interface TracePrepResult {
   trace: {
     traceId: string;
-    projectId: string;
+    projectId: string | null;
     currentOwner: string;
     status: string;
     instructions: string | null;
@@ -40,7 +39,7 @@ export interface TracePrepResult {
   };
   personaMetadata: Record<string, unknown>;
   project: {
-    id: string;
+    id: string | null;
     name: string;
     description: string;
     guardrails: Record<string, unknown> | string;
@@ -65,9 +64,10 @@ export function buildCaseyPrompt(params: {
   memoryLines: string;
   availableProjects: Array<{ id: string; name: string; description: string }>;
   traceId: string;
+  defaultProjectName: string;
 }): string {
   const projectList = params.availableProjects
-    .map((p) => `- ${p.id}: ${p.description}`)
+    .map((p) => `- ${p.id} (${p.name}): ${p.description}`)
     .join('\n');
 
   const caseyTasks = [
@@ -77,11 +77,9 @@ export function buildCaseyPrompt(params: {
     '',
     `USER MESSAGE: ${params.instructions || 'User opened a chat without providing additional instructions yet.'}`,
     'TASK:',
-    '1. Determine which project this request is for by matching the user message to one of the available projects below',
-    `2. Use set_project tool to set the project: set_project({traceId: "${params.traceId}", projectId: "aismr"}) or set_project({traceId: "${params.traceId}", projectId: "genreact"})`,
-    '   - The traceId comes from the TRACE ID above - use that exact value',
-    '   - The projectId is the project "id" from the available projects list below',
-    `3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="${params.traceId}" and the appropriate persona`,
+    `1. Decide if this request maps to a specific project with at least 90% confidence. If not, remain in ${params.defaultProjectName}.`,
+    `2. If confident, call set_project({traceId: "${params.traceId}", projectId: "<project-id>"}) using the project id from the list below. Otherwise stay in ${params.defaultProjectName} and continue.`,
+    `3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="${params.traceId}" and the appropriate persona once you're ready to hand off.`,
     '   - Do NOT just store a memory about handoff - you MUST actually call the handoff_to_agent tool',
     `   - Example: handoff_to_agent({traceId: "${params.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
     '   - **NEVER** create or invent a traceId - always use the traceId provided above',
@@ -112,10 +110,14 @@ export function formatGuardrails(guardrails: unknown): string {
 export function buildPersonaPrompt(params: {
   personaPrompt: string | null;
   trace: Trace;
-  projectContext: { name: string; description?: string; guardrails?: unknown };
+  projectContext: { name: string; description?: string; guardrails?: unknown; id?: string };
   instructions: string;
   memoryLines: string;
+  inferredProject?: { id: string; slug: string } | null;
+  availableProjects?: Array<{ id: string; name: string; description: string }>;
 }): string {
+  const isCasey = (params.trace.currentOwner || 'casey').toLowerCase() === 'casey';
+  
   const promptPieces = [
     params.personaPrompt || `You are ${params.trace.currentOwner || 'an AISMR agent'}.`,
     `TRACE ID: ${params.trace.traceId}`,
@@ -125,21 +127,75 @@ export function buildPersonaPrompt(params: {
     params.projectContext.name
       ? `PROJECT (${params.projectContext.name}): ${params.projectContext.description || ''}`
       : '',
+    params.projectContext.id
+      ? `PROJECT UUID: ${params.projectContext.id}`
+      : '',
     params.projectContext.guardrails
       ? `PROJECT GUARDRAILS:\n${formatGuardrails(params.projectContext.guardrails)}`
       : '',
     `INSTRUCTIONS: ${params.instructions || 'None provided yet.'}`,
     `UPSTREAM WORK:\n${params.memoryLines}`,
-    'CRITICAL PROTOCOL:',
-    '1. Load memories using memory_search if needed (use traceId from above)',
-    `2. Store your work using memory_store with traceId="${params.trace.traceId}"`,
-    `3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="${params.trace.traceId}"`,
-    '   - Do NOT just store a memory saying "handoff to X" - you MUST actually call the handoff_to_agent tool',
-    `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "riley", instructions: "Write scripts for..."})`,
-    '   - **NEVER** create or invent a traceId - always use the traceId provided above',
-    '   - For Quinn: call handoff_to_agent with toAgent="complete" after publishing',
-    '   - If error: call handoff_to_agent with toAgent="error"',
   ];
+
+  // Casey-specific protocol when project is already set
+  if (isCasey) {
+    const isGenericProject = 
+      params.projectContext.name?.toLowerCase() === 'conversation' ||
+      params.projectContext.name?.toLowerCase() === 'general';
+    
+    const hasInferredProject = params.inferredProject !== null && params.inferredProject !== undefined;
+    // Show alignment check if project is generic and we have available projects to choose from
+    const shouldCheckAlignment = isGenericProject && params.availableProjects && params.availableProjects.length > 0;
+
+    if (shouldCheckAlignment) {
+      const projectList = params.availableProjects
+        .map((p) => `- ${p.id} (${p.name}): ${p.description}`)
+        .join('\n');
+      
+      promptPieces.push(
+        'YOUR WORKFLOW:',
+        `1. **CRITICAL**: Check project alignment - Current project is "${params.projectContext.name}" (generic/conversation fallback)`,
+        '   - Review the user instructions above and compare them to available projects below',
+        '   - If the user intent clearly matches a specific project (≥90% confidence), call set_project to switch before handing off',
+        `   - Example: set_project({traceId: "${params.trace.traceId}", projectId: "<project-id>"})`,
+        '   - Only proceed to handoff after confirming the correct project is set',
+        '',
+        'Available projects:',
+        projectList || 'No projects available.',
+        '',
+        '2. Determine which agent to hand off to based on the project workflow',
+        '3. Call context_get_persona to understand what the next agent needs',
+        `4. **REQUIRED**: Call handoff_to_agent with traceId="${params.trace.traceId}" and clear instructions`,
+        '   - Do NOT just store a memory - you MUST actually call the handoff_to_agent tool',
+        `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
+        '   - **NEVER** create or invent a traceId - always use the traceId provided above'
+      );
+    } else {
+      promptPieces.push(
+        'YOUR WORKFLOW:',
+        '1. Project is already set (see PROJECT above) - no need to call context_get_project or set_project',
+        '2. Determine which agent to hand off to based on the project workflow',
+        '3. Call context_get_persona to understand what the next agent needs',
+        `4. **REQUIRED**: Call handoff_to_agent with traceId="${params.trace.traceId}" and clear instructions`,
+        '   - Do NOT just store a memory - you MUST actually call the handoff_to_agent tool',
+        `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
+        '   - **NEVER** create or invent a traceId - always use the traceId provided above'
+      );
+    }
+  } else {
+    // Other personas
+    promptPieces.push(
+      'CRITICAL PROTOCOL:',
+      '1. Load memories using memory_search if needed (use traceId from above)',
+      `2. Store your work using memory_store with traceId="${params.trace.traceId}"`,
+      `3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="${params.trace.traceId}"`,
+      '   - Do NOT just store a memory saying "handoff to X" - you MUST actually call the handoff_to_agent tool',
+      `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "riley", instructions: "Write scripts for..."})`,
+      '   - **NEVER** create or invent a traceId - always use the traceId provided above',
+      '   - For Quinn: call handoff_to_agent with toAgent="complete" after publishing',
+      '   - If error: call handoff_to_agent with toAgent="error"'
+    );
+  }
 
   return promptPieces.filter(Boolean).join('\n\n');
 }
@@ -209,15 +265,126 @@ function formatMemoryLines(memories: Array<Record<string, unknown>>): string {
     .join('\n');
 }
 
+interface ResolveProjectParams {
+  instructions?: string;
+  projectRepo: ProjectRepository;
+}
+
+interface ResolvedProject {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  guardrails: Record<string, unknown>;
+  settings: Record<string, unknown>;
+}
+
+async function resolveInitialProject({
+  instructions,
+  projectRepo,
+}: ResolveProjectParams): Promise<{
+  inferredProject: { id: string; slug: string } | null;
+  fallbackProject: ResolvedProject | null;
+  projects: ResolvedProject[];
+  projectMap: Map<string, ResolvedProject>;
+}> {
+  const projectsRaw = await projectRepo.findAll();
+  const rawById = new Map(projectsRaw.map((p) => [p.id, p]));
+  const projects: ResolvedProject[] = projectsRaw.map((project) => ({
+    id: project.id,
+    slug: project.id,
+    name: project.name,
+    description: project.description,
+    guardrails: project.guardrails,
+    settings: project.settings,
+  }));
+
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  const fallback =
+    projects.find((p) => rawById.get(p.id)?.name.toLowerCase() === 'general') ??
+    projects.find((p) => (rawById.get(p.id)?.workflow || []).includes('conversation')) ??
+    null;
+
+  const inferredSlug = instructions ? inferProjectSlug(instructions, projectsRaw) : null;
+  const inferredProject =
+    inferredSlug && projectsRaw.some((p) => p.name === inferredSlug.slug)
+      ? {
+          id: projectsRaw.find((p) => p.name === inferredSlug.slug)!.id,
+          slug: projectsRaw.find((p) => p.name === inferredSlug.slug)!.id,
+        }
+      : null;
+
+  return {
+    inferredProject,
+    fallbackProject: fallback,
+    projects,
+    projectMap,
+  };
+}
+
+function inferProjectSlug(
+  instructions: string,
+  projects: Array<{ name: string }>
+): { slug: string; confidence: number } | null {
+  const normalized = instructions.toLowerCase();
+
+  const keywordMap: Record<string, string[]> = {
+    aismr: ['aismr', 'modifier', 'surreal', 'tiktok', 'screenplay', 'video'],
+    genreact: ['genreact', 'generation', 'reaction', 'react video'],
+    test_video_gen: ['test video', 'sandbox', 'test run'],
+  };
+
+  let best: { slug: string; confidence: number } | null = null;
+
+  Object.entries(keywordMap).forEach(([slug, keywords]) => {
+    let score = 0;
+    if (normalized.includes(slug)) {
+      score = 1;
+    } else {
+      const hits = keywords.filter((keyword) => normalized.includes(keyword)).length;
+      if (hits >= 2) {
+        score = 0.95;
+      } else if (hits === 1) {
+        score = 0.6;
+      }
+    }
+
+    if (score >= 0.9) {
+      if (!best || score > best.confidence) {
+        best = { slug, confidence: score };
+      } else if (best && score === best.confidence) {
+        best = null;
+      }
+    }
+  });
+
+  if (!best) {
+    return null;
+  }
+
+  return best;
+}
+
 /**
  * Core trace preparation logic shared between MCP tool and HTTP endpoint
  */
 export async function prepareTraceContext(params: TracePrepParams): Promise<TracePrepResult> {
   const traceRepo = new TraceRepository();
+  const projectRepo = new ProjectRepository();
   const memoryLimit = params.memoryLimit ?? DEFAULT_MEMORY_LIMIT;
   const defaultInstructions =
     params.instructions?.trim() ||
     'User opened a new production run. Gather context, set the correct project, and brief Iggy.';
+
+  const {
+    inferredProject,
+    fallbackProject,
+    projects,
+    projectMap,
+  } = await resolveInitialProject({
+    instructions: params.instructions,
+    projectRepo,
+  });
 
   let trace: Trace | null = null;
   let justCreated = false;
@@ -228,13 +395,24 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
     if (!trace) {
       throw new Error(`Trace not found: ${params.traceId}`);
     }
+    if (!trace.projectId && fallbackProject) {
+      const updated = await traceRepo.updateTrace(trace.traceId, {
+        projectId: fallbackProject.id,
+      });
+      trace = updated ?? trace;
+    }
   } else {
+    const selectedProjectId = (inferredProject ?? fallbackProject)?.id ?? null;
     trace = await traceRepo.create({
-      projectId: 'unknown',
       sessionId: params.sessionId,
+      projectId: selectedProjectId,
       metadata: {
         ...(params.metadata || {}),
         source: params.source || 'unknown',
+        ...(inferredProject ? { autoProject: inferredProject.slug } : {}),
+        ...(selectedProjectId === fallbackProject?.id && !inferredProject
+          ? { autoProjectFallback: true }
+          : {}),
       },
       instructions: defaultInstructions,
     });
@@ -264,23 +442,34 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
 
   // Load project context
   let projectContext: {
-    id: string;
+    id: string | null;
     name: string;
     description: string;
     guardrails: Record<string, unknown> | string;
     settings: Record<string, unknown>;
   } | null = null;
 
-  if (trace.projectId && trace.projectId !== 'unknown') {
+  let memoryProjectFilter: string | undefined;
+
+  if (trace.projectId) {
     try {
-      const projectResult = await getProject({ projectName: trace.projectId });
-      projectContext = {
-        id: trace.projectId,
-        name: projectResult.project.name,
-        description: projectResult.project.description,
-        guardrails: projectResult.project.guardrails,
-        settings: projectResult.project.settings,
-      };
+      const projectRecord =
+        projectMap.get(trace.projectId) ?? (await projectRepo.findById(trace.projectId));
+      if (projectRecord) {
+        projectContext = {
+          id: projectRecord.id,
+          name: projectRecord.name,
+          description: projectRecord.description,
+          guardrails: projectRecord.guardrails,
+          settings: projectRecord.settings,
+        };
+        memoryProjectFilter = projectRecord.name;
+      } else {
+        logger.warn({
+          msg: 'Project referenced by trace not found; continuing with fallback',
+          projectId: trace.projectId,
+        });
+      }
     } catch (error) {
       logger.warn({
         msg: 'Failed to load project guardrails; continuing with fallback',
@@ -291,15 +480,32 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
   }
 
   if (!projectContext) {
-    projectContext = {
-      id: 'unknown',
-      name: 'unknown',
-      description: 'Project not set. Casey must call set_project before handing off to Iggy.',
-      guardrails: {
-        reminder: 'Casey: determine if this is AISMR or GenReact and update the trace before ideation.',
-      },
-      settings: {},
-    };
+    if (fallbackProject) {
+      projectContext = {
+        id: fallbackProject.id,
+        name: fallbackProject.name,
+        description: fallbackProject.description,
+        guardrails: fallbackProject.guardrails,
+        settings: fallbackProject.settings,
+      };
+      memoryProjectFilter = fallbackProject.name;
+      if (!trace.projectId) {
+        const updated = await traceRepo.updateTrace(trace.traceId, {
+          projectId: fallbackProject.id,
+        });
+        trace = updated ?? trace;
+      }
+    } else {
+      projectContext = {
+        id: null,
+        name: 'conversation',
+        description: 'Project not set. Casey must call set_project before handing off to Iggy.',
+        guardrails: {
+          reminder: 'Casey: determine if this is AISMR or GenReact and update the trace before ideation.',
+        },
+        settings: {},
+      };
+    }
   }
 
   // Load memories
@@ -307,7 +513,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
   const memoryResult = await searchMemories({
     query: '', // Not used when traceId is provided
     traceId: trace.traceId,
-    project: trace.projectId !== 'unknown' ? trace.projectId : undefined,
+    project: memoryProjectFilter,
     limit: memoryLimit,
   });
   const memories = (memoryResult.memories || []).map((memory) => stripEmbeddings(memory));
@@ -319,26 +525,20 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
       : params.instructions?.trim() || '';
 
   // Load available projects if Casey needs to select one
+  // Include projects when: (1) project is unknown, OR (2) project is generic (conversation/general)
   let availableProjects: Array<{ id: string; name: string; description: string }> | undefined;
-  const isProjectKnown = trace.projectId && trace.projectId !== 'unknown';
+  const isProjectKnown = Boolean(projectContext.id);
+  const isGenericProject = 
+    projectContext.name?.toLowerCase() === 'conversation' ||
+    projectContext.name?.toLowerCase() === 'general';
+  const needsProjectList = !isProjectKnown || isGenericProject;
   
-  if (!isProjectKnown) {
-    // Casey is active and needs to know available projects
-    try {
-      const projectRepo = new ProjectRepository();
-      const allProjects = await projectRepo.findAll();
-      availableProjects = allProjects.map((p) => ({
-        id: p.name, // Use 'name' as the ID (e.g., 'aismr', 'genreact')
-        name: p.name,
-        description: p.description,
-      }));
-    } catch (error) {
-      logger.warn({
-        msg: 'Failed to load available projects for Casey',
-        error: (error as Error).message,
-      });
-      availableProjects = [];
-    }
+  if (needsProjectList) {
+    availableProjects = projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+    }));
   }
 
   // Build system prompt
@@ -346,15 +546,21 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
     ? buildPersonaPrompt({
         personaPrompt: personaResult.persona.systemPrompt,
         trace,
-        projectContext,
+        projectContext: {
+          ...projectContext,
+          id: projectContext.id || undefined,
+        },
         instructions: effectiveInstructions,
         memoryLines,
+        inferredProject,
+        availableProjects: availableProjects || [],
       })
     : buildCaseyPrompt({
         instructions: effectiveInstructions || defaultInstructions,
         memoryLines,
         availableProjects: availableProjects || [],
         traceId: trace.traceId,
+        defaultProjectName: fallbackProject?.name ?? 'conversation',
       });
 
   // Derive allowed tools

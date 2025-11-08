@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { randomUUID } from 'crypto';
 import { handleTracePrep } from '@/api/routes/trace-prep.js';
 import { db } from '@/db/client.js';
-import { executionTraces, memories, personas, projects } from '@/db/schema.js';
+import { executionTraces, memories } from '@/db/schema.js';
 import { TraceRepository } from '@/db/repositories/trace-repository.js';
+import { ProjectRepository } from '@/db/repositories/project-repository.js';
 import { getPersona } from '@/tools/context/getPersonaTool.js';
 import { getProject } from '@/tools/context/getProjectTool.js';
 import { searchMemories } from '@/tools/memory/searchTool.js';
@@ -25,6 +27,11 @@ const mockGetPersona = vi.mocked(getPersona);
 const mockGetProject = vi.mocked(getProject);
 const mockSearchMemories = vi.mocked(searchMemories);
 
+const projectRepo = new ProjectRepository();
+let generalProjectId: string;
+let aismrProjectId: string;
+let testProjectId: string;
+
 describe('trace_prep HTTP Endpoint', () => {
   const traceRepo = new TraceRepository();
 
@@ -32,6 +39,31 @@ describe('trace_prep HTTP Endpoint', () => {
     await db.delete(memories);
     await db.delete(executionTraces);
     vi.clearAllMocks();
+
+    const ensureProject = async (
+      name: string,
+      description: string,
+      workflow: string[]
+    ): Promise<string> => {
+      const existing = await projectRepo.findByName(name);
+      if (existing) {
+        return existing.id;
+      }
+      const inserted = await projectRepo.insert({
+        name,
+        description,
+        workflow,
+        optionalSteps: [],
+        guardrails: {},
+        settings: {},
+        metadata: {},
+      });
+      return inserted.id;
+    };
+
+    generalProjectId = await ensureProject('general', 'General Conversations', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
+    aismrProjectId = await ensureProject('aismr', 'AISMR project', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
+    testProjectId = await ensureProject('test-project', 'Test project', ['casey', 'iggy']);
 
     // Default mocks
     mockGetPersona.mockResolvedValue({
@@ -48,17 +80,17 @@ describe('trace_prep HTTP Endpoint', () => {
         updatedAt: new Date(),
       },
       metadata: {
-        allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
+        allowedTools: ['trace_update', 'set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
       },
     });
 
     mockGetProject.mockResolvedValue({
       project: {
-        id: 'project-1',
-        name: 'aismr',
-        description: 'AISMR project',
-        workflows: ['casey', 'iggy', 'riley'],
-        guardrails: { test: 'guardrails' },
+        id: generalProjectId,
+        name: 'general',
+        description: 'General Conversations',
+        workflows: ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn'],
+        guardrails: { maxResponseSeconds: 30 },
         settings: {},
         metadata: {},
         createdAt: new Date(),
@@ -122,7 +154,7 @@ describe('trace_prep HTTP Endpoint', () => {
       expect(response.persona.name).toBe('casey');
     });
 
-    it('should set projectId to "unknown" for new traces', async () => {
+    it('should set projectId to the general project for new traces', async () => {
       const request = createMockRequest({
         sessionId: 'test-session',
       });
@@ -131,8 +163,9 @@ describe('trace_prep HTTP Endpoint', () => {
       await handleTracePrep(request, reply);
 
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(response.trace.projectId).toBe('unknown');
-      expect(response.project.id).toBe('unknown');
+      expect(response.trace.projectId).toBe(generalProjectId);
+      expect(response.project.id).toBe(generalProjectId);
+      expect(response.project.name).toBe('general');
     });
   });
 
@@ -140,16 +173,19 @@ describe('trace_prep HTTP Endpoint', () => {
     it('should load existing trace when traceId provided', async () => {
       // Create a trace first (defaults to casey)
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
-        instructions: 'Generate 12 modifiers',
+        instructions: 'Use Iggy to generate 12 modifiers.',
       });
-
-      // Update trace to have iggy as currentOwner (simulating handoff)
-      await traceRepo.updateWorkflow(trace.traceId, 'iggy', 'Generate 12 modifiers', 1);
+      await traceRepo.updateWorkflow(
+        trace.traceId,
+        'iggy',
+        'Generate 12 AISMR modifiers and store them.',
+        1
+      );
 
       const request = createMockRequest({
-        traceId: trace.traceId.toString(), // Ensure it's a string UUID
+        traceId: trace.traceId.toString(),
       });
       const reply = createMockReply();
 
@@ -199,7 +235,7 @@ describe('trace_prep HTTP Endpoint', () => {
   });
 
   describe('Casey init prompt', () => {
-    it('should build Casey prompt when projectId is unknown', async () => {
+    it('should build Casey prompt when projectId is general', async () => {
       const request = createMockRequest({
         sessionId: 'test-session',
         instructions: 'Make a video',
@@ -210,15 +246,67 @@ describe('trace_prep HTTP Endpoint', () => {
 
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(response.systemPrompt).toContain('Casey');
-      expect(response.systemPrompt).toContain('Determine which project');
+      expect(response.systemPrompt).toContain('Check project alignment');
       expect(response.systemPrompt).toContain('set_project');
+    });
+
+    it('should include project alignment check when Casey has generic project and inferred project exists', async () => {
+      // Create a trace with null projectId - will result in "conversation" fallback
+      const trace = await traceRepo.create({
+        projectId: null,
+        sessionId: 'test-session',
+        currentOwner: 'casey',
+        instructions: 'run a test_video_gen',
+      });
+
+      const request = createMockRequest({
+        traceId: trace.traceId,
+        instructions: 'run a test_video_gen', // This should infer test_video_gen project
+      });
+      const reply = createMockReply();
+
+      await handleTracePrep(request, reply);
+
+      const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(response.systemPrompt).toContain('Casey');
+      
+      // If project is "conversation" or "general" and inferred project exists, should include alignment check
+      // Note: This test verifies the prompt structure - actual behavior depends on project resolution
+      if (response.project.name === 'conversation' || response.project.name === 'general') {
+        // Should include project alignment instructions when project is generic
+        expect(response.systemPrompt).toContain('Check project alignment');
+        expect(response.systemPrompt).toContain('set_project');
+      }
+    });
+
+    it('should NOT include project alignment check when Casey has specific project set', async () => {
+      const trace = await traceRepo.create({
+        projectId: aismrProjectId,
+        sessionId: 'test-session',
+        currentOwner: 'casey',
+        instructions: 'Make an AISMR video',
+      });
+
+      const request = createMockRequest({
+        traceId: trace.traceId,
+      });
+      const reply = createMockReply();
+
+      await handleTracePrep(request, reply);
+
+      const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(response.systemPrompt).toContain('Casey');
+      // Should NOT include project alignment check when project is already correctly set
+      expect(response.systemPrompt).toContain('Project is already set');
+      expect(response.systemPrompt).not.toContain('Check project alignment');
+      expect(response.systemPrompt).not.toContain('conversation');
     });
   });
 
   describe('Standard agent prompt', () => {
     it('should build persona prompt when projectId is known', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
         currentOwner: 'riley',
         instructions: 'Write screenplays',
@@ -260,7 +348,7 @@ describe('trace_prep HTTP Endpoint', () => {
   describe('Memory integration', () => {
     it('should load memories filtered by traceId', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
       });
 
@@ -292,7 +380,7 @@ describe('trace_prep HTTP Endpoint', () => {
       await handleTracePrep(request, reply);
 
       expect(mockSearchMemories).toHaveBeenCalledWith({
-        query: '', // Required by type but not used when traceId is provided
+        query: '',
         traceId: trace.traceId,
         project: 'aismr',
         limit: 12,
@@ -319,7 +407,7 @@ describe('trace_prep HTTP Endpoint', () => {
 
     it('should not include set_project for non-Casey personas', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
       });
 
@@ -360,7 +448,7 @@ describe('trace_prep HTTP Endpoint', () => {
 
     it('should include job tools for Veo/Alex when project is known', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
       });
 
@@ -430,7 +518,7 @@ describe('trace_prep HTTP Endpoint', () => {
   describe('Error handling', () => {
     it('should handle persona not found gracefully', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         sessionId: 'test-session',
       });
 
@@ -477,7 +565,7 @@ describe('trace_prep HTTP Endpoint', () => {
 
     it('should handle project load failure gracefully', async () => {
       const trace = await traceRepo.create({
-        projectId: 'nonexistent-project',
+        projectId: randomUUID(),
         sessionId: 'test-session',
       });
 

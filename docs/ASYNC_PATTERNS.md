@@ -8,9 +8,10 @@ Long-running operations (video generation, editing) don't block AI agent nodes. 
 
 AI agents call `toolWorkflow` nodes for async operations. The toolWorkflow:
 1. Receives input from AI agent
-2. Handles async polling internally (via Wait nodes)
-3. Returns result when complete
-4. AI agent receives result and continues
+2. Calls the external API and immediately records job state via `job_upsert`
+3. Handles async polling internally (via Wait + Switch nodes)
+4. Updates job status when complete (or failed) before returning the result
+5. AI agent receives result and continues
 
 **Key Benefit:** AI nodes don't timeout on long-running operations.
 
@@ -85,18 +86,7 @@ toolWorkflow({
 
 ### Workflow Steps
 
-1. **Create Job** - Store job in `video_generation_jobs` table via MCP tool
-   ```typescript
-   await job_upsert({
-     kind: 'video',
-     traceId: 'trace-aismr-001',
-     provider: 'runway',
-     taskId: taskId,
-     status: 'queued'
-   });
-   ```
-
-2. **Call Video API** - Invoke external video generation API
+1. **Call Video API** - Invoke external video generation API
    ```typescript
    const response = await fetch('https://api.runway.com/v1/generate', {
      method: 'POST',
@@ -105,7 +95,23 @@ toolWorkflow({
    const { taskId } = await response.json();
    ```
 
-3. **Poll Status** - Use Wait node to poll until complete
+2. **Track Job Start (`Track Job Start` node)** - Mark job as `running`
+   ```yaml
+   HTTP Request:
+     url: https://mcp-vector.mjames.dev/mcp
+     body:
+       tool: job_upsert
+       arguments:
+         kind: video
+         traceId: {{$json.traceId}}
+         provider: kie
+         taskId: {{$json.data.taskId}}
+         status: running
+         metadata:
+           prompt: {{$json.prompt}}
+   ```
+
+3. **Poll Status** - Use Wait/Switch nodes to poll until complete
    ```yaml
    Wait Node:
      type: Wait
@@ -114,7 +120,24 @@ toolWorkflow({
      maxIterations: 60  # 5 minutes max
    ```
 
-4. **Return Result** - Return video URL when complete
+4. **Track Job Complete (`Track Job Complete` node)** - Mark job as `succeeded`
+   ```yaml
+   HTTP Request:
+     url: https://mcp-vector.mjames.dev/mcp
+     body:
+       tool: job_upsert
+       arguments:
+         kind: video
+         traceId: {{$json.traceId}}
+         provider: kie
+         taskId: {{$json.data.taskId}}
+         status: succeeded
+         assetUrl: {{$json.data.response.resultUrls[0]}}
+         metadata:
+           completedAt: {{$now}}
+   ```
+
+5. **Return Result** - Return video payload to the agent
    ```json
    {
      "videoUrl": "https://cdn.runway.com/video/123.mp4",
@@ -171,18 +194,7 @@ const summary = await jobs_summary({
 
 ### Workflow Steps
 
-1. **Create Job** - Store job in `edit_jobs` table
-   ```typescript
-   await job_upsert({
-     kind: 'edit',
-     traceId: 'trace-aismr-001',
-     provider: 'shotstack',
-     taskId: renderId,
-     status: 'queued'
-   });
-   ```
-
-2. **Call Edit API** - Invoke Shotstack API
+1. **Call Edit API** - Invoke Shotstack API
    ```typescript
    const response = await fetch('https://api.shotstack.io/v1/render', {
      method: 'POST',
@@ -191,7 +203,20 @@ const summary = await jobs_summary({
    const { response: { id: renderId } } = await response.json();
    ```
 
-3. **Poll Status** - Use Wait node to poll Shotstack
+2. **Track Job Start (`Track Job Start`)** - Mark job as `running`
+   ```yaml
+   HTTP Request:
+     body:
+       tool: job_upsert
+       arguments:
+         kind: edit
+         traceId: {{$json.traceId}}
+         provider: shotstack
+         taskId: {{$json.response.id}}
+         status: running
+   ```
+
+3. **Poll Status** - Use Wait/Switch to poll Shotstack
    ```yaml
    Wait Node:
      type: Wait
@@ -200,7 +225,23 @@ const summary = await jobs_summary({
      maxIterations: 40  # 2 minutes max
    ```
 
-4. **Return Result** - Return final edit URL
+4. **Track Job Complete (`Track Job Complete`)** - Mark job as `succeeded`
+   ```yaml
+   HTTP Request:
+     body:
+       tool: job_upsert
+       arguments:
+         kind: edit
+         traceId: {{$json.traceId}}
+         provider: shotstack
+         taskId: {{$json.response.id}}
+         status: succeeded
+         assetUrl: {{$json.response.url}}
+         metadata:
+           completedAt: {{$now}}
+   ```
+
+5. **Return Result** - Return final edit URL
    ```json
    {
      "finalUrl": "https://cdn.shotstack.io/render/123.mp4",
@@ -246,7 +287,7 @@ n8n Wait nodes handle async polling:
 
 ## Job Ledger Pattern
 
-Both video generation and editing workflows use the job ledger:
+Both video generation and editing workflows use the job ledger. The deterministic n8n workflows now manage `job_upsert` calls internally (see the `Track Job Start` and `Track Job Complete` nodes), so AI agents rarely need to call it directly. The data model is unchanged:
 
 ### Tables
 
@@ -282,18 +323,7 @@ CREATE TABLE edit_jobs (
 
 ### MCP Tools
 
-**`job_upsert`** - Create or update job status:
-```typescript
-await job_upsert({
-  kind: 'video',  // or 'edit'
-  traceId: 'trace-aismr-001',
-  provider: 'runway',
-  taskId: 'task-123',
-  status: 'queued',  // or 'running', 'succeeded', 'failed'
-  assetUrl: 'https://...',  // when succeeded
-  error: '...'  // when failed
-});
-```
+**`job_upsert`** - Still available when deterministic workflows need to record manual failures, but the default tool workflows already call it during start/finish transitions.
 
 **`jobs_summary`** - Get job status summary:
 ```typescript
@@ -318,37 +348,18 @@ const screenplays = await memory_search({
   tags: ['screenplay', 'validated']
 });
 
-// 2. For each screenplay, call toolWorkflow
+// 2. For each screenplay, call toolWorkflow (job ledger updates occur inside the workflow)
 for (const screenplay of screenplays) {
   // Call toolWorkflow (blocks until video completes)
   const result = await toolWorkflow({
     traceId: 'trace-aismr-001',
     screenplay: screenplay
   });
-  
-  // Immediately track job
-  await job_upsert({
-    kind: 'video',
-    traceId: 'trace-aismr-001',
-    provider: 'runway',
-    taskId: result.taskId,
-    status: 'queued'
-  });
-  
+
   videoUrls.push(result.videoUrl);
 }
 
-// 3. Verify all jobs complete
-const summary = await jobs_summary({
-  traceId: 'trace-aismr-001',
-  kind: 'video'
-});
-
-if (summary.pending > 0) {
-  // Wait or retry
-}
-
-// 4. Store video URLs
+// 3. Store video URLs
 await memory_store({
   content: 'Generated 12 videos for AISMR candles',
   memoryType: 'episodic',
@@ -360,7 +371,7 @@ await memory_store({
   }
 });
 
-// 5. Hand off to Alex
+// 4. Hand off to Alex
 await handoff_to_agent({
   traceId: 'trace-aismr-001',
   toAgent: 'alex',
@@ -390,26 +401,7 @@ const result = await toolWorkflow({
   videoUrls: videoUrls
 });
 
-// 3. Track edit job
-await job_upsert({
-  kind: 'edit',
-  traceId: 'trace-aismr-001',
-  provider: 'shotstack',
-  renderId: result.renderId,
-  status: 'queued'
-});
-
-// 4. Verify edit complete
-const summary = await jobs_summary({
-  traceId: 'trace-aismr-001',
-  kind: 'edit'
-});
-
-if (summary.succeeded === 0) {
-  // Error handling
-}
-
-// 5. Store final edit URL
+// 3. Store final edit URL
 await memory_store({
   content: 'Created final AISMR compilation. User approved.',
   memoryType: 'episodic',
@@ -420,8 +412,7 @@ await memory_store({
     finalEditUrl: result.finalUrl
   }
 });
-
-// 6. Hand off to Quinn
+// 4. Hand off to Quinn
 await handoff_to_agent({
   traceId: 'trace-aismr-001',
   toAgent: 'quinn',

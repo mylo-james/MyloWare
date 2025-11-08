@@ -8,17 +8,22 @@
   "nodes": [
     {
       "parameters": {
-        "url": "={{ 'http://mcp-server:3000/api/videos/' + ($('When Called').item.json.id || '') }}",
+        "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('When Called').item.json.id || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        -176,
-        640
-      ],
+      "position": [-176, 640],
       "id": "284d395e-f99f-402c-9b42-f0c89b9b6ce1",
-      "name": "Get Idea (API)"
+      "name": "Get Idea (API)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
     },
     {
       "parameters": {
@@ -61,10 +66,7 @@
       "id": "51408947-fa2a-4730-a0b9-3cb446564e75",
       "name": "Prepare Video Settings",
       "type": "n8n-nodes-base.set",
-      "position": [
-        720,
-        448
-      ],
+      "position": [720, 448],
       "typeVersion": 3.4
     },
     {
@@ -82,10 +84,7 @@
       },
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [
-        -624,
-        472
-      ],
+      "position": [-624, 472],
       "id": "a1f21b44-6bc4-480e-85fe-23258beb3c76",
       "name": "When Called"
     },
@@ -93,6 +92,8 @@
       "parameters": {
         "method": "PUT",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + (($('When Called').item.json.id) || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ ({ status: $json.status, videoLink: $json.data?.response?.resultUrls?.[0] ?? 'failed' }) }}",
@@ -100,12 +101,15 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1840,
-        352
-      ],
+      "position": [1840, 352],
       "id": "59e7cd51-4031-49b0-a85d-4bd37abbea49",
-      "name": "Update a row"
+      "name": "Update a row",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FlSleoPTUxLtSS8j",
+          "name": "Header Auth account"
+        }
+      }
     },
     {
       "parameters": {
@@ -120,10 +124,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        2064,
-        352
-      ],
+      "position": [2064, 352],
       "id": "a9b1ad49-3c6e-4c4f-86a8-0c2836ab4f3c",
       "name": "Update Run Video Complete",
       "credentials": {
@@ -141,15 +142,12 @@
         "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"prompt\": \"{{ $json.prompt.replace(/[\\\\\"]/g, '\\\\$&').replace(/ /g, '\\ ').replace(/\\r/g, '\\\\r').replace(/\\t/g, '\\\\t') }}\", \"model\": \"{{ $json.model }}\", \"aspectRatio\": \"{{ $json.aspect_ratio }}\", \"generationType\": \"TEXT_2_VIDEO\", \"seconds\": \"{{ $json.seconds }}\"\n}",
+        "jsonBody": "={{ ({\n  prompt: $json.prompt,\n  model: $json.model,\n  aspectRatio: $json.aspect_ratio,\n  generationType: 'TEXT_2_VIDEO',\n  seconds: $json.seconds\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        944,
-        448
-      ],
+      "position": [944, 448],
       "id": "6a8ab5a1-30fe-4c9e-9a45-b1d84216b166",
       "name": "Text to Video2",
       "credentials": {
@@ -158,6 +156,37 @@
           "name": "Bearer Auth account"
         }
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId || $('Get a row').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'running',\n    metadata: {\n      prompt: $('Prepare Video Settings').item.json.prompt,\n      model: 'veo3_fast'\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 10000,
+          "continueOnFail": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1056, 448],
+      "id": "track-job-start-video",
+      "name": "Track Job Start",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Tracks video generation job start via job_upsert. Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -177,10 +206,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1168,
-        448
-      ],
+      "position": [1168, 448],
       "id": "ccd769a4-f9b1-4a53-8101-128aa1020347",
       "name": "Get Video4",
       "credentials": {
@@ -196,10 +222,7 @@
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [
-        1616,
-        568
-      ],
+      "position": [1616, 568],
       "id": "94066f8c-c680-4342-8275-173e98172325",
       "name": "Wait",
       "webhookId": "9fd30610-c0b9-4f5c-9af5-89b821c11ec3"
@@ -264,10 +287,7 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
-      "position": [
-        1392,
-        376
-      ],
+      "position": [1392, 376],
       "id": "36a1e18a-990a-4708-a535-ae6e07484748",
       "name": "Switch"
     },
@@ -288,12 +308,40 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        1616,
-        352
-      ],
+      "position": [1616, 352],
       "id": "8a19cb99-efcd-462c-b311-068e355b7df0",
       "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'succeeded',\n    assetUrl: $json.data.response?.resultUrls?.[0],\n    metadata: {\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 10000,
+          "continueOnFail": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1728, 352],
+      "id": "track-job-complete-video",
+      "name": "Track Job Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Tracks video generation job completion via job_upsert. Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -304,10 +352,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        -400,
-        376
-      ],
+      "position": [-400, 376],
       "id": "7afa8ae6-ead1-4479-90c2-11a37decf0d6",
       "name": "Get Run (API)",
       "credentials": {
@@ -321,10 +366,7 @@
       "parameters": {},
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [
-        -624,
-        128
-      ],
+      "position": [-624, 128],
       "id": "8fc9ecd5-9265-4347-993a-856c9d291db1",
       "name": "On Error"
     },
@@ -341,10 +383,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        -400,
-        128
-      ],
+      "position": [-400, 128],
       "id": "23ace120-e8d8-4789-8726-f4470e311afb",
       "name": "Mark Run Failed (Videos)",
       "credentials": {
@@ -367,10 +406,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        48,
-        448
-      ],
+      "position": [48, 448],
       "id": "832e7b6c-4d94-4725-a0aa-89ac13a813de",
       "name": "Mark Run Videos",
       "credentials": {
@@ -386,10 +422,7 @@
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [
-        272,
-        432
-      ],
+      "position": [272, 432],
       "id": "b0b5807f-6a1a-4446-8ea9-95766b63ce05",
       "name": "Merge"
     },
@@ -406,10 +439,7 @@
       },
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
-      "position": [
-        496,
-        448
-      ],
+      "position": [496, 448],
       "id": "efe81140-2103-486f-b680-3df46de17ded",
       "name": "Aggregate"
     },
@@ -419,10 +449,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        48,
-        640
-      ],
+      "position": [48, 640],
       "id": "6fd41c41-1e3e-4e62-931a-80673376f1c3",
       "name": "Get Idea"
     },
@@ -432,10 +459,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -176,
-        376
-      ],
+      "position": [-176, 376],
       "id": "a0d11920-431a-4c44-bbc9-9d0d2a233c44",
       "name": "Get a row"
     }
@@ -469,6 +493,17 @@
       ]
     },
     "Text to Video2": {
+      "main": [
+        [
+          {
+            "node": "Track Job Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Track Job Start": {
       "main": [
         [
           {
@@ -513,9 +548,7 @@
       ]
     },
     "Update Run Video Complete": {
-      "main": [
-        []
-      ]
+      "main": [[]]
     },
     "Switch": {
       "main": [
@@ -539,6 +572,17 @@
       "main": [
         [
           {
+            "node": "Track Job Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Track Job Complete": {
+      "main": [
+        [
+          {
             "node": "Update a row",
             "type": "main",
             "index": 0
@@ -558,9 +602,7 @@
       ]
     },
     "Mark Run Failed (Videos)": {
-      "main": [
-        []
-      ]
+      "main": [[]]
     },
     "Mark Run Videos": {
       "main": [

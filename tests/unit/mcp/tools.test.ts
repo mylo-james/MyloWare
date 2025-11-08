@@ -59,64 +59,55 @@ describe('MCP tools', () => {
     expect(stored).toHaveLength(1);
   });
 
-  it('filters memory_search results by traceId and sorts newest first', async () => {
-    const memoryStore = getTool('memory_store');
+  describe('memory_store trace filtering and sorting', () => {
+    it('filters memory_search results by traceId and sorts newest first', async () => {
+      const tool = getTool('memory_store');
+      const traceId = '00000000-0000-4000-8000-000000000001';
+      const otherTraceId = '00000000-0000-4000-8000-000000000002';
 
-    await memoryStore.handler(
-      {
-        content: 'Older trace event',
-        memoryType: 'episodic',
-        persona: ['iggy'],
-        project: ['aismr'],
-        traceId: 'trace-abc',
-      },
-      'req-memory-store-trace-1'
-    );
+      await tool.handler(
+        {
+          content: 'Older trace event',
+          memoryType: 'episodic',
+          traceId,
+        },
+        'req-memory-store-trace-1'
+      );
 
-    // Ensure createdAt differs
-    await new Promise((resolve) => setTimeout(resolve, 5));
+      await tool.handler(
+        {
+          content: 'Newer trace event',
+          memoryType: 'episodic',
+          traceId,
+        },
+        'req-memory-store-trace-2'
+      );
 
-    await memoryStore.handler(
-      {
-        content: 'Newest trace event',
-        memoryType: 'episodic',
-        persona: ['iggy'],
-        project: ['aismr'],
-        traceId: 'trace-abc',
-      },
-      'req-memory-store-trace-2'
-    );
+      await tool.handler(
+        {
+          content: 'Different trace event',
+          memoryType: 'episodic',
+          traceId: otherTraceId,
+        },
+        'req-memory-store-trace-3'
+      );
 
-    await memoryStore.handler(
-      {
-        content: 'Different trace event',
-        memoryType: 'episodic',
-        persona: ['iggy'],
-        project: ['aismr'],
-        traceId: 'trace-other',
-      },
-      'req-memory-store-trace-3'
-    );
+      const search = getTool('memory_search');
+      const response = await search.handler(
+        {
+          query: '',
+          traceId,
+          limit: 10,
+        },
+        'req-memory-search-trace'
+      );
 
-    const memorySearch = getTool('memory_search');
-    const searchResult = await memorySearch.handler(
-      {
-        query: 'trace event',
-        project: 'aismr',
-        traceId: 'trace-abc',
-        limit: 5,
-      },
-      'req-memory-search-trace'
-    );
+      const result = response.structuredContent as { memories: Array<Record<string, any>> };
 
-    const result = searchResult.structuredContent as {
-      memories: Array<{ content: string; metadata: Record<string, unknown> }>;
-      totalFound: number;
-    };
-
-    expect(result.totalFound).toBe(2);
-    expect(result.memories[0].content).toContain('Newest');
-    expect(result.memories[0].metadata.traceId).toBe('trace-abc');
-    expect(result.memories[1].content).toContain('Older');
+      expect(result.memories).toHaveLength(2);
+      expect(result.memories[0].content).toBe('Newer trace event');
+      expect(result.memories[0].metadata.traceId).toBe(traceId);
+      expect(result.memories[1].metadata.traceId).toBe(traceId);
+    });
   });
 });

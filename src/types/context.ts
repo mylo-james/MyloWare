@@ -31,3 +31,18 @@ export interface ProjectGetResult {
   metadata: Record<string, unknown>;
 }
 
+export interface ProjectSearchParams {
+  query: string;
+  limit?: number;
+}
+
+export interface ProjectSearchResult {
+  projects: Array<{
+    id: string;
+    name: string;
+    description: string;
+    guardrails: Record<string, unknown>;
+    settings: Record<string, unknown>;
+  }>;
+}
+

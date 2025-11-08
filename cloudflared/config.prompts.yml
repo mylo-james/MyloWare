@@ -11,19 +11,23 @@ ingressRules:
     caching:
       ttl: 0
 
+protocol: quic
+
 ingress:
   - hostname: mcp-vector.mjames.dev
-    service: http://mcp-server-dev:3456
+    service: http://mcp-server:3456
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s
       noTLSVerify: false
       disableChunkedEncoding: false
       # Ensure headers are passed through
-      httpHostHeader: mcp-server-dev:3456
+      httpHostHeader: mcp-server:3456
   - hostname: n8n.mjames.dev
     service: http://n8n:5678
     originRequest:
       connectTimeout: 10s
       tcpKeepAlive: 30s
+  - hostname: db.mjames.dev
+    service: tcp://postgres:5432
   - service: http_status:404

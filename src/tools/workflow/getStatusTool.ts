@@ -38,9 +38,16 @@ export async function getWorkflowStatus(
     status: run.status,
     startedAt: run.startedAt.toISOString(),
     completedAt: run.completedAt?.toISOString() || null,
-    input: run.input,
-    output: run.output,
+    input: toRecordOrNull(run.input),
+    output: toRecordOrNull(run.output),
     error: run.error,
   };
+}
+
+function toRecordOrNull(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
 }
 

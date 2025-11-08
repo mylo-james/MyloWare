@@ -43,5 +43,35 @@ export class PersonaRepository {
 
     return result as Persona;
   }
+
+  async upsert(persona: Omit<Persona, 'id' | 'createdAt' | 'updatedAt'>): Promise<Persona> {
+    const [result] = await db
+      .insert(personas)
+      .values(persona)
+      .onConflictDoUpdate({
+        target: personas.name,
+        set: {
+          description: persona.description,
+          capabilities: persona.capabilities,
+          tone: persona.tone,
+          defaultProject: persona.defaultProject,
+          systemPrompt: persona.systemPrompt,
+          allowedTools: persona.allowedTools,
+          metadata: persona.metadata,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    return result as Persona;
+  }
+
+  async deleteAll(): Promise<number> {
+    const deleted = await db
+      .delete(personas)
+      .returning({ id: personas.id });
+
+    return deleted.length;
+  }
 }
 

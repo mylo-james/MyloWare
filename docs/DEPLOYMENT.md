@@ -213,16 +213,33 @@ server {
 
 ### Using Cloudflare Tunnel
 
-Update `cloudflared/config.prompts.yml` with production configuration:
+Update `cloudflared/config.prompts.yml` with production configuration. The example below mirrors the tunnel layout we ship in this repo and layers in QUIC transport, plus a TCP ingress for Postgres so you can reach the database through Cloudflare Access.
 
 ```yaml
 tunnel: your-tunnel-id
 credentials-file: /etc/cloudflared/credentials/mcp-vector.json
+protocol: quic
 
 ingress:
   - hostname: mcp.yourdomain.com
-    service: http://mcp-server:3000
+    service: http://mcp-server:3456
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+      noTLSVerify: false
+      disableChunkedEncoding: false
+      httpHostHeader: mcp-server:3456
+  - hostname: n8n.yourdomain.com
+    service: http://n8n:5678
+  - hostname: db.yourdomain.com
+    service: tcp://postgres:5432
   - service: http_status:404
+```
+
+Validate the config before restarting Cloudflared to catch typos early ([Context7 – cloudflared](https://context7.com/cloudflare/cloudflared/llms.txt)):
+
+```bash
+cloudflared tunnel ingress validate
 ```
 
 ---
@@ -308,6 +325,16 @@ curl -X POST https://mcp.yourdomain.com/mcp \
     "id": 1
   }'
 ```
+
+### 7.4 Connect to Postgres through the tunnel
+
+Use Cloudflare Access TCP mode to expose the database locally without opening public inbound ports:
+
+```bash
+cloudflared access tcp --hostname db.yourdomain.com --url localhost:5432
+```
+
+The command binds `localhost:5432` on your workstation and relays traffic through the tunnel to the Docker `postgres` service.
 
 ---
 

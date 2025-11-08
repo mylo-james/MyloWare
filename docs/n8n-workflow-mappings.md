@@ -66,6 +66,52 @@ N8N_ENVIRONMENT=staging npm run register:workflows
 - `shotstack-edit` → `9bJoXKRxCLs0B0Ww`
 - `generate-video` → `ZzHQ2hTTYcdwN63q`
 
+## Automatic ID Sync
+
+**File:** `scripts/sync-n8n-workflow-ids.ts`
+
+The sync script automatically pulls workflow IDs from your n8n instance and updates both the database mappings and the universal workflow JSON file. This prevents drift between n8n and the codebase.
+
+**Usage:**
+
+```bash
+# Set environment variables
+export N8N_BASE_URL=https://your-n8n.com
+export N8N_API_KEY=your-key
+export N8N_ENVIRONMENT=production  # optional, defaults to 'production'
+
+# Sync IDs from n8n
+npm run sync:n8n-ids
+
+# Validate everything matches
+npm run validate:n8n-ids
+```
+
+**What the sync script does:**
+
+1. Fetches all workflows from n8n API
+2. Matches workflows by name to known workflow keys
+3. Updates database mappings (`workflow_mappings` table)
+4. Updates `workflows/myloware-agent.workflow.json` with correct IDs
+5. Prevents drift between n8n and codebase
+
+**When to run sync:**
+
+- After importing/re-importing workflows to n8n
+- When deploying to a new environment
+- After n8n instance migration
+- When workflow IDs change for any reason
+- Before deploying workflow changes
+
+**Validation:**
+
+The `validate:n8n-ids` script checks that:
+- All database mappings point to valid workflows in n8n
+- Workflow names match between database and n8n
+- All toolWorkflow nodes in the universal workflow reference valid IDs
+
+Run validation as part of your CI/CD pipeline or before deployments to catch ID mismatches early.
+
 ## Using Workflow Resolution
 
 ### In n8n Workflows

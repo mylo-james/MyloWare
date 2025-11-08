@@ -1,25 +1,29 @@
 # Myloware Agent Workflow
 
-The `workflows/myloware-agent.workflow.json` file is the first cut of the **single, universal n8n workflow** that every persona (Casey → Quinn) will share. Instead of six separate workflow exports, we now converge around one webhook that inspects the active `traceId`, loads persona/project context over MCP, and renders a tailored system prompt for the `@n8n/n8n-nodes-langchain.agent` node.
+The `workflows/myloware-agent.workflow.json` file is the production **single, universal n8n workflow** that every persona (Casey → Quinn) shares. Instead of six separate workflow exports, we converge around one webhook that inspects the active `traceId`, loads persona/project context over MCP, and renders a tailored system prompt for the `@n8n/n8n-nodes-langchain.agent` node.
 
 ## Current Capabilities
 
 - **Triple Trigger Surface**
   - **Telegram** (`casey` bot), **LangChain Chat Trigger**, and the **Webhook** (`/myloware/ingest`) used by `handoff_to_agent` all share the same normalization path.
-  - Every trigger lands in `Normalize Input`, so the rest of the workflow only ever sees `{ traceId, instructions, sessionId, source, metadata }`.
+  - Every trigger lands in `Prepare Input` (Set node), so the rest of the workflow only ever sees `{ traceId, instructions, sessionId, source }`.
 - **One MCP Call (`trace_prepare`)**
   - Instead of chaining half a dozen HTTP nodes, the workflow now calls `/tools/trace_prepare` once.
   - The tool creates a trace when none exists, loads persona/project context, fetches trace-scoped memories, builds the final system prompt, and scopes the allowed MCP tools for the current owner.
 - **Agent Node**
   - The LangChain Agent uses the prompt and instructions returned by `trace_prepare`.
   - The MCP Client receives the exact `allowedTools` array from the same payload, keeping the runtime tool list in lockstep with persona policy.
+- **Inline Guardrails**
+  - Guardrails run on the sanitized instructions returned by `trace_prepare`.
+  - Violations are logged via `memory_store` with the active `traceId`; the workflow tolerates logging failures so persona execution is never blocked.
 
 ## Node Walkthrough
 
 1. **Telegram / Chat / Webhook Triggers** — Normalize user chats, Casey’s Telegram DM, or downstream agent handoffs into a common payload.
-2. **Normalize Input** — Extracts `traceId`, `instructions`, `sessionId`, `source`, and raw metadata into a predictable shape.
-3. **Trace Prepare** — Calls the new MCP tool to create-or-load the trace, bundle persona/project context, and emit `{ systemPrompt, allowedTools, instructions }`.
-4. **Myloware Agent** — Same LangChain agent node as before, now driven entirely by the MCP response (no inline code/routers required).
+2. **Prepare Input (Set node)** — Extracts `traceId`, `instructions`, `sessionId`, and `source` into a predictable shape with deterministic prefixes for session routing.
+3. **Prepare Trace Context (HTTP Request)** — Calls the MCP `trace_prepare` tool to create-or-load the trace, bundle persona/project context, and emit `{ systemPrompt, allowedTools, instructions }`.
+4. **Guardrails + Violation Logging** — Validates instructions against injection/PII/jailbreak policies and, on violation, stores a `memory_store` entry tagged with the active `traceId`.
+5. **Myloware Agent** — Executes the LangChain agent node with the returned system prompt, instructions, and `allowedTools`.
 
 ## MCP Connectivity
 

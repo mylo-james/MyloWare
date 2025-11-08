@@ -11,7 +11,19 @@
         "workflowInputs": {
           "values": [
             {
-              "name": "runId"
+              "name": "runId",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "projectSlug",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "videoUrl",
+              "type": "string",
+              "required": true
             }
           ]
         }
@@ -128,7 +140,7 @@
     {
       "parameters": {
         "resource": "folder",
-        "name": "={{ $('When Called by Generate Video').item.json.projectName }}_{{ $now.format('yyyy-MM-dd') }}",
+        "name": "={{ $('When Called by Generate Video').item.json.projectSlug }}_{{ $now.format('yyyy-MM-dd') }}",
         "driveId": {
           "__rl": true,
           "mode": "list",
@@ -227,6 +239,8 @@
             {}
           ]
         },
+        "responseFormat": "file",
+        "binaryPropertyName": "data",
         "options": {}
       },
       "id": "50e5ce79-6281-450c-b6e7-2b5fd3a54573",
@@ -238,10 +252,6 @@
       ],
       "typeVersion": 4.2,
       "credentials": {
-        "openAiApi": {
-          "id": "ddYuAnkE3FT5NJj3",
-          "name": "OpenAi account"
-        },
         "httpHeaderAuth": {
           "id": "S31bXA351k9zXbHo",
           "name": "shotstack"

@@ -120,5 +120,37 @@ describe('PersonaRepository', () => {
       expect(all.find(p => p.name === 'persona2')?.allowedTools).toEqual(['memory_store', 'handoff_to_agent']);
     });
   });
+
+  describe('deleteAll', () => {
+    it('should remove all personas and return deleted count', async () => {
+      await repository.insert({
+        name: 'persona-a',
+        description: 'Persona A',
+        capabilities: ['test'],
+        tone: 'neutral',
+        defaultProject: null,
+        systemPrompt: null,
+        allowedTools: [],
+        metadata: {},
+      });
+
+      await repository.insert({
+        name: 'persona-b',
+        description: 'Persona B',
+        capabilities: ['test'],
+        tone: 'neutral',
+        defaultProject: null,
+        systemPrompt: null,
+        allowedTools: [],
+        metadata: {},
+      });
+
+      const deleted = await repository.deleteAll();
+
+      expect(deleted).toBe(2);
+      const remaining = await repository.findAll();
+      expect(remaining.length).toBe(0);
+    });
+  });
 });
 

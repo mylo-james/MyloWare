@@ -79,7 +79,7 @@ describe('Input Validation Limits', () => {
     it('should accept instructions within 10000 character limit', async () => {
       const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
       });
 
@@ -101,7 +101,7 @@ describe('Input Validation Limits', () => {
     it('should reject instructions exceeding 10000 character limit', async () => {
       const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
       });
 
@@ -125,7 +125,7 @@ describe('Input Validation Limits', () => {
     it('should accept instructions within 10000 character limit', async () => {
       const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
       });
 
@@ -151,7 +151,7 @@ describe('Input Validation Limits', () => {
     it('should reject instructions exceeding 10000 character limit', async () => {
       const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
-        projectId: 'test-project',
+        projectId: null,
         sessionId: 'test-session',
       });
 

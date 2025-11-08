@@ -88,6 +88,40 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'running',\n    metadata: {\n      renderId: $json.response.id\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 10000,
+          "continueOnFail": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        976,
+        496
+      ],
+      "id": "track-job-start-edit",
+      "name": "Track Job Start",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Tracks edit job start via job_upsert. Continues on fail to avoid blocking workflow."
+    },
+    {
+      "parameters": {
         "url": "=https://api.shotstack.io/edit/stage/render/{{ $json.response.id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -267,6 +301,40 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "https://mcp-vector.mjames.dev/mcp",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'succeeded',\n    assetUrl: $json.response.url,\n    metadata: {\n      renderId: $json.response.id,\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
+        "options": {
+          "timeout": 10000,
+          "continueOnFail": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        384
+      ],
+      "id": "track-job-complete-edit",
+      "name": "Track Job Complete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "PDRTlQZsKzQBcv6T",
+          "name": "Mylo MCP"
+        }
+      },
+      "notes": "Tracks edit job completion via job_upsert. Continues on fail to avoid blocking workflow."
+    },
+    {
+      "parameters": {
         "method": "PATCH",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + (($('When Executed by Another Workflow').first().json.runId) || '') }}",
         "authentication": "genericCredentialType",
@@ -359,7 +427,7 @@
       "main": [
         [
           {
-            "node": "Mark Run Complete",
+            "node": "Track Job Complete",
             "type": "main",
             "index": 0
           }
@@ -373,7 +441,29 @@
         ]
       ]
     },
+    "Track Job Complete": {
+      "main": [
+        [
+          {
+            "node": "Mark Run Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Track Job Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Track Job Start": {
       "main": [
         [
           {

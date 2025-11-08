@@ -1,6 +1,6 @@
 import { db } from '../client.js';
 import { projects } from '../schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, ilike, or } from 'drizzle-orm';
 
 export interface Project {
   id: string;
@@ -39,10 +39,40 @@ export class ProjectRepository {
     return (result as Project) || null;
   }
 
+  async findById(id: string): Promise<Project | null> {
+    const [result] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id))
+      .limit(1);
+
+    return (result as Project) || null;
+  }
+
   async findAll(): Promise<Project[]> {
+    const results = await db.select().from(projects);
+
+    return results as Project[];
+  }
+
+  async search(term: string, limit = 5): Promise<Project[]> {
+    const normalized = term.trim();
+    if (!normalized) {
+      return [];
+    }
+
+    const pattern = `%${normalized.replace(/[%_]/g, '\\$&')}%`;
+
     const results = await db
       .select()
-      .from(projects);
+      .from(projects)
+      .where(
+        or(
+          ilike(projects.name, pattern),
+          ilike(projects.description, pattern)
+        )
+      )
+      .limit(Math.max(1, Math.min(limit, 20)));
 
     return results as Project[];
   }

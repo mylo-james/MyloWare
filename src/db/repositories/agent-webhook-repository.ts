@@ -2,11 +2,14 @@ import { db } from '../client.js';
 import { agentWebhooks } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type AuthType = 'none' | 'header' | 'basic' | 'bearer';
+
 export interface CreateAgentWebhookParams {
   agentName: string;
   webhookPath: string;
-  method?: string;
-  authType?: 'none' | 'header' | 'basic' | 'bearer';
+  method?: HttpMethod;
+  authType?: AuthType;
   authConfig?: Record<string, unknown>;
   description?: string;
   isActive?: boolean;
@@ -55,8 +58,8 @@ export class AgentWebhookRepository {
       .values({
         agentName: params.agentName,
         webhookPath: params.webhookPath,
-        method: params.method || 'POST',
-        authType: params.authType || 'none',
+        method: params.method ?? 'POST',
+        authType: params.authType ?? 'none',
         authConfig: params.authConfig || {},
         description: params.description || null,
         isActive: params.isActive !== undefined ? params.isActive : true,

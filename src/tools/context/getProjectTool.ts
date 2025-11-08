@@ -1,4 +1,7 @@
-import type { ProjectGetParams, ProjectGetResult } from '../../types/context.js';
+import type {
+  ProjectGetParams,
+  ProjectGetResult,
+} from '../../types/context.js';
 import { ProjectRepository } from '../../db/repositories/project-repository.js';
 
 /**
@@ -13,11 +16,23 @@ export async function getProject(
 ): Promise<ProjectGetResult> {
   const repository = new ProjectRepository();
 
-  // 1. Fetch project
-  const project = await repository.findByName(params.projectName);
+  // Accept UUIDs only
+  const projectId = params.projectName.trim();
+  if (!projectId) {
+    throw new Error('projectName must be a non-empty UUID');
+  }
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      projectId
+    )
+  ) {
+    throw new Error('projectName must be a project UUID');
+  }
+
+  const project = await repository.findById(projectId);
 
   if (!project) {
-    throw new Error(`Project not found: ${params.projectName}`);
+    throw new Error(`Project not found: ${projectId}`);
   }
 
   // 2. Format response
@@ -33,4 +48,3 @@ export async function getProject(
     metadata: project.metadata,
   };
 }
-

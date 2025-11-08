@@ -8,8 +8,8 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [-800, 112],
-      "id": "b570e5ca-25b9-4b7b-b620-5e6aeaf4c89f",
+      "position": [-1440, 160],
+      "id": "6873a9e0-4497-43b9-9bf1-1597bc09f46e",
       "name": "Webhook: Agent Handoff",
       "webhookId": "myloware-agent-webhook",
       "notes": "Receives handoff requests from other agents via handoff_to_agent tool. Path: /webhook/myloware/ingest"
@@ -21,8 +21,8 @@
       },
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [-800, -80],
-      "id": "8c4f1bfd-cb25-4ad4-b4ce-5d10558e4c23",
+      "position": [-1440, -32],
+      "id": "d373231b-7529-4832-8611-046acd3fb085",
       "name": "Trigger: Telegram Message",
       "webhookId": "myloware-agent-telegram",
       "credentials": {
@@ -39,8 +39,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.3,
-      "position": [-800, 304],
-      "id": "6013dc7a-512a-4715-b5ba-8d8cf0362015",
+      "position": [-1440, 352],
+      "id": "912f3740-e8c4-4dfc-9b7c-37bddb46dc47",
       "name": "Trigger: Chat Interface",
       "webhookId": "myloware-agent-chat",
       "notes": "Triggers workflow when user sends a message via the chat UI. Extracts sessionId and chatInput."
@@ -55,8 +55,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
-      "position": [536, 112],
-      "id": "941a74a0-3e22-4c1c-8d6e-633fd754a34a",
+      "position": [184, 308],
+      "id": "dcc4eff1-fbac-4c7c-941c-8ef5c9824464",
       "name": "AI Agent: Persona Execution",
       "retryOnFail": false,
       "notes": "Universal AI agent that executes any persona (Casey, Iggy, Riley, Veo, Alex, Quinn) based on trace.currentOwner. System prompt and allowed tools are dynamically set from trace_prep output. Uses MCP tools and toolWorkflow nodes to complete tasks."
@@ -71,8 +71,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [96, 336],
-      "id": "91ca3db7-80d5-4b36-8837-8048afc7f969",
+      "position": [-192, 532],
+      "id": "5cf2c9eb-de3c-4364-8fc6-512cf6413fa1",
       "name": "Language Model: GPT-5 Nano",
       "credentials": {
         "openAiApi": {
@@ -93,8 +93,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.1,
-      "position": [224, 336],
-      "id": "edf5f394-e0a9-4cef-9170-4f96f96e3f1c",
+      "position": [-64, 532],
+      "id": "620c215b-7d4b-4fdd-94e9-e570e7996bf0",
       "name": "Tool: MCP Server Tools",
       "credentials": {
         "httpHeaderAuth": {
@@ -136,8 +136,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [352, 336],
-      "id": "d6d15378-349f-429d-85e1-b2267bea7cdf",
+      "position": [64, 532],
+      "id": "04a16533-38f2-47a8-ada8-63e22c898f5e",
       "name": "Tool: Upload to Google Drive",
       "notes": "Tool workflow for uploading files to Google Drive. Called by AI agent when needed (e.g., Quinn publishing assets)."
     },
@@ -173,8 +173,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [480, 336],
-      "id": "4fe8ec6e-8ff9-400a-b07c-d81f737bfdbd",
+      "position": [192, 532],
+      "id": "779126a6-dd15-4ac4-b39c-2ef1531f917b",
       "name": "Tool: Upload to TikTok",
       "notes": "Tool workflow for uploading videos to TikTok. Called by Quinn persona when publishing final edits."
     },
@@ -218,8 +218,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [608, 336],
-      "id": "d84834a2-97ea-45c1-9d12-a400e482fb12",
+      "position": [320, 532],
+      "id": "64ba67b1-cd72-40bb-9a67-b7cf5be80aff",
       "name": "Tool: Shotstack Video Editing",
       "notes": "Tool workflow for video editing via Shotstack API. Called by Alex persona to stitch and edit video compilations. Requires traceId and videoUrls (array of video URL strings)."
     },
@@ -263,8 +263,8 @@
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
-      "position": [736, 336],
-      "id": "344208a1-1588-4426-ab2f-e160f41a2d5e",
+      "position": [448, 532],
+      "id": "b0023cc1-848c-4153-8d08-ddcbb75a02ed",
       "name": "Tool: Generate Video",
       "notes": "Tool workflow for video generation. Called by Veo persona to generate individual video clips from screenplays. Requires traceId and screenplay (JSON object with script content)."
     },
@@ -281,19 +281,19 @@
             {
               "id": "sessionId",
               "name": "sessionId",
-              "value": "={{ $json.body?.sessionId ? $json.body.sessionId : ($json.sessionId ? $json.sessionId : ($json.from?.id ? 'telegram:' + $json.from.id : ($json.userId ? 'chat:' + $json.userId : ($json.message?.chat?.id ? 'telegram:' + $json.message.chat.id : 'webhook:' + $now)))) }}",
+              "value": "={{ (() => { const raw = $json; const sid = raw.body?.sessionId || raw.sessionId || raw.from?.id || raw.userId || raw.message?.chat?.id; if (!sid) { throw new Error('Unable to determine sessionId'); } const s = String(sid).trim(); const src = raw.body ? 'webhook' : (raw.from ? 'telegram' : 'chat'); return s.startsWith(`${src}:`) ? s : `${src}:${s.replace(/^.*?:/, '')}`; })() }}",
               "type": "string"
             },
             {
               "id": "message",
               "name": "message",
-              "value": "={{ $json.message?.text || $json.message || $json.body?.message || $json.chatInput || '' }}",
+              "value": "={{ $json.message?.text || $json.message || $json.body?.instructions || $json.chatInput || '' }}",
               "type": "string"
             },
             {
               "id": "source",
               "name": "source",
-              "value": "={{ $json.body ? 'webhook' : ($json.from ? 'telegram' : 'chat') }}",
+              "value": "={{ $json.message ? 'telegram' : ($json.chatInput ? 'chat' : 'webhook') }}",
               "type": "string"
             }
           ]
@@ -302,32 +302,10 @@
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-576, 112],
-      "id": "dc4e1dbd-cdc4-476e-9097-d774145ffc1d",
-      "name": "Normalize Input",
-      "notes": "Normalizes input from different sources (webhook, Telegram, chat) into consistent fields: traceId, sessionId, message, source"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Ensure telegram: prefix for sessionId when source is telegram\nconst item = $input.item;\n\nif (item.json.source === 'telegram' && !item.json.sessionId.startsWith('telegram:')) {\n  item.json.sessionId = 'telegram:' + item.json.sessionId;\n}\n\n// Ensure chat: prefix for chat sessions\nif (item.json.source === 'chat' && !item.json.sessionId.startsWith('chat:')) {\n  item.json.sessionId = 'chat:' + item.json.sessionId;\n}\n\n// Ensure webhook: prefix for webhook sessions\nif (item.json.source === 'webhook' && !item.json.sessionId.startsWith('webhook:')) {\n  item.json.sessionId = 'webhook:' + item.json.sessionId;\n}\n\nreturn item;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-352, 112],
-      "id": "eaa21ab1-c32f-40e3-b1a4-45509a452e00",
-      "name": "Normalize SessionId",
-      "notes": "Ensures sessionId has proper channel prefix (telegram:, chat:, webhook:) based on source"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Validate required fields and formats\nconst item = $input.item;\nconst errors = [];\n\n// Validate sessionId format (must have channel prefix)\nif (!item.json.sessionId) {\n  errors.push('sessionId is required');\n} else if (!/^(telegram|chat|webhook):/.test(item.json.sessionId)) {\n  errors.push(`sessionId must start with telegram:, chat:, or webhook:. Got: ${item.json.sessionId}`);\n}\n\n// Validate traceId format (UUID or null)\nif (item.json.traceId !== null && item.json.traceId !== undefined) {\n  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n  if (!uuidRegex.test(item.json.traceId)) {\n    errors.push(`Invalid traceId format: ${item.json.traceId}. Must be UUID or null.`);\n  }\n}\n\n// Validate source\nconst validSources = ['webhook', 'telegram', 'chat'];\nif (!validSources.includes(item.json.source)) {\n  errors.push(`Invalid source: ${item.json.source}. Must be one of: ${validSources.join(', ')}`);\n}\n\n// Validate message is not empty\nif (!item.json.message || item.json.message.trim() === '') {\n  errors.push('message cannot be empty');\n}\n\nif (errors.length > 0) {\n  throw new Error(`Validation failed: ${errors.join('; ')}`);\n}\n\nreturn item;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-128, 112],
-      "id": "validate-input",
-      "name": "Validate Input",
-      "notes": "Validates sessionId format, traceId format (UUID or null), source value, and message presence"
+      "position": [-1216, 160],
+      "id": "7e5266f0-0f5f-4c5c-90e6-df75a4cfa2f0",
+      "name": "Prepare Input",
+      "notes": "Normalizes and validates inbound payloads from all triggers into a single schema { traceId, sessionId, source, message }."
     },
     {
       "parameters": {
@@ -348,8 +326,8 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
-      "position": [96, 112],
-      "id": "d5394a70-ee5c-49e9-8beb-e6f5e4b02980",
+      "position": [-992, 160],
+      "id": "591ce954-fa23-43da-b224-ef7f4c1d27e3",
       "name": "Prepare Trace Context",
       "retryOnFail": true,
       "maxTries": 3,
@@ -364,29 +342,35 @@
     },
     {
       "parameters": {
-        "mode": "check",
         "text": "={{ $json.instructions }}",
-        "options": {
-          "sanitize": true,
-          "checkForPII": true,
-          "checkForJailbreak": true
-        }
+        "guardrails": {}
       },
       "type": "@n8n/n8n-nodes-langchain.guardrails",
       "typeVersion": 1,
-      "position": [320, 112],
-      "id": "guardrails-node",
+      "position": [-768, 160],
+      "id": "8d404b36-57b2-4bb6-afee-51dda54cdc2d",
       "name": "Guardrails",
       "notes": "Validates instructions for prompt injection, PII, and jailbreak attempts. Sanitizes input before passing to AI agent."
     },
     {
       "parameters": {
-        "jsCode": "// Log guardrail violations if detected\nconst item = $input.item;\nconst guardrailResult = item.json;\n\n// Check if guardrails detected violations\nif (guardrailResult.violations && guardrailResult.violations.length > 0) {\n  // Store violation in memory via HTTP request (will be handled by error workflow if this fails)\n  const violationData = {\n    tool: 'memory_store',\n    arguments: {\n      content: `Guardrail violation detected: ${guardrailResult.violations.map(v => v.type).join(', ')}`,\n      memoryType: 'episodic',\n      tags: ['security', 'guardrail-violation'],\n      metadata: {\n        traceId: item.json.traceId,\n        violationTypes: guardrailResult.violations.map(v => v.type),\n        originalInstructions: item.json.instructions,\n        sanitizedInstructions: guardrailResult.sanitized || item.json.instructions\n      }\n    }\n  };\n  \n  // Store violation data for later logging\n  item.json.guardrailViolations = guardrailResult.violations;\n  item.json.violationData = violationData;\n}\n\nreturn item;"
+        "jsCode": "const item = $input.item;\nconst sessionId = $('Prepare Input').item.json.sessionId || '';\nconst allowedTools = Array.isArray(item.json.allowedTools) ? [...item.json.allowedTools] : item.json.allowedTools;\n\nif (!Array.isArray(allowedTools)) {\n  return item;\n}\n\nif (!sessionId.startsWith('telegram:')) {\n  // Filter by tool IDs (what trace_prep returns), not display names\n  const restricted = new Set(['telegram_send', 'telegram_hitl']);\n  item.json.allowedTools = allowedTools.filter((tool) => {\n    const id = typeof tool === 'string' ? tool : (tool?.id || tool?.name || '');\n    return !restricted.has(id);\n  });\n}\n\nreturn item;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 112],
-      "id": "log-guardrail-violations",
+      "position": [-416, 308],
+      "id": "8d3e7c14-3e85-4b7f-992f-b6d431dbbc71",
+      "name": "Enforce Tool Guardrails",
+      "notes": "Removes Telegram-specific tools from allowedTools unless the current session is Telegram. Filters by tool IDs (what trace_prep returns), not display names."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log guardrail violations if detected\nconst item = $input.item;\nconst guardrailResult = item.json;\n\n// Check if guardrails detected violations\nif (guardrailResult.violations && guardrailResult.violations.length > 0) {\n  // Store violation in memory via HTTP request (will be handled by error workflow if this fails)\n  const violationData = {\n    tool: 'memory_store',\n    arguments: {\n      content: `Guardrail violation detected: ${guardrailResult.violations.map(v => v.type).join(', ')}` ,\n      memoryType: 'episodic',\n      tags: ['security', 'guardrail-violation'],\n      metadata: {\n        traceId: item.json.traceId,\n        violationTypes: guardrailResult.violations.map(v => v.type),\n        originalInstructions: item.json.instructions,\n        sanitizedInstructions: guardrailResult.sanitized || item.json.instructions\n      }\n    }\n  };\n  \n  // Store violation data for later logging\n  item.json.guardrailViolations = guardrailResult.violations;\n  item.json.violationData = violationData;\n}\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-416, 12],
+      "id": "44c8242a-6d4b-4bdb-bf96-93a02bf3376f",
       "name": "Log Guardrail Violations",
       "notes": "Logs guardrail violations to memory for security monitoring. Violations are stored with traceId for correlation."
     },
@@ -400,18 +384,18 @@
         "headerParameters": {
           "parameters": [{}]
         },
-        "sendBody": "json",
+        "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ $json.violationData ? JSON.stringify($json.violationData) : '{}' }}",
+        "jsonBody": "={{ JSON.stringify($('Log Guardrail Violations').item.json.violationData) }}",
         "options": {
-          "timeout": 10000
-        },
-        "continueOnFail": true
+          "timeout": 10000,
+          "continueOnFail": true
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
-      "position": [640, 112],
-      "id": "store-violation-memory",
+      "position": [248, 12],
+      "id": "7887ab8e-c5a0-471c-8d0f-4bbfdf8a3f6c",
       "name": "Store Violation Memory",
       "credentials": {
         "httpHeaderAuth": {
@@ -423,29 +407,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Guard: Only allow Telegram tools for telegram: sessions\nconst sessionId = $input.item.json.sessionId;\nif (!sessionId || !sessionId.startsWith('telegram:')) {\n  throw new Error(`Telegram tool called for non-Telegram session: ${sessionId}`);\n}\nreturn $input.item;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [864, 336],
-      "id": "telegram-guard-send",
-      "name": "Guard: Telegram Send",
-      "notes": "Validates sessionId starts with telegram: before allowing Telegram send tool"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Guard: Only allow Telegram HITL for telegram: sessions\nconst sessionId = $input.item.json.sessionId;\nif (!sessionId || !sessionId.startsWith('telegram:')) {\n  throw new Error(`Telegram HITL tool called for non-Telegram session: ${sessionId}`);\n}\nreturn $input.item;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [992, 336],
-      "id": "telegram-guard-hitl",
-      "name": "Guard: Telegram HITL",
-      "notes": "Validates sessionId starts with telegram: before allowing Telegram HITL tool"
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $('Normalize Input').item.json.sessionId.split(\":\")[1] }}",
+        "chatId": "={{ (() => { const session = $('Prepare Input').item.json.sessionId || ''; if (!session.startsWith('telegram:')) { throw new Error('Telegram send attempted for non-telegram session'); } return session.split(':')[1]; })() }}",
         "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
         "additionalFields": {
           "appendAttribution": false
@@ -453,8 +415,8 @@
       },
       "type": "n8n-nodes-base.telegramTool",
       "typeVersion": 1.2,
-      "position": [1088, 336],
-      "id": "cbf99aaf-98ef-42de-9d91-a262ec5a121b",
+      "position": [576, 532],
+      "id": "4017bd48-560c-48f3-8850-d1be955ba7a3",
       "name": "Tool: Send Telegram Message",
       "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
       "credentials": {
@@ -468,16 +430,14 @@
     {
       "parameters": {
         "operation": "sendAndWait",
-        "chatId": "={{ $('Normalize Input').item.json.sessionId.split(\":\")[1] }}",
+        "chatId": "={{ (() => { const session = $('Prepare Input').item.json.sessionId || ''; if (!session.startsWith('telegram:')) { throw new Error('Telegram HITL attempted for non-telegram session'); } return session.split(':')[1]; })() }}",
         "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
-        "options": {
-          "timeout": 3600
-        }
+        "options": {}
       },
       "type": "n8n-nodes-base.telegramTool",
       "typeVersion": 1.2,
-      "position": [1216, 336],
-      "id": "9ba5ff22-cc3d-424c-b41c-d1d7472b8e22",
+      "position": [704, 532],
+      "id": "d0cf1f73-2109-4d99-a146-c1dc7cd7a809",
       "name": "Tool: Telegram HITL (Human-in-the-Loop)",
       "webhookId": "7b7c8d8f-e6d1-4262-ba5d-cb31c495ec62",
       "credentials": {
@@ -490,13 +450,25 @@
     },
     {
       "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
         "options": {}
       },
-      "type": "n8n-nodes-base.httpRequestTool",
-      "typeVersion": 4.3,
-      "position": [1120, 336],
-      "id": "ac8c51f0-064c-47a0-a64f-154f7c571925",
-      "name": "HTTP Request"
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [-696, 384],
+      "id": "36026167-5c2f-4d08-8406-4fef6e0baf0e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ddYuAnkE3FT5NJj3",
+          "name": "OpenAi account"
+        }
+      }
     }
   ],
   "connections": {
@@ -504,7 +476,7 @@
       "main": [
         [
           {
-            "node": "Normalize Input",
+            "node": "Prepare Input",
             "type": "main",
             "index": 0
           }
@@ -515,7 +487,7 @@
       "main": [
         [
           {
-            "node": "Normalize Input",
+            "node": "Prepare Input",
             "type": "main",
             "index": 0
           }
@@ -526,7 +498,7 @@
       "main": [
         [
           {
-            "node": "Normalize Input",
+            "node": "Prepare Input",
             "type": "main",
             "index": 0
           }
@@ -599,29 +571,7 @@
         ]
       ]
     },
-    "Normalize Input": {
-      "main": [
-        [
-          {
-            "node": "Normalize Telegram SessionId",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalize SessionId": {
-      "main": [
-        [
-          {
-            "node": "Validate Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Input": {
+    "Prepare Input": {
       "main": [
         [
           {
@@ -647,7 +597,25 @@
       "main": [
         [
           {
+            "node": "Enforce Tool Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Log Guardrail Violations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enforce Tool Guardrails": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Persona Execution",
             "type": "main",
             "index": 0
           }
@@ -666,43 +634,13 @@
       ]
     },
     "Store Violation Memory": {
-      "main": [
-        [
-          {
-            "node": "AI Agent: Persona Execution",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guard: Telegram Send": {
-      "ai_tool": [
-        [
-          {
-            "node": "Tool: Send Telegram Message",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[]]
     },
     "Tool: Send Telegram Message": {
       "ai_tool": [
         [
           {
             "node": "AI Agent: Persona Execution",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guard: Telegram HITL": {
-      "ai_tool": [
-        [
-          {
-            "node": "Tool: Telegram HITL (Human-in-the-Loop)",
             "type": "ai_tool",
             "index": 0
           }
@@ -720,12 +658,12 @@
         ]
       ]
     },
-    "HTTP Request": {
-      "ai_tool": [
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
         [
           {
-            "node": "AI Agent: Persona Execution",
-            "type": "ai_tool",
+            "node": "Guardrails",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -733,18 +671,7 @@
     }
   },
   "pinData": {},
-  "settings": {
-    "executionOrder": "v1",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
-    "saveManualExecutions": true,
-    "saveExecutionProgress": true,
-    "timezone": "America/New_York",
-    "executionTimeout": 3600,
-    "errorWorkflow": "error-handler-workflow-id"
-  },
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "d47e04d370a1b43496c097b567956ffb03a57fcf0b3917656c3ea43ad368f887"
   }
 }

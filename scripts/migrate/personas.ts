@@ -1,34 +1,58 @@
 #!/usr/bin/env tsx
-import { readFile } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { PersonaRepository } from '../../src/db/repositories/persona-repository.js';
+import { PersonaRepository, type Persona } from '../../src/db/repositories/persona-repository.js';
 import { pool } from '../../src/db/client.js';
 import { cleanForAI } from '../../src/utils/validation.js';
 import { Client } from 'pg';
 import { config } from '../../src/config/index.js';
 
-interface V1Persona {
-  agent: {
-    name: string;
-    id: string;
-    title: string;
-    whentouse: string;
+type PersonaJson = {
+  title?: string;
+  agent?: {
+    id?: string;
+    name?: string;
+    title?: string;
+    role?: string;
+    description?: string;
+    defaultProject?: string | null;
+    tone?: string;
   };
-  persona: {
-    role: string;
-    style: string;
-    identity: string;
-    focus: string;
-    core_principles?: string[];
+  capabilities?: string[];
+  allowedTools?: string[];
+  systemPrompt?: string;
+  defaultProject?: string | null;
+  tone?: string;
+  memory?: unknown;
+  identity?: {
+    your_expertise?: string[];
+    tone?: string;
   };
-  tools?: {
-    overview: string;
-  };
-  workflow?: {
-    definition_of_success?: string;
-  };
-}
+  workflow?: unknown;
+  validation_checklist?: unknown;
+  anti_patterns?: unknown;
+  common_scenarios?: unknown;
+  remember?: string;
+};
+
+const DEFAULT_TONE: Record<string, string> = {
+  casey: 'confident',
+  iggy: 'creative',
+  riley: 'precise',
+  veo: 'efficient',
+  alex: 'meticulous',
+  quinn: 'upbeat',
+};
+
+const DEFAULT_PROJECT: Record<string, string> = {
+  casey: 'aismr',
+  iggy: 'aismr',
+  riley: 'aismr',
+  veo: 'aismr',
+  alex: 'aismr',
+  quinn: 'aismr',
+};
 
 async function waitForDatabase(retries = 10, delayMs = 1000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -49,25 +73,77 @@ async function waitForDatabase(retries = 10, delayMs = 1000) {
   }
 }
 
-async function migratePersonas() {
-  console.log('🔄 Migrating personas from V1...');
+function asStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  }
+  return [];
+}
 
-  // Wait for database to be available (with retries)
+function buildMetadata(doc: PersonaJson, sourceFile: string): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    sourceFile,
+  };
+
+  if (doc.agent?.role) metadata.role = doc.agent.role;
+  if (doc.agent?.description) metadata.description = doc.agent.description;
+  if (doc.memory) metadata.memory = doc.memory;
+  if (doc.workflow) metadata.workflow = doc.workflow;
+  if (doc.validation_checklist) metadata.validationChecklist = doc.validation_checklist;
+  if (doc.anti_patterns) metadata.antiPatterns = doc.anti_patterns;
+  if (doc.common_scenarios) metadata.commonScenarios = doc.common_scenarios;
+  if (doc.remember) metadata.remember = doc.remember;
+
+  return metadata;
+}
+
+function toPersonaRecord(doc: PersonaJson, sourceFile: string): Omit<Persona, 'id' | 'createdAt' | 'updatedAt'> {
+  const personaName = doc.agent?.id ?? path.basename(sourceFile, '.json');
+  if (!personaName) {
+    throw new Error(`Persona file ${sourceFile} is missing agent.id`);
+  }
+
+  const description = doc.agent?.title ?? doc.title ?? personaName;
+  const capabilities = asStringArray(doc.capabilities).length > 0
+    ? asStringArray(doc.capabilities)
+    : asStringArray(doc.identity?.your_expertise).length > 0
+    ? asStringArray(doc.identity?.your_expertise)
+    : [doc.agent?.role ?? personaName];
+
+  const tone = doc.tone ?? doc.agent?.tone ?? doc.identity?.tone ?? DEFAULT_TONE[personaName] ?? 'neutral';
+  const defaultProject = doc.defaultProject ?? doc.agent?.defaultProject ?? DEFAULT_PROJECT[personaName] ?? null;
+  const allowedTools = asStringArray(doc.allowedTools).length > 0
+    ? Array.from(new Set(asStringArray(doc.allowedTools)))
+    : ['memory_search', 'memory_store', 'handoff_to_agent'];
+
+  const systemPrompt = doc.systemPrompt ? cleanForAI(doc.systemPrompt) : null;
+  const metadata = buildMetadata(doc, sourceFile);
+
+  return {
+    name: personaName,
+    description,
+    capabilities,
+    tone,
+    defaultProject,
+    systemPrompt,
+    allowedTools,
+    metadata,
+  };
+}
+
+async function migratePersonas() {
+  console.log('🔄 Migrating personas from local data/personas/*.json ...');
+
   try {
     await waitForDatabase();
     console.log('  ✓ Database connection established');
   } catch (error) {
     console.error('❌ Database connection failed:', error instanceof Error ? error.message : String(error));
     console.error('   Make sure your database is running and DATABASE_URL is set correctly.');
-    console.error('   💡 Tips:');
-    console.error('      - Local: Check if PostgreSQL is running (`pg_isready` or `psql`)');
-    console.error('      - Docker: Run `npm run dev:docker` or check container status');
-    console.error('      - Remote: Verify DATABASE_URL is correct and accessible');
     process.exit(1);
   }
 
   const repository = new PersonaRepository();
-
   const dataDir = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
     '..',
@@ -77,286 +153,19 @@ async function migratePersonas() {
   );
 
   try {
-    // Migrate chat persona
-    console.log('  - Migrating chat persona...');
-    const chatJson = await readFile(path.join(dataDir, 'chat.json'), 'utf-8');
-    const chat: V1Persona = JSON.parse(chatJson);
+    const files = (await readdir(dataDir)).filter((file) => file.endsWith('.json')).sort();
 
-    // Check if already exists
-    const existingChat = await repository.findByName(chat.agent.id);
-    if (existingChat) {
-      console.log('    ⏭️  Chat persona already exists, skipping');
-    } else {
-      const chatSystemPrompt = cleanForAI(`
-You are a ${chat.persona.role}.
-Your style: ${chat.persona.style}.
-Your identity: ${chat.persona.identity}.
-Your focus areas: ${chat.persona.focus}.
+    const deletedCount = await repository.deleteAll();
+    console.log(`  🧹 Cleared ${deletedCount} existing personas`);
 
-Core principles:
-${(chat.persona.core_principles || []).map((p, i) => `${i + 1}. ${p}`).join(' ')}
+    for (const file of files) {
+      const fullPath = path.join(dataDir, file);
+      const raw = await readFile(fullPath, 'utf-8');
+      const personaDoc = JSON.parse(raw) as PersonaJson;
+      const record = toPersonaRecord(personaDoc, file);
 
-When to use you: ${chat.agent.whentouse}
-      `.trim());
-
-      await repository.insert({
-        name: chat.agent.id,
-        description: chat.agent.title,
-        capabilities: ['conversation', 'orchestration', 'workflow-discovery'],
-        tone: 'friendly',
-        defaultProject: 'aismr',
-        systemPrompt: chatSystemPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-        metadata: {
-          v1Source: 'persona-chat.json',
-          role: chat.persona.role,
-          focus: chat.persona.focus,
-        },
-      });
-
-      console.log('    ✓ Chat persona migrated');
-    }
-
-    // Migrate Casey (Showrunner)
-    console.log('  - Migrating Casey (Showrunner)...');
-    const caseyJson = await readFile(path.join(dataDir, 'casey.json'), 'utf-8');
-    const caseyDoc: any = JSON.parse(caseyJson);
-    const existingCasey = await repository.findByName('casey');
-    if (existingCasey) {
-      console.log('    ⏭️  Casey persona already exists, skipping');
-    } else {
-      const caseySystemPrompt = cleanForAI(
-        `${caseyDoc.activation_notice}\n\n${caseyDoc.critical_notice}\n\n` +
-          'Follow MCP tool order: context_get_project → context_get_persona("iggy") → trace_create → memory_store → handoff_to_agent. ' +
-          'Always tag memories with traceId and persona. After handoff to Iggy, go idle and wait for Quinn to signal completion.'
-      );
-
-      // Load allowedTools from casey.json file
-      const caseyAllowedTools = caseyDoc.allowedTools || [
-        'trace_create',
-        'trace_update',
-        'set_project',
-        'context_get_project',
-        'context_get_persona',
-        'memory_search',
-        'memory_store',
-        'handoff_to_agent',
-      ];
-
-      await repository.insert({
-        name: 'casey',
-        description: caseyDoc.title || 'Showrunner',
-        capabilities: ['coordination', 'trace-create', 'handoff'],
-        tone: 'confident',
-        defaultProject: 'aismr',
-        systemPrompt: caseySystemPrompt,
-        allowedTools: caseyAllowedTools,
-        metadata: { v1Source: 'casey.json', role: 'showrunner' },
-      });
-
-      console.log('    ✓ Casey persona migrated');
-    }
-
-    // Migrate Idea Generator
-    console.log('  - Migrating Idea Generator...');
-    const iggyJson = await readFile(path.join(dataDir, 'ideagenerator.json'), 'utf-8');
-    const iggy: V1Persona = JSON.parse(iggyJson);
-
-    const existingIggyId = await repository.findByName(iggy.agent.id);
-    if (existingIggyId) {
-      console.log('    ⏭️  Idea Generator already exists (ideagenerator), skipping');
-    } else {
-      const iggySystemPrompt = cleanForAI(`
-You are ${iggy.agent.name}, a ${iggy.persona.role}.
-Your style: ${iggy.persona.style}.
-Your identity: ${iggy.persona.identity}.
-Your focus areas: ${iggy.persona.focus}.
-
-Core principles:
-${(iggy.persona.core_principles || []).map((p, i) => `${i + 1}. ${p}`).join(' ')}
-
-When to use you: ${iggy.agent.whentouse}
-Definition of success: ${iggy.workflow?.definition_of_success || 'Generate unique, executable AISMR ideas'}
-      `.trim());
-
-      await repository.insert({
-        name: iggy.agent.id,
-        description: iggy.agent.title,
-        capabilities: ['idea-generation', 'uniqueness-verification', 'memory-search'],
-        tone: 'creative',
-        defaultProject: 'aismr',
-        systemPrompt: iggySystemPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-        metadata: {
-          v1Source: 'persona-ideagenerator.json',
-          role: iggy.persona.role,
-          focus: iggy.persona.focus,
-        },
-      });
-
-      console.log('    ✓ Idea Generator migrated');
-    }
-
-    // Alias: Iggy persona (Creative Director) using Idea Generator content
-    console.log('  - Ensuring Iggy (Creative Director) exists...');
-    const existingIggyPersona = await repository.findByName('iggy');
-    if (existingIggyPersona) {
-      console.log('    ⏭️  Iggy persona already exists, skipping');
-    } else {
-      const iggySystemPrompt2 = cleanForAI(`
-You are Iggy, the Creative Director for AISMR. Generate 12 unique, on-brand modifiers per object.\n
-Use memory_search to ensure session + archive uniqueness before committing. Store results with traceId, then hand off to Riley.\n
-Seek HITL approval via Telegram before handoff. Always tag memories with persona=['iggy'] and project=['aismr'].`);
-      await repository.insert({
-        name: 'iggy',
-        description: 'Creative Director',
-        capabilities: ['idea-generation', 'uniqueness-verification', 'handoff'],
-        tone: 'creative',
-        defaultProject: 'aismr',
-        systemPrompt: iggySystemPrompt2,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-        metadata: { aliasOf: 'ideagenerator' },
-      });
-      console.log('    ✓ Iggy persona created');
-    }
-
-    // Migrate Screenwriter
-    console.log('  - Migrating Screenwriter...');
-    const screenwriterJson = await readFile(path.join(dataDir, 'screenwriter.json'), 'utf-8');
-    const screenwriter: V1Persona = JSON.parse(screenwriterJson);
-
-    const existingScreenwriter = await repository.findByName(screenwriter.agent.id);
-    if (existingScreenwriter) {
-      console.log('    ⏭️  Screenwriter already exists (screenwriter), skipping');
-    } else {
-      const screenwriterSystemPrompt = cleanForAI(`
-You are ${screenwriter.agent.name}, a ${screenwriter.persona.role}.
-Your style: ${screenwriter.persona.style}.
-Your identity: ${screenwriter.persona.identity}.
-Your focus areas: ${screenwriter.persona.focus}.
-
-Core principles:
-${(screenwriter.persona.core_principles || []).map((p, i) => `${i + 1}. ${p}`).join(' ')}
-
-When to use you: ${screenwriter.agent.whentouse}
-      `.trim());
-
-      await repository.insert({
-        name: screenwriter.agent.id,
-        description: screenwriter.agent.title,
-        capabilities: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
-        tone: 'precise',
-        defaultProject: 'aismr',
-        systemPrompt: screenwriterSystemPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-        metadata: {
-          v1Source: 'persona-screenwriter.json',
-          role: screenwriter.persona.role,
-          focus: screenwriter.persona.focus,
-        },
-      });
-
-      console.log('    ✓ Screenwriter migrated');
-    }
-
-    // Alias: Riley persona (Head Writer) using Screenwriter content
-    console.log('  - Ensuring Riley (Head Writer) exists...');
-    const existingRiley = await repository.findByName('riley');
-    if (existingRiley) {
-      console.log('    ⏭️  Riley persona already exists, skipping');
-    } else {
-      const rileySystemPrompt = cleanForAI(`
-You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write 12 AISMR screenplays (8.0s each, whisper at 3.0s, ≤2 hands, no music), store them with traceId, then hand off to Veo.`);
-      await repository.insert({
-        name: 'riley',
-        description: 'Head Writer',
-        capabilities: ['screenplay-writing', 'timing-precision', 'spec-compliance'],
-        tone: 'precise',
-        defaultProject: 'aismr',
-        systemPrompt: rileySystemPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'],
-        metadata: { aliasOf: 'screenwriter' },
-      });
-      console.log('    ✓ Riley persona created');
-    }
-
-    // Create remaining production personas: Veo, Alex, Quinn
-    console.log('  - Ensuring Veo (Production) exists...');
-    const existingVeo = await repository.findByName('veo');
-    if (!existingVeo) {
-      const veoPrompt = cleanForAI(
-        'You are Veo, Production. Load scripts by traceId, call external video APIs to generate videos, store URLs with traceId, then hand off to Alex.'
-      );
-      await repository.insert({
-        name: 'veo',
-        description: 'Production (Video Generation)',
-        capabilities: ['video-generation', 'batch-processing', 'handoff'],
-        tone: 'efficient',
-        defaultProject: 'aismr',
-        systemPrompt: veoPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
-        metadata: {},
-      });
-      console.log('    ✓ Veo persona created');
-    } else {
-      console.log('    ⏭️  Veo persona already exists, skipping');
-    }
-
-    console.log('  - Ensuring Alex (Editor) exists...');
-    const existingAlex = await repository.findByName('alex');
-    if (!existingAlex) {
-      const alexPrompt = cleanForAI(
-        'You are Alex, Editor. Retrieve videos by traceId, stitch the compilation, request HITL approval via Telegram, store the final URL with traceId, then hand off to Quinn.'
-      );
-      await repository.insert({
-        name: 'alex',
-        description: 'Editor (Post-Production)',
-        capabilities: ['editing', 'compilation', 'handoff'],
-        tone: 'meticulous',
-        defaultProject: 'aismr',
-        systemPrompt: alexPrompt,
-        allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent', 'job_upsert', 'jobs_summary'],
-        metadata: {},
-      });
-      console.log('    ✓ Alex persona created');
-    } else {
-      console.log('    ⏭️  Alex persona already exists, skipping');
-    }
-
-    console.log('  - Ensuring Quinn (Publisher) exists...');
-    const existingQuinn = await repository.findByName('quinn');
-    if (!existingQuinn) {
-      // Load Quinn's config from JSON file
-      const quinnJsonPath = path.join(dataDir, 'quinn.json');
-      let quinnAllowedTools = ['memory_search', 'memory_store', 'handoff_to_agent'];
-      let quinnSystemPrompt = cleanForAI(
-        'You are Quinn, Publisher. Retrieve the final edit by traceId, publish to platforms (TikTok/YouTube), store platform URLs with traceId, and call handoff_to_agent({toAgent: "complete"}) to signal completion.'
-      );
-      
-      try {
-        const quinnJson = await readFile(quinnJsonPath, 'utf-8');
-        const quinnDoc = JSON.parse(quinnJson);
-        quinnAllowedTools = quinnDoc.allowedTools || quinnAllowedTools;
-        if (quinnDoc.systemPrompt) {
-          quinnSystemPrompt = cleanForAI(quinnDoc.systemPrompt);
-        }
-      } catch (error) {
-        // Use defaults if file doesn't exist
-      }
-
-      await repository.insert({
-        name: 'quinn',
-        description: 'Social Media Manager',
-        capabilities: ['publishing', 'captioning', 'completion-signal'],
-        tone: 'upbeat',
-        defaultProject: 'aismr',
-        systemPrompt: quinnSystemPrompt,
-        allowedTools: quinnAllowedTools,
-        metadata: {},
-      });
-      console.log('    ✓ Quinn persona created');
-    } else {
-      console.log('    ⏭️  Quinn persona already exists, skipping');
+      await repository.upsert(record);
+      console.log(`    ✓ Upserted ${record.name}`);
     }
 
     console.log('✅ Persona migration complete');
@@ -368,4 +177,4 @@ You are Riley, Head Writer. Retrieve Iggy's approved modifiers by traceId, write
   }
 }
 
-migratePersonas();
+void migratePersonas();

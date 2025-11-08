@@ -8,6 +8,12 @@ import { cleanForAI } from '../../src/utils/validation.js';
 import { Client } from 'pg';
 import { config } from '../../src/config/index.js';
 
+interface V1WorkflowStep {
+  id?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 interface V1Workflow {
   title: string;
   memoryType: string;
@@ -16,9 +22,9 @@ interface V1Workflow {
   workflow: {
     name: string;
     description: string;
-    steps: any[];
-    output_format?: any;
-    guardrails?: any[];
+    steps: V1WorkflowStep[];
+    output_format?: Record<string, unknown>;
+    guardrails?: Array<Record<string, unknown>>;
   };
   version?: string;
 }

@@ -4,7 +4,9 @@ import { db } from '@/db/client.js';
 import { executionTraces, agentWebhooks, memories } from '@/db/schema.js';
 import { TraceRepository } from '@/db/repositories/trace-repository.js';
 import { AgentWebhookRepository } from '@/db/repositories/agent-webhook-repository.js';
+import { ProjectRepository } from '@/db/repositories/project-repository.js';
 import { N8nClient } from '@/integrations/n8n/client.js';
+import { randomUUID } from 'crypto';
 
 // Mock N8nClient
 const invokeWebhookMock = vi.fn().mockResolvedValue({
@@ -31,6 +33,11 @@ const getTool = (name: string) => {
   return tool;
 };
 
+const projectRepo = new ProjectRepository();
+let testProjectId: string;
+let aismrProjectId: string;
+let genreactProjectId: string;
+
 describe('Trace Coordination Tools', () => {
   const traceRepo = new TraceRepository();
   const webhookRepo = new AgentWebhookRepository();
@@ -40,13 +47,39 @@ describe('Trace Coordination Tools', () => {
     await db.delete(agentWebhooks);
     await db.delete(executionTraces);
     vi.clearAllMocks();
+
+    // Ensure required projects exist and capture their UUIDs
+    const ensureProject = async (
+      name: string,
+      description: string,
+      workflow: string[]
+    ): Promise<string> => {
+      const existing = await projectRepo.findByName(name);
+      if (existing) {
+        return existing.id;
+      }
+      const inserted = await projectRepo.insert({
+        name,
+        description,
+        workflow,
+        optionalSteps: [],
+        guardrails: {},
+        settings: {},
+        metadata: {},
+      });
+      return inserted.id;
+    };
+
+    testProjectId = await ensureProject('test-project', 'Test project', ['casey', 'iggy']);
+    aismrProjectId = await ensureProject('aismr', 'AISMR project', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
+    genreactProjectId = await ensureProject('genreact', 'GenReact project', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
   });
 
   describe('trace_create', () => {
     it('should create a trace with valid projectId', async () => {
       const tool = getTool('trace_create');
       const result = await tool.handler(
-        { projectId: 'test-project' },
+        { projectId: testProjectId },
         'req-trace-create-1'
       );
 
@@ -60,7 +93,7 @@ describe('Trace Coordination Tools', () => {
       const tool = getTool('trace_create');
       const result = await tool.handler(
         {
-          projectId: 'test-project',
+          projectId: testProjectId,
           sessionId: 'test-session',
           metadata: { key: 'value' },
         },
@@ -68,7 +101,7 @@ describe('Trace Coordination Tools', () => {
       );
 
       expect(result.structuredContent?.traceId).toBeDefined();
-      
+
       // Verify trace was persisted
       const trace = await traceRepo.findByTraceId(result.structuredContent?.traceId as string);
       expect(trace).toBeDefined();
@@ -91,7 +124,7 @@ describe('Trace Coordination Tools', () => {
 
       try {
         await expect(
-          tool.handler({ projectId: 'test-project' }, 'req-trace-create-db-error')
+          tool.handler({ projectId: testProjectId }, 'req-trace-create-db-error')
         ).rejects.toThrow('database offline');
       } finally {
         createSpy.mockRestore();
@@ -124,12 +157,12 @@ describe('Trace Coordination Tools', () => {
 
     it('hydrates an existing trace with persona context and project prompt', async () => {
       const trace = await traceRepo.create({
-        projectId: 'aismr',
+        projectId: aismrProjectId,
         instructions: 'Use Iggy to generate 12 modifiers.',
       });
       await traceRepo.updateWorkflow(
         trace.traceId,
-        'ideagenerator',
+        'iggy',
         'Generate 12 AISMR modifiers and store them.',
         1
       );
@@ -142,7 +175,7 @@ describe('Trace Coordination Tools', () => {
 
       const payload = result.structuredContent as Record<string, any>;
       expect(payload.trace?.traceId).toBe(trace.traceId);
-      expect(payload.trace?.currentOwner).toBe('ideagenerator');
+      expect(payload.trace?.currentOwner).toBe('iggy');
       expect(payload.systemPrompt).toMatch(/PROJECT/);
       expect(payload.allowedTools).not.toContain('set_project');
       expect(payload.allowedTools).toContain('handoff_to_agent');
@@ -163,7 +196,7 @@ describe('Trace Coordination Tools', () => {
 
   describe('trace_update', () => {
     it('updates instructions and metadata', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('trace_update');
 
       const result = await tool.handler(
@@ -180,7 +213,7 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('updates the projectId field (resolves slug to UUID)', async () => {
-      const trace = await traceRepo.create({ projectId: 'aismr' });
+      const trace = await traceRepo.create({ projectId: aismrProjectId });
       const originalProjectId = trace.projectId;
       const tool = getTool('trace_update');
       const result = await tool.handler(
@@ -192,19 +225,16 @@ describe('Trace Coordination Tools', () => {
       );
 
       // Should resolve slug to UUID
-      expect(result.structuredContent?.projectId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      expect(result.structuredContent?.projectId).toBe(genreactProjectId);
       // Should be different from original (different project)
       expect(result.structuredContent?.projectId).not.toBe(originalProjectId);
     });
 
     it('accepts UUID directly for projectId', async () => {
-      const trace = await traceRepo.create({ projectId: 'aismr' });
-      const originalProjectId = trace.projectId;
-      // Use a valid UUID format (will fail FK constraint if project doesn't exist, but tests UUID path)
-      const uuidProjectId = '550e8400-e29b-41d4-a716-446655440000';
+      const trace = await traceRepo.create({ projectId: aismrProjectId });
+      const uuidProjectId = randomUUID();
       const tool = getTool('trace_update');
-      
-      // This will fail FK constraint, but tests that UUID path is taken
+
       await expect(
         tool.handler(
           {
@@ -213,11 +243,11 @@ describe('Trace Coordination Tools', () => {
           },
           'req-trace-update-uuid'
         )
-      ).rejects.toThrow(); // Will throw on FK constraint or project not found
+      ).rejects.toThrow();
     });
 
     it('throws when no fields are provided', async () => {
-      const trace = await traceRepo.create({ projectId: 'aismr' });
+      const trace = await traceRepo.create({ projectId: aismrProjectId });
       const tool = getTool('trace_update');
       await expect(
         tool.handler(
@@ -246,8 +276,8 @@ describe('Trace Coordination Tools', () => {
   describe('handoff_to_agent', () => {
     beforeEach(async () => {
       // Create a test trace
-      await traceRepo.create({ projectId: 'test-project' });
-      
+      await traceRepo.create({ projectId: testProjectId });
+
       // Create test webhook
       await webhookRepo.create({
         agentName: 'test-agent',
@@ -257,9 +287,9 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should successfully handoff with valid traceId and agent', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
-      
+
       const result = await tool.handler(
         {
           traceId: trace.traceId,
@@ -279,7 +309,7 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should update trace ownership and workflow step before invoking webhook', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
 
       await tool.handler(
@@ -300,7 +330,7 @@ describe('Trace Coordination Tools', () => {
 
     it('should throw error for invalid traceId', async () => {
       const tool = getTool('handoff_to_agent');
-      
+
       await expect(
         tool.handler(
           {
@@ -314,11 +344,11 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should throw error for inactive traceId', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       await traceRepo.updateStatus(trace.traceId, 'completed');
-      
+
       const tool = getTool('handoff_to_agent');
-      
+
       await expect(
         tool.handler(
           {
@@ -332,9 +362,9 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should throw error for unknown agent name', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
-      
+
       await expect(
         tool.handler(
           {
@@ -348,15 +378,15 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should throw error for inactive agent', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       await webhookRepo.create({
         agentName: 'inactive-agent',
         webhookPath: '/webhook/inactive',
         isActive: false,
       });
-      
+
       const tool = getTool('handoff_to_agent');
-      
+
       await expect(
         tool.handler(
           {
@@ -370,9 +400,9 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should store handoff event to memory', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
-      
+
       await tool.handler(
         {
           traceId: trace.traceId,
@@ -390,7 +420,7 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should mark trace completed when toAgent is "complete"', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
 
       const result = await tool.handler(
@@ -414,7 +444,7 @@ describe('Trace Coordination Tools', () => {
     });
 
     it('should mark trace failed when toAgent is "error"', async () => {
-      const trace = await traceRepo.create({ projectId: 'test-project' });
+      const trace = await traceRepo.create({ projectId: testProjectId });
       const tool = getTool('handoff_to_agent');
 
       const result = await tool.handler(
