@@ -9,7 +9,7 @@ import rateLimit from '@fastify/rate-limit';
 import { config } from './config/index.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import { isInitializeRequest, DEFAULT_NEGOTIATED_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
 import { registerMCPTools, registerMCPResources, registerMCPPrompts } from './mcp/handlers.js';
 import { mcpTools } from './mcp/tools.js';
 import { logger } from './utils/logger.js';
@@ -98,6 +98,84 @@ function cleanupSessions() {
 // Run cleanup every 5 minutes
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 let cleanupInterval: NodeJS.Timeout | null = null;
+
+// Be liberal in detecting initialize requests to comply with evolving spec
+function looksLikeInitializeRequest(payload: unknown): boolean {
+  try {
+    if (!payload || typeof payload !== 'object') return false;
+    // Single JSON-RPC object
+    const obj = payload as Record<string, unknown>;
+    if (typeof obj.method === 'string' && obj.method.toLowerCase() === 'initialize') {
+      return true;
+    }
+    // Batch request
+    if (Array.isArray(payload)) {
+      return payload.some((item) => {
+        return (
+          item &&
+          typeof item === 'object' &&
+          typeof (item as Record<string, unknown>).method === 'string' &&
+          String((item as Record<string, unknown>).method).toLowerCase() === 'initialize'
+        );
+      });
+    }
+    // Fallback to SDK type guard if available
+    return isInitializeRequest(obj as any);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeInitializeMessages(payload: unknown): unknown {
+  const normalize = (message: Record<string, any>) => {
+    if (!message || typeof message !== 'object') {
+      return;
+    }
+    if (typeof message.method !== 'string') {
+      return;
+    }
+    if (message.method.toLowerCase() !== 'initialize') {
+      return;
+    }
+    if (!message.params || typeof message.params !== 'object') {
+      message.params = {};
+    }
+    const params = message.params as Record<string, any>;
+    if (!params.clientInfo || typeof params.clientInfo !== 'object') {
+      params.clientInfo = {
+        name: 'unknown-client',
+        version: '0.0.0',
+      };
+    } else {
+      if (typeof params.clientInfo.name !== 'string' || params.clientInfo.name.trim() === '') {
+        params.clientInfo.name = 'unknown-client';
+      }
+      if (typeof params.clientInfo.version !== 'string' || params.clientInfo.version.trim() === '') {
+        params.clientInfo.version = '0.0.0';
+      }
+    }
+    if (!params.capabilities || typeof params.capabilities !== 'object') {
+      params.capabilities = {};
+    }
+    if (typeof params.protocolVersion !== 'string' || params.protocolVersion.trim() === '') {
+      params.protocolVersion = DEFAULT_NEGOTIATED_PROTOCOL_VERSION;
+    }
+  };
+
+  if (Array.isArray(payload)) {
+    payload.forEach((item) => {
+      if (item && typeof item === 'object') {
+        normalize(item as Record<string, any>);
+      }
+    });
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object') {
+    normalize(payload as Record<string, any>);
+  }
+  return payload;
+}
 
 // Initialize MCP server with all handlers (async)
 async function initializeMCPServer() {
@@ -263,14 +341,8 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
     return;
   }
 
-  if (request.method === 'GET') {
-    reply.code(200).send({
-      status: 'ready',
-      message: 'MCP endpoint available. Use POST for JSON-RPC requests.',
-      timestamp: new Date().toISOString(),
-    });
-    return;
-  }
+  // For GET, support SSE per MCP spec by delegating to transport.handleRequest
+  // We do not short-circuit here; GET will be handled below via transport.
 
   try {
     logger.info({
@@ -296,7 +368,11 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
         requestId,
         sessionId,
       });
-    } else if (!sessionId && body && isInitializeRequest(body)) {
+    } else if (!sessionId && body && looksLikeInitializeRequest(body)) {
+      logger.debug({
+        msg: 'Initializing new MCP session',
+        requestId,
+      });
       // New initialization request - create new session
       const port = config.server.port;
       // Check if origins include wildcard - if so, disable origin validation
@@ -322,6 +398,12 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
           // Store the transport by session ID
           transports.set(newSessionId, transport);
           transportLastAccess.set(newSessionId, Date.now());
+          // Expose session header per MCP spec so client can resume
+          try {
+            reply.header('Mcp-Session-Id', newSessionId);
+          } catch {
+            // ignore header failures
+          }
           logger.info({
             msg: 'MCP session initialized',
             requestId,
@@ -347,6 +429,13 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
       await mcpServer.connect(transport);
     } else {
       // Invalid request - no session ID and not an initialize request
+      logger.warn({
+        msg: 'MCP request rejected: missing session and not initialize',
+        requestId,
+        sessionIdProvided: sessionId,
+        hasBody: Boolean(body),
+        bodyType: typeof body,
+      });
       reply.code(400).send({
         jsonrpc: '2.0',
         error: {
@@ -378,7 +467,9 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
 
     // Hijack the reply to prevent Fastify from auto-sending
     reply.hijack();
-    await transport.handleRequest(request.raw, reply.raw, body);
+    // Delegate to transport; it will parse the JSON-RPC body
+    const normalizedPayload = normalizeInitializeMessages(body);
+    await transport.handleRequest(request.raw, reply.raw, normalizedPayload);
 
     const duration = Date.now() - startTime;
     logger.info({

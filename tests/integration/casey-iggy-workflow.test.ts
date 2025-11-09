@@ -55,18 +55,14 @@ describe('Casey → Iggy workflow contract', () => {
       },
     });
 
-    const traceCreate = getTool('trace_create');
-    const traceResult = await traceCreate.handler(
-      {
-        projectId: 'aismr',
-        sessionId: 'telegram:42',
-        metadata: { source: 'casey-test' },
-      },
-      'req-casey-trace'
-    );
+    const traceRepo = new TraceRepository();
+    const traceResult = await traceRepo.create({
+      projectId: 'aismr',
+      sessionId: 'telegram:42',
+      metadata: { source: 'casey-test' },
+    });
 
-    const traceId = (traceResult.structuredContent as { traceId: string })
-      .traceId;
+    const traceId = traceResult.traceId;
     expect(traceId).toBeTruthy();
 
     const handoff = getTool('handoff_to_agent');

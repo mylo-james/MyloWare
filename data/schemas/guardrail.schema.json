@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/guardrail.json",
+  "title": "Guardrail",
+  "description": "Quality constraint or validation rule",
+  "type": "object",
+  "required": ["key", "category", "name", "rule", "metadata"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z_]+\\.[a-z_]+\\.[a-z_]+\\.v\\d+$",
+      "description": "Unique key (e.g., aismr.timing.runtime.v1)"
+    },
+    "category": {
+      "type": "string",
+      "description": "Guardrail category (e.g., timing, visual, audio)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Guardrail name within category"
+    },
+    "rule": {
+      "type": "string",
+      "description": "Human-readable rule statement"
+    },
+    "validation": {
+      "type": "string",
+      "description": "How to validate this rule"
+    },
+    "tolerance": {
+      "type": "string",
+      "description": "Acceptable deviation"
+    },
+    "enforcement": {
+      "type": "string",
+      "description": "Enforcement level (strict, warning, etc.)"
+    },
+    "guidelines": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional guidance"
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Example applications"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["version", "tags"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "required": ["project"],
+      "properties": {
+        "project": {
+          "type": "string",
+          "description": "Project slug reference"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

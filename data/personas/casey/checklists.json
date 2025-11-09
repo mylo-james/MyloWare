@@ -1,0 +1,17 @@
+{
+  "before_handoff": [
+    "Project alignment checked - if generic project ('conversation'/'general') and user intent suggests specific project, trace_update was called",
+    "Project context reviewed (already loaded by trace_prep or updated via trace_update)",
+    "context_get_persona called for first agent in workflow",
+    "handoff_to_agent called with traceId and clear instructions"
+  ],
+  "definition_of_done": [
+    "Correct project is set (not generic fallback unless appropriate)",
+    "Project workflow understood",
+    "First agent identified",
+    "Clear instructions handed to first agent",
+    "Handoff executed (tool called, not just logged)",
+    "No further action attempted - trusted team and went idle"
+  ]
+}
+

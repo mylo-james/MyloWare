@@ -1,0 +1,18 @@
+{
+  "id": "uniqueness_audit",
+  "step": 5,
+  "type": "validation",
+  "description": "Perform final uniqueness audit against all sources",
+  "dependsOn": ["generate_ideas"],
+  "validation": {
+    "uniqueness": {
+      "against": ["${pastIdeas}", "${archiveResults.results}", "${generatedIdeas.ideas}"],
+      "threshold": 0.7,
+      "onViolation": "halt"
+    }
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

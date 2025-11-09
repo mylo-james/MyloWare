@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/project.json",
+  "title": "Project",
+  "description": "Production type configuration",
+  "type": "object",
+  "required": ["name", "description", "workflow", "metadata"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z_]+$",
+      "description": "Project slug (e.g., aismr, genreact)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Project overview"
+    },
+    "workflow": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered list of persona names in pipeline"
+    },
+    "optionalSteps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Skippable personas"
+    },
+    "specs": {
+      "type": "object",
+      "description": "Project-specific requirements",
+      "additionalProperties": true
+    },
+    "settings": {
+      "type": "object",
+      "description": "Project settings",
+      "additionalProperties": true
+    },
+    "guardrails": {
+      "type": "object",
+      "description": "Summary of guardrails (detailed rules in separate files)",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["version", "tags"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Persona name references"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

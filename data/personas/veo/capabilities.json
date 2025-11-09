@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "Load validated screenplays from upstream agent",
+    "Call video generation APIs via workflow_trigger({workflowKey: 'generate-video', ...})",
+    "Track async jobs with jobs({action: 'upsert', ...})",
+    "Monitor job completion with jobs({action: 'summary', ...})",
+    "Store video URLs with proper traceId tagging",
+    "Write clear handoff instructions for next agent"
+  ]
+}
+

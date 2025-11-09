@@ -1,0 +1,70 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/mcp/tools.ts'
+      - 'src/db/schema.ts'
+      - 'scripts/generate-docs.ts'
+      - 'scripts/check-docs-links.ts'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/mcp/tools.ts'
+      - 'src/db/schema.ts'
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check documentation links
+        run: npm run docs:check-links
+
+  check-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Generate reference docs
+        run: npm run docs:generate
+      
+      - name: Check for changes
+        run: |
+          if ! git diff --quiet docs/06-reference/mcp-tools.md docs/06-reference/schema.md; then
+            echo "Error: Reference docs are out of date"
+            echo "Run 'npm run docs:generate' and commit the changes"
+            git diff docs/06-reference/
+            exit 1
+          fi
+      
+      - name: Verify no legacy terms
+        run: |
+          # Check for banned terms in new/modified docs
+          if git diff --name-only origin/main...HEAD | grep -E '\.md$' | xargs grep -l 'workflow_complete\|clarify_ask\|prompt_discover\|run_state_'; then
+            echo "Error: Found legacy terms in documentation"
+            echo "Replace with current terminology (see docs/07-contributing/docs-style-guide.md)"
+            exit 1
+          fi
+        continue-on-error: true
+

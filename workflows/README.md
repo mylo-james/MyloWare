@@ -67,6 +67,6 @@ The `archive/` directory contains legacy persona-specific workflows that have be
 
 ## Next Steps
 
-- Add Casey's post-handoff blocking/waiting loop so Telegram users get the completion ping when Quinn calls `workflow_complete`.
+- Add Casey's post-handoff blocking/waiting loop so Telegram users get the completion ping when Quinn calls `handoff_to_agent({ toAgent: "complete" })`.
 - Bolt on the HITL Send-and-Wait nodes for Iggy and Alex once their personas are migrated into the universal workflow.
 - Revive the deterministic sub-workflows (`generate-video`, `edit-aismr`) and expose them via MCP `toolWorkflow` calls for Veo/Alex fan-out steps.

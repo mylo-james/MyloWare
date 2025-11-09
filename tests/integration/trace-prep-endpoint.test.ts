@@ -43,7 +43,7 @@ describe('trace_prep Endpoint Integration', () => {
         tone: 'professional',
         systemPrompt: 'You are Casey, the Showrunner. Determine the project and hand off.',
         metadata: {
-          allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+          allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
         },
       });
 
@@ -56,7 +56,7 @@ describe('trace_prep Endpoint Integration', () => {
         settings: {},
       });
 
-      // Step 2: Update trace with project (simulating Casey's set_project call)
+      // Step 2: Update trace with project (simulating Casey's trace_update call)
       const updatedTrace = await traceRepo.updateTrace(trace1.traceId, {
         projectId: 'aismr',
         currentOwner: 'iggy',
@@ -119,7 +119,7 @@ describe('trace_prep Endpoint Integration', () => {
         tone: 'professional',
         systemPrompt: 'You are Casey, the Showrunner.',
         metadata: {
-          allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+          allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
         },
       });
 

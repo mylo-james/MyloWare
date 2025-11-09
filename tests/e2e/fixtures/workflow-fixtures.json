@@ -1,0 +1,11 @@
+{
+  "aismr-modifiers": {
+    "description": "Casey kickoff for AISMR candle modifiers",
+    "instructions": "Casey, kick off an AISMR candle project. Set the project to AISMR, brief Iggy to generate 12 surreal candle modifiers featuring ultraviolet rain, validate uniqueness, and hand off to Riley when ready."
+  },
+  "test-video-run": {
+    "description": "Full pipeline test for test_video_gen project",
+    "instructions": "Start test_video_gen. Hand off to Iggy to generate the two required ideas per project specs."
+  }
+}
+

@@ -76,11 +76,14 @@ export function registerMCPTools(server: McpServer): void {
       toolSpec.outputSchema = outputShape;
     }
 
-    if (inputJsonSchema || outputJsonSchema) {
-      const existingAnnotations: ExtendedToolAnnotations =
-        toolSpec.annotations || {};
+    // Always attach annotations.ui.inputType to avoid client errors that assume it exists
+    // Attach JSON schema annotations when available
+    {
+      const existingAnnotations: ExtendedToolAnnotations = (toolSpec.annotations ||
+        {}) as ExtendedToolAnnotations;
       const existingUi = existingAnnotations.ui || {};
 
+      if (inputJsonSchema || outputJsonSchema) {
       logger.debug({
         msg: 'Attaching JSON schema annotations',
         tool: tool.name,
@@ -99,6 +102,16 @@ export function registerMCPTools(server: McpServer): void {
           output: outputJsonSchema,
         },
       };
+      } else {
+        // Ensure annotations and ui.inputType exist even without schemas
+        toolSpec.annotations = {
+          ...existingAnnotations,
+          ui: {
+            ...existingUi,
+            inputType: existingUi.inputType || 'json',
+          },
+        };
+      }
     }
 
     logger.debug({

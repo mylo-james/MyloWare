@@ -1,0 +1,23 @@
+{
+  "name": "general",
+  "title": "General Conversations",
+  "description": "Default fallback project for ad-hoc conversations",
+  "workflow": ["casey"],
+  "optionalSteps": [],
+  "specs": {
+    "maxResponseSeconds": 30
+  },
+  "settings": {},
+  "guardrails": {
+    "summary": "Simple conversation guardrails",
+    "categories": ["response"]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["project", "conversation", "fallback"]
+  },
+  "links": {
+    "personas": ["casey"]
+  }
+}
+

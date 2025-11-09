@@ -75,60 +75,47 @@ describe('Trace Coordination Tools', () => {
     genreactProjectId = await ensureProject('genreact', 'GenReact project', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
   });
 
-  describe('trace_create', () => {
+  describe('trace_create (internal - via TraceRepository)', () => {
     it('should create a trace with valid projectId', async () => {
-      const tool = getTool('trace_create');
-      const result = await tool.handler(
-        { projectId: testProjectId },
-        'req-trace-create-1'
-      );
+      const trace = await traceRepo.create({ projectId: testProjectId });
 
-      expect(result.structuredContent).toBeDefined();
-      expect(result.structuredContent?.traceId).toBeDefined();
-      expect(result.structuredContent?.status).toBe('active');
-      expect(result.structuredContent?.createdAt).toBeDefined();
+      expect(trace).toBeDefined();
+      expect(trace.traceId).toBeDefined();
+      expect(trace.status).toBe('active');
+      expect(trace.createdAt).toBeDefined();
     });
 
     it('should create a trace with sessionId and metadata', async () => {
-      const tool = getTool('trace_create');
-      const result = await tool.handler(
-        {
-          projectId: testProjectId,
-          sessionId: 'test-session',
-          metadata: { key: 'value' },
-        },
-        'req-trace-create-2'
-      );
+      const trace = await traceRepo.create({
+        projectId: testProjectId,
+        sessionId: 'test-session',
+        metadata: { key: 'value' },
+      });
 
-      expect(result.structuredContent?.traceId).toBeDefined();
+      expect(trace.traceId).toBeDefined();
 
       // Verify trace was persisted
-      const trace = await traceRepo.findByTraceId(result.structuredContent?.traceId as string);
-      expect(trace).toBeDefined();
-      expect(trace?.sessionId).toBe('test-session');
-      expect(trace?.metadata).toEqual({ key: 'value' });
+      const found = await traceRepo.findByTraceId(trace.traceId);
+      expect(found).toBeDefined();
+      expect(found?.sessionId).toBe('test-session');
+      expect(found?.metadata).toEqual({ key: 'value' });
     });
 
     it('should reject missing projectId', async () => {
-      const tool = getTool('trace_create');
       await expect(
-        tool.handler({}, 'req-trace-create-invalid')
+        traceRepo.create({} as any)
       ).rejects.toThrow();
     });
 
     it('should surface database errors to the caller', async () => {
-      const tool = getTool('trace_create');
       const createSpy = vi
         .spyOn(TraceRepository.prototype, 'create')
         .mockRejectedValue(new Error('database offline'));
 
-      try {
-        await expect(
-          tool.handler({ projectId: testProjectId }, 'req-trace-create-db-error')
-        ).rejects.toThrow('database offline');
-      } finally {
-        createSpy.mockRestore();
-      }
+      await expect(
+        traceRepo.create({ projectId: testProjectId })
+      ).rejects.toThrow('database offline');
+      createSpy.mockRestore();
     });
   });
 
@@ -150,7 +137,7 @@ describe('Trace Coordination Tools', () => {
       expect(payload.trace?.currentOwner).toBe('casey');
       expect(payload.justCreated).toBe(true);
       expect(payload.systemPrompt).toMatch(/You are Casey/);
-      expect(payload.allowedTools).toContain('set_project');
+      expect(payload.allowedTools).toContain('trace_update');
       expect(payload.allowedTools).toContain('handoff_to_agent');
       expect(payload.instructions).toMatch(/AISMR candle pack/);
     });
@@ -177,7 +164,7 @@ describe('Trace Coordination Tools', () => {
       expect(payload.trace?.traceId).toBe(trace.traceId);
       expect(payload.trace?.currentOwner).toBe('iggy');
       expect(payload.systemPrompt).toMatch(/PROJECT/);
-      expect(payload.allowedTools).not.toContain('set_project');
+      expect(payload.allowedTools).not.toContain('trace_update');
       expect(payload.allowedTools).toContain('handoff_to_agent');
       expect(payload.instructions).toMatch(/Generate 12 AISMR modifiers/);
       expect(payload.justCreated).toBe(false);

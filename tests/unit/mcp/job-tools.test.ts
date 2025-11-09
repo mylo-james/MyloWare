@@ -15,8 +15,8 @@ describe('Job Ledger Tools', () => {
     await db.delete(editJobs);
   });
 
-  it('upserts video jobs via job_upsert', async () => {
-    const tool = getTool('job_upsert');
+  it('upserts video jobs via jobs tool', async () => {
+    const tool = getTool('jobs');
     const response = await tool.handler(
       {
         kind: 'video',
@@ -38,10 +38,11 @@ describe('Job Ledger Tools', () => {
     });
   });
 
-  it('upserts edit jobs via job_upsert', async () => {
-    const tool = getTool('job_upsert');
+  it('upserts edit jobs via jobs', async () => {
+    const tool = getTool('jobs');
     const response = await tool.handler(
       {
+        action: 'upsert',
         kind: 'edit',
         traceId: 'cccccccc-0000-0000-0000-cccccccccccc',
         provider: 'descript',
@@ -60,9 +61,10 @@ describe('Job Ledger Tools', () => {
   });
 
   it('summarizes jobs across video and edit tables', async () => {
-    const upsert = getTool('job_upsert');
+    const upsert = getTool('jobs');
     await upsert.handler(
       {
+        action: 'upsert',
         kind: 'video',
         traceId: 'dddddddd-0000-0000-0000-dddddddddddd',
         provider: 'runway',
@@ -73,6 +75,7 @@ describe('Job Ledger Tools', () => {
     );
     await upsert.handler(
       {
+        action: 'upsert',
         kind: 'video',
         traceId: 'dddddddd-0000-0000-0000-dddddddddddd',
         provider: 'runway',
@@ -83,6 +86,7 @@ describe('Job Ledger Tools', () => {
     );
     await upsert.handler(
       {
+        action: 'upsert',
         kind: 'edit',
         traceId: 'dddddddd-0000-0000-0000-dddddddddddd',
         provider: 'descript',
@@ -92,9 +96,9 @@ describe('Job Ledger Tools', () => {
       'req-job-edit-summary-1'
     );
 
-    const summaryTool = getTool('jobs_summary');
+    const summaryTool = getTool('jobs');
     const result = await summaryTool.handler(
-      { traceId: 'dddddddd-0000-0000-0000-dddddddddddd' },
+      { action: 'summary', traceId: 'dddddddd-0000-0000-0000-dddddddddddd' },
       'req-job-summary'
     );
 

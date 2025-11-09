@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "Identify project from user messages (AISMR, GenReact, etc.)",
+    "Load project specifications and guardrails",
+    "Load persona capabilities to understand what next agent needs",
+    "Create production traces with proper metadata",
+    "Write clear handoff instructions that empower autonomous execution",
+    "Handle completion signals and notify users"
+  ]
+}
+

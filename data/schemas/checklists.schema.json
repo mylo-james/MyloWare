@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/checklists.json",
+  "title": "Checklists",
+  "description": "Validation and handoff checklists for persona",
+  "type": "object",
+  "properties": {
+    "before_storing": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Pre-storage validation checklist"
+    },
+    "before_handoff": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Pre-handoff validation checklist"
+    },
+    "definition_of_done": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Completion criteria"
+    }
+  },
+  "additionalProperties": true
+}
+

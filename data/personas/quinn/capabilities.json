@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "Load final edit URL from upstream agent",
+    "Publish to social platforms via workflow_trigger({workflowKey: 'upload-to-tiktok', ...}) or workflow_trigger({workflowKey: 'upload-to-drive', ...})",
+    "Generate platform-appropriate captions and hashtags",
+    "Store publish URLs with proper traceId tagging",
+    "Signal workflow completion",
+    "Notify user of results"
+  ]
+}
+

@@ -1,0 +1,16 @@
+{
+  "key": "aismr.style.modifiers.v1",
+  "category": "style",
+  "name": "modifiers",
+  "rule": "Surreal, impossible physics",
+  "examples": ["Void (absorbs light)", "Liquid (flows upward)", "Crystal (transparent glow)"],
+  "guidelines": ["Impossible but believable", "Tactile focus", "Mesmerizing"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "style", "creative"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

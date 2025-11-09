@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/persona.json",
+  "title": "Persona",
+  "description": "AI agent persona configuration",
+  "type": "object",
+  "required": ["name", "title", "tone", "allowedTools", "metadata"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z]+$",
+      "description": "Lowercase persona identifier (e.g., iggy, riley)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title (e.g., Creative Director)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of persona role"
+    },
+    "tone": {
+      "type": "string",
+      "description": "Communication style (e.g., crisp, energetic)"
+    },
+    "allowedTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "MCP tools this persona can use"
+    },
+    "defaultProject": {
+      "type": "string",
+      "description": "Default project slug"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["version", "tags"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Classification tags"
+        }
+      },
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "defaultProject": {
+          "type": "string",
+          "description": "Project slug reference"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

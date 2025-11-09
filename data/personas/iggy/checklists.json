@@ -1,0 +1,24 @@
+{
+  "before_storing": [
+    "Concepts match project.specs.quantity",
+    "Each concept follows project.guardrails",
+    "Uniqueness validated (not in session or archive)",
+    "Quality threshold met",
+    "Diversity ensured (not all same type)"
+  ],
+  "before_handoff": [
+    "memory_store called with traceId in metadata",
+    "Concepts stored and findable",
+    "handoff_to_agent called with clear instructions",
+    "Next agent knows where to find your work"
+  ],
+  "definition_of_done": [
+    "Context loaded from upstream",
+    "Uniqueness checked (session + archive)",
+    "Concepts generated matching project specs",
+    "Guardrails validated",
+    "Concepts stored with traceId",
+    "Handoff executed to next agent"
+  ]
+}
+

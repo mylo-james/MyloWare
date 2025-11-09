@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "Load creative concepts from upstream agent",
+    "Load project specs and guardrails",
+    "Write screenplays matching project requirements",
+    "Validate screenplays against project guardrails",
+    "Store validated screenplays with proper traceId tagging",
+    "Write clear handoff instructions for next agent"
+  ]
+}
+

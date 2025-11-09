@@ -8,6 +8,19 @@
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "tools/edit-compilation",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-160, 400],
+      "id": "b15ec0ab-3f5a-4b76-9a44-2f3a2e8a921a",
+      "name": "Webhook: Edit Compilation"
+    },
+    {
+      "parameters": {
         "jsCode": "// n8n Script node: build Shotstack edit JSON honoring AISMR transition spec\nconst zodiacSigns = [\n  'Aries',\n  'Taurus',\n  'Gemini',\n  'Cancer',\n  'Leo',\n  'Virgo',\n  'Libra',\n  'Scorpio',\n  'Sagittarius',\n  'Capricorn',\n  'Aquarius',\n  'Pisces',\n];\n\nconst MAX_CLIPS = 12;\nconst CLIP_DURATION = 8; // Match actual video duration (Veo 3 Fast max)\nconst TRANSITION_DURATION = 1; // 1-second crossfade transitions\nconst STRIDE = 6.5; // Clips overlap by 1.5 seconds for crossfade\nconst MICRO_MOTION_SECONDS = 1;\nconst MICRO_MOTION_DELTA = 0.015;\nconst MICRO_MOTION_START = Math.max(CLIP_DURATION - MICRO_MOTION_SECONDS, 0);\nconst TEXT_VISIBLE_DURATION = 5; // Text visible window per clip\nconst TEXT_ENTRY_DELAY = 0.5; // Delay before text appears, shifts fade window later\n\nconst inputItems = $input.all();\n\n// With 12 clips at STRIDE=6.5, total duration = (12-1)*6.5 + 8 = 71.5 + 8 = 79.5 seconds\n\nconst toTimestamp = (value) => {\n  const ts = Date.parse(value ?? '');\n  return Number.isNaN(ts) ? 0 : ts;\n};\n\nconst videos = (() => {\n  const candidates = inputItems\n    .filter((item) => item?.json?.video_link)\n    .sort(\n      (a, b) =>\n        toTimestamp(a.json.created_at ?? a.json.createdAt) -\n        toTimestamp(b.json.created_at ?? b.json.createdAt)\n    )\n    .slice(0, MAX_CLIPS)\n    .map((item, idx) => ({\n      link: item.json.video_link,\n      label: item.json.idea?.trim() || `Idea ${idx + 1}`,\n    }));\n\n  console.log(`Found ${candidates.length} videos from input data`);\n\n  if (candidates.length === 0) {\n    throw new Error(\n      'No videos found in input data. Expected items with video_link property.'\n    );\n  }\n\n  console.log(`Using ${candidates.length} videos from input`);\n  return candidates;\n})();\n\nconst items = videos.map((video, idx) => ({\n  link: video.link,\n  label: video.label,\n  title: zodiacSigns[idx % zodiacSigns.length],\n  start: idx * STRIDE,\n}));\n\nconsole.log(\n  `Creating ${\n    items.length\n  } video clips with ${TRANSITION_DURATION}s crossfade (stride: ${STRIDE}s, total: ${\n    (items.length - 1) * STRIDE + CLIP_DURATION\n  }s)`\n);\n\nconst buildTextClip = (item, { text, fontSize, height, position }) => ({\n  asset: {\n    type: 'text',\n    text,\n    width: 1000,\n    height,\n    font: {\n      family: 'Futura', // Elegant, minimal, modern — perfect for ASMR aesthetic\n      color: '#ffffff',\n      size: fontSize,\n      weight: 500, // Medium weight for clean readability\n    },\n    alignment: {\n      horizontal: 'center',\n      vertical: 'top',\n    },\n  },\n  start: item.start + TEXT_ENTRY_DELAY,\n  length: TEXT_VISIBLE_DURATION,\n  position,\n  transition: { in: 'fade', out: 'fade' },\n});\n\nconst topTracks = items.map((item) => ({\n  clips: [\n    buildTextClip(item, {\n      text: item.title,\n      fontSize: 92,\n      height: 400,\n      position: 'bottom',\n    }),\n  ],\n}));\n\nconst bottomTracks = items.map((item) => ({\n  clips: [\n    buildTextClip(item, {\n      text: item.label,\n      fontSize: 64,\n      height: 250,\n      position: 'bottom',\n    }),\n  ],\n}));\n\nconst makeVideoClip = (item, index, totalClips) => {\n  const clip = {\n    asset: {\n      type: 'video',\n      src: item.link,\n    },\n    start: item.start,\n    length: CLIP_DURATION,\n    effect: 'zoomInSlow',\n  };\n\n  // Add micro-motion at the end of each clip\n  // CRITICAL: Tween start times are RELATIVE TO CLIP, not timeline!\n  if (CLIP_DURATION > MICRO_MOTION_SECONDS) {\n    clip.offset = {\n      x: [\n        {\n          from: 0,\n          to: MICRO_MOTION_DELTA,\n          start: MICRO_MOTION_START, // Clip-relative: starts at 7s into the clip\n          length: MICRO_MOTION_SECONDS,\n          interpolation: 'bezier',\n          easing: 'easeInOutSine',\n        },\n      ],\n    };\n  }\n\n  // Use custom opacity tweens for crossfade (no built-in transitions)\n  // Per AISMR spec: \"Transitions never pause content - clips continue moving through transitions\"\n  // CRITICAL: Tween start times are RELATIVE TO CLIP, not timeline (start from 0)\n  const opacityTweens = [];\n\n  if (index === 0) {\n    // First clip: fade in 0→1 (0-1s), hold at 1 (1-7s), fade out 1→0 (7-8s)\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - 2 * TRANSITION_DURATION, // Hold for 6 seconds\n        interpolation: 'linear',\n      },\n      {\n        from: 1,\n        to: 0,\n        start: CLIP_DURATION - TRANSITION_DURATION,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      }\n    );\n  } else if (index === totalClips - 1) {\n    // Last clip: fade in 0→1 (0-1s), hold at 1 (1-8s), no fade out\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - TRANSITION_DURATION, // Hold for 7 seconds\n        interpolation: 'linear',\n      }\n    );\n  } else {\n    // Middle clips: fade in 0→1 (0-1s), hold at 1 (1-7s), fade out 1→0 (7-8s)\n    opacityTweens.push(\n      {\n        from: 0,\n        to: 1,\n        start: 0,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      },\n      {\n        from: 1,\n        to: 1,\n        start: TRANSITION_DURATION,\n        length: CLIP_DURATION - 2 * TRANSITION_DURATION, // Hold for 6 seconds\n        interpolation: 'linear',\n      },\n      {\n        from: 1,\n        to: 0,\n        start: CLIP_DURATION - TRANSITION_DURATION,\n        length: TRANSITION_DURATION,\n        interpolation: 'bezier',\n        easing: 'easeInOutSine',\n      }\n    );\n  }\n\n  clip.opacity = opacityTweens;\n\n  return clip;\n};\n\n// Create video tracks with proper layering for crossfade transitions\n// Each clip on separate track so top clip fades out to reveal clip below\nconst videoTracks = items.map((item, idx) => ({\n  clips: [makeVideoClip(item, idx, items.length)],\n}));\n\nconst tracks = [\n  ...topTracks, // text overlays stay above video\n  ...bottomTracks,\n  ...videoTracks,\n];\n\nconst timeline = {\n  background: '#000000',\n  tracks,\n};\n\nconst edit = {\n  timeline,\n  output: {\n    format: 'mp4',\n    resolution: 'hd',\n    aspectRatio: '9:16',\n  },\n};\n\nreturn [{ json: edit }];\n"
       },
       "type": "n8n-nodes-base.code",
@@ -62,6 +75,21 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const trigger = $('When Executed by Another Workflow').item?.json ?? {};\nconst item = $input.item;\nconst payload = item.json || {};\nconst trace = trigger.trace || payload.trace || {};\nconst personaNameRaw = trigger.callerPersona ?? trigger.personaName ?? trigger.persona ?? payload.callerPersona ?? payload.personaName ?? payload.persona ?? trace.currentOwner ?? '';\nconst personaName = String(personaNameRaw).toLowerCase();\nconst owner = personaNameRaw || 'unknown';\nconst traceId = trigger.traceId ?? payload.traceId ?? trace.traceId ?? '';\nif (personaName !== 'alex') {\n  const traceNote = traceId ? ` (trace ${traceId})` : '';\n  throw new Error(`Edit_AISMR workflow is restricted to Alex. Current owner: ${owner}${traceNote}. Hand off to Alex instead of calling this tool.`);\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        400
+      ],
+      "id": "1a7b9b38-d0f3-4d21-8e21-5f9fd2895d2b",
+      "name": "Verify Caller Persona"
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.shotstack.io/edit/stage/render",
         "authentication": "genericCredentialType",
@@ -98,7 +126,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'running',\n    metadata: {\n      renderId: $json.response.id\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'jobs',\n  arguments: {\n    action: 'upsert',\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'running',\n    metadata: {\n      renderId: $json.response.id\n    }\n  }\n}) }}",
         "options": {
           "timeout": 10000,
           "continueOnFail": true
@@ -118,7 +146,7 @@
           "name": "Mylo MCP"
         }
       },
-      "notes": "Tracks edit job start via job_upsert. Continues on fail to avoid blocking workflow."
+      "notes": "Tracks edit job start via jobs({action: 'upsert'}). Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -311,7 +339,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'succeeded',\n    assetUrl: $json.response.url,\n    metadata: {\n      renderId: $json.response.id,\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'jobs',\n  arguments: {\n    action: 'upsert',\n    kind: 'edit',\n    traceId: $('When Executed by Another Workflow').item.json.traceId,\n    provider: 'shotstack',\n    taskId: $json.response.id,\n    status: 'succeeded',\n    url: $json.response.url,\n    metadata: {\n      renderId: $json.response.id,\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
         "options": {
           "timeout": 10000,
           "continueOnFail": true
@@ -331,7 +359,7 @@
           "name": "Mylo MCP"
         }
       },
-      "notes": "Tracks edit job completion via job_upsert. Continues on fail to avoid blocking workflow."
+      "notes": "Tracks edit job completion via jobs({action: 'upsert'}). Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -374,6 +402,17 @@
     }
   ],
   "connections": {
+    "Webhook: Edit Compilation": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Code in JavaScript": {
       "main": [
         [
@@ -386,6 +425,17 @@
       ]
     },
     "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Caller Persona": {
       "main": [
         [
           {

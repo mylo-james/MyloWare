@@ -8,6 +8,19 @@
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "tools/upload-to-tiktok",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [448, 0],
+      "id": "7f7e0c3d-ae4b-4a86-98b2-1d8c0da3c2e1",
+      "name": "Webhook: Upload to TikTok"
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.upload-post.com/api/upload",
         "authentication": "genericCredentialType",
@@ -150,6 +163,21 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const trigger = $('When Executed by Another Workflow').item?.json ?? {};\nconst item = $input.item;\nconst payload = item.json || {};\nconst trace = trigger.trace || payload.trace || {};\nconst personaNameRaw = trigger.callerPersona ?? trigger.personaName ?? trigger.persona ?? payload.callerPersona ?? payload.personaName ?? payload.persona ?? trace.currentOwner ?? '';\nconst personaName = String(personaNameRaw).toLowerCase();\nconst owner = personaNameRaw || 'unknown';\nconst traceId = trigger.traceId ?? payload.traceId ?? trace.traceId ?? '';\nif (personaName !== 'quinn') {\n  const traceNote = traceId ? ` (trace ${traceId})` : '';\n  throw new Error(`Upload to TikTok workflow is restricted to Quinn. Current owner: ${owner}${traceNote}. Hand off to Quinn instead of calling this tool.`);\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "b4c9bf21-904b-489e-94d5-7c63cba28e9e",
+      "name": "Verify Caller Persona"
+    },
+    {
+      "parameters": {
         "url": "={{ 'https://mcp-vector.mjames.dev/api/workflow-runs/' + ($json.runId || '') }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -201,7 +229,29 @@
     }
   ],
   "connections": {
+    "Webhook: Upload to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Caller Persona": {
       "main": [
         [
           {

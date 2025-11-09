@@ -50,21 +50,18 @@ That's the entire interaction.
 git clone https://github.com/yourusername/mcp-prompts
 cd mcp-prompts
 
-# Create .env file
-cp .env.example .env
-# Edit .env with your credentials (REQUIRED: OPENAI_API_KEY, MCP_AUTH_KEY, DB_PASSWORD)
+# Install dependencies
+npm install
 
-# Build and start all services (Postgres + MCP Server + n8n + Cloudflare)
-npm run build
-docker compose build
-docker compose up -d
+# Environment is already set to dev (default)
+# Just start the services!
+npm run env:dev start
 
 # Verify everything is running
-docker compose ps
-
-# Check health
 curl http://localhost:3456/health
 ```
+
+**Note:** We now use a **multi-environment setup** with separate configs for test, dev, and prod. See [Development Guide](docs/07-contributing/dev-guide.md) for details.
 
 **Access points:**
 - MCP Server: `http://localhost:3456`
@@ -136,7 +133,7 @@ V2 is radically simple: **three services, one agent**.
 4. **Tool-based execution** - MCP tools for all operations
 5. **State tracking** - SQL tracks execution history
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+See [System Overview](docs/02-architecture/system-overview.md) for details.
 
 ---
 
@@ -157,7 +154,7 @@ The server exposes **11 MCP tools** across four buckets:
 ### Trace Coordination Tools
 - `trace_create` – Create a new trace row and return a `traceId`
 - `handoff_to_agent` – Resolve the next agent’s webhook, invoke n8n, and log handoff metadata
-- `workflow_complete` – Mark a trace as completed/failed and capture outputs
+  - Special targets: `toAgent: "complete"` (marks trace completed, notifies user) and `toAgent: "error"` (marks trace failed)
 
 ### Session Tools
 - `session_get_context` – Hydrate or create a chat session, returning working memory
@@ -165,7 +162,7 @@ The server exposes **11 MCP tools** across four buckets:
 
 Interactive clarifications now run through Telegram HITL nodes inside n8n workflows, so the legacy `clarify_ask` tool has been removed.
 
-See [MCP_TOOLS.md](docs/MCP_TOOLS.md) for complete API reference.
+See [MCP Tools Reference](docs/06-reference/mcp-tools.md) for complete API reference.
 
 ---
 
@@ -192,7 +189,7 @@ This server is **fully standards-compliant** with the Model Context Protocol spe
 
 Currently using API key authentication via `X-API-Key` header. OAuth 2.1 with PKCE is planned for future versions but not required for internal/protected deployments.
 
-See [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md) for detailed integration instructions.
+See [MCP Integration](docs/04-integration/mcp-integration.md) for detailed integration instructions.
 
 ---
 
@@ -257,6 +254,8 @@ await searchMemories({
 
 Read [NORTH_STAR.md](NORTH_STAR.md) for the complete vision: a detailed walkthrough of the entire system from "user sends message" to "video live on TikTok" in 5 minutes.
 
+For organized documentation, see [docs/README.md](docs/README.md).
+
 **The happy path:**
 1. User: "Create AISMR video about rain"
 2. Agent loads context (persona, project, memory)
@@ -274,12 +273,14 @@ Read [NORTH_STAR.md](NORTH_STAR.md) for the complete vision: a detailed walkthro
 
 ## 📖 Documentation
 
+- **[docs/README.md](docs/README.md)** - Documentation index and navigation
 - **[NORTH_STAR.md](NORTH_STAR.md)** - The complete vision and walkthrough
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and principles
-- **[MCP_TOOLS.md](docs/MCP_TOOLS.md)** - Complete tool reference
-- **[WORKFLOW_DISCOVERY.md](docs/WORKFLOW_DISCOVERY.md)** - How workflows are discovered
-- **[ADVANCED_FEATURES.md](docs/ADVANCED_FEATURES.md)** - Graph expansion, metrics, performance
-- **[CODING_STANDARDS.md](CODING_STANDARDS.md)** - Development guidelines
+- **[System Overview](docs/02-architecture/system-overview.md)** - Architecture
+- **[MCP Tools](docs/06-reference/mcp-tools.md)** - Complete tool reference
+- **[Quick Start](docs/01-getting-started/quick-start.md)** - Get running in 5 minutes
+- **[Coding Standards](docs/07-contributing/coding-standards.md)** - Development guidelines
+
+See `docs/README.md` for the docs index and writing guidance. Use Context7 to retrieve official vendor documentation (OpenAI, n8n, MCP) rather than copying external content into this repo.
 
 ---
 
@@ -378,8 +379,10 @@ histogram_quantile(0.95, mcp_tool_call_duration_ms_bucket)
 1. Follow [red-green-refactor](https://github.com/yourusername/mcp-prompts/wiki/Workflow)
 2. Always write tests
 3. Keep coverage above 50% (interim floor; target is 80% once stability work completes)
-4. Follow [CODING_STANDARDS.md](CODING_STANDARDS.md)
+4. Follow [Coding Standards](docs/07-contributing/coding-standards.md)
 5. Never skip Husky hooks
+
+See [Development Guide](docs/07-contributing/dev-guide.md) for complete workflow.
 
 ---
 
@@ -399,7 +402,7 @@ Built on the shoulders of giants:
 
 ---
 
-**Ready to build?** Start with the [NORTH_STAR.md](NORTH_STAR.md) to understand the vision, then dive into [ARCHITECTURE.md](docs/ARCHITECTURE.md) to see how it all works.
+**Ready to build?** Start with [NORTH_STAR.md](NORTH_STAR.md) to understand the vision, then see [docs/README.md](docs/README.md) for organized documentation.
 
 **Questions?** Read the docs or check the code—it's designed to be readable.
 

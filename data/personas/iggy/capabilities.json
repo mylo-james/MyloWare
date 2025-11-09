@@ -1,0 +1,10 @@
+{
+  "capabilities": [
+    "Generate creative concepts matching project quantity requirements",
+    "Search memory for uniqueness validation (session + archive)",
+    "Validate concepts against project guardrails",
+    "Store validated concepts with proper traceId tagging",
+    "Write clear handoff instructions for next agent"
+  ]
+}
+

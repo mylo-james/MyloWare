@@ -53,21 +53,18 @@ describe('Full workflow E2E', () => {
       });
     }
 
-    // Step 1: Casey creates trace and sets project
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      {
-        projectId: 'unknown',
-        sessionId: 'telegram:test-user',
-      },
-      'req-e2e-1'
-    );
-    const traceId = createResult.structuredContent?.traceId as string;
+    // Step 1: Casey creates trace and sets project (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'unknown',
+      sessionId: 'telegram:test-user',
+    });
+    const traceId = createdTrace.traceId;
     expect(traceId).toBeDefined();
 
-    // Casey sets project
-    const setProjectTool = getTool('set_project');
-    await setProjectTool.handler(
+    // Casey sets project via trace_update
+    const traceUpdateTool = getTool('trace_update');
+    await traceUpdateTool.handler(
       { traceId, projectId: 'aismr' },
       'req-e2e-2'
     );
@@ -175,13 +172,13 @@ describe('Full workflow E2E', () => {
       isActive: true,
     });
 
-    // Create trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      { projectId: 'aismr', sessionId: 'telegram:test' },
-      'req-e2e-error-1'
-    );
-    const traceId = createResult.structuredContent?.traceId as string;
+    // Create trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'aismr',
+      sessionId: 'telegram:test',
+    });
+    const traceId = createdTrace.traceId;
 
     // Handoff to agent
     const handoffTool = getTool('handoff_to_agent');
@@ -222,19 +219,19 @@ describe('Full workflow E2E', () => {
       isActive: true,
     });
 
-    // Create two traces simultaneously
-    const traceCreateTool = getTool('trace_create');
-    const trace1Result = await traceCreateTool.handler(
-      { projectId: 'aismr', sessionId: 'telegram:user1' },
-      'req-e2e-concurrent-1'
-    );
-    const trace2Result = await traceCreateTool.handler(
-      { projectId: 'aismr', sessionId: 'telegram:user2' },
-      'req-e2e-concurrent-2'
-    );
+    // Create two traces simultaneously (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const trace1 = await traceRepo.create({
+      projectId: 'aismr',
+      sessionId: 'telegram:user1',
+    });
+    const trace2 = await traceRepo.create({
+      projectId: 'aismr',
+      sessionId: 'telegram:user2',
+    });
 
-    const traceId1 = trace1Result.structuredContent?.traceId as string;
-    const traceId2 = trace2Result.structuredContent?.traceId as string;
+    const traceId1 = trace1.traceId;
+    const traceId2 = trace2.traceId;
 
     // Handoff both traces simultaneously
     const handoffTool = getTool('handoff_to_agent');

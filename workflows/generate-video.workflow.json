@@ -8,6 +8,19 @@
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "tools/generate-video",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-800, 472],
+      "id": "2fa25f7e-1dd7-4b3a-a0a9-3cb39b8b5a11",
+      "name": "Webhook: Generate Video"
+    },
+    {
+      "parameters": {
         "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + ($('When Called').item.json.id || '') }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -90,6 +103,21 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const trigger = $('When Called').item?.json ?? {};\nconst item = $input.item;\nconst payload = item.json || {};\nconst trace = trigger.trace || payload.trace || {};\nconst personaNameRaw = trigger.callerPersona ?? trigger.personaName ?? trigger.persona ?? payload.callerPersona ?? payload.personaName ?? payload.persona ?? trace.currentOwner ?? '';\nconst personaName = String(personaNameRaw).toLowerCase();\nconst owner = personaNameRaw || 'unknown';\nconst traceId = trigger.traceId ?? payload.traceId ?? trace.traceId ?? '';\nif (personaName !== 'veo') {\n  const traceNote = traceId ? ` (trace ${traceId})` : '';\n  throw new Error(`Generate Video workflow is restricted to Veo. Current owner: ${owner}${traceNote}. Hand off to Veo instead of calling this tool.`);\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        472
+      ],
+      "id": "9ab924f5-1c89-4cf3-b4a4-2c4a4c5d3e4a",
+      "name": "Verify Caller Persona"
+    },
+    {
+      "parameters": {
         "method": "PUT",
         "url": "={{ 'https://mcp-vector.mjames.dev/api/videos/' + (($('When Called').item.json.id) || '') }}",
         "authentication": "genericCredentialType",
@@ -169,7 +197,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId || $('Get a row').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'running',\n    metadata: {\n      prompt: $('Prepare Video Settings').item.json.prompt,\n      model: 'veo3_fast'\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'jobs',\n  arguments: {\n    action: 'upsert',\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId || $('Get a row').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'running',\n    metadata: {\n      prompt: $('Prepare Video Settings').item.json.prompt,\n      model: 'veo3_fast'\n    }\n  }\n}) }}",
         "options": {
           "timeout": 10000,
           "continueOnFail": true
@@ -186,7 +214,7 @@
           "name": "Mylo MCP"
         }
       },
-      "notes": "Tracks video generation job start via job_upsert. Continues on fail to avoid blocking workflow."
+      "notes": "Tracks video generation job start via jobs({action: 'upsert'}). Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -324,7 +352,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  tool: 'job_upsert',\n  arguments: {\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'succeeded',\n    assetUrl: $json.data.response?.resultUrls?.[0],\n    metadata: {\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  tool: 'jobs',\n  arguments: {\n    action: 'upsert',\n    kind: 'video',\n    traceId: $('When Called').item.json.traceId,\n    provider: 'kie',\n    taskId: $json.data.taskId,\n    status: 'succeeded',\n    url: $json.data.response?.resultUrls?.[0],\n    metadata: {\n      completedAt: new Date().toISOString()\n    }\n  }\n}) }}",
         "options": {
           "timeout": 10000,
           "continueOnFail": true
@@ -341,7 +369,7 @@
           "name": "Mylo MCP"
         }
       },
-      "notes": "Tracks video generation job completion via job_upsert. Continues on fail to avoid blocking workflow."
+      "notes": "Tracks video generation job completion via jobs({action: 'upsert'}). Continues on fail to avoid blocking workflow."
     },
     {
       "parameters": {
@@ -465,6 +493,17 @@
     }
   ],
   "connections": {
+    "Webhook: Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Prepare Video Settings": {
       "main": [
         [
@@ -477,6 +516,17 @@
       ]
     },
     "When Called": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Caller Persona": {
       "main": [
         [
           {

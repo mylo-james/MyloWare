@@ -5,6 +5,9 @@ import { searchMemories } from '../tools/memory/searchTool.js';
 import { stripEmbeddings } from './response-formatter.js';
 import { logger } from './logger.js';
 import { DEFAULT_MEMORY_LIMIT } from './constants.js';
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export interface TracePrepParams {
   traceId?: string;
@@ -78,7 +81,7 @@ export function buildCaseyPrompt(params: {
     `USER MESSAGE: ${params.instructions || 'User opened a chat without providing additional instructions yet.'}`,
     'TASK:',
     `1. Decide if this request maps to a specific project with at least 90% confidence. If not, remain in ${params.defaultProjectName}.`,
-    `2. If confident, call set_project({traceId: "${params.traceId}", projectId: "<project-id>"}) using the project id from the list below. Otherwise stay in ${params.defaultProjectName} and continue.`,
+    `2. If confident, call trace_update({traceId: "${params.traceId}", projectId: "<project-id>"}) using the project id from the list below. Otherwise stay in ${params.defaultProjectName} and continue.`,
     `3. **REQUIRED**: You MUST call handoff_to_agent tool with traceId="${params.traceId}" and the appropriate persona once you're ready to hand off.`,
     '   - Do NOT just store a memory about handoff - you MUST actually call the handoff_to_agent tool',
     `   - Example: handoff_to_agent({traceId: "${params.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
@@ -105,17 +108,37 @@ export function formatGuardrails(guardrails: unknown): string {
 }
 
 /**
+ * Loads project JSON file to get agent_expectations and workflow
+ */
+async function loadProjectJson(projectName: string): Promise<{ workflow?: string[]; agent_expectations?: Record<string, unknown> } | null> {
+  try {
+    const dataDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      '..',
+      'data',
+      'projects'
+    );
+    const projectPath = path.join(dataDir, `${projectName}.json`);
+    const content = await readFile(projectPath, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Builds the persona-specific prompt for traces with a known project
  */
-export function buildPersonaPrompt(params: {
+export async function buildPersonaPrompt(params: {
   personaPrompt: string | null;
   trace: Trace;
-  projectContext: { name: string; description?: string; guardrails?: unknown; id?: string };
+  projectContext: { name: string; description?: string; guardrails?: unknown; id?: string; workflow?: string[] };
   instructions: string;
   memoryLines: string;
   inferredProject?: { id: string; slug: string } | null;
   availableProjects?: Array<{ id: string; name: string; description: string }>;
-}): string {
+}): Promise<string> {
   const isCasey = (params.trace.currentOwner || 'casey').toLowerCase() === 'casey';
   
   const promptPieces = [
@@ -147,7 +170,25 @@ export function buildPersonaPrompt(params: {
     // Show alignment check if project is generic and we have available projects to choose from
     const shouldCheckAlignment = isGenericProject && params.availableProjects && params.availableProjects.length > 0;
 
-    if (shouldCheckAlignment) {
+    // Load project JSON to get workflow and agent_expectations
+    const projectJson = await loadProjectJson(params.projectContext.name);
+    const workflow = params.projectContext.workflow || projectJson?.workflow || [];
+    const firstAgent = workflow.length > 1 ? workflow[1] : 'iggy'; // workflow[0] is 'casey', so [1] is first agent
+    const caseyExpectations = projectJson?.agent_expectations?.casey as { instructions_template?: string } | undefined;
+    const instructionsTemplate = caseyExpectations?.instructions_template;
+
+    // Pre-action checklist
+    promptPieces.push(
+      'PRE-ACTION CHECKLIST:',
+      'Before taking any action, confirm:',
+      `1. Project is correctly set: "${params.projectContext.name}"`,
+      `2. First agent in workflow: ${firstAgent}`,
+      '3. Use memory_search to understand context and what the first agent needs',
+      `4. You will call handoff_to_agent with traceId="${params.trace.traceId}"`,
+      ''
+    );
+
+    if (shouldCheckAlignment && params.availableProjects) {
       const projectList = params.availableProjects
         .map((p) => `- ${p.id} (${p.name}): ${p.description}`)
         .join('\n');
@@ -156,32 +197,56 @@ export function buildPersonaPrompt(params: {
         'YOUR WORKFLOW:',
         `1. **CRITICAL**: Check project alignment - Current project is "${params.projectContext.name}" (generic/conversation fallback)`,
         '   - Review the user instructions above and compare them to available projects below',
-        '   - If the user intent clearly matches a specific project (≥90% confidence), call set_project to switch before handing off',
-        `   - Example: set_project({traceId: "${params.trace.traceId}", projectId: "<project-id>"})`,
+        '   - If the user intent clearly matches a specific project (≥90% confidence), call trace_update to switch before handing off',
+        `   - Example: trace_update({traceId: "${params.trace.traceId}", projectId: "<project-id>"})`,
         '   - Only proceed to handoff after confirming the correct project is set',
         '',
         'Available projects:',
         projectList || 'No projects available.',
         '',
-        '2. Determine which agent to hand off to based on the project workflow',
-        '3. Call context_get_persona to understand what the next agent needs',
+        `2. **FIRST AGENT**: ${firstAgent} (from project workflow: ${workflow.join(' → ')})`,
+        `3. Use memory_search to understand context and what ${firstAgent} needs`,
         `4. **REQUIRED**: Call handoff_to_agent with traceId="${params.trace.traceId}" and clear instructions`,
         '   - Do NOT just store a memory - you MUST actually call the handoff_to_agent tool',
-        `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
+        instructionsTemplate
+          ? `   - HANDOFF TEMPLATE (from project): ${instructionsTemplate}`
+          : `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "${firstAgent}", instructions: "Generate..."})`,
         '   - **NEVER** create or invent a traceId - always use the traceId provided above'
       );
     } else {
       promptPieces.push(
         'YOUR WORKFLOW:',
-        '1. Project is already set (see PROJECT above) - no need to call context_get_project or set_project',
-        '2. Determine which agent to hand off to based on the project workflow',
-        '3. Call context_get_persona to understand what the next agent needs',
+        '1. Project is already set (see PROJECT above) - no need to call trace_update unless switching projects',
+        `2. **FIRST AGENT**: ${firstAgent} (from project workflow: ${workflow.join(' → ')})`,
+        `3. Use memory_search to understand context and what ${firstAgent} needs`,
         `4. **REQUIRED**: Call handoff_to_agent with traceId="${params.trace.traceId}" and clear instructions`,
         '   - Do NOT just store a memory - you MUST actually call the handoff_to_agent tool',
-        `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "iggy", instructions: "Generate 12 modifiers..."})`,
+        instructionsTemplate
+          ? `   - HANDOFF TEMPLATE (from project): ${instructionsTemplate}`
+          : `   - Example: handoff_to_agent({traceId: "${params.trace.traceId}", toAgent: "${firstAgent}", instructions: "Generate..."})`,
         '   - **NEVER** create or invent a traceId - always use the traceId provided above'
       );
     }
+
+    // CRITICAL TOOL POLICY
+    promptPieces.push(
+      '',
+      'CRITICAL TOOL POLICY:',
+      'You are Casey, the Showrunner. Your ONLY job is to coordinate handoffs.',
+      '',
+      'ALLOWED TOOLS (MCP tools only):',
+      '- trace_update: Update trace metadata and project',
+      '- memory_search: Search memories by traceId',
+      '- memory_store: Store memories',
+      '- handoff_to_agent: Transfer ownership to next agent',
+      '',
+      'NEVER DO:',
+      '- Never call tool workflows (Generate Video, Edit Compilation, Upload to TikTok, Upload to Drive)',
+      '- These are persona-specific workflows - hand off to the owning persona instead',
+      '- Never try to execute work yourself - your team handles execution',
+      '- Never skip handoff - you MUST call handoff_to_agent tool',
+      ''
+    );
   } else {
     // Other personas
     promptPieces.push(
@@ -202,6 +267,12 @@ export function buildPersonaPrompt(params: {
 
 /**
  * Derives the allowed tools for a persona based on configuration and project context
+ * 
+ * Core tool set per persona:
+ * - casey: trace_update, memory_search, memory_store, handoff_to_agent
+ * - iggy, riley: memory_search, memory_store, handoff_to_agent
+ * - veo, alex: memory_search, memory_store, handoff_to_agent, workflow_trigger, jobs
+ * - quinn: memory_search, memory_store, handoff_to_agent, workflow_trigger
  */
 export function deriveAllowedTools(params: {
   personaName: string;
@@ -209,38 +280,28 @@ export function deriveAllowedTools(params: {
   personaConfig: { name: string; allowedTools?: string[] };
   projectKnown: boolean;
 }): string[] {
-  // First check persona.allowedTools (from database schema)
-  const fromPersona =
-    Array.isArray(params.personaConfig.allowedTools) && params.personaConfig.allowedTools.length > 0
-      ? [...params.personaConfig.allowedTools]
-      : null;
+  const personaName = params.personaName.toLowerCase();
 
-  // Fallback to metadata.allowedTools (legacy support)
-  const fromMetadata =
-    !fromPersona && Array.isArray(params.personaMeta.allowedTools)
-      ? (params.personaMeta.allowedTools as string[])
-      : null;
+  // Core tools for all personas
+  const coreTools = ['memory_search', 'memory_store', 'handoff_to_agent'];
 
-  // Default tools if neither source provides them
-  const baseAllowed = fromPersona || fromMetadata || ['memory_search', 'memory_store', 'handoff_to_agent'];
-  const allowed: string[] = [...baseAllowed];
-
-  // Ensure handoff_to_agent is always included
-  if (!allowed.includes('handoff_to_agent')) {
-    allowed.push('handoff_to_agent');
+  // Casey gets trace_update (can update project via trace_update)
+  if (personaName === 'casey') {
+    return ['trace_update', ...coreTools];
   }
 
-  // Project-specific tools (these are added dynamically based on project, not stored in persona)
-  if (params.projectKnown && (params.personaName === 'veo' || params.personaName === 'alex')) {
-    if (!allowed.includes('job_upsert')) {
-      allowed.push('job_upsert');
-    }
-    if (!allowed.includes('jobs_summary')) {
-      allowed.push('jobs_summary');
-    }
+  // Veo and Alex get workflow_trigger and jobs
+  if (personaName === 'veo' || personaName === 'alex') {
+    return [...coreTools, 'workflow_trigger', 'jobs'];
   }
 
-  return Array.from(new Set(allowed));
+  // Quinn gets workflow_trigger
+  if (personaName === 'quinn') {
+    return [...coreTools, 'workflow_trigger'];
+  }
+
+  // Default for other personas (iggy, riley, etc.)
+  return coreTools;
 }
 
 /**
@@ -277,6 +338,7 @@ interface ResolvedProject {
   description: string;
   guardrails: Record<string, unknown>;
   settings: Record<string, unknown>;
+  workflow?: string[];
 }
 
 async function resolveInitialProject({
@@ -297,6 +359,7 @@ async function resolveInitialProject({
     description: project.description,
     guardrails: project.guardrails,
     settings: project.settings,
+    workflow: project.workflow,
   }));
 
   const projectMap = new Map(projects.map((p) => [p.id, p]));
@@ -447,6 +510,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
     description: string;
     guardrails: Record<string, unknown> | string;
     settings: Record<string, unknown>;
+    workflow?: string[];
   } | null = null;
 
   let memoryProjectFilter: string | undefined;
@@ -462,6 +526,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
           description: projectRecord.description,
           guardrails: projectRecord.guardrails,
           settings: projectRecord.settings,
+          workflow: projectRecord.workflow,
         };
         memoryProjectFilter = projectRecord.name;
       } else {
@@ -487,6 +552,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
         description: fallbackProject.description,
         guardrails: fallbackProject.guardrails,
         settings: fallbackProject.settings,
+        workflow: fallbackProject.workflow,
       };
       memoryProjectFilter = fallbackProject.name;
       if (!trace.projectId) {
@@ -499,7 +565,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
       projectContext = {
         id: null,
         name: 'conversation',
-        description: 'Project not set. Casey must call set_project before handing off to Iggy.',
+        description: 'Project not set. Casey must call trace_update to set project before handing off to Iggy.',
         guardrails: {
           reminder: 'Casey: determine if this is AISMR or GenReact and update the trace before ideation.',
         },
@@ -543,7 +609,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
 
   // Build system prompt
   const systemPrompt = isProjectKnown
-    ? buildPersonaPrompt({
+    ? await buildPersonaPrompt({
         personaPrompt: personaResult.persona.systemPrompt,
         trace,
         projectContext: {

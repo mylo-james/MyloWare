@@ -1,0 +1,36 @@
+{
+  "name": "test_video_gen",
+  "title": "Test Video Generation",
+  "description": "Simple test project that generates two videos: moon with 'cheeseburger' header and sun with 'pickle' header. Used for testing the full workflow pipeline.",
+  "workflow": ["casey", "iggy", "riley", "veo", "alex", "quinn"],
+  "optionalSteps": [],
+  "specs": {
+    "videoCount": 2,
+    "videoDuration": 10.0,
+    "videos": [
+      {"subject": "moon", "header": "cheeseburger"},
+      {"subject": "sun", "header": "pickle"}
+    ],
+    "compilationLength": 25,
+    "format": "9:16 vertical, header text overlay",
+    "aspectRatio": "9:16",
+    "resolution": "1080x1920"
+  },
+  "settings": {
+    "provider": "runway",
+    "platforms": ["tiktok"],
+    "testAccount": true
+  },
+  "guardrails": {
+    "summary": "Simple test guardrails for workflow validation",
+    "categories": ["content", "visual", "format", "style"]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["project", "test", "video-production"]
+  },
+  "links": {
+    "personas": ["casey", "iggy", "riley", "veo", "alex", "quinn"]
+  }
+}
+

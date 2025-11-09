@@ -17,46 +17,10 @@ describe('MCP tools', () => {
     await db.delete(memories);
   });
 
-  it('stores and retrieves memories scoped by runId metadata', async () => {
-    const memoryStore = getTool('memory_store');
-    await memoryStore.handler(
-      {
-        content: 'Step 1 completed',
-        memoryType: 'episodic',
-        persona: ['casey'],
-        project: ['aismr'],
-        tags: ['test'],
-        runId: 'run-123',
-      },
-      'req-memory-store-1'
-    );
-
-    await memoryStore.handler(
-      {
-        content: 'Other run event',
-        memoryType: 'episodic',
-        runId: 'run-999',
-      },
-      'req-memory-store-2'
-    );
-
-    const memorySearchByRun = getTool('memory_searchByRun');
-    const searchResult = await memorySearchByRun.handler(
-      { runId: 'run-123' },
-      'req-memory-search'
-    );
-
-    const result = searchResult.structuredContent as {
-      memories: Array<{ metadata: Record<string, unknown> }>;
-      totalFound: number;
-    };
-
-    expect(result.totalFound).toBe(1);
-    expect(result.memories[0].metadata.runId).toBe('run-123');
-
-    const repo = new MemoryRepository();
-    const stored = await repo.findByRunId('run-123', {});
-    expect(stored).toHaveLength(1);
+  // Legacy tool removed - use memory_search with traceId instead
+  it.skip('stores and retrieves memories scoped by runId metadata', async () => {
+    // This test is skipped because the legacy tool has been removed
+    // Use memory_search with traceId instead for similar functionality
   });
 
   describe('memory_store trace filtering and sorting', () => {

@@ -120,8 +120,13 @@ async function main() {
     process.argv.includes('--seed') || process.argv.includes('--with-seed');
   const parsedUrl = new URL(databaseUrl);
   const dbOwner = decodeURIComponent(parsedUrl.username);
+  const dbName = decodeURIComponent(parsedUrl.pathname.replace(/^\//, '')) || 'postgres';
 
   console.info('🔄 Bootstrapping database...');
+
+  // Ensure the target database exists before trying to connect to it
+  await ensureDatabaseExists(databaseUrl, dbName, dbOwner);
+
   const pool = new Pool({ connectionString: databaseUrl });
 
   try {

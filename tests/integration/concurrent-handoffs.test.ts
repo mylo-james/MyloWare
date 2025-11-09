@@ -56,17 +56,14 @@ describe('Concurrent Handoffs Integration', () => {
       isActive: true,
     });
 
-    // Create initial trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      {
-        projectId: 'test-project',
-        sessionId: 'test-session',
-      },
-      'req-concurrent-1'
-    );
+    // Create initial trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+      sessionId: 'test-session',
+    });
 
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceId = createdTrace.traceId;
     expect(traceId).toBeDefined();
 
     // Verify initial state
@@ -145,16 +142,13 @@ describe('Concurrent Handoffs Integration', () => {
       isActive: true,
     });
 
-    // Create initial trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      {
-        projectId: 'test-project',
-      },
-      'req-retry-1'
-    );
+    // Create initial trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
 
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceId = createdTrace.traceId;
 
     // Verify initial state
     const initialTrace = await traceRepo.findByTraceId(traceId);
@@ -209,9 +203,9 @@ describe('Concurrent Handoffs Integration', () => {
   });
 
   it('should maintain data consistency with concurrent terminal handoffs', async () => {
-    // Setup: Create trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
+    // Setup: Create trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create(
       {
         projectId: 'test-project',
       },
@@ -290,16 +284,12 @@ describe('Concurrent Handoffs Integration', () => {
       isActive: true,
     });
 
-    // Create initial trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      {
-        projectId: 'test-project',
-      },
-      'req-multi-1'
-    );
-
-    const traceId = createResult.structuredContent?.traceId as string;
+    // Create initial trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
+    const traceId = createdTrace.traceId;
 
     // Verify initial state
     const initialTrace = await traceRepo.findByTraceId(traceId);

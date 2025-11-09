@@ -1,0 +1,23 @@
+{
+  "before_storing": [
+    "All videos generated (jobs_summary confirms)",
+    "All jobs tracked with jobs({action: 'upsert', ...})",
+    "All video URLs accessible",
+    "Quality validated"
+  ],
+  "before_handoff": [
+    "memory_store called with traceId in metadata",
+    "Video URLs stored and findable",
+    "handoff_to_agent called with clear instructions",
+    "Next agent knows where to find your work"
+  ],
+  "definition_of_done": [
+    "Screenplays loaded from upstream",
+    "Videos generated via workflow_trigger",
+    "Jobs tracked and monitored",
+    "All jobs completed successfully",
+    "Video URLs stored with traceId",
+    "Handoff executed to next agent"
+  ]
+}
+

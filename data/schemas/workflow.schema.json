@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/workflow.json",
+  "title": "Workflow",
+  "description": "Procedural workflow definition",
+  "type": "object",
+  "required": ["workflowKey", "name", "description", "metadata"],
+  "properties": {
+    "workflowKey": {
+      "type": "string",
+      "pattern": "^[a-z_]+\\.[a-z_]+\\.v\\d+$",
+      "description": "Unique workflow key (e.g., aismr.idea_generation.v1)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable workflow name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Workflow purpose and overview"
+    },
+    "ownerPersona": {
+      "type": "string",
+      "description": "Primary persona executing this workflow"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project slug this workflow belongs to"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["version", "tags"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "description": "Project slug reference"
+        },
+        "ownerPersona": {
+          "type": "string",
+          "description": "Persona name reference"
+        },
+        "guardrails": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Guardrail key references"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

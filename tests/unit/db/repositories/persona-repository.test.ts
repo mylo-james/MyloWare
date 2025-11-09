@@ -54,7 +54,7 @@ describe('PersonaRepository', () => {
         tone: 'confident',
         defaultProject: 'aismr',
         systemPrompt: 'You are Casey',
-        allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+        allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
         metadata: {},
       });
 
@@ -62,7 +62,7 @@ describe('PersonaRepository', () => {
 
       expect(found).not.toBeNull();
       expect(found?.name).toBe('casey');
-      expect(found?.allowedTools).toEqual(['set_project', 'memory_search', 'memory_store', 'handoff_to_agent']);
+      expect(found?.allowedTools).toEqual(['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent']);
     });
 
     it('should return null if persona not found', async () => {

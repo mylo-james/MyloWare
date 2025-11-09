@@ -1,0 +1,26 @@
+{
+  "id": "store_result",
+  "step": 6,
+  "type": "mcp_call",
+  "description": "Store generated ideas and audit results in episodic memory",
+  "dependsOn": ["generate_ideas", "uniqueness_audit"],
+  "mcp_call": {
+    "tool": "memory_store",
+    "params": {
+      "content": "Generated 12 unique AISMR ideas: ${generatedIdeas}",
+      "memoryType": "episodic",
+      "project": ["aismr"],
+      "tags": ["aismr", "idea-generation", "workflow-output"],
+      "metadata": {
+        "stage": "idea_generation",
+        "workflowKey": "aismr.idea_generation.v1",
+        "totalIdeas": "${generatedIdeas.ideas.length}",
+        "userIdea": "${generatedIdeas.userIdea}"
+      }
+    }
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

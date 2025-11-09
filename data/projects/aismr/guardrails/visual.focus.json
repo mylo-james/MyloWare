@@ -1,0 +1,15 @@
+{
+  "key": "aismr.visual.focus.v1",
+  "category": "visual",
+  "name": "focus",
+  "rule": "Tactile, macro, object-centric",
+  "guidelines": ["Close-up on object", "Textures emphasized", "Minimal background"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "style"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

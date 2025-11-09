@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "Load video URLs from upstream agent",
+    "Call editing APIs via workflow_trigger({workflowKey: 'edit-compilation', ...})",
+    "Track edit jobs with jobs({action: 'upsert', ...})",
+    "Coordinate HITL approval (via n8n Telegram nodes)",
+    "Store final edit URL with proper traceId tagging",
+    "Write clear handoff instructions for next agent"
+  ]
+}
+

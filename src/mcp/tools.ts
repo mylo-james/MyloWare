@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { searchMemories } from '../tools/memory/searchTool.js';
 import { storeMemory } from '../tools/memory/storeTool.js';
-import { evolveMemory } from '../tools/memory/evolveTool.js';
-import { getPersona } from '../tools/context/getPersonaTool.js';
-import { getProject } from '../tools/context/getProjectTool.js';
-import { SessionRepository } from '../db/repositories/session-repository.js';
-import type { SessionContext } from '../db/repositories/session-repository.js';
 import { MemoryRepository, TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository, WorkflowMappingRepository } from '../db/repositories/index.js';
 import type { Trace } from '../db/repositories/trace-repository.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
@@ -20,8 +15,8 @@ import { executionTraces } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getTelegramClient } from '../integrations/telegram/client.js';
 import { enqueueMemoryRetry } from '../utils/retry-queue.js';
-import { MCPErrorCode, NotFoundError } from '../utils/errors.js';
 import { sanitizeMetadata } from '../utils/metadata-sanitizer.js';
+import { MCPError, MCPErrorCode, NotFoundError, ValidationError } from '../utils/errors.js';
 
 export interface MCPTool {
   name: string;
@@ -197,50 +192,10 @@ const memoryStoreInputSchema = z.object({
   handoffId: z.string().optional(),
 });
 
-const memoryEvolveInputSchema = z.object({
-  memoryId: z.string(),
-  updates: z.object({
-    addTags: stringArrayLike().optional(),
-    removeTags: stringArrayLike().optional(),
-    addLinks: stringArrayLike().optional(),
-    removeLinks: stringArrayLike().optional(),
-    updateSummary: z.string().optional(),
-  }),
-});
-
-const contextGetPersonaInputSchema = z.object({
-  personaName: z.string(),
-});
-
-const contextGetProjectInputSchema = z.object({
-  projectName: z.string(),
-});
-
-const projectSearchInputSchema = z.object({
-  query: z.string().min(1, 'query is required'),
-  limit: numberLike().optional(),
-});
-
-const sessionGetContextInputSchema = z.object({
-  sessionId: z.string(),
-  persona: z.string().optional(),
-  project: z.string().optional(),
-});
-
-const sessionUpdateContextInputSchema = z.object({
-  sessionId: z.string(),
-  context: recordLike(),
-});
-
 const jobStatusValues = ['queued', 'running', 'succeeded', 'failed', 'canceled'] as const;
 
 // UUID validation helper
 const uuidSchema = z.string().uuid('traceId must be a valid UUID');
-
-const setProjectInputSchema = z.object({
-  traceId: uuidSchema, // Required: Use the exact traceId from your system prompt (TRACE ID field)
-  projectId: uuidSchema,
-});
 
 const traceUpdateInputSchema = z.object({
   traceId: uuidSchema,
@@ -258,44 +213,12 @@ const tracePrepareInputSchema = z.object({
   memoryLimit: numberLike().optional(),
 });
 
-const jobUpsertInputSchema = z.object({
-  kind: z.enum(['video', 'edit']),
-  traceId: uuidSchema,
-  scriptId: z.string().uuid('scriptId must be a valid UUID').optional(),
-  provider: z.string(),
-  taskId: z.string(),
-  status: z.enum(jobStatusValues),
-  url: z.string().optional(),
-  error: z.string().optional(),
-  metadata: recordLike().optional(),
-  startedAt: z.string().optional(),
-  completedAt: z.string().optional(),
-});
-
-const jobsSummaryInputSchema = z.object({
-  traceId: uuidSchema,
-});
-
 // Trace coordination schemas
-const traceCreateInputSchema = z.object({
-  projectId: uuidSchema,
-  sessionId: z.string().optional(),
-  metadata: recordLike().optional(),
-});
-
 const handoffToAgentInputSchema = z.object({
   traceId: uuidSchema,
   toAgent: z.string(),
   instructions: z.string().max(10000, 'Instructions must be 10000 characters or less'),
   metadata: recordLike().optional(),
-});
-
-// Memory search by run schema
-const memorySearchByRunSchema = z.object({
-  runId: z.string(),
-  persona: z.string().optional(),
-  project: z.string().optional(),
-  k: numberLike().optional(),
 });
 
 // Memory tools
@@ -367,288 +290,6 @@ const memoryStoreTool: MCPTool = {
   },
 };
 
-const memoryEvolveTool: MCPTool = {
-  name: 'memory_evolve',
-  title: 'Evolve Memory',
-  description: 'Update an existing memory (add/remove tags, links, or summary) without creating a new record. **REQUIRED**: Always include memoryId parameter. If updating a memory tied to a trace, ensure the memoryId corresponds to a memory with the correct traceId in its metadata.',
-  inputSchema: memoryEvolveInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = memoryEvolveInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'memory_evolve',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const result = await evolveMemory(validated);
-    // Strip embedding from response
-    const cleanResult = stripEmbeddings(result);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(cleanResult) }],
-      structuredContent: cleanResult,
-    };
-  },
-};
-
-// Context tools
-const contextGetPersonaTool: MCPTool = {
-  name: 'context_get_persona',
-  title: 'Get Persona',
-  description: 'Load the canonical persona prompt and guardrails (Casey calls this for Iggy before handoff)',
-  inputSchema: contextGetPersonaInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = contextGetPersonaInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'context_get_persona',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const result = await getPersona(validated);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
-const contextGetProjectTool: MCPTool = {
-  name: 'context_get_project',
-  title: 'Get Project',
-  description: 'Retrieve project-level guardrails, workflows, and constraints for the active run',
-  inputSchema: contextGetProjectInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = contextGetProjectInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'context_get_project',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const result = await getProject(validated);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
-const contextSearchProjectsTool: MCPTool = {
-  name: 'context_search_projects',
-  title: 'Search Projects',
-  description: 'Discover available projects by keyword. Returns project UUIDs plus descriptions so you can call context_get_project or set_project with the correct id.',
-  inputSchema: projectSearchInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = projectSearchInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'context_search_projects',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repository = new ProjectRepository();
-    const projects = await repository.search(validated.query, validated.limit ?? 5);
-
-    const result = {
-      projects: projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        guardrails: project.guardrails,
-        settings: project.settings,
-      })),
-    };
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
-// Session tools
-const sessionGetContextTool: MCPTool = {
-  name: 'session_get_context',
-  title: 'Get Session Context',
-  description: 'Load or initialize session working memory (user prefs, last intent, history)',
-  inputSchema: sessionGetContextInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = sessionGetContextInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'session_get_context',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repository = new SessionRepository();
-    
-    // Preserve full userId with platform prefix (e.g., "telegram:123456")
-    const userId = validated.sessionId;
-    
-    // Look up existing session to get persona/project if not provided
-    const existingSession = await repository.findById(validated.sessionId);
-    
-    // Determine persona: use param if provided, otherwise existing session value
-    const persona = validated.persona || existingSession?.persona;
-    
-    // Determine project: use param if provided, otherwise existing session value
-    const project = validated.project || existingSession?.project;
-    
-    if (!persona || !project) {
-      throw new Error(
-        'Session requires persona and project. ' +
-        'Provide them when creating a new session via session_get_context.'
-      );
-    }
-    
-    const session = await repository.findOrCreate(
-      validated.sessionId,
-      userId, // Full user ID with platform prefix
-      persona,
-      project
-    );
-    const context = await repository.getContext(validated.sessionId);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ session, context }) }],
-      structuredContent: { session, context },
-    };
-  },
-};
-
-const sessionUpdateContextTool: MCPTool = {
-  name: 'session_update_context',
-  title: 'Update Session Context',
-  description: 'Persist updates to session working memory (intent, preferences, topics)',
-  inputSchema: sessionUpdateContextInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = sessionUpdateContextInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'session_update_context',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repository = new SessionRepository();
-    await repository.updateContext(validated.sessionId, validated.context as SessionContext);
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ success: true }) }],
-      structuredContent: { success: true },
-    };
-  },
-};
-
-// Workflow resolution tool
-const workflowResolveInputSchema = z.object({
-  workflowKey: z.string().min(1).describe('Human-readable workflow key (e.g., upload-google-drive)'),
-  environment: z.string().default('production').describe('Environment (production, staging, development)'),
-});
-
-const workflowResolveTool: MCPTool = {
-  name: 'workflow_resolve',
-  title: 'Resolve Workflow ID',
-  description: 'Resolves a human-readable workflow key to the current n8n workflow ID for the specified environment. Use this to get the correct workflow ID before calling toolWorkflow nodes.',
-  inputSchema: workflowResolveInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = workflowResolveInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'workflow_resolve',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repository = new WorkflowMappingRepository();
-    const mapping = await repository.findByKey(validated.workflowKey, validated.environment);
-
-    if (!mapping) {
-      throw new NotFoundError(
-        `Workflow mapping not found for key: ${validated.workflowKey} in environment: ${validated.environment}`
-      );
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            workflowKey: mapping.workflowKey,
-            workflowId: mapping.workflowId,
-            workflowName: mapping.workflowName,
-            environment: mapping.environment,
-          }),
-        },
-      ],
-      structuredContent: {
-        workflowKey: mapping.workflowKey,
-        workflowId: mapping.workflowId,
-        workflowName: mapping.workflowName,
-        environment: mapping.environment,
-      },
-    };
-  },
-};
-
-// Memory search by run tool
-const memorySearchByRunTool: MCPTool = {
-  name: 'memory_searchByRun',
-  title: 'Search Memories by Run',
-  description: 'Replay a legacy run by fetching memories where metadata.runId matches',
-  inputSchema: memorySearchByRunSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = memorySearchByRunSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'memory_searchByRun',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const repository = new MemoryRepository();
-    const startTime = Date.now();
-    const memories = await repository.findByRunId(validated.runId, {
-      persona: validated.persona,
-      project: validated.project,
-      limit: validated.k || 20,
-    });
-
-    const cleanMemories = stripEmbeddings(memories) as Record<string, unknown>[];
-    const result = {
-      memories: cleanMemories,
-      totalFound: cleanMemories.length,
-      searchTime: Date.now() - startTime,
-    };
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }],
-      structuredContent: result,
-    };
-  },
-};
-
 // Trace coordination tools
 const tracePrepareTool: MCPTool = {
   name: 'trace_prepare',
@@ -686,48 +327,6 @@ const tracePrepareTool: MCPTool = {
 };
 
 
-const setProjectTool: MCPTool = {
-  name: 'set_project',
-  title: 'Set Project',
-  description: 'Set the project for the current trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: set_project({traceId: "trace-aismr-001", projectId: "aismr"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Parameters: traceId (UUID from system prompt TRACE ID field), projectId (project name/id like "aismr" or "genreact"). Validates that the project exists before setting it.',
-  inputSchema: setProjectInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = setProjectInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'set_project',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    // Validate project exists and get UUID
-    const projectRepo = new ProjectRepository();
-    const project = await projectRepo.findById(validated.projectId);
-    if (!project) {
-      throw new Error(
-        `Project not found: "${validated.projectId}". Provide a valid project UUID from the available projects list.`
-      );
-    }
-
-    // Update trace with project UUID
-    const traceRepo = new TraceRepository();
-    const updatedTrace = await traceRepo.updateTrace(validated.traceId, {
-      projectId: project.id,
-    });
-    
-    if (!updatedTrace) {
-      throw new NotFoundError(`Trace not found: ${validated.traceId}`, 'trace', MCPErrorCode.TRACE_NOT_FOUND);
-    }
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(updatedTrace) }],
-      structuredContent: updatedTrace,
-    };
-  },
-};
-
 const traceUpdateTool: MCPTool = {
   name: 'trace_update',
   title: 'Update Trace',
@@ -746,7 +345,15 @@ const traceUpdateTool: MCPTool = {
 
     const updatePayload: Record<string, unknown> = {};
     if (typeof validated.projectId !== 'undefined') {
-      updatePayload.projectId = validated.projectId;
+      // Validate project exists
+      const projectRepo = new ProjectRepository();
+      const project = await projectRepo.findById(validated.projectId);
+      if (!project) {
+        throw new Error(
+          `Project not found: "${validated.projectId}". Provide a valid project UUID from the available projects list.`
+        );
+      }
+      updatePayload.projectId = project.id;
     }
     if (typeof validated.instructions !== 'undefined') {
       updatePayload.instructions = validated.instructions;
@@ -768,39 +375,6 @@ const traceUpdateTool: MCPTool = {
     return {
       content: [{ type: 'text', text: JSON.stringify(updatedTrace) }],
       structuredContent: updatedTrace,
-    };
-  },
-};
-
-const traceCreateTool: MCPTool = {
-  name: 'trace_create',
-  title: 'Create Trace',
-  description: 'Always call this at the start of a production run to mint the shared traceId. **IMPORTANT**: projectId should be a canonical project UUID. For backward compatibility, project slugs (e.g., "aismr") are accepted but will be resolved to UUIDs.',
-  inputSchema: traceCreateInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = traceCreateInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'trace_create',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    // Resolve project slug to UUID (for backward compatibility)
-    const resolvedProjectId = validated.projectId;
-
-    const traceRepo = new TraceRepository();
-    const trace = await traceRepo.create({
-      projectId: resolvedProjectId,
-      sessionId: validated.sessionId,
-      metadata: validated.metadata,
-    });
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify({ traceId: trace.traceId, status: trace.status, createdAt: trace.createdAt }) }],
-      structuredContent: { traceId: trace.traceId, status: trace.status, createdAt: trace.createdAt },
     };
   },
 };
@@ -1150,21 +724,173 @@ const handoffToAgentTool: MCPTool = {
   },
 };
 
-const jobUpsertTool: MCPTool = {
-  name: 'job_upsert',
-  title: 'Upsert Async Job',
-  description: 'Record or update long-running video/edit jobs so Veo/Alex can report progress. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: job_upsert({kind: "video", traceId: "trace-aismr-001", provider: "runway", taskId: "task-123", status: "queued"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
-  inputSchema: jobUpsertInputSchema,
+export function generateRequestId(): string {
+  return randomUUID();
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Core Workflow Tools (New Generic Tools)
+// ───────────────────────────────────────────────────────────────────────────────
+
+const webhookAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (config.n8n.webhookAuthToken) {
+    headers[config.n8n.webhookHeaderName || 'x-api-key'] = config.n8n.webhookAuthToken;
+  }
+  return headers;
+};
+
+async function postToWebhook(path: string, payload: unknown): Promise<any> {
+  const url = `${config.n8n.webhookUrl?.replace(/\/$/, '')}/webhook/${path.replace(/^\//, '')}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: webhookAuthHeaders(),
+    body: JSON.stringify(payload ?? {}),
+  });
+  let text: string | null = null;
+  try {
+    text = await res.text();
+  } catch {
+    // ignore
+  }
+  if (!res.ok) {
+    throw new MCPError(
+      MCPErrorCode.EXTERNAL_SERVICE_ERROR,
+      `Webhook call failed: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`,
+    );
+  }
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return { ok: true, text };
+  }
+}
+
+// Generic workflow trigger tool
+const workflowTriggerInputSchema = z.object({
+  workflowKey: z.string().min(1).describe('Human-readable workflow key (e.g., generate-video, edit-compilation, upload-to-tiktok)'),
+  traceId: uuidSchema,
+  payload: recordLike().optional().describe('Additional payload to pass to workflow'),
+  callerPersona: z.string().optional(),
+  runId: z.string().optional(),
+  environment: z.string().default('production').describe('Environment (production, staging, development)'),
+});
+
+const workflowTriggerTool: MCPTool = {
+  name: 'workflow_trigger',
+  title: 'Trigger Workflow',
+  description: 'Trigger any n8n workflow by key. Resolves workflow ID via mapping repository and POSTs to webhook. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: workflow_trigger({workflowKey: "generate-video", traceId: "trace-aismr-001", payload: {screenplay: {...}}}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
+  inputSchema: workflowTriggerInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
-    const validated = jobUpsertInputSchema.parse(unwrapped);
+    const validated = workflowTriggerInputSchema.parse(unwrapped);
 
     logger.info({
       msg: 'MCP tool called',
-      tool: 'job_upsert',
+      tool: 'workflow_trigger',
       params: sanitizeParams(validated),
       requestId,
     });
+
+    // Resolve workflow mapping
+    const mappingRepo = new WorkflowMappingRepository();
+    const mapping = await mappingRepo.findByKey(validated.workflowKey, validated.environment);
+
+    if (!mapping) {
+      throw new NotFoundError(
+        `Workflow mapping not found for key: ${validated.workflowKey} in environment: ${validated.environment}.`,
+        'workflow',
+        MCPErrorCode.EXTERNAL_SERVICE_ERROR
+      );
+    }
+
+    // Validate trace exists
+    const traceRepo = new TraceRepository();
+    const trace = await traceRepo.getTrace(validated.traceId);
+    if (!trace) {
+      throw new NotFoundError(`Trace not found: ${validated.traceId}`, 'trace', MCPErrorCode.TRACE_NOT_FOUND);
+    }
+
+    // Build payload with standard envelope
+    const payload = {
+      traceId: validated.traceId,
+      callerPersona: validated.callerPersona || trace.currentOwner || 'unknown',
+      runId: validated.runId ?? null,
+      trace,
+      ...(validated.payload || {}),
+    };
+
+    // POST to webhook path: /webhook/tools/{workflowKey}
+    const webhookPath = `tools/${validated.workflowKey}`;
+    const result = await postToWebhook(webhookPath, payload);
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
+// Consolidated jobs tool (unified upsert and summary actions)
+const jobsInputSchema = z.object({
+  action: z.enum(['upsert', 'summary']),
+  traceId: uuidSchema,
+  kind: z.enum(['video', 'edit']).optional(),
+  scriptId: z.string().uuid('scriptId must be a valid UUID').optional(),
+  provider: z.string().optional(),
+  taskId: z.string().optional(),
+  status: z.enum(jobStatusValues).optional(),
+  url: z.string().optional(),
+  error: z.string().optional(),
+  metadata: recordLike().optional(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+});
+
+const jobsTool: MCPTool = {
+  name: 'jobs',
+  title: 'Manage Jobs',
+  description: 'Unified tool for job tracking. Use action="upsert" to create/update jobs, action="summary" to get counts. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: jobs({action: "upsert", traceId: "trace-aismr-001", kind: "video", provider: "runway", taskId: "task-123", status: "queued"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
+  inputSchema: jobsInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = jobsInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'jobs',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    if (validated.action === 'summary') {
+      const videoSummary = await new VideoJobsRepository().summaryByTrace(validated.traceId);
+      const editSummary = await new EditJobsRepository().summaryByTrace(validated.traceId);
+
+      const combined = {
+        total: videoSummary.total + editSummary.total,
+        completed: videoSummary.completed + editSummary.completed,
+        failed: videoSummary.failed + editSummary.failed,
+        pending: videoSummary.pending + editSummary.pending,
+        breakdown: {
+          video: videoSummary,
+          edit: editSummary,
+        },
+      };
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(combined) }],
+        structuredContent: combined,
+      };
+    }
+
+    // action === 'upsert'
+    if (!validated.kind || !validated.provider || !validated.taskId || !validated.status) {
+      throw new ValidationError(
+        'For action="upsert", kind, provider, taskId, and status are required',
+        'action'
+      );
+    }
 
     const parseDate = (value?: string) => {
       if (!value) return undefined;
@@ -1179,7 +905,7 @@ const jobUpsertTool: MCPTool = {
       const repo = new VideoJobsRepository();
       const job = await repo.upsertJob({
         traceId: validated.traceId,
-        scriptId: validated.scriptId,
+        scriptId: validated.scriptId ?? null,
         provider: validated.provider,
         taskId: validated.taskId,
         status: validated.status,
@@ -1216,83 +942,31 @@ const jobUpsertTool: MCPTool = {
   },
 };
 
-const jobsSummaryTool: MCPTool = {
-  name: 'jobs_summary',
-  title: 'Summarize Async Jobs',
-  description: 'Return pending/completed/failed counts for video + edit jobs tied to a traceId. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: jobs_summary({traceId: "trace-aismr-001", kind: "video"}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
-  inputSchema: jobsSummaryInputSchema,
-  handler: async (params, requestId) => {
-    const unwrapped = unwrapParams(params);
-    const validated = jobsSummaryInputSchema.parse(unwrapped);
-
-    logger.info({
-      msg: 'MCP tool called',
-      tool: 'jobs_summary',
-      params: sanitizeParams(validated),
-      requestId,
-    });
-
-    const videoSummary = await new VideoJobsRepository().summaryByTrace(validated.traceId);
-    const editSummary = await new EditJobsRepository().summaryByTrace(validated.traceId);
-
-    const combined = {
-      total: videoSummary.total + editSummary.total,
-      completed: videoSummary.completed + editSummary.completed,
-      failed: videoSummary.failed + editSummary.failed,
-      pending: videoSummary.pending + editSummary.pending,
-      breakdown: {
-        video: videoSummary,
-        edit: editSummary,
-      },
-    };
-
-    return {
-      content: [{ type: 'text', text: JSON.stringify(combined) }],
-      structuredContent: combined,
-    };
-  },
-};
-
 /**
- * MCP Tools - Focus on memory operations and trace-based coordination
+ * MCP Tools - Persona-facing tools only
  * 
- * Architecture change:
- * - Prompts are now exposed via MCP Prompt API (loaded from procedural memories)
- * - Each persona ships its own n8n workflow JSON (casey → quinn) and is triggered via handoff_to_agent
- * - Trace-based coordination replaces legacy run_state and handoff tools
- * - These tools focus on memory, session management, and agent coordination
+ * Core tools (7 total):
+ * - Memory: memory_search, memory_store
+ * - Trace: trace_prepare, trace_update, handoff_to_agent
+ * - Jobs: jobs (unified upsert + summary)
+ * - Workflow: workflow_trigger (generic workflow invoker)
+ * 
+ * Internal utilities (context, session, trace creation) are called directly
+ * via repositories/services, not exposed as MCP tools.
  */
 export const mcpTools: MCPTool[] = [
-  // Memory tools
+  // Core memory tools
   memorySearchTool,
   memoryStoreTool,
-  memoryEvolveTool,
-  memorySearchByRunTool,
   
-  // Context tools
-  contextGetPersonaTool,
-  contextGetProjectTool,
-  contextSearchProjectsTool,
-
-  // Trace coordination tools
+  // Core trace coordination tools
   tracePrepareTool,
-  setProjectTool,
   traceUpdateTool,
-  traceCreateTool,
   handoffToAgentTool,
 
-  // Job ledger tools
-  jobUpsertTool,
-  jobsSummaryTool,
+  // Core job tracking (unified tool)
+  jobsTool,
   
-  // Session tools
-  sessionGetContextTool,
-  sessionUpdateContextTool,
-  
-  // Workflow tools
-  workflowResolveTool,
+  // Core workflow trigger (generic)
+  workflowTriggerTool,
 ];
-
-export function generateRequestId(): string {
-  return randomUUID();
-}

@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/workflow-node.json",
+  "title": "Workflow Node",
+  "description": "Individual step in a workflow",
+  "type": "object",
+  "required": ["id", "step", "type", "description"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Node identifier"
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Step number in workflow"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["mcp_call", "llm_generation", "validation", "conditional"],
+      "description": "Node type"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this step does"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Node IDs this step depends on"
+    },
+    "mcp_call": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "MCP tool name"
+        },
+        "params": {
+          "type": "object",
+          "description": "Tool parameters",
+          "additionalProperties": true
+        },
+        "storeAs": {
+          "type": "string",
+          "description": "Variable name to store result"
+        }
+      }
+    },
+    "llm_generation": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "object"
+        },
+        "structuredOutput": {
+          "type": "boolean"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "storeAs": {
+          "type": "string"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "links": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "description": "Workflow key reference"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+

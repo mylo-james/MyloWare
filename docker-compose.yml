@@ -51,53 +51,110 @@ services:
     networks:
       - mcp-network
 
-  mcp-server-dev:
+  # mcp-server-dev REMOVED: Use local `npm run dev` for development (faster hot reload)
+  # The start-dev.sh script runs MCP on host machine for best dev experience
+
+  postgres-test:
     profiles:
-      - dev
+      - test
+    image: pgvector/pgvector:pg16
+    container_name: mcp-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mcp_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test_password}
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'test', '-d', 'mcp_test']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mcp-network
+    tmpfs:
+      - /var/lib/postgresql/data  # Ephemeral - data is lost on stop
+
+  mcp-server-test:
+    profiles:
+      - test
     build:
       context: .
       target: dev
-    container_name: mcp-server-dev
+    container_name: mcp-server-test
     restart: unless-stopped
     depends_on:
-      postgres:
+      postgres-test:
         condition: service_healthy
     environment:
-      NODE_ENV: development
+      NODE_ENV: test
       DOCKER_CONTAINER: "true"
-      DATABASE_URL: postgresql://mylo:${DB_PASSWORD}@postgres:5432/memories
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      MCP_AUTH_KEY: ${MCP_AUTH_KEY}
-      N8N_BASE_URL: ${N8N_BASE_URL}
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
-      N8N_TEST_WEBHOOK_URL: ${N8N_TEST_WEBHOOK_URL}
-      N8N_API_KEY: ${N8N_API_KEY}
-      SERVER_PORT: ${SERVER_PORT:-3456}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID}
-      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://test:${DB_PASSWORD:-test_password}@postgres-test:5432/mcp_test
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-test}
+      MCP_AUTH_KEY: ${MCP_AUTH_KEY:-test-mcp-auth-key}
+      N8N_BASE_URL: http://n8n-test:5679
+      N8N_WEBHOOK_URL: http://n8n-test:5679
+      N8N_API_KEY: test-api-key
+      SERVER_PORT: 3457
+      TELEGRAM_BOT_TOKEN: test-telegram-token
+      TELEGRAM_USER_ID: 123456789
+      LOG_LEVEL: warn
     command: bash -lc "npm run db:bootstrap -- --seed && npm run dev"
     ports:
-      - '${SERVER_PORT:-3456}:3456'
+      - '3457:3457'
     volumes:
-      # Source code - hot reload
       - ./src:/app/src
       - ./scripts:/app/scripts
       - ./workflows:/app/workflows
       - ./data:/app/data
-      
-      # Config files - hot reload on change
       - ./drizzle:/app/drizzle
       - ./drizzle.config.ts:/app/drizzle.config.ts
       - ./tsconfig.json:/app/tsconfig.json
       - ./package.json:/app/package.json
       - ./package-lock.json:/app/package-lock.json
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3456/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3457/health']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      - mcp-network
+
+  n8n-test:
+    profiles:
+      - test
+    image: n8nio/n8n:latest
+    container_name: n8n-test
+    restart: unless-stopped
+    depends_on:
+      - postgres-test
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres-test
+      DB_POSTGRESDB_DATABASE: n8n_test
+      DB_POSTGRESDB_USER: test
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD:-test_password}
+      N8N_API_KEY: test-api-key
+      N8N_BASIC_AUTH_ACTIVE: false
+      N8N_METRICS: false
+      N8N_LOG_LEVEL: warn
+      WEBHOOK_URL: http://localhost:5679
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5679
+      MCP_SERVER_URL: http://mcp-server-test:3457/mcp
+      TELEGRAM_BOT_TOKEN: test-telegram-token
+    ports:
+      - '5679:5679'
+    volumes:
+      - ./workflows:/home/node/.n8n/workflows
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:5679/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - mcp-network
 
@@ -157,22 +214,8 @@ services:
     networks:
       - mcp-network
 
-  cloudflared-dev:
-    profiles:
-      - dev
-    image: cloudflare/cloudflared:latest
-    container_name: cloudflared-dev
-    depends_on:
-      - mcp-server-dev
-      - n8n
-    command: tunnel --config /etc/cloudflared/config.prompts.yml run
-    restart: unless-stopped
-    volumes:
-      - ./cloudflared/config.prompts.yml:/etc/cloudflared/config.prompts.yml:ro
-      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
-      - ./cloudflared/cert.pem:/etc/cloudflared/cert.pem:ro
-    networks:
-      - mcp-network
+  # cloudflared-dev REMOVED: Not needed for local development
+  # For prod deployment, use Render/Fly.io native SSL or separate cloudflared config
 
 volumes:
   postgres_data:

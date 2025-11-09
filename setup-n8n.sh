@@ -17,7 +17,7 @@ fi
 
 source .env
 
-# Note: For service verification, use: ./scripts/verify-deployment.sh
+# Note: For service verification, use: ./scripts/ops/verify-deployment.sh
 
 N8N_URL="http://localhost:${N8N_PORT:-5678}"
 

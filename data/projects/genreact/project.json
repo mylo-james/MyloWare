@@ -1,0 +1,32 @@
+{
+  "name": "genreact",
+  "title": "GenReact - Generational Reactions",
+  "description": "How each generation reacts to modern situations. Humorous but respectful, culturally accurate, age-appropriate.",
+  "workflow": ["casey", "iggy", "riley", "veo", "alex", "quinn"],
+  "optionalSteps": ["alex"],
+  "specs": {
+    "videoCount": 6,
+    "videoDuration": 8.0,
+    "generations": ["Silent", "Boomer", "GenX", "Millennial", "GenZ", "Alpha"],
+    "compilationLength": 54,
+    "format": "9:16 vertical, generation labels",
+    "aspectRatio": "9:16",
+    "resolution": "1080x1920"
+  },
+  "settings": {
+    "provider": "runway",
+    "platforms": ["tiktok"]
+  },
+  "guardrails": {
+    "summary": "Respectful humor, cultural accuracy, age-appropriate content",
+    "categories": ["tone", "accuracy", "style", "format"]
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["project", "genreact", "video-production"]
+  },
+  "links": {
+    "personas": ["casey", "iggy", "riley", "veo", "alex", "quinn"]
+  }
+}
+

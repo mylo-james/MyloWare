@@ -1,0 +1,19 @@
+{
+  "workflowKey": "aismr.idea_generation.v1",
+  "name": "AISMR Idea Generation",
+  "description": "Generate 12 unique AISMR video ideas with uniqueness validation against past ideas and archive",
+  "ownerPersona": "iggy",
+  "project": "aismr",
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["workflow", "procedural", "idea-generation"]
+  },
+  "links": {
+    "project": "aismr",
+    "ownerPersona": "iggy",
+    "guardrails": [
+      "aismr.style.originality.v1"
+    ]
+  }
+}
+

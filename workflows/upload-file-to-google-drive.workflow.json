@@ -8,6 +8,19 @@
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "tools/upload-to-drive",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [592, -96],
+      "id": "6b1e9271-7c2f-4a7f-9c24-54e63f6db8e4",
+      "name": "Webhook: Upload to Drive"
+    },
+    {
+      "parameters": {
         "workflowInputs": {
           "values": [
             {
@@ -37,6 +50,21 @@
       "id": "f04e16d3-8cf3-4346-9d8e-2223bada4f03",
       "name": "When Called by Generate Video",
       "notes": "Binary data (video file) is automatically passed from calling workflow"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const trigger = $('When Called by Generate Video').item?.json ?? {};\nconst item = $input.item;\nconst payload = item.json || {};\nconst trace = trigger.trace || payload.trace || {};\nconst personaNameRaw = trigger.callerPersona ?? trigger.personaName ?? trigger.persona ?? payload.callerPersona ?? payload.personaName ?? payload.persona ?? trace.currentOwner ?? '';\nconst personaName = String(personaNameRaw).toLowerCase();\nconst owner = personaNameRaw || 'unknown';\nconst traceId = trigger.traceId ?? payload.traceId ?? trace.traceId ?? '';\nif (personaName !== 'quinn') {\n  const traceNote = traceId ? ` (trace ${traceId})` : '';\n  throw new Error(`Upload to Google Drive workflow is restricted to Quinn. Current owner: ${owner}${traceNote}. Hand off to Quinn instead of calling this tool.`);\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        48
+      ],
+      "id": "4e5bc5fd-2571-4b52-9d3e-0c01d6b7a7d3",
+      "name": "Verify Caller Persona"
     },
     {
       "parameters": {
@@ -347,7 +375,29 @@
     }
   ],
   "connections": {
+    "Webhook: Upload to Drive": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "When Called by Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Verify Caller Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Caller Persona": {
       "main": [
         [
           {

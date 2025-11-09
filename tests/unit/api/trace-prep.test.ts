@@ -80,7 +80,7 @@ describe('trace_prep HTTP Endpoint', () => {
         updatedAt: new Date(),
       },
       metadata: {
-        allowedTools: ['trace_update', 'set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+        allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
       },
     });
 
@@ -138,7 +138,7 @@ describe('trace_prep HTTP Endpoint', () => {
       expect(response.traceId).toBeDefined();
       expect(response.justCreated).toBe(true);
       expect(response.systemPrompt).toContain('Casey');
-      expect(response.allowedTools).toContain('set_project');
+      expect(response.allowedTools).toContain('trace_update');
     });
 
     it('should default to Casey persona for new traces', async () => {
@@ -247,7 +247,7 @@ describe('trace_prep HTTP Endpoint', () => {
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(response.systemPrompt).toContain('Casey');
       expect(response.systemPrompt).toContain('Check project alignment');
-      expect(response.systemPrompt).toContain('set_project');
+      expect(response.systemPrompt).toContain('trace_update');
     });
 
     it('should include project alignment check when Casey has generic project and inferred project exists', async () => {
@@ -275,7 +275,7 @@ describe('trace_prep HTTP Endpoint', () => {
       if (response.project.name === 'conversation' || response.project.name === 'general') {
         // Should include project alignment instructions when project is generic
         expect(response.systemPrompt).toContain('Check project alignment');
-        expect(response.systemPrompt).toContain('set_project');
+        expect(response.systemPrompt).toContain('trace_update');
       }
     });
 
@@ -393,7 +393,7 @@ describe('trace_prep HTTP Endpoint', () => {
   });
 
   describe('Allowed tools derivation', () => {
-    it('should include set_project for Casey', async () => {
+    it('should include trace_update for Casey', async () => {
       const request = createMockRequest({
         sessionId: 'test-session',
       });
@@ -402,10 +402,10 @@ describe('trace_prep HTTP Endpoint', () => {
       await handleTracePrep(request, reply);
 
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(response.allowedTools).toContain('set_project');
+      expect(response.allowedTools).toContain('trace_update');
     });
 
-    it('should not include set_project for non-Casey personas', async () => {
+    it('should not include trace_update for non-Casey personas', async () => {
       const trace = await traceRepo.create({
         projectId: aismrProjectId,
         sessionId: 'test-session',
@@ -430,7 +430,7 @@ describe('trace_prep HTTP Endpoint', () => {
           updatedAt: new Date(),
         },
         metadata: {
-          allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'], // No set_project
+          allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'], // Core tools only
         },
       });
 
@@ -442,7 +442,7 @@ describe('trace_prep HTTP Endpoint', () => {
       await handleTracePrep(request, reply);
 
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(response.allowedTools).not.toContain('set_project');
+      expect(response.allowedTools).not.toContain('trace_update');
       expect(response.allowedTools).toContain('handoff_to_agent');
     });
 
@@ -471,7 +471,7 @@ describe('trace_prep HTTP Endpoint', () => {
           updatedAt: new Date(),
         },
         metadata: {
-          allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'], // No set_project
+          allowedTools: ['memory_search', 'memory_store', 'handoff_to_agent'], // Core tools only
         },
       });
 
@@ -483,8 +483,8 @@ describe('trace_prep HTTP Endpoint', () => {
       await handleTracePrep(request, reply);
 
       const response = (reply.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(response.allowedTools).toContain('job_upsert');
-      expect(response.allowedTools).toContain('jobs_summary');
+      expect(response.allowedTools).toContain('jobs');
+      expect(response.allowedTools).toContain('workflow_trigger');
     });
   });
 
@@ -545,7 +545,7 @@ describe('trace_prep HTTP Endpoint', () => {
           updatedAt: new Date(),
         },
         metadata: {
-          allowedTools: ['set_project', 'memory_search', 'memory_store', 'handoff_to_agent'],
+          allowedTools: ['trace_update', 'memory_search', 'memory_store', 'handoff_to_agent'],
         },
       });
 

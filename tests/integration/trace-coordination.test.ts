@@ -51,20 +51,17 @@ describe('Trace Coordination Integration', () => {
       isActive: true,
     });
 
-    // Step 1: Create trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      {
-        projectId: 'test-project',
-        sessionId: 'test-session',
-        metadata: { test: 'data' },
-      },
-      'req-integration-1'
-    );
+    // Step 1: Create trace (internal - via TraceRepository)
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+      sessionId: 'test-session',
+      metadata: { test: 'data' },
+    });
 
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceId = createdTrace.traceId;
     expect(traceId).toBeDefined();
-    expect(createResult.structuredContent?.status).toBe('active');
+    expect(createdTrace.status).toBe('active');
 
     // Verify trace was persisted
     const trace = await traceRepo.findByTraceId(traceId);
@@ -124,12 +121,11 @@ describe('Trace Coordination Integration', () => {
     });
 
     // Create trace and handoff
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      { projectId: 'test-project' },
-      'req-integration-error-1'
-    );
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
+    const traceId = createdTrace.traceId;
 
     const handoffTool = getTool('handoff_to_agent');
     await handoffTool.handler(
@@ -167,12 +163,11 @@ describe('Trace Coordination Integration', () => {
     });
 
     // Create trace
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      { projectId: 'test-project' },
-      'req-integration-memory-1'
-    );
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
+    const traceId = createdTrace.traceId;
 
     // Handoff (should create memory)
     const handoffTool = getTool('handoff_to_agent');
@@ -214,12 +209,11 @@ describe('Trace Coordination Integration', () => {
       isActive: true,
     });
 
-    const traceCreateTool = getTool('trace_create');
-    const createResult = await traceCreateTool.handler(
-      { projectId: 'test-project' },
-      'req-integration-webhook-1'
-    );
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceRepo = new TraceRepository();
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
+    const traceId = createdTrace.traceId;
 
     const handoffTool = getTool('handoff_to_agent');
     await handoffTool.handler(
@@ -252,7 +246,7 @@ describe('Trace Coordination Integration', () => {
   });
 
   describe('Casey workflow', () => {
-    it('should allow Casey to call set_project', async () => {
+    it('should allow Casey to call trace_update to set project', async () => {
       // Create trace as Casey (trace_prep creates trace with currentOwner='casey' by default)
       const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
@@ -260,9 +254,9 @@ describe('Trace Coordination Integration', () => {
         sessionId: 'telegram:123',
       });
       
-      // Verify Casey can set project
-      const setProjectTool = getTool('set_project');
-      const result = await setProjectTool.handler(
+      // Verify Casey can set project via trace_update
+      const traceUpdateTool = getTool('trace_update');
+      const result = await traceUpdateTool.handler(
         { traceId: trace.traceId, projectId: 'aismr' },
         'test-request-id'
       );
@@ -273,14 +267,14 @@ describe('Trace Coordination Integration', () => {
       const updatedTrace = await traceRepo.findByTraceId(trace.traceId);
       expect(updatedTrace?.projectId).toBe('aismr');
       
-      // Verify trace_prep includes set_project in allowedTools for Casey
+      // Verify trace_prep includes trace_update in allowedTools for Casey
       const prepResult = await prepareTraceContext({
         traceId: trace.traceId,
         sessionId: 'telegram:123',
         instructions: 'test',
       });
       
-      expect(prepResult.allowedTools).toContain('set_project');
+      expect(prepResult.allowedTools).toContain('trace_update');
     });
   });
 });
