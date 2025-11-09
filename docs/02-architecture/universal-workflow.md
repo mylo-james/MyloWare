@@ -12,6 +12,8 @@ Instead of 6 separate workflows (one per persona), we have **one workflow** that
 - Loads that persona's configuration and executes as that agent
 - Hands off to the same workflow with a new traceId
 
+> **Naming note:** The MCP tool is named `trace_prepare`, while the HTTP endpoint exposed to the workflow is `/mcp/trace_prep`. Use the tool name when discussing MCP contracts and the endpoint name when configuring n8n nodes.
+
 **Key Benefits:**
 - Zero duplication
 - One template to maintain
@@ -134,7 +136,7 @@ Every execution follows this simple pattern:
 }
 ```
 
-**Response:**
+**Response:** (proxied to the MCP tool `trace_prepare`)
 ```json
 {
   "traceId": "trace-aismr-001",
@@ -243,6 +245,17 @@ AI Agent becomes Iggy
 ## Tool Taxonomy
 
 The system distinguishes between **MCP tools** (direct function calls) and **Workflow tools** (persona-restricted n8n workflows):
+
+### Project Playbook Loading
+
+When `/mcp/trace_prep` calls the `trace_prepare` MCP tool, it loads project playbooks from `data/projects/{projectName}/` before assembling the prompt:
+
+- `workflow.json` supplies workflow overrides or additional metadata
+- `guardrails.json` and the `guardrails/` directory contribute fine-grained constraints grouped by category
+- `agent-expectations.json` adds persona-specific expectations or prompt templates
+- `project.json` acts as a fallback when other files are absent
+
+`loadProjectPlaybooks()` merges these artifacts with the project record, and `prepareTraceContext()` injects the merged guardrails and expectations directly into the system prompt that the AI agent receives.
 
 ### MCP Tools
 - Direct function calls via MCP protocol
@@ -360,6 +373,27 @@ The canonical workflow order is: **Casey → Iggy → Riley → Veo → Alex →
 6. **Quinn** (Publisher): Calls `Workflow: Upload to TikTok (Quinn-only)` or `Workflow: Upload to Drive (Quinn-only)`, stores platform URLs, calls `handoff_to_agent({toAgent: 'complete'})`
 
 **Key Principle:** Each persona executes their work autonomously and hands off directly to the next. Casey coordinates kickoff and completion, but doesn't micromanage the middle.
+
+---
+
+### Example Trace (AISMR Happy Path)
+
+The Epic 2 test suite exercises this flow end-to-end with a real trace:
+- `tests/e2e/full-aismr-happy-path.test.ts` verifies every handoff, memory write, and trace status transition completes in under 30 seconds (stubbed externals).
+- `tests/integration/casey-iggy-handoff.test.ts` → `tests/integration/alex-quinn-handoff.test.ts` assert each pairwise handoff updates ownership, stores handoff memories, and loads the next persona’s playbook prompt.
+
+Representative trace history (`traceId = trace-aismr-*`):
+
+| Step | Persona | Stored Memory (persona/project) | Handoff Target |
+|------|---------|---------------------------------|----------------|
+| 0    | Casey   | Kickoff brief (`casey` / `aismr`) | Iggy           |
+| 1    | Iggy    | 12 modifiers (`iggy` / `aismr`)   | Riley          |
+| 2    | Riley   | 12 scripts (`riley` / `aismr`)    | Veo            |
+| 3    | Veo     | 12 video URLs (`veo` / `aismr`)   | Alex           |
+| 4    | Alex    | Final edit URL (`alex` / `aismr`) | Quinn          |
+| 5    | Quinn   | Published URL (`quinn` / `aismr`) | `complete`     |
+
+Every memory is tagged with the shared `traceId`, so downstream personas can load upstream work via `memory_search({ traceId })`.
 
 ---
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { WorkflowRunRepository } from '@/db/repositories/workflow-run-repository.js';
 import { db } from '@/db/client.js';
 import { workflowRuns } from '@/db/schema.js';

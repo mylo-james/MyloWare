@@ -28,7 +28,17 @@ Projects define production types (AISMR, GenReact, etc.). Each project specifies
 
 ### 1. Create Project Configuration
 
-Create `data/projects/your-project.json`:
+Create a directory at `data/projects/your-project/` with the following files:
+
+```
+data/projects/your-project/
+├── project.json
+├── guardrails.json
+├── workflow.json
+└── agent-expectations.json
+```
+
+#### `project.json`
 
 ```json
 {
@@ -71,13 +81,58 @@ Create `data/projects/your-project.json`:
 - `specs` - Production requirements
 - `guardrails` - Quality constraints
 
+#### `guardrails.json`
+
+Summarize the non-negotiable rules for this project. Example:
+
+```json
+{
+  "content_policy": {
+    "forbidden_topics": ["violence", "explicit_content"],
+    "required_elements": ["product insight", "call to action"]
+  },
+  "technical_constraints": {
+    "video_duration_seconds": 30,
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920"
+  }
+}
+```
+
+#### `workflow.json`
+
+Explicit list of personas (including optional agents):
+
+```json
+{
+  "workflow": ["casey", "iggy", "riley", "veo", "alex", "quinn"]
+}
+```
+
+#### `agent-expectations.json`
+
+Role-specific expectations surface directly in the system prompt.
+
+```json
+{
+  "casey": {
+    "instructions_template": "Kick off product review trace about {topic}. Confirm project alignment, then brief Iggy.",
+    "handoff_checklist": ["project set", "topic validated", "memory_search completed"]
+  },
+  "iggy": {
+    "deliverable": "5 hero talking points",
+    "requirements": ["Reference previous launches", "Flag risky claims"]
+  }
+}
+```
+
 ### 2. Seed Project to Database
 
 ```bash
 npm run migrate:projects
 ```
 
-This reads `data/projects/*.json` and upserts to database.
+This reads `data/projects/*/project.json` and upserts core metadata to the database. Guardrails, workflow, and expectations stay in the filesystem for trace preparation.
 
 ### 3. Verify Project
 

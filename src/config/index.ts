@@ -29,6 +29,8 @@ function normalizeDatabaseUrl(url: string | undefined): string | undefined {
   return url;
 }
 
+const DEFAULT_ALLOWED_HOST_KEYS = ['127.0.0.1', 'localhost', 'mcp-server'] as const;
+
 const ConfigSchema = z.object({
   database: z.object({
     url: z.string().url(),
@@ -56,11 +58,21 @@ const ConfigSchema = z.object({
     webhookAuthToken: z.string().optional(),
     webhookHeaderName: z.string().default('x-api-key'),
   }),
-  security: z
+  session: z.object({
+    ttlMs: z.number().default(3_600_000), // 1 hour
+    maxSessionsPerUser: z.number().default(10),
+  }),
+  security: z.object({
+    allowedCorsOrigins: z.array(z.string()).default([]),
+    allowedHostKeys: z.array(z.string()).default([...DEFAULT_ALLOWED_HOST_KEYS]),
+    debugAuth: z.boolean().default(false),
+    rateLimitMax: z.number().default(100),
+    rateLimitTimeWindow: z.string().default('1 minute'),
+  }),
+  web: z
     .object({
-      allowedOrigins: z.array(z.string()).default(['http://localhost:5678', 'http://n8n:5678']),
-      rateLimitMax: z.number().default(100),
-      rateLimitTimeWindow: z.string().default('1 minute'),
+      userAgent: z.string().default('MyloWareBot/1.0'),
+      timeoutMs: z.number().default(10000),
     })
     .optional(),
   logLevel: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
@@ -122,12 +134,28 @@ export const config = ConfigSchema.parse({
     webhookAuthToken: process.env.N8N_WEBHOOK_AUTH_TOKEN,
     webhookHeaderName: process.env.N8N_WEBHOOK_HEADER_NAME || 'x-api-key',
   },
+  session: {
+    ttlMs: parseInt(process.env.SESSION_TTL_MS || '3600000'),
+    maxSessionsPerUser: parseInt(process.env.MAX_SESSIONS_PER_USER || '10'),
+  },
   security: {
-    allowedOrigins: process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['*'],
+    allowedCorsOrigins: process.env.ALLOWED_CORS_ORIGINS
+      ? process.env.ALLOWED_CORS_ORIGINS.split(',')
+          .map((origin) => origin.trim())
+          .filter((origin) => origin.length > 0)
+      : [],
+    allowedHostKeys: process.env.ALLOWED_HOST_KEYS
+      ? process.env.ALLOWED_HOST_KEYS.split(',')
+          .map((host) => host.trim())
+          .filter((host) => host.length > 0)
+      : [...DEFAULT_ALLOWED_HOST_KEYS],
+    debugAuth: (process.env.DEBUG_AUTH || '').toLowerCase() === 'true',
     rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100'),
     rateLimitTimeWindow: process.env.RATE_LIMIT_TIME_WINDOW || '1 minute',
+  },
+  web: {
+    userAgent: process.env.WEB_FETCH_USER_AGENT || 'MyloWareBot/1.0',
+    timeoutMs: parseInt(process.env.WEB_FETCH_TIMEOUT_MS || '10000'),
   },
   logLevel: (process.env.LOG_LEVEL as LogLevel | undefined) || 'info',
 });

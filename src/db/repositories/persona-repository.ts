@@ -35,6 +35,14 @@ export class PersonaRepository {
     return results as Persona[];
   }
 
+  async listAllNames(): Promise<string[]> {
+    const results = await db
+      .select({ name: personas.name })
+      .from(personas);
+
+    return results.map((r) => r.name);
+  }
+
   async insert(persona: Omit<Persona, 'id' | 'createdAt' | 'updatedAt'>): Promise<Persona> {
     const [result] = await db
       .insert(personas)

@@ -3,7 +3,7 @@ import tsparser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'tests/**'],
+    ignores: ['dist/**', 'node_modules/**'],
   },
   {
     files: ['src/**/*.ts'],
@@ -36,6 +36,21 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-console': 'off', // Scripts can use console
       'prefer-const': 'error',
+    },
+  },
+  {
+    files: ['tests/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-console': 'off',
     },
   },
 ];

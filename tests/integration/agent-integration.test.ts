@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { discoverWorkflow } from '@/tools/workflow/discoverTool.js';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
 import { storeMemory } from '@/tools/memory/storeTool.js';
 import { SessionRepository } from '@/db/repositories/session-repository.js';
 import { db } from '@/db/client.js';
-import { sessions, workflowRuns, memories } from '@/db/schema.js';
+import { sessions, workflowRuns } from '@/db/schema.js';
 
 describe('Agent Integration', () => {
   beforeAll(async () => {

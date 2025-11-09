@@ -2,6 +2,12 @@
 
 Complete guide for deploying MCP Prompts V2 to production.
 
+## Related Guides
+
+- [Security Hardening](./security-hardening.md) – Lock down CORS, hosts, keys, and HITL
+- [Production Runbook](./production-runbook.md) – Day-2 operations, incident response
+- [Troubleshooting](./troubleshooting.md) – Common failure scenarios
+
 ---
 
 ## Prerequisites
@@ -49,7 +55,9 @@ N8N_BASE_URL=https://n8n.yourdomain.com
 N8N_API_KEY=your-n8n-api-key
 
 # Security
-ALLOWED_ORIGINS=https://yourdomain.com,https://n8n.yourdomain.com
+ALLOWED_CORS_ORIGINS=https://yourdomain.com,https://n8n.yourdomain.com
+ALLOWED_HOST_KEYS=127.0.0.1,localhost,mcp.yourdomain.com
+DEBUG_AUTH=false
 RATE_LIMIT_MAX=100
 RATE_LIMIT_TIME_WINDOW=1 minute
 

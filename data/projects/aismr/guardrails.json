@@ -1,0 +1,25 @@
+{
+  "content_policy": {
+    "forbidden_topics": ["violence", "explicit_content", "politics"],
+    "required_elements": ["surreal modifier", "TikTok-ready pacing", "narrated whisper beat"]
+  },
+  "technical_constraints": {
+    "video_duration_seconds": 8,
+    "video_count": 12,
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "whisper_timing_seconds": 3,
+    "max_visible_hands": 2
+  },
+  "style_requirements": {
+    "mood": ["dreamlike", "uncanny", "tactile"],
+    "originality": "Each modifier must feel novel—no recycling recent ideas",
+    "camera": "Single-shot compositions that feel handheld but stable"
+  },
+  "audio_requirements": {
+    "music": "Ambient or minimalist score that supports the surreal tone",
+    "voice": "Whispered narration timed to the 3 second beat",
+    "foley": "Accentuate texture transitions (pouring wax, shimmering sparkles, etc.)"
+  }
+}
+

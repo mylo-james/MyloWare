@@ -46,6 +46,8 @@ Connect external systems.
 ### 🔧 Operations
 Run, monitor, and troubleshoot production.
 
+- [Security Hardening](05-operations/security-hardening.md) - Lock down deployment surface
+- [Production Runbook](05-operations/production-runbook.md) - Day-2 operations & incident response
 - [Observability](05-operations/observability.md) - Metrics and queries
 - [Troubleshooting](05-operations/troubleshooting.md) - Common issues and fixes
 - [Deployment](05-operations/deployment.md) - Production deployment guide

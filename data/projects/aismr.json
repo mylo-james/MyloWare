@@ -1,0 +1,23 @@
+{
+  "title": "AISMR Surreal Studio",
+  "workflow": ["casey", "iggy", "riley", "veo", "alex", "quinn"],
+  "optionalSteps": [],
+  "guardrails": {
+    "tone": "surreal_impossible",
+    "delivery": "TikTok-ready pacing",
+    "safety": "Filter disallowed subjects"
+  },
+  "orientation": {
+    "what_we_are": [
+      "Surreal short-form storytelling studio"
+    ],
+    "key_metrics": [
+      "Completion rate",
+      "Modifier originality"
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0"
+  }
+}
+

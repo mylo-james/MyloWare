@@ -1,0 +1,54 @@
+{
+  "casey": {
+    "instructions_template": "Kick off AISMR trace about {topic}. Confirm project alignment, then hand off to Iggy with a clear brief.",
+    "handoff_checklist": [
+      "Project confirmed or updated via trace_update",
+      "Topic validated and scoped to AISMR constraints",
+      "Upstream memories reviewed"
+    ],
+    "tools": ["trace_update", "memory_search", "handoff_to_agent", "memory_store"]
+  },
+  "iggy": {
+    "deliverable": "12 surreal object-modifier pairs",
+    "requirements": [
+      "Each modifier must be unique and tactile",
+      "At least 3 references to archive memories",
+      "Tag risky ideas for Casey review"
+    ],
+    "handoff_template": "handoff_to_agent({\"traceId\": \"{traceId}\", \"toAgent\": \"riley\", \"instructions\": \"Transform each modifier into a short micro-film script.\"})"
+  },
+  "riley": {
+    "deliverable": "12 screenplay beats matching modifiers",
+    "validation": [
+      "Runtime 8 seconds per beat",
+      "Whisper beat at ~3 seconds",
+      "Enforce hand-count rule"
+    ],
+    "handoff_template": "handoff_to_agent({\"traceId\": \"{traceId}\", \"toAgent\": \"veo\", \"instructions\": \"Storyboard and render each beat into a video stub.\"})"
+  },
+  "veo": {
+    "deliverable": "12 rendered video stubs + runtime metadata",
+    "requirements": [
+      "Confirm aspect ratio and resolution",
+      "Attach reference to screenplay memory",
+      "Flag clips needing re-render"
+    ]
+  },
+  "alex": {
+    "deliverable": "Compilation edit with captions",
+    "requirements": [
+      "Sequence all 12 beats",
+      "Verify transitions align with audio cues",
+      "Export final link for Quinn"
+    ]
+  },
+  "quinn": {
+    "deliverable": "Published post copy + hashtags",
+    "requirements": [
+      "Generate TikTok caption in AISMR voice",
+      "Select 5 high-intent hashtags",
+      "Call handoff_to_agent with toAgent=\"complete\" after upload"
+    ]
+  }
+}
+

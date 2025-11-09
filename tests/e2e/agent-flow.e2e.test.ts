@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { searchMemories } from '@/tools/memory/searchTool.js';
 import { storeMemory } from '@/tools/memory/storeTool.js';
 import { discoverWorkflow } from '@/tools/workflow/discoverTool.js';
@@ -79,7 +79,7 @@ describe('Agent E2E Flow', () => {
       tags: ['workflow', 'idea-generation']
     });
     
-    const memory2 = await storeMemory({
+    await storeMemory({
       content: 'Workflow steps for idea generation',
       memoryType: 'procedural',
       project: ['aismr'],

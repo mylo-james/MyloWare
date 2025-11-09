@@ -115,8 +115,11 @@ describe('Memory Graph Integration', () => {
     const hop1Ids = hop1.memories.map((m) => m.id);
     const hop2Ids = hop2.memories.map((m) => m.id);
 
-    // Hop 2 should include more memories
-    expect(hop2Ids.length).toBeGreaterThanOrEqual(hop1Ids.length);
+    expect(hop1Ids).toContain(memoryB.id);
+    expect(hop1Ids).not.toContain(memoryC.id);
+
+    expect(hop2Ids).toContain(memoryC.id);
+    expect(hop2Ids).not.toContain(memoryD.id);
   });
 });
 

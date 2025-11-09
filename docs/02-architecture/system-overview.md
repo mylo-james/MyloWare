@@ -56,7 +56,7 @@
 ### Universal Workflow
 One n8n workflow (`myloware-agent.workflow.json`) handles all personas:
 - Receives trigger (Telegram/Chat/Webhook)
-- Calls `trace_prep` to discover persona from trace
+- Calls the MCP tool `trace_prepare` via the HTTP endpoint `/mcp/trace_prep` to discover persona from the trace
 - Executes as that persona with scoped tools
 - Hands off to next agent via webhook
 
@@ -74,11 +74,21 @@ See [Trace State Machine](trace-state-machine.md) for details.
 ### MCP Tools
 10+ tools for memory, coordination, and execution:
 - `memory_search` / `memory_store` - Context and outputs
-- `trace_create` / `handoff_to_agent` - Coordination
+- `trace_create` / `handoff_to_agent` - Coordination (terminal targets `complete` and `error` are implemented in `handoff_to_agent`)
 - `context_get_persona` / `context_get_project` - Configuration
 - `job_upsert` / `jobs_summary` - Async job tracking
 
 See [MCP Tools Reference](../06-reference/mcp-tools.md) for complete catalog.
+
+### Project Playbooks
+Project-specific guardrails live in `data/projects/{projectName}/` as JSON playbooks:
+
+- `workflow.json` - Overrides or augments the database workflow definition
+- `guardrails.json` and the `guardrails/` directory - Fine-grained constraints grouped by category
+- `agent-expectations.json` - Persona-specific expectations or prompt templates
+- `project.json` - Optional source of defaults when other files are absent
+
+`prepareTraceContext()` (in `src/utils/trace-prep.ts`) loads these files, merges them with the project record from the database, and injects the results into each persona’s system prompt so that the AI agent receives project-specific guidance automatically.
 
 ### Database
 PostgreSQL with pgvector extension:

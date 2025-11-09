@@ -10,6 +10,25 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+type ToolWorkflowNode = {
+  type?: string;
+  name?: string;
+  parameters?: {
+    workflowId?: { value?: string };
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+type WorkflowJson = {
+  nodes?: ToolWorkflowNode[];
+  [key: string]: unknown;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function validateWorkflowIds() {
   console.log('🔍 Validating workflow IDs...\n');
 
@@ -45,7 +64,7 @@ async function validateWorkflowIds() {
       }
     } catch (error) {
       console.error(
-        `❌ Workflow not found in n8n: ${mapping.workflowKey} (${mapping.workflowId})`
+        `❌ Workflow not found in n8n: ${mapping.workflowKey} (${mapping.workflowId}) - ${getErrorMessage(error)}`
       );
       hasErrors = true;
     }
@@ -54,18 +73,23 @@ async function validateWorkflowIds() {
   // Check universal workflow JSON
   console.log('\n📋 Checking universal workflow JSON...\n');
   const path = resolve(__dirname, '../../workflows/myloware-agent.workflow.json');
-  const workflow = JSON.parse(readFileSync(path, 'utf-8'));
+  const workflow = JSON.parse(readFileSync(path, 'utf-8')) as WorkflowJson;
 
-  for (const node of workflow.nodes) {
+  for (const node of workflow.nodes ?? []) {
     if (node.type === '@n8n/n8n-nodes-langchain.toolWorkflow') {
-      const id = node.parameters.workflowId.value;
-      const nodeName = node.name;
+      const id = node.parameters?.workflowId?.value;
+      const nodeName = node.name ?? 'Unknown node';
+      if (typeof id !== 'string' || id.length === 0) {
+        console.error(`❌ Missing workflow ID in ${nodeName}`);
+        hasErrors = true;
+        continue;
+      }
 
       try {
         await n8nClient.getWorkflow(id);
         console.log(`✓ ${nodeName} → ${id}`);
       } catch (error) {
-        console.error(`❌ Invalid workflow ID in ${nodeName}: ${id}`);
+        console.error(`❌ Invalid workflow ID in ${nodeName}: ${id} (${getErrorMessage(error)})`);
         hasErrors = true;
       }
     }
@@ -80,7 +104,7 @@ async function validateWorkflowIds() {
 }
 
 validateWorkflowIds().catch((error) => {
-  console.error('❌ Validation failed:', error);
+  console.error('❌ Validation failed:', getErrorMessage(error));
   process.exit(1);
 });
 

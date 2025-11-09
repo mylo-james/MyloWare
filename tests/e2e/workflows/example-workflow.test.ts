@@ -9,7 +9,7 @@
  *   3. Run test: NODE_ENV=test TEST_LIVE_SERVICES=1 npx vitest tests/e2e/workflows/example-workflow.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { WorkflowTestRunner } from './workflow-test-runner.js';
 
 describe('Example: n8n Workflow Test', () => {

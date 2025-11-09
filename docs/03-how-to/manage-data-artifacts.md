@@ -394,6 +394,114 @@ The old `data/` directory is deprecated. To migrate:
 
 ---
 
+## Knowledge Ingestion Workflow
+
+The `knowledge_ingest` tool allows agents to enrich the knowledge base by ingesting external sources (URLs or raw text). This is useful when agents need to learn about new APIs, documentation, or domain knowledge.
+
+### Basic Usage
+
+Casey receives a knowledge dump and wants to enrich the knowledge base:
+
+```javascript
+// Casey calls knowledge_ingest with URLs
+knowledge_ingest({
+  traceId: "trace-001",
+  urls: ["https://shotstack.io/docs/api"],
+  bias: { persona: ["veo"], project: ["aismr"] }
+})
+// Returns: { inserted: 12, updated: 3, skipped: 0 }
+```
+
+### How It Works
+
+1. **Fetch URLs** (if provided): Uses `web_read` to fetch and extract text from URLs
+2. **Chunk Text**: Splits content into ~1500 character chunks at sentence boundaries
+3. **Classify**: Uses GPT-4o-mini to classify each chunk:
+   - Which personas would find this useful?
+   - Which projects does this relate to?
+   - What memory type (semantic/procedural/episodic)?
+4. **Deduplicate**: Searches for similar memories using vector similarity (0.92 threshold by default)
+   - If duplicate found: Merges persona/project arrays, updates metadata
+   - If new: Detects related memories and stores with links
+5. **Store**: Creates semantic memories with proper tags and metadata
+
+### Bias Parameters
+
+Use `bias` to guide classification toward specific personas/projects:
+
+```javascript
+knowledge_ingest({
+  traceId: "trace-001",
+  text: "API documentation about video generation",
+  bias: {
+    persona: ["veo", "alex"],  // Likely relevant to these personas
+    project: ["aismr"]         // Likely relevant to this project
+  }
+})
+```
+
+The bias is merged with LLM classification - if the LLM says "iggy" but you bias with "veo", both will be included.
+
+### Deduplication Threshold
+
+The `minSimilarity` parameter controls how strict deduplication is:
+
+- **0.92 (default)**: Moderate deduplication - updates existing memories if very similar
+- **0.95**: Loose - only updates if almost identical
+- **0.88**: Strict - more likely to create new memories
+
+```javascript
+knowledge_ingest({
+  traceId: "trace-001",
+  text: "Similar content to existing memory",
+  minSimilarity: 0.95  // Only update if 95%+ similar
+})
+```
+
+### Example: Enriching Knowledge Base
+
+Casey receives a request to learn about a new video API:
+
+```javascript
+// 1. Search for existing knowledge
+memory_search({ query: "Shotstack API", traceId: "trace-001" })
+// Returns sparse results
+
+// 2. Ingest documentation
+knowledge_ingest({
+  traceId: "trace-001",
+  urls: [
+    "https://shotstack.io/docs/api",
+    "https://shotstack.io/docs/api/rate-limits"
+  ],
+  bias: { persona: ["veo"], project: ["aismr"] }
+})
+
+// 3. Now Veo can search and find enriched knowledge
+memory_search({
+  query: "Shotstack rate limits",
+  persona: "veo",
+  traceId: "trace-002"
+})
+// Returns enriched results with source URLs in metadata
+```
+
+### Best Practices
+
+- **Always include traceId**: Required for coordination and tracking
+- **Use bias when you know relevance**: Helps classification accuracy
+- **Batch URLs**: Pass multiple URLs in one call for efficiency
+- **Check for duplicates**: Use `memory_search` first to see if knowledge already exists
+- **Review inserted/updated counts**: High `updated` count suggests good deduplication
+
+### Related Tools
+
+- `web_search` - Search the web for sources before ingesting
+- `web_read` - Fetch and extract text from a single URL
+- `memory_search` - Query ingested knowledge
+
+---
+
 ## Next Steps
 
 - [Add a Persona](add-a-persona.md) - Detailed persona creation guide

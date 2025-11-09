@@ -57,7 +57,6 @@ describe('Concurrent Handoffs Integration', () => {
     });
 
     // Create initial trace (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'test-project',
       sessionId: 'test-session',
@@ -143,7 +142,6 @@ describe('Concurrent Handoffs Integration', () => {
     });
 
     // Create initial trace (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'test-project',
     });
@@ -204,15 +202,11 @@ describe('Concurrent Handoffs Integration', () => {
 
   it('should maintain data consistency with concurrent terminal handoffs', async () => {
     // Setup: Create trace (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
-    const createdTrace = await traceRepo.create(
-      {
-        projectId: 'test-project',
-      },
-      'req-terminal-1'
-    );
+    const createdTrace = await traceRepo.create({
+      projectId: 'test-project',
+    });
 
-    const traceId = createResult.structuredContent?.traceId as string;
+    const traceId = createdTrace.traceId;
 
     // Verify initial state
     const initialTrace = await traceRepo.findByTraceId(traceId);
@@ -285,7 +279,6 @@ describe('Concurrent Handoffs Integration', () => {
     });
 
     // Create initial trace (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'test-project',
     });

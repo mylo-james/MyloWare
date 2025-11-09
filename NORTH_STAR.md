@@ -25,6 +25,15 @@ Instead of 6 separate workflows, we have **one workflow** (`myloware-agent.workf
 - Loads that persona's configuration and executes as that agent
 - Hands off to the same workflow with a new traceId
 
+### Quick Code Entry Points
+
+Jump straight into the implementation with these anchors:
+
+- `src/api/routes/trace-prep.ts` – Fastify route that exposes `/mcp/trace_prep` to n8n
+- `src/utils/trace-prep.ts` – `prepareTraceContext()` and `loadProjectPlaybooks()` prompt assembly
+- `src/mcp/tools.ts` – Full MCP tool catalog, including terminal logic in `handoff_to_agent`
+- `workflows/myloware-agent.workflow.json` – The universal n8n workflow (Edit Fields → trace_prep → AI Agent)
+
 ### 2. Trace as State Machine
 
 The `execution_traces` table is the single source of truth:

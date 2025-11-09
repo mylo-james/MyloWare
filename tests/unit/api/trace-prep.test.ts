@@ -30,7 +30,6 @@ const mockSearchMemories = vi.mocked(searchMemories);
 const projectRepo = new ProjectRepository();
 let generalProjectId: string;
 let aismrProjectId: string;
-let testProjectId: string;
 
 describe('trace_prep HTTP Endpoint', () => {
   const traceRepo = new TraceRepository();
@@ -63,8 +62,6 @@ describe('trace_prep HTTP Endpoint', () => {
 
     generalProjectId = await ensureProject('general', 'General Conversations', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
     aismrProjectId = await ensureProject('aismr', 'AISMR project', ['casey', 'iggy', 'riley', 'veo', 'alex', 'quinn']);
-    testProjectId = await ensureProject('test-project', 'Test project', ['casey', 'iggy']);
-
     // Default mocks
     mockGetPersona.mockResolvedValue({
       persona: {

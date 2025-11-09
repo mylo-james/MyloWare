@@ -34,9 +34,9 @@ export class MemoryRepository {
       conditions.push(sql`${project} = ANY(${memories.project})`);
     }
 
-    // Filter by traceId metadata
+    // Filter by traceId
     if (traceId) {
-      conditions.push(sql`${memories.metadata} ->> 'traceId' = ${traceId}`);
+      conditions.push(eq(memories.traceId, traceId));
     }
 
     // Filter by minimum similarity (cosine similarity = 1 - cosine distance)
@@ -103,7 +103,7 @@ export class MemoryRepository {
     }
 
     if (traceId) {
-      conditions.push(sql`${memories.metadata} ->> 'traceId' = ${traceId}`);
+      conditions.push(eq(memories.traceId, traceId));
     }
 
     const where = and(...conditions);
@@ -125,10 +125,42 @@ export class MemoryRepository {
     const traceId = memory.metadata?.traceId as string | undefined;
     const insertValues = {
       ...memory,
+      // Only set traceId if it exists in execution_traces (FK constraint)
+      // For knowledge ingestion outside of traces, traceId will be null
       traceId: traceId || null,
     };
-    const [result] = await db.insert(memories).values(insertValues).returning();
-    return result as Memory;
+    
+    try {
+      const [result] = await db.insert(memories).values(insertValues).returning();
+      return result as Memory;
+    } catch (error) {
+      // If FK constraint fails (trace doesn't exist), retry with traceId = null
+      // This handles knowledge ingestion outside of production traces
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorString = String(error);
+      const errorWithCode = error as { code?: unknown } | undefined;
+      const errorCode =
+        typeof errorWithCode?.code === 'string' ? (errorWithCode.code as string) : undefined;
+      
+      // Check for FK constraint violation (Postgres error code 23503 or error message)
+      const isForeignKeyError =
+        errorCode === '23503' ||
+        errorMessage.includes('foreign key constraint') ||
+        errorMessage.includes('memories_trace_id_fk') ||
+        errorString.includes('foreign key constraint') ||
+        errorString.includes('memories_trace_id_fk');
+      
+      if (isForeignKeyError && insertValues.traceId) {
+        // Retry without traceId
+        const insertValuesWithoutTrace = {
+          ...insertValues,
+          traceId: null,
+        };
+        const [result] = await db.insert(memories).values(insertValuesWithoutTrace).returning();
+        return result as Memory;
+      }
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<Memory | null> {
@@ -217,7 +249,7 @@ export class MemoryRepository {
     traceId: string,
     params: { persona?: string; project?: string; limit?: number; offset?: number }
   ): Promise<Memory[]> {
-    const conditions = [sql`${memories.metadata} ->> 'traceId' = ${traceId}`];
+    const conditions = [eq(memories.traceId, traceId)];
 
     if (params.persona) {
       conditions.push(sql`${params.persona} = ANY(${memories.persona})`);

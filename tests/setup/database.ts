@@ -41,7 +41,7 @@ async function waitForDatabase(url: string, retries = 30, delayMs = 1000) {
       await client.connect();
       await client.end();
       return;
-    } catch (error) {
+    } catch {
       await client.end().catch(() => {});
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }

@@ -1,8 +1,4 @@
-import Fastify, {
-  type FastifyReply,
-  type FastifyRequest,
-  type RouteHandler,
-} from 'fastify';
+import Fastify, { type RouteHandler } from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -16,11 +12,13 @@ import { logger } from './utils/logger.js';
 import { pool } from './db/client.js';
 import { embedText } from './utils/embedding.js';
 import { register } from './utils/metrics.js';
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { handleTracePrep } from './api/routes/trace-prep.js';
 import { startRetryQueueProcessor, stopRetryQueueProcessor } from './utils/retry-queue.js';
-const hashValue = (value: string) =>
-  createHash('sha256').update(value).digest('hex');
+import { authenticateRequest } from './security/authentication.js';
+import { TraceRepository } from './db/repositories/index.js';
+import { getPersona } from './tools/context/getPersonaTool.js';
+import { deriveAllowedTools } from './utils/trace-prep.js';
 
 const fastify = Fastify({
   logger: {
@@ -100,6 +98,25 @@ const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 let cleanupInterval: NodeJS.Timeout | null = null;
 
 // Be liberal in detecting initialize requests to comply with evolving spec
+type InitializeClientInfo = {
+  name?: string;
+  version?: string;
+  [key: string]: unknown;
+};
+
+type InitializeParams = {
+  clientInfo?: InitializeClientInfo;
+  capabilities?: Record<string, unknown>;
+  protocolVersion?: string;
+  [key: string]: unknown;
+};
+
+type MutableInitializeMessage = {
+  method?: string;
+  params?: InitializeParams;
+  [key: string]: unknown;
+};
+
 function looksLikeInitializeRequest(payload: unknown): boolean {
   try {
     if (!payload || typeof payload !== 'object') return false;
@@ -120,14 +137,14 @@ function looksLikeInitializeRequest(payload: unknown): boolean {
       });
     }
     // Fallback to SDK type guard if available
-    return isInitializeRequest(obj as any);
+    return isInitializeRequest(obj as Parameters<typeof isInitializeRequest>[0]);
   } catch {
     return false;
   }
 }
 
 function normalizeInitializeMessages(payload: unknown): unknown {
-  const normalize = (message: Record<string, any>) => {
+  const normalize = (message: MutableInitializeMessage) => {
     if (!message || typeof message !== 'object') {
       return;
     }
@@ -140,7 +157,7 @@ function normalizeInitializeMessages(payload: unknown): unknown {
     if (!message.params || typeof message.params !== 'object') {
       message.params = {};
     }
-    const params = message.params as Record<string, any>;
+    const params = message.params;
     if (!params.clientInfo || typeof params.clientInfo !== 'object') {
       params.clientInfo = {
         name: 'unknown-client',
@@ -165,14 +182,14 @@ function normalizeInitializeMessages(payload: unknown): unknown {
   if (Array.isArray(payload)) {
     payload.forEach((item) => {
       if (item && typeof item === 'object') {
-        normalize(item as Record<string, any>);
+        normalize(item as MutableInitializeMessage);
       }
     });
     return payload;
   }
 
   if (payload && typeof payload === 'object') {
-    normalize(payload as Record<string, any>);
+    normalize(payload as MutableInitializeMessage);
   }
   return payload;
 }
@@ -248,81 +265,6 @@ fastify.get('/metrics', async (request, reply) => {
   return register.metrics();
 });
 
-const authenticateRequest = (
-  request: FastifyRequest,
-  reply: FastifyReply,
-  requestId: string,
-): request is FastifyRequest => {
-  if (!config.mcp.authKey) {
-    return true;
-  }
-
-  const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
-  const providedKey = apiKeyHeader?.trim() || '';
-
-  // Use constant-time comparison to prevent timing attacks
-  try {
-    const expectedKeyBuffer = Buffer.from(config.mcp.authKey, 'utf8');
-    const providedKeyBuffer = Buffer.from(providedKey, 'utf8');
-    
-    // If lengths differ, use timingSafeEqual with same-length buffers to prevent length-based timing leaks
-    if (expectedKeyBuffer.length !== providedKeyBuffer.length) {
-      // Compare with a dummy buffer of the same length as expected to maintain constant time
-      const dummyBuffer = Buffer.alloc(expectedKeyBuffer.length);
-      timingSafeEqual(expectedKeyBuffer, dummyBuffer);
-      return false;
-    }
-    
-    if (timingSafeEqual(expectedKeyBuffer, providedKeyBuffer)) {
-      return true;
-    }
-  } catch {
-    // If timingSafeEqual fails (shouldn't happen), fall back to false
-    return false;
-  }
-
-  // In production, log minimal info. In development, log detailed debug info.
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  if (isProduction) {
-    logger.warn({
-      msg: 'Unauthorized MCP access attempt',
-      requestId,
-      ip: request.ip,
-      url: request.url,
-      method: request.method,
-      // Don't log sensitive data in production
-    });
-  } else {
-    // Debug logging for development only
-  logger.warn({
-    msg: 'Unauthorized MCP access attempt',
-    requestId,
-    ip: request.ip,
-    userAgent: request.headers['user-agent'],
-    url: request.url,
-    method: request.method,
-    headerKeys: Object.keys(request.headers ?? {}),
-    providedKeyLength: providedKey?.length ?? 0,
-    expectedKeyLength: config.mcp.authKey?.length ?? 0,
-      keysMatch: providedKey === config.mcp.authKey,
-      // Only log hashes in development, never actual keys
-    providedKeyHash: providedKey ? hashValue(providedKey) : null,
-    expectedKeyHash: config.mcp.authKey ? hashValue(config.mcp.authKey) : null,
-  });
-  }
-
-  reply.code(401).send({
-    jsonrpc: '2.0',
-    error: {
-      code: -32001,
-      message: 'Unauthorized',
-    },
-    id: null,
-  });
-  return false;
-};
-
 const handleMcpRequest: RouteHandler = async (request, reply) => {
   const requestId = randomUUID();
   const startTime = Date.now();
@@ -375,24 +317,18 @@ const handleMcpRequest: RouteHandler = async (request, reply) => {
       });
       // New initialization request - create new session
       const port = config.server.port;
-      // Check if origins include wildcard - if so, disable origin validation
-      const hasWildcard = config.security?.allowedOrigins?.includes('*');
-      const allowedOrigins = hasWildcard ? undefined : (config.security?.allowedOrigins || []);
-      
+      const corsOrigins = config.security.allowedCorsOrigins;
+      const baseHosts = config.security.allowedHostKeys;
+      const hostsWithPorts = Array.from(
+        new Set(baseHosts.flatMap((host) => [host, `${host}:${port}`])),
+      );
+      const allowedOrigins = corsOrigins.length > 0 ? corsOrigins : undefined;
+
       transport = new StreamableHTTPServerTransport({
         enableJsonResponse: true,
         sessionIdGenerator: () => randomUUID(),
-        enableDnsRebindingProtection: false, // Disable for internal Docker network
-        allowedHosts: [
-          '127.0.0.1',
-          `127.0.0.1:${port}`,
-          'localhost',
-          `localhost:${port}`,
-          'mcp-server',
-          `mcp-server:${port}`,
-          'mcp-vector.mjames.dev',
-          ...(config.security?.allowedOrigins?.filter(origin => origin !== '*') || [])
-        ],
+        enableDnsRebindingProtection: true,
+        allowedHosts: hostsWithPorts,
         allowedOrigins,
         onsessioninitialized: (newSessionId) => {
           // Store the transport by session ID
@@ -542,8 +478,61 @@ fastify.post('/tools/:toolName', async (request, reply) => {
       ip: request.ip,
     });
 
+    const normalizedToolName = toolName.trim();
+
+    // Persona gating for sensitive tools
+    const sensitiveTools = new Set(['workflow_trigger', 'jobs', 'job_upsert', 'jobs_summary']);
+    if (sensitiveTools.has(normalizedToolName)) {
+      if (!params || typeof params !== 'object') {
+        return reply.code(400).send({
+          error: `Body object with traceId is required to call '${normalizedToolName}'`,
+        });
+      }
+
+      const traceId = typeof (params as Record<string, unknown>).traceId === 'string'
+        ? (params as Record<string, unknown>).traceId
+        : undefined;
+
+      if (!traceId) {
+        return reply.code(400).send({
+          error: `Parameter 'traceId' is required to call '${normalizedToolName}'`,
+        });
+      }
+
+      const traceRepo = new TraceRepository();
+      const trace = await traceRepo.findByTraceId(traceId);
+
+      if (!trace) {
+        return reply.code(404).send({
+          error: `Trace not found: ${traceId}`,
+        });
+      }
+
+      const personaName = (trace.currentOwner || 'casey').toLowerCase();
+      const personaResult = await getPersona({ personaName });
+
+      const allowedTools = deriveAllowedTools({
+        personaName,
+        personaMeta: personaResult.meta ?? {},
+        personaConfig: personaResult.persona,
+        projectKnown: Boolean(trace.projectId),
+      });
+
+      const canonicalToolName =
+        normalizedToolName === 'job_upsert' || normalizedToolName === 'jobs_summary'
+          ? 'jobs'
+          : normalizedToolName;
+
+      if (!allowedTools.includes(canonicalToolName)) {
+        return reply.code(403).send({
+          error: `Tool '${normalizedToolName}' is not permitted for persona '${trace.currentOwner}'`,
+          allowedTools,
+        });
+      }
+    }
+
     // Find the tool
-    const tool = mcpTools.find(t => t.name === toolName);
+    const tool = mcpTools.find(t => t.name === normalizedToolName);
     if (!tool) {
       return reply.code(404).send({
         error: `Tool '${toolName}' not found`,
@@ -604,14 +593,22 @@ const start = async () => {
       crossOriginOpenerPolicy: false,
     });
 
+    // FAIL-CLOSED CORS: If no origins configured, reject all CORS requests
+    const corsOrigins = config.security.allowedCorsOrigins;
     await fastify.register(cors, {
-      origin: config.security?.allowedOrigins || ['http://localhost:5678', 'http://n8n:5678'],
+      origin: corsOrigins.length > 0 ? corsOrigins : false,
       credentials: true,
     });
 
+    logger.info({
+      msg: 'CORS configuration loaded',
+      originsCount: corsOrigins.length,
+      failClosed: corsOrigins.length === 0,
+    });
+
     await fastify.register(rateLimit, {
-      max: config.security?.rateLimitMax || 100,
-      timeWindow: config.security?.rateLimitTimeWindow || '1 minute',
+      max: config.security.rateLimitMax,
+      timeWindow: config.security.rateLimitTimeWindow,
       keyGenerator: (request) => {
         // Use API key for rate limiting if available, otherwise use IP
         return (

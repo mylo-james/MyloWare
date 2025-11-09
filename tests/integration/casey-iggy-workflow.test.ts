@@ -55,7 +55,6 @@ describe('Casey → Iggy workflow contract', () => {
       },
     });
 
-    const traceRepo = new TraceRepository();
     const traceResult = await traceRepo.create({
       projectId: 'aismr',
       sessionId: 'telegram:42',

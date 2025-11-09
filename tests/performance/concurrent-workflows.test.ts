@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { executeWorkflow } from '@/tools/workflow/executeTool.js';
 import { MemoryRepository } from '@/db/repositories/memory-repository.js';
 import { vi } from 'vitest';
-import { N8nClient } from '@/integrations/n8n/client.js';
 
 // Mock n8n client
 vi.mock('@/integrations/n8n/client.js', () => {

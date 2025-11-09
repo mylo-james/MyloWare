@@ -8,6 +8,25 @@ import { config } from '../../src/config/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+type WorkflowNode = {
+  type?: string;
+  parameters?: Record<string, unknown>;
+  credentials?: Record<string, { name?: string; id?: string }>;
+  [key: string]: unknown;
+};
+
+type WorkflowFile = {
+  name?: string;
+  nodes?: WorkflowNode[];
+  connections?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * Map workflow file names to their display names for registry
  */
@@ -82,14 +101,16 @@ async function importWorkflows() {
         },
       });
       if (response.ok) {
-        const creds = await response.json();
-        if (creds.data) {
-          credentialsByName = new Map(creds.data.map((c: any) => [c.name, c.id]));
+        const creds = (await response.json()) as { data?: Array<{ name: string; id: string }> };
+        if (Array.isArray(creds.data)) {
+          credentialsByName = new Map(creds.data.map((credential) => [credential.name, credential.id]));
           console.log(`   Found ${credentialsByName.size} credentials to match\n`);
         }
       }
-    } catch (e) {
-      console.log(`   ⚠️  Could not fetch credentials, will skip ID matching\n`);
+    } catch (error) {
+      console.log(
+        `   ⚠️  Could not fetch credentials, will skip ID matching (${getErrorMessage(error)})\n`,
+      );
     }
   }
 
@@ -99,62 +120,67 @@ async function importWorkflows() {
   for (const workflow of workflows) {
     try {
       console.log(`📥 Importing ${workflow.name}...`);
-      let rawWorkflow = JSON.parse(readFileSync(workflow.path, 'utf-8'));
+      const rawWorkflow = JSON.parse(readFileSync(workflow.path, 'utf-8')) as WorkflowFile;
 
       // Rewrite URLs and remove credentials for localhost environments
-      if (isLocalhost && rawWorkflow.nodes) {
-        rawWorkflow.nodes = rawWorkflow.nodes.map((node: any) => {
-          if (node.parameters) {
+      if (isLocalhost && Array.isArray(rawWorkflow.nodes)) {
+        rawWorkflow.nodes = rawWorkflow.nodes
+          .map((node) => {
+            const mutableNode: WorkflowNode = { ...node };
+
+            if (mutableNode.parameters && typeof mutableNode.parameters === 'object') {
             // Replace MCP URLs
-            if (node.parameters.url) {
-              node.parameters.url = node.parameters.url.replace(
-                'https://mcp-vector.mjames.dev/mcp',
-                'http://host.docker.internal:3456/mcp'
-              );
-            }
-            if (node.parameters.endpointUrl) {
-              node.parameters.endpointUrl = node.parameters.endpointUrl.replace(
-                'https://mcp-vector.mjames.dev/mcp',
-                'http://host.docker.internal:3456/mcp'
-              );
-            }
-          }
-          
-          // Match credentials by name for localhost
-          if (node.credentials && credentialsByName.size > 0) {
-            Object.keys(node.credentials).forEach(credType => {
-              const credName = node.credentials[credType]?.name;
-              if (credName && credentialsByName.has(credName)) {
-                // Update to use local credential ID
-                node.credentials[credType].id = credentialsByName.get(credName);
-              } else if (credName) {
-                console.log(`   ⚠️  Credential not found: "${credName}" (type: ${credType})`);
-                // Remove ID if credential doesn't exist locally
-                delete node.credentials[credType].id;
+              const url = mutableNode.parameters.url;
+              if (typeof url === 'string') {
+                mutableNode.parameters.url = url.replace(
+                  'https://mcp-vector.mjames.dev/mcp',
+                  'http://host.docker.internal:3456/mcp',
+                );
               }
-            });
-          }
-          
-          // Remove guardrails node for localhost (not available in docker image)
-          if (node.type === '@n8n/n8n-nodes-langchain.guardrails') {
-            console.log(`   ⚠️  Skipping guardrails node (not available in local n8n)`);
-            return null;
-          }
-          
-          // Remove Telegram trigger for localhost (requires credentials)
-          if (node.type === 'n8n-nodes-base.telegramTrigger') {
-            console.log(`   ⚠️  Skipping Telegram trigger (requires cloud credentials)`);
-            return null;
-          }
-          
-          // Remove Chat trigger for localhost (requires cloud features)
-          if (node.type === '@n8n/n8n-nodes-langchain.chatTrigger') {
-            console.log(`   ⚠️  Skipping Chat trigger (requires cloud features)`);
-            return null;
-          }
-          
-          return node;
-        }).filter(Boolean); // Remove null nodes
+              const endpointUrl = mutableNode.parameters.endpointUrl;
+              if (typeof endpointUrl === 'string') {
+                mutableNode.parameters.endpointUrl = endpointUrl.replace(
+                  'https://mcp-vector.mjames.dev/mcp',
+                  'http://host.docker.internal:3456/mcp',
+                );
+              }
+            }
+
+            // Match credentials by name for localhost
+            if (mutableNode.credentials && credentialsByName.size > 0) {
+              Object.entries(mutableNode.credentials).forEach(([credType, credential]) => {
+                if (!credential) return;
+                const credName = credential.name;
+                if (credName && credentialsByName.has(credName)) {
+                  credential.id = credentialsByName.get(credName);
+                } else if (credName) {
+                  console.log(`   ⚠️  Credential not found: "${credName}" (type: ${credType})`);
+                  delete credential.id;
+                }
+              });
+            }
+
+            // Remove guardrails node for localhost (not available in docker image)
+            if (mutableNode.type === '@n8n/n8n-nodes-langchain.guardrails') {
+              console.log(`   ⚠️  Skipping guardrails node (not available in local n8n)`);
+              return null;
+            }
+
+            // Remove Telegram trigger for localhost (requires credentials)
+            if (mutableNode.type === 'n8n-nodes-base.telegramTrigger') {
+              console.log(`   ⚠️  Skipping Telegram trigger (requires cloud credentials)`);
+              return null;
+            }
+
+            // Remove Chat trigger for localhost (requires cloud features)
+            if (mutableNode.type === '@n8n/n8n-nodes-langchain.chatTrigger') {
+              console.log(`   ⚠️  Skipping Chat trigger (requires cloud features)`);
+              return null;
+            }
+
+            return mutableNode;
+          })
+          .filter((node): node is WorkflowNode => Boolean(node));
         
         // Fix connections after removing guardrails
         if (rawWorkflow.connections && rawWorkflow.connections['Prepare Trace Context']) {
@@ -206,10 +232,8 @@ async function importWorkflows() {
         console.log(`   ✅ Created: ${id}\n`);
       }
     } catch (error) {
-      console.error(`   ❌ Failed to import ${workflow.name}:`, error);
-      if (error instanceof Error) {
-        console.error(`   Error: ${error.message}\n`);
-      }
+      console.error(`   ❌ Failed to import ${workflow.name}:`, getErrorMessage(error));
+      console.error();
     }
   }
 
@@ -241,7 +265,7 @@ async function importWorkflows() {
 }
 
 importWorkflows().catch((error) => {
-  console.error('Failed to import workflows:', error);
+  console.error('Failed to import workflows:', getErrorMessage(error));
   process.exit(1);
 });
 

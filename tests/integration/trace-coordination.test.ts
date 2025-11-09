@@ -3,6 +3,7 @@ import { mcpTools } from '@/mcp/tools.js';
 import { db } from '@/db/client.js';
 import { executionTraces, agentWebhooks, memories } from '@/db/schema.js';
 import { TraceRepository } from '@/db/repositories/trace-repository.js';
+import { ProjectRepository } from '@/db/repositories/project-repository.js';
 import { AgentWebhookRepository } from '@/db/repositories/agent-webhook-repository.js';
 import { N8nClient } from '@/integrations/n8n/client.js';
 import { prepareTraceContext } from '@/utils/trace-prep.js';
@@ -52,7 +53,6 @@ describe('Trace Coordination Integration', () => {
     });
 
     // Step 1: Create trace (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'test-project',
       sessionId: 'test-session',
@@ -193,9 +193,8 @@ describe('Trace Coordination Integration', () => {
 
     // Verify memories were created (check count)
     const memoryRepo = new (await import('@/db/repositories/memory-repository.js')).MemoryRepository();
-    // Note: In a real scenario, you'd search by metadata.traceId
-    // For this test, we verify the operations completed without errors
-    expect(true).toBe(true);
+    const traceMemories = await memoryRepo.findByTraceId(traceId, { limit: 10 });
+    expect(traceMemories.length).toBeGreaterThan(0);
   });
 
   it('should verify handoff invokes n8n webhook correctly', async () => {
@@ -209,7 +208,6 @@ describe('Trace Coordination Integration', () => {
       isActive: true,
     });
 
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'test-project',
     });
@@ -248,24 +246,25 @@ describe('Trace Coordination Integration', () => {
   describe('Casey workflow', () => {
     it('should allow Casey to call trace_update to set project', async () => {
       // Create trace as Casey (trace_prep creates trace with currentOwner='casey' by default)
-      const traceRepo = new TraceRepository();
       const trace = await traceRepo.create({
-        projectId: 'unknown',
         sessionId: 'telegram:123',
       });
       
       // Verify Casey can set project via trace_update
       const traceUpdateTool = getTool('trace_update');
+      const projectRepo = new ProjectRepository();
+      const expectedProject = await projectRepo.findByName('aismr');
+      expect(expectedProject).toBeTruthy();
       const result = await traceUpdateTool.handler(
         { traceId: trace.traceId, projectId: 'aismr' },
         'test-request-id'
       );
       
-      expect(result.structuredContent?.projectId).toBe('aismr');
+      expect(result.structuredContent?.projectId).toBe(expectedProject!.id);
       
       // Verify trace was updated
       const updatedTrace = await traceRepo.findByTraceId(trace.traceId);
-      expect(updatedTrace?.projectId).toBe('aismr');
+      expect(updatedTrace?.projectId).toBe(expectedProject!.id);
       
       // Verify trace_prep includes trace_update in allowedTools for Casey
       const prepResult = await prepareTraceContext({
@@ -275,6 +274,26 @@ describe('Trace Coordination Integration', () => {
       });
       
       expect(prepResult.allowedTools).toContain('trace_update');
+    });
+    
+    it('should allow Casey to call trace_update with project UUID', async () => {
+      const projectRepo = new ProjectRepository();
+      const targetProject = await projectRepo.findByName('aismr');
+      expect(targetProject).toBeTruthy();
+      
+      const trace = await traceRepo.create({
+        sessionId: 'telegram:456',
+      });
+      
+      const traceUpdateTool = getTool('trace_update');
+      const result = await traceUpdateTool.handler(
+        { traceId: trace.traceId, projectId: targetProject!.id },
+        'test-request-id-uuid'
+      );
+      
+      expect(result.structuredContent?.projectId).toBe(targetProject!.id);
+      const updated = await traceRepo.findByTraceId(trace.traceId);
+      expect(updated?.projectId).toBe(targetProject!.id);
     });
   });
 });

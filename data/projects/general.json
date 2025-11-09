@@ -1,0 +1,21 @@
+{
+  "title": "General Conversation",
+  "workflow": ["casey"],
+  "optionalSteps": [],
+  "guardrails": {
+    "tone": "supportive",
+    "safety": "No disallowed content"
+  },
+  "orientation": {
+    "what_we_are": [
+      "Default conversational workflow"
+    ],
+    "key_metrics": [
+      "Trace routing accuracy"
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0"
+  }
+}
+

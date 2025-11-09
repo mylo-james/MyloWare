@@ -5,7 +5,7 @@ import { searchMemories } from '../tools/memory/searchTool.js';
 import { stripEmbeddings } from './response-formatter.js';
 import { logger } from './logger.js';
 import { DEFAULT_MEMORY_LIMIT } from './constants.js';
-import { readFile } from 'fs/promises';
+import { readFile, readdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -47,6 +47,8 @@ export interface TracePrepResult {
     description: string;
     guardrails: Record<string, unknown> | string;
     settings: Record<string, unknown>;
+    workflow?: string[];
+    agentExpectations?: Record<string, unknown>;
   };
   availableProjects?: Array<{
     id: string;
@@ -68,6 +70,8 @@ export function buildCaseyPrompt(params: {
   availableProjects: Array<{ id: string; name: string; description: string }>;
   traceId: string;
   defaultProjectName: string;
+  inferredProjectSlug?: string | null;
+  inferredProjectConfidence?: number;
 }): string {
   const projectList = params.availableProjects
     .map((p) => `- ${p.id} (${p.name}): ${p.description}`)
@@ -92,6 +96,18 @@ export function buildCaseyPrompt(params: {
     '',
     `UPSTREAM WORK:\n${params.memoryLines}`,
   ];
+
+  if (params.inferredProjectSlug) {
+    const confidenceText =
+      typeof params.inferredProjectConfidence === 'number'
+        ? ` (confidence ${(params.inferredProjectConfidence * 100).toFixed(0)}%)`
+        : '';
+    caseyTasks.splice(
+      6,
+      0,
+      `SYSTEM HINT: This looks like the "${params.inferredProjectSlug}" project${confidenceText}. You still must call trace_update before handing off if you agree.`
+    );
+  }
   return caseyTasks.join('\n\n');
 }
 
@@ -107,22 +123,128 @@ export function formatGuardrails(guardrails: unknown): string {
   }
 }
 
+type ProjectPlaybooks = {
+  guardrails?: Record<string, unknown>;
+  workflow?: string[];
+  agentExpectations?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 /**
- * Loads project JSON file to get agent_expectations and workflow
+ * Loads ALL playbook files from data/projects/{slug}/
  */
-async function loadProjectJson(projectName: string): Promise<{ workflow?: string[]; agent_expectations?: Record<string, unknown> } | null> {
+export async function loadProjectPlaybooks(projectSlug: string): Promise<ProjectPlaybooks | null> {
   try {
-    const dataDir = path.resolve(
+    const playbookDir = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       '..',
       '..',
       'data',
-      'projects'
+      'projects',
+      projectSlug,
     );
-    const projectPath = path.join(dataDir, `${projectName}.json`);
-    const content = await readFile(projectPath, 'utf-8');
-    return JSON.parse(content);
-  } catch {
+
+    const entries = await readdir(playbookDir, { withFileTypes: true });
+    const jsonFiles = entries.filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+
+    if (jsonFiles.length === 0) {
+      logger.debug({
+        msg: 'Project playbook directory is empty',
+        projectSlug,
+        playbookDir,
+      });
+      return null;
+    }
+
+    const playbooks: ProjectPlaybooks = {};
+
+    for (const file of jsonFiles) {
+      const filePath = path.join(playbookDir, file.name);
+      try {
+        const content = await readFile(filePath, 'utf-8');
+        const data = JSON.parse(content);
+        const key = file.name.replace('.json', '');
+
+        if (file.name === 'workflow.json' && Array.isArray(data.workflow)) {
+          playbooks.workflow = data.workflow;
+        } else if (file.name === 'agent-expectations.json' && data) {
+          playbooks.agentExpectations = data;
+        } else if (file.name === 'project.json') {
+          if (!playbooks.workflow && Array.isArray(data.workflow)) {
+            playbooks.workflow = data.workflow;
+          }
+          if (!playbooks.guardrails && data.guardrails) {
+            playbooks.guardrails = data.guardrails;
+          }
+          if (!playbooks.agentExpectations && data.agentExpectations) {
+            playbooks.agentExpectations = data.agentExpectations;
+          }
+          playbooks.project = data;
+        } else if (file.name === 'guardrails.json') {
+          playbooks.guardrails = data;
+        } else {
+          playbooks[key.replace(/-/g, '_')] = data;
+        }
+      } catch (error) {
+        logger.debug({
+          msg: 'Skipping playbook file',
+          projectSlug,
+          file: file.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (!playbooks.guardrails) {
+      const guardrailDir = entries.find(
+        (entry) => entry.isDirectory() && entry.name === 'guardrails',
+      );
+      if (guardrailDir) {
+        try {
+          const guardrailFiles = await readdir(path.join(playbookDir, guardrailDir.name));
+          const grouped: Record<string, Array<Record<string, unknown>>> = {};
+          for (const guardrailFile of guardrailFiles) {
+            if (!guardrailFile.endsWith('.json')) continue;
+            const guardrailPath = path.join(playbookDir, guardrailDir.name, guardrailFile);
+            try {
+              const raw = JSON.parse(await readFile(guardrailPath, 'utf-8')) as Record<
+                string,
+                unknown
+              >;
+              const category = (raw.category as string | undefined) ?? 'general';
+              if (!grouped[category]) {
+                grouped[category] = [];
+              }
+              grouped[category].push(raw);
+            } catch (error) {
+              logger.debug({
+                msg: 'Skipping guardrail entry',
+                projectSlug,
+                file: guardrailFile,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+          if (Object.keys(grouped).length > 0) {
+            playbooks.guardrails = grouped;
+          }
+        } catch (error) {
+          logger.debug({
+            msg: 'Failed to read guardrail directory',
+            projectSlug,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    return Object.keys(playbooks).length > 0 ? playbooks : null;
+  } catch (error) {
+    logger.debug({
+      msg: 'Project playbook directory not found',
+      projectSlug,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -133,13 +255,28 @@ async function loadProjectJson(projectName: string): Promise<{ workflow?: string
 export async function buildPersonaPrompt(params: {
   personaPrompt: string | null;
   trace: Trace;
-  projectContext: { name: string; description?: string; guardrails?: unknown; id?: string; workflow?: string[] };
+  projectContext: {
+    name: string;
+    description?: string;
+    guardrails?: unknown;
+    id?: string;
+    workflow?: string[];
+    agentExpectations?: Record<string, unknown>;
+  };
   instructions: string;
   memoryLines: string;
-  inferredProject?: { id: string; slug: string } | null;
+  inferredProject?: { id: string; slug: string; confidence: number } | null;
   availableProjects?: Array<{ id: string; name: string; description: string }>;
 }): Promise<string> {
-  const isCasey = (params.trace.currentOwner || 'casey').toLowerCase() === 'casey';
+  const personaName = (params.trace.currentOwner || 'casey').toLowerCase();
+  const isCasey = personaName === 'casey';
+
+  const playbooks = await loadProjectPlaybooks(params.projectContext.name);
+  const workflow = params.projectContext.workflow || playbooks?.workflow || [];
+  const caseyExpectations = playbooks?.agentExpectations?.casey as
+    | { instructions_template?: string }
+    | undefined;
+  const instructionsTemplate = caseyExpectations?.instructions_template;
   
   const promptPieces = [
     params.personaPrompt || `You are ${params.trace.currentOwner || 'an AISMR agent'}.`,
@@ -153,12 +290,29 @@ export async function buildPersonaPrompt(params: {
     params.projectContext.id
       ? `PROJECT UUID: ${params.projectContext.id}`
       : '',
-    params.projectContext.guardrails
-      ? `PROJECT GUARDRAILS:\n${formatGuardrails(params.projectContext.guardrails)}`
-      : '',
     `INSTRUCTIONS: ${params.instructions || 'None provided yet.'}`,
     `UPSTREAM WORK:\n${params.memoryLines}`,
   ];
+
+  const guardrailsData = params.projectContext.guardrails;
+  const hasGuardrails =
+    typeof guardrailsData === 'string'
+      ? guardrailsData.trim().length > 0
+      : guardrailsData && typeof guardrailsData === 'object'
+        ? Object.keys(guardrailsData as Record<string, unknown>).length > 0
+        : false;
+  if (hasGuardrails) {
+    promptPieces.push(`PROJECT GUARDRAILS:\n${formatGuardrails(guardrailsData)}`);
+  }
+
+  if (!isCasey && params.projectContext.agentExpectations) {
+    const expectations = (params.projectContext.agentExpectations as Record<string, unknown>)[
+      personaName
+    ];
+    if (expectations) {
+      promptPieces.push(`YOUR ROLE EXPECTATIONS:\n${formatGuardrails(expectations)}`);
+    }
+  }
 
   // Casey-specific protocol when project is already set
   if (isCasey) {
@@ -166,16 +320,10 @@ export async function buildPersonaPrompt(params: {
       params.projectContext.name?.toLowerCase() === 'conversation' ||
       params.projectContext.name?.toLowerCase() === 'general';
     
-    const hasInferredProject = params.inferredProject !== null && params.inferredProject !== undefined;
     // Show alignment check if project is generic and we have available projects to choose from
     const shouldCheckAlignment = isGenericProject && params.availableProjects && params.availableProjects.length > 0;
 
-    // Load project JSON to get workflow and agent_expectations
-    const projectJson = await loadProjectJson(params.projectContext.name);
-    const workflow = params.projectContext.workflow || projectJson?.workflow || [];
     const firstAgent = workflow.length > 1 ? workflow[1] : 'iggy'; // workflow[0] is 'casey', so [1] is first agent
-    const caseyExpectations = projectJson?.agent_expectations?.casey as { instructions_template?: string } | undefined;
-    const instructionsTemplate = caseyExpectations?.instructions_template;
 
     // Pre-action checklist
     promptPieces.push(
@@ -345,7 +493,7 @@ async function resolveInitialProject({
   instructions,
   projectRepo,
 }: ResolveProjectParams): Promise<{
-  inferredProject: { id: string; slug: string } | null;
+  inferredProject: { id: string; slug: string; confidence: number } | null;
   fallbackProject: ResolvedProject | null;
   projects: ResolvedProject[];
   projectMap: Map<string, ResolvedProject>;
@@ -354,7 +502,7 @@ async function resolveInitialProject({
   const rawById = new Map(projectsRaw.map((p) => [p.id, p]));
   const projects: ResolvedProject[] = projectsRaw.map((project) => ({
     id: project.id,
-    slug: project.id,
+    slug: project.name,
     name: project.name,
     description: project.description,
     guardrails: project.guardrails,
@@ -368,14 +516,18 @@ async function resolveInitialProject({
     projects.find((p) => (rawById.get(p.id)?.workflow || []).includes('conversation')) ??
     null;
 
-  const inferredSlug = instructions ? inferProjectSlug(instructions, projectsRaw) : null;
-  const inferredProject =
-    inferredSlug && projectsRaw.some((p) => p.name === inferredSlug.slug)
-      ? {
-          id: projectsRaw.find((p) => p.name === inferredSlug.slug)!.id,
-          slug: projectsRaw.find((p) => p.name === inferredSlug.slug)!.id,
-        }
-      : null;
+  const inferredSlug = instructions ? inferProjectSlug(instructions) : null;
+  let inferredProject: { id: string; slug: string; confidence: number } | null = null;
+  if (inferredSlug) {
+    const projectMatch = projectsRaw.find((p) => p.name === inferredSlug.slug);
+    if (projectMatch) {
+      inferredProject = {
+        id: projectMatch.id,
+        slug: projectMatch.name,
+        confidence: inferredSlug.confidence,
+      };
+    }
+  }
 
   return {
     inferredProject,
@@ -385,10 +537,7 @@ async function resolveInitialProject({
   };
 }
 
-function inferProjectSlug(
-  instructions: string,
-  projects: Array<{ name: string }>
-): { slug: string; confidence: number } | null {
+function inferProjectSlug(instructions: string): { slug: string; confidence: number } | null {
   const normalized = instructions.toLowerCase();
 
   const keywordMap: Record<string, string[]> = {
@@ -465,17 +614,14 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
       trace = updated ?? trace;
     }
   } else {
-    const selectedProjectId = (inferredProject ?? fallbackProject)?.id ?? null;
     trace = await traceRepo.create({
       sessionId: params.sessionId,
-      projectId: selectedProjectId,
+      projectId: null,
       metadata: {
         ...(params.metadata || {}),
         source: params.source || 'unknown',
         ...(inferredProject ? { autoProject: inferredProject.slug } : {}),
-        ...(selectedProjectId === fallbackProject?.id && !inferredProject
-          ? { autoProjectFallback: true }
-          : {}),
+        ...(fallbackProject ? { autoProjectFallback: fallbackProject.slug } : {}),
       },
       instructions: defaultInstructions,
     });
@@ -511,6 +657,7 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
     guardrails: Record<string, unknown> | string;
     settings: Record<string, unknown>;
     workflow?: string[];
+    agentExpectations?: Record<string, unknown>;
   } | null = null;
 
   let memoryProjectFilter: string | undefined;
@@ -520,13 +667,15 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
       const projectRecord =
         projectMap.get(trace.projectId) ?? (await projectRepo.findById(trace.projectId));
       if (projectRecord) {
+        const playbooks = await loadProjectPlaybooks(projectRecord.name);
         projectContext = {
           id: projectRecord.id,
           name: projectRecord.name,
           description: projectRecord.description,
-          guardrails: projectRecord.guardrails,
+          guardrails: playbooks?.guardrails || projectRecord.guardrails,
           settings: projectRecord.settings,
-          workflow: projectRecord.workflow,
+          workflow: playbooks?.workflow || projectRecord.workflow,
+          agentExpectations: playbooks?.agentExpectations,
         };
         memoryProjectFilter = projectRecord.name;
       } else {
@@ -545,33 +694,17 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
   }
 
   if (!projectContext) {
-    if (fallbackProject) {
-      projectContext = {
-        id: fallbackProject.id,
-        name: fallbackProject.name,
-        description: fallbackProject.description,
-        guardrails: fallbackProject.guardrails,
-        settings: fallbackProject.settings,
-        workflow: fallbackProject.workflow,
-      };
-      memoryProjectFilter = fallbackProject.name;
-      if (!trace.projectId) {
-        const updated = await traceRepo.updateTrace(trace.traceId, {
-          projectId: fallbackProject.id,
-        });
-        trace = updated ?? trace;
-      }
-    } else {
-      projectContext = {
-        id: null,
-        name: 'conversation',
-        description: 'Project not set. Casey must call trace_update to set project before handing off to Iggy.',
-        guardrails: {
-          reminder: 'Casey: determine if this is AISMR or GenReact and update the trace before ideation.',
-        },
-        settings: {},
-      };
-    }
+    projectContext = {
+      id: null,
+      name: 'conversation',
+      description:
+        'Project not set. Casey must call trace_update to set project before handing off to Iggy.',
+      guardrails: {
+        reminder:
+          'Casey: determine if this is AISMR or GenReact and update the trace before ideation.',
+      },
+      settings: {},
+    };
   }
 
   // Load memories
@@ -627,6 +760,8 @@ export async function prepareTraceContext(params: TracePrepParams): Promise<Trac
         availableProjects: availableProjects || [],
         traceId: trace.traceId,
         defaultProjectName: fallbackProject?.name ?? 'conversation',
+        inferredProjectSlug: inferredProject?.slug,
+        inferredProjectConfidence: inferredProject?.confidence,
       });
 
   // Derive allowed tools

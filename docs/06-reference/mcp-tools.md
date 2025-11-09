@@ -170,7 +170,7 @@ Update trace metadata or instructions (Casey only).
 
 **Parameters:**
 - `traceId` (string, required) - Trace identifier
-- `projectId` (string, optional) - Update project
+- `projectId` (string, optional) - Update project (accepts slug or UUID)
 - `instructions` (string, optional) - Update instructions
 - `metadata` (object, optional) - Update metadata
 
@@ -179,6 +179,23 @@ Update trace metadata or instructions (Casey only).
 {
   traceId: string;
   updatedAt: string;
+}
+```
+
+**Example (slug):**
+```json
+{
+  "traceId": "trace-aismr-001",
+  "projectId": "aismr",
+  "instructions": "Kick off AISMR modifiers for glow candles."
+}
+```
+
+**Example (UUID):**
+```json
+{
+  "traceId": "trace-aismr-001",
+  "projectId": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -426,9 +443,114 @@ Check job completion status for a trace.
 
 ---
 
+## Knowledge Tools
+
+### knowledge_get
+
+Search and retrieve knowledge from the knowledge base.
+
+**Purpose:**  
+Retrieves relevant knowledge (documentation, procedures, facts) that was previously ingested. Results are automatically scoped to the calling persona - you only see knowledge tagged as relevant to your role.
+
+**Parameters:**
+- `query` (string, required) - Search query (max 500 chars)
+- `persona` (string, recommended) - Your persona name (from PERSONA field in system prompt)
+- `project` (string, optional) - Filter to specific project
+- `limit` (number, optional) - Max results (default: 10, max: 100)
+- `minSimilarity` (number, optional) - Similarity threshold 0-1 (default: 0.75)
+
+**Returns:**
+```typescript
+{
+  knowledge: Array<{
+    id: string;
+    content: string;
+    memoryType: 'semantic' | 'procedural' | 'episodic';
+    persona: string[];
+    project: string[];
+    tags: string[];
+    relevanceScore: number;
+    createdAt: string;
+  }>;
+  totalFound: number;
+  query: string;
+}
+```
+
+**Example:**
+```json
+{
+  "query": "shotstack video generation API",
+  "persona": "veo",
+  "project": "aismr",
+  "limit": 5
+}
+```
+
+**When to use:**
+- 📚 Looking up API documentation
+- 📖 Recalling procedures or workflows
+- 🔍 Finding previously ingested facts
+- 💡 Getting context-specific guidance
+
+**Persona Scoping:**
+The tool automatically filters results based on your persona:
+- **Veo** sees technical documentation (APIs, video generation)
+- **Riley** sees writing guidelines and script templates
+- **Iggy** sees creative direction and style guides
+- **Alex** sees editing techniques and post-production docs
+- **Quinn** sees publishing requirements and platform specs
+
+---
+
+### knowledge_ingest
+
+Ingest new knowledge from URLs or text (typically used offline, not during traces).
+
+**Purpose:**  
+Processes raw documentation/text, chunks it intelligently, classifies it automatically, deduplicates against existing knowledge, and stores it in the knowledge base. Primarily used via CLI script for bulk ingestion.
+
+**Parameters:**
+- `traceId` (string, required) - Trace identifier from your system prompt
+- `urls` (array, optional) - URLs to fetch and ingest
+- `text` (string, optional) - Raw text to ingest (max 1MB)
+- `bias` (object, optional) - Bias classification toward specific personas/projects
+  - `persona` (array) - Persona names
+  - `project` (array) - Project names
+- `maxChunks` (number, optional) - Limit chunks for testing
+- `minSimilarity` (number, optional) - Deduplication threshold (default: 0.92)
+
+**Returns:**
+```typescript
+{
+  inserted: number;
+  updated: number;
+  skipped: number;
+  totalChunks: number;
+}
+```
+
+**Example:**
+```json
+{
+  "traceId": "trace-001",
+  "urls": ["https://shotstack.io/docs/api"],
+  "bias": {
+    "persona": ["veo"],
+    "project": ["aismr"]
+  }
+}
+```
+
+**Note:**  
+This tool is typically called via the CLI ingestion script (`npx tsx scripts/dev/run-knowledge-ingest.ts`), not during normal agent operation. Agents should use `knowledge_get` to retrieve knowledge, not ingest it.
+
+---
+
 ## Further Reading
 
 - [Prompt Notes](prompt-notes.md) - Agent prompt patterns
 - [Trace State Machine](../02-architecture/trace-state-machine.md) - Coordination details
 - [System Overview](../02-architecture/system-overview.md) - Architecture
+- [Knowledge Base README](../../data/kb/README.md) - Knowledge ingestion guide
 - Source code: `src/mcp/tools.ts`

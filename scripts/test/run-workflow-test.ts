@@ -14,27 +14,6 @@
 import { readFileSync } from 'fs';
 import { config } from '../../src/config/index.js';
 
-interface WorkflowResult {
-  success: boolean;
-  executionId?: string;
-  duration: number;
-  trace: {
-    traceId: string;
-    status: string;
-    currentOwner: string;
-    workflowStep: number;
-    projectId: string;
-    instructions: string;
-    memories: Array<{
-      content: string;
-      persona: string[];
-      memoryType: string;
-      createdAt: string;
-    }>;
-  };
-  error?: string;
-}
-
 // Colors for output
 const colors = {
   reset: '\x1b[0m',
@@ -44,6 +23,27 @@ const colors = {
   blue: '\x1b[34m',
   red: '\x1b[31m',
   cyan: '\x1b[36m',
+};
+
+type TraceMemory = {
+  persona: string[];
+  memoryType: string;
+  content: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+};
+
+type TraceData = {
+  traceId: string;
+  status?: string;
+  currentOwner?: string;
+  workflowStep?: number;
+  projectId?: string | null;
+  instructions?: string | null;
+  createdAt?: string;
+  completedAt?: string;
+  memories: TraceMemory[];
+  [key: string]: unknown;
 };
 
 function log(message: string, color?: keyof typeof colors) {
@@ -89,11 +89,12 @@ async function invokeWorkflow(message: string, sessionId: string = 'test-manual'
   log(`\n✅ Workflow completed in ${duration}s\n`, 'green');
   log(`   Response preview: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}\n`, 'cyan');
   
-  let result;
+  let result: unknown;
   try {
     result = JSON.parse(responseText);
-  } catch (e) {
-    log(`   Warning: Response is not JSON, treating as text`, 'yellow');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`   Warning: Response is not JSON, treating as text (${errorMessage})`, 'yellow');
     // Try to extract traceId from text
     const match = responseText.match(/trace-[\w-]+/);
     if (match) {
@@ -104,12 +105,16 @@ async function invokeWorkflow(message: string, sessionId: string = 'test-manual'
   }
 
   // Try to find traceId in the response
-  const traceId = result.traceId || result.trace?.traceId || result.data?.traceId;
+  const parsedResult = result as Record<string, unknown>;
+  const traceId =
+    (parsedResult.traceId as string | undefined) ||
+    ((parsedResult.trace as Record<string, unknown> | undefined)?.traceId as string | undefined) ||
+    ((parsedResult.data as Record<string, unknown> | undefined)?.traceId as string | undefined);
   
   if (!traceId) {
     log(`   Response structure: ${JSON.stringify(result, null, 2).substring(0, 500)}...`, 'yellow');
     // Try to extract from any nested structure
-    const extracted = extractTraceId(result);
+    const extracted = extractTraceId(parsedResult);
     if (extracted) {
       log(`   Extracted trace ID: ${extracted}`, 'cyan');
       return extracted;
@@ -124,90 +129,24 @@ async function invokeWorkflow(message: string, sessionId: string = 'test-manual'
   return traceId;
 }
 
-function extractTraceId(obj: any, depth = 0): string | null {
+function extractTraceId(obj: unknown, depth = 0): string | null {
   if (depth > 5) return null;
   if (typeof obj === 'string' && obj.startsWith('trace-')) return obj;
   if (typeof obj !== 'object' || obj === null) return null;
-  
-  for (const key of Object.keys(obj)) {
-    if (key.toLowerCase().includes('trace')) {
-      const val = obj[key];
-      if (typeof val === 'string' && val.startsWith('trace-')) {
-        return val;
-      }
+
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (key.toLowerCase().includes('trace') && typeof value === 'string' && value.startsWith('trace-')) {
+      return value;
     }
-    const result = extractTraceId(obj[key], depth + 1);
-    if (result) return result;
+    const nested = extractTraceId(value, depth + 1);
+    if (nested) {
+      return nested;
+    }
   }
   return null;
 }
 
-async function pollForCompletion(traceId: string, timeout: number = 120000): Promise<string> {
-  const startTime = Date.now();
-  const pollInterval = 3000; // 3 seconds
-  let attempts = 0;
-  let lastError: string | null = null;
-  
-  log('⏳ Waiting for workflow to complete...', 'yellow');
-  log(`   Timeout: ${Math.round(timeout / 1000)}s | Poll interval: ${pollInterval / 1000}s\n`);
-  
-  while (Date.now() - startTime < timeout) {
-    attempts++;
-    
-    try {
-      const trace = await getTraceData(traceId);
-      
-      // Check if workflow completed
-      if (trace.status === 'completed') {
-        const duration = Math.round((Date.now() - startTime) / 1000);
-        log(`\n✅ Workflow completed in ${duration}s (${attempts} checks)\n`, 'green');
-        return trace.traceId;
-      }
-      
-      // Check if workflow failed
-      if (trace.status === 'failed') {
-        const duration = Math.round((Date.now() - startTime) / 1000);
-        log(`\n❌ Workflow failed after ${duration}s (${attempts} checks)\n`, 'red');
-        log(`   Error details will be shown below...\n`, 'yellow');
-        return trace.traceId; // Return it anyway so we can display the failure details
-      }
-      
-      // Still active or pending - show progress
-      if (attempts === 1) {
-        log(`   Found trace: ${trace.traceId}`, 'cyan');
-        log(`   Status: ${trace.status} | Owner: ${trace.currentOwner} | Step: ${trace.workflowStep}\n`);
-      }
-      
-      process.stdout.write('.');
-      lastError = null; // Clear error if we got a trace
-      
-    } catch (error) {
-      // Trace might not exist yet, keep polling
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      // Only log if this is a new error
-      if (errorMsg !== lastError) {
-        if (attempts > 1) {
-          log(`\n   Still waiting... (${errorMsg})`, 'yellow');
-        }
-        lastError = errorMsg;
-      }
-      
-      process.stdout.write('.');
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-  }
-
-  // Timeout reached
-  log(`\n\n⏱️  Timeout reached after ${Math.round(timeout / 1000)}s`, 'red');
-  log(`   Total attempts: ${attempts}`, 'yellow');
-  log(`   Last error: ${lastError || 'No trace found'}\n`, 'yellow');
-  
-  throw new Error(`Timeout waiting for workflow (${timeout / 1000}s, ${attempts} attempts)`);
-}
-
-async function getTraceData(traceIdOrSession: string): Promise<any> {
+async function getTraceData(traceIdOrSession: string): Promise<TraceData> {
   const mcpUrl = 'http://localhost:3456'; // MCP server always localhost
   let actualTraceId = traceIdOrSession;
   
@@ -237,14 +176,24 @@ async function getTraceData(traceIdOrSession: string): Promise<any> {
       }),
     });
     
-    const searchResult = await searchResponse.json();
-    const memories = searchResult.result?.content?.[0]?.text 
-      ? JSON.parse(searchResult.result.content[0].text).memories 
-      : [];
-    
+    const searchResult = (await searchResponse.json()) as Record<string, unknown>;
+    const searchContent = (searchResult.result as Record<string, unknown> | undefined)?.content;
+    let memories: TraceMemory[] = [];
+
+    if (Array.isArray(searchContent)) {
+      const firstItem = searchContent[0] as Record<string, unknown> | undefined;
+      const text = firstItem?.text;
+      if (typeof text === 'string') {
+        const parsed = JSON.parse(text) as { memories?: TraceMemory[] };
+        if (Array.isArray(parsed.memories)) {
+          memories = parsed.memories;
+        }
+      }
+    }
+
     // Find the most recent trace
-    const recentMemory = memories.find((m: any) => m.metadata?.traceId);
-    if (!recentMemory?.metadata?.traceId) {
+    const recentMemory = memories.find((memory) => memory.metadata?.traceId);
+    if (!recentMemory?.metadata?.traceId || typeof recentMemory.metadata.traceId !== 'string') {
       throw new Error('No trace found yet for this session');
     }
     
@@ -268,15 +217,23 @@ async function getTraceData(traceIdOrSession: string): Promise<any> {
     }),
   });
 
-  const result = await response.json();
+  const result = (await response.json()) as {
+    error?: { message: string };
+    result?: { content?: Array<{ text?: string }> };
+  };
   
   if (result.error) {
     throw new Error(`MCP error: ${result.error.message}`);
   }
 
-  const traceData = result.result?.content?.[0]?.text 
-    ? JSON.parse(result.result.content[0].text)
-    : {};
+  let traceData: Record<string, unknown> = {};
+  const traceContent = result.result?.content;
+  if (Array.isArray(traceContent)) {
+    const firstItem = traceContent[0];
+    if (firstItem?.text) {
+      traceData = JSON.parse(firstItem.text);
+    }
+  }
 
   // Also fetch memories
   const memoriesResponse = await fetch(`${mcpUrl}/mcp`, {
@@ -300,19 +257,30 @@ async function getTraceData(traceIdOrSession: string): Promise<any> {
     }),
   });
 
-  const memoriesResult = await memoriesResponse.json();
-  const memories = memoriesResult.result?.content?.[0]?.text 
-    ? JSON.parse(memoriesResult.result.content[0].text).memories 
-    : [];
+  const memoriesResult = (await memoriesResponse.json()) as {
+    result?: { content?: Array<{ text?: string }> };
+  };
+  const memoryContent = memoriesResult.result?.content;
+  let memories: TraceMemory[] = [];
+
+  if (Array.isArray(memoryContent)) {
+    const firstItem = memoryContent[0];
+    if (firstItem?.text) {
+      const parsed = JSON.parse(firstItem.text) as { memories?: TraceMemory[] };
+      if (Array.isArray(parsed.memories)) {
+        memories = parsed.memories;
+      }
+    }
+  }
 
   return {
-    ...traceData,
+    ...(traceData as Record<string, unknown>),
     traceId: actualTraceId,
     memories,
-  };
+  } as TraceData;
 }
 
-function displayResults(trace: any) {
+function displayResults(trace: TraceData) {
   log('═══════════════════════════════════════════════════════════', 'bright');
   log('                    WORKFLOW RESULTS                        ', 'bright');
   log('═══════════════════════════════════════════════════════════\n', 'bright');
@@ -342,7 +310,7 @@ function displayResults(trace: any) {
   // Memories
   log('💭 MEMORIES (Persona Outputs)', 'cyan');
   if (trace.memories && trace.memories.length > 0) {
-    trace.memories.forEach((memory: any, index: number) => {
+    trace.memories.forEach((memory, index) => {
       log(`\n   [${index + 1}] ${memory.persona.join(', ')}`, 'yellow');
       log(`   Type: ${memory.memoryType}`);
       log(`   Created: ${new Date(memory.createdAt).toLocaleString()}`);
@@ -382,7 +350,11 @@ function loadFixtures(): FixtureMap {
     const raw = readFileSync(fixturesPath, 'utf-8');
     return JSON.parse(raw) as FixtureMap;
   } catch (error) {
-    log('⚠️  Unable to load workflow fixtures (tests/e2e/fixtures/workflow-fixtures.json)', 'yellow');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(
+      `⚠️  Unable to load workflow fixtures (tests/e2e/fixtures/workflow-fixtures.json) - ${errorMessage}`,
+      'yellow',
+    );
     return {};
   }
 }

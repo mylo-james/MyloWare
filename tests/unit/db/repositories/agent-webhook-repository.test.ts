@@ -114,7 +114,7 @@ describe('AgentWebhookRepository', () => {
 
   describe('updateActive', () => {
     it('should update agent active status', async () => {
-      const webhook = await repository.create({
+      await repository.create({
         agentName: 'test-agent',
         webhookPath: '/webhook/test',
         isActive: true,
@@ -128,7 +128,7 @@ describe('AgentWebhookRepository', () => {
     });
 
     it('should activate inactive agent', async () => {
-      const webhook = await repository.create({
+      await repository.create({
         agentName: 'test-agent',
         webhookPath: '/webhook/test',
         isActive: false,

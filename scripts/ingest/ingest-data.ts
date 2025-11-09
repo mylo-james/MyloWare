@@ -33,19 +33,6 @@ const SCHEMAS_ROOT = join(DATA_V1_ROOT, 'schemas');
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 
-interface Manifest {
-  version: string;
-  description?: string;
-  loadOrder: string[];
-  artifacts: Array<{
-    type: string;
-    id: string;
-    path: string;
-    version?: string;
-    dependencies?: string[];
-  }>;
-}
-
 interface IngestStats {
   personas: { created: number; updated: number; errors: number };
   projects: { created: number; updated: number; errors: number };
@@ -105,15 +92,18 @@ async function ingestPersona(personaPath: string, dryRun: boolean): Promise<void
 
     try {
       systemPrompt = readFileSync(promptPath, 'utf-8');
-    } catch (e) {
-      console.warn(`⚠️  No prompt.md found for ${persona.name}`);
+    } catch (error) {
+      console.warn(`⚠️  No prompt.md found for ${persona.name}`, error instanceof Error ? error.message : error);
     }
 
     try {
       const capabilitiesData = JSON.parse(readFileSync(capabilitiesPath, 'utf-8'));
       capabilities = capabilitiesData.capabilities || [];
-    } catch (e) {
-      console.warn(`⚠️  No capabilities.json found for ${persona.name}`);
+    } catch (error) {
+      console.warn(
+        `⚠️  No capabilities.json found for ${persona.name}`,
+        error instanceof Error ? error.message : error,
+      );
     }
 
     if (dryRun) {
@@ -389,8 +379,12 @@ async function discoverAndIngest(dryRun: boolean): Promise<void> {
       for (const guardrail of guardrails) {
         await ingestGuardrail(join(guardrailsDir, guardrail), dryRun);
       }
-    } catch (e) {
+    } catch (error) {
       // No guardrails directory for this project
+      console.warn(
+        `⚠️  No guardrails directory for project ${project}`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
@@ -410,8 +404,8 @@ async function discoverAndIngest(dryRun: boolean): Promise<void> {
         await ingestWorkflow(join(projectWorkflowsDir, workflow), dryRun);
       }
     }
-  } catch (e) {
-    console.warn('⚠️  No workflows directory found');
+  } catch (error) {
+    console.warn('⚠️  No workflows directory found', error instanceof Error ? error.message : error);
   }
 
   // Build link graph

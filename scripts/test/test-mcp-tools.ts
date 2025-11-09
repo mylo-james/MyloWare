@@ -2,6 +2,20 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
+type ToolCallResult = Awaited<ReturnType<Client['callTool']>>;
+
+function parseToolResult<T>(toolResult: ToolCallResult): T {
+  const firstContent = toolResult.content?.[0];
+  if (!firstContent || typeof firstContent.text !== 'string') {
+    throw new Error('Tool response missing text content');
+  }
+  return JSON.parse(firstContent.text) as T;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function testAllTools() {
   console.log('🧪 TEST - Core Myloware MCP Tools (7 persona-facing tools)\n');
   console.log('='.repeat(80));
@@ -36,27 +50,27 @@ async function testAllTools() {
     // Test 1: memory_search - Should return workflow memories
     console.log('\n1️⃣  memory_search');
     try {
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'memory_search',
         arguments: { query: 'AISMR video ideas', limit: 3 },
       });
-      const data = JSON.parse(result.content[0].text);
-      if (data.memories && data.memories.length > 0) {
+      const data = parseToolResult<{ memories?: unknown[] }>(toolResult);
+      if (Array.isArray(data.memories) && data.memories.length > 0) {
         console.log('   ✅ PASS - Found', data.memories.length, 'memories');
         passed++;
       } else {
         console.log('   ❌ FAIL - No memories returned');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
     // Test 2: memory_store - Create a test memory
     console.log('\n2️⃣  memory_store');
     try {
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'memory_store',
         arguments: {
           content: 'Final test memory created at ' + new Date().toISOString(),
@@ -65,8 +79,8 @@ async function testAllTools() {
           project: ['aismr'],
         },
       });
-      const data = JSON.parse(result.content[0].text);
-      if (data.id) {
+      const data = parseToolResult<{ id?: string }>(toolResult);
+      if (typeof data.id === 'string' && data.id.length > 0) {
         memoryId = data.id;
         console.log('   ✅ PASS - Created memory:', memoryId.substring(0, 8) + '...');
         passed++;
@@ -74,23 +88,23 @@ async function testAllTools() {
         console.log('   ❌ FAIL - No memory ID returned');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
     // Test 3: trace_prepare - Create or load trace context
     console.log('\n3️⃣  trace_prepare');
     try {
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'trace_prepare',
         arguments: {
           instructions: 'Test trace preparation',
           sessionId: 'test-session',
         },
       });
-      const data = JSON.parse(result.content[0].text);
-      if (data.traceId) {
+      const data = parseToolResult<{ traceId?: string }>(toolResult);
+      if (typeof data.traceId === 'string' && data.traceId.length > 0) {
         traceId = data.traceId;
         console.log('   ✅ PASS - Prepared trace:', traceId);
         passed++;
@@ -98,8 +112,8 @@ async function testAllTools() {
         console.log('   ❌ FAIL - No traceId returned');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
@@ -107,14 +121,14 @@ async function testAllTools() {
     console.log('\n4️⃣  trace_update');
     try {
       if (!traceId) throw new Error('No traceId from trace_prepare');
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'trace_update',
         arguments: {
           traceId,
           instructions: 'Updated instructions',
         },
       });
-      const data = JSON.parse(result.content[0].text);
+      const data = parseToolResult<{ traceId?: string }>(toolResult);
       if (data.traceId === traceId) {
         console.log('   ✅ PASS - Updated trace');
         passed++;
@@ -122,8 +136,8 @@ async function testAllTools() {
         console.log('   ❌ FAIL - Wrong trace updated');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
@@ -131,7 +145,7 @@ async function testAllTools() {
     console.log('\n5️⃣  jobs (upsert)');
     try {
       if (!traceId) throw new Error('No traceId from trace_prepare');
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'jobs',
         arguments: {
           action: 'upsert',
@@ -142,7 +156,7 @@ async function testAllTools() {
           status: 'queued',
         },
       });
-      const data = JSON.parse(result.content[0].text);
+      const data = parseToolResult<{ traceId?: string; status?: string }>(toolResult);
       if (data.traceId === traceId && data.status === 'queued') {
         console.log('   ✅ PASS - Created job');
         passed++;
@@ -150,8 +164,8 @@ async function testAllTools() {
         console.log('   ❌ FAIL - Wrong job data');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
@@ -159,14 +173,14 @@ async function testAllTools() {
     console.log('\n6️⃣  jobs (summary)');
     try {
       if (!traceId) throw new Error('No traceId from trace_prepare');
-      const result = await client.callTool({
+      const toolResult = await client.callTool({
         name: 'jobs',
         arguments: {
           action: 'summary',
           traceId,
         },
       });
-      const data = JSON.parse(result.content[0].text);
+      const data = parseToolResult<{ total?: number }>(toolResult);
       if (typeof data.total === 'number') {
         console.log('   ✅ PASS - Retrieved job summary');
         passed++;
@@ -174,8 +188,8 @@ async function testAllTools() {
         console.log('   ❌ FAIL - Wrong summary format');
         failed++;
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
@@ -185,7 +199,7 @@ async function testAllTools() {
       if (!traceId) throw new Error('No traceId from trace_prepare');
       // This will likely fail if workflow doesn't exist, which is expected
       try {
-        const result = await client.callTool({
+        await client.callTool({
           name: 'workflow_trigger',
           arguments: {
             workflowKey: 'test-workflow',
@@ -195,16 +209,17 @@ async function testAllTools() {
         });
         console.log('   ⚠️  UNEXPECTED - Workflow exists (may need cleanup)');
         passed++;
-      } catch (e: any) {
-        if (e.message.includes('not found') || e.message.includes('mapping')) {
+      } catch (error) {
+        const message = getErrorMessage(error);
+        if (message.includes('not found') || message.includes('mapping')) {
           console.log('   ⚠️  EXPECTED - Workflow mapping not found (test workflow not registered)');
           passed++;
         } else {
-          throw e;
+          throw error;
         }
       }
-    } catch (e: any) {
-      console.log('   ❌ FAIL -', e.message);
+    } catch (error) {
+      console.log('   ❌ FAIL -', getErrorMessage(error));
       failed++;
     }
 
@@ -225,7 +240,7 @@ async function testAllTools() {
     }
 
   } catch (error) {
-    console.error('❌ Test suite failed:', error);
+    console.error('❌ Test suite failed:', getErrorMessage(error));
     process.exit(1);
   } finally {
     await client.close();

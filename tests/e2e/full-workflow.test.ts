@@ -54,7 +54,6 @@ describe('Full workflow E2E', () => {
     }
 
     // Step 1: Casey creates trace and sets project (internal - via TraceRepository)
-    const traceRepo = new TraceRepository();
     const createdTrace = await traceRepo.create({
       projectId: 'unknown',
       sessionId: 'telegram:test-user',

@@ -55,6 +55,14 @@ export class ProjectRepository {
     return results as Project[];
   }
 
+  async listAllNames(): Promise<string[]> {
+    const results = await db
+      .select({ name: projects.name })
+      .from(projects);
+
+    return results.map((r) => r.name);
+  }
+
   async search(term: string, limit = 5): Promise<Project[]> {
     const normalized = term.trim();
     if (!normalized) {

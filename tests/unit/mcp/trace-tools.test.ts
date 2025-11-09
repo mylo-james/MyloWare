@@ -401,9 +401,8 @@ describe('Trace Coordination Tools', () => {
 
       // Verify memory was created (check via repository)
       const memoryRepo = new (await import('@/db/repositories/memory-repository.js')).MemoryRepository();
-      // Note: This is a simplified check - in practice you'd search by metadata.traceId
-      // For now, we just verify the tool didn't throw
-      expect(true).toBe(true);
+      const handoffMemories = await memoryRepo.findByTraceId(trace.traceId, { limit: 5 });
+      expect(handoffMemories.length).toBeGreaterThan(0);
     });
 
     it('should mark trace completed when toAgent is "complete"', async () => {

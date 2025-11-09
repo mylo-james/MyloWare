@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getPersona } from '@/tools/context/getPersonaTool.js';
-import { PersonaRepository } from '@/db/repositories/persona-repository.js';
 
 describe('getPersona', () => {
   beforeEach(async () => {

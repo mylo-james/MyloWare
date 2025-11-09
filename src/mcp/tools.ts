@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { searchMemories } from '../tools/memory/searchTool.js';
 import { storeMemory } from '../tools/memory/storeTool.js';
-import { MemoryRepository, TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository, WorkflowMappingRepository } from '../db/repositories/index.js';
+import { TraceRepository, VideoJobsRepository, EditJobsRepository, ProjectRepository, WorkflowMappingRepository } from '../db/repositories/index.js';
 import type { Trace } from '../db/repositories/trace-repository.js';
 import { logger, sanitizeParams } from '../utils/logger.js';
 import { stripEmbeddings } from '../utils/response-formatter.js';
@@ -17,6 +17,10 @@ import { getTelegramClient } from '../integrations/telegram/client.js';
 import { enqueueMemoryRetry } from '../utils/retry-queue.js';
 import { sanitizeMetadata } from '../utils/metadata-sanitizer.js';
 import { MCPError, MCPErrorCode, NotFoundError, ValidationError } from '../utils/errors.js';
+import { webSearch } from '../tools/web/searchTool.js';
+import { webRead } from '../tools/web/readTool.js';
+import { knowledgeIngest } from '../tools/knowledge/ingestTool.js';
+import { knowledgeGet } from '../tools/knowledge/getTool.js';
 
 export interface MCPTool {
   name: string;
@@ -197,9 +201,17 @@ const jobStatusValues = ['queued', 'running', 'succeeded', 'failed', 'canceled']
 // UUID validation helper
 const uuidSchema = z.string().uuid('traceId must be a valid UUID');
 
+const slugOrUuidSchema = z
+  .string()
+  .min(1, 'projectId must be provided when included')
+  .max(128, 'projectId must be 128 characters or less');
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (value: string): boolean => UUID_REGEX.test(value);
+
 const traceUpdateInputSchema = z.object({
   traceId: uuidSchema,
-  projectId: uuidSchema.optional(),
+  projectId: slugOrUuidSchema.optional(),
   instructions: z.string().max(10000, 'Instructions must be 10000 characters or less').optional(),
   metadata: recordLike().optional(),
 });
@@ -330,7 +342,7 @@ const tracePrepareTool: MCPTool = {
 const traceUpdateTool: MCPTool = {
   name: 'trace_update',
   title: 'Update Trace',
-  description: 'Update project, instructions, or metadata for an existing trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). **IMPORTANT**: projectId should be a canonical project UUID. For backward compatibility, project slugs (e.g., "aismr") are accepted but will be resolved to UUIDs. Example: trace_update({traceId: "trace-aismr-001", projectId: "550e8400-e29b-41d4-a716-446655440000", instructions: "..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Typically called by Casey after normalizing the request.',
+  description: 'Update project, instructions, or metadata for an existing trace. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). **FLEXIBLE**: projectId accepts either a canonical UUID or a project slug (e.g., "aismr") and automatically resolves slugs to UUIDs. Example: trace_update({traceId: "trace-aismr-001", projectId: "aismr", instructions: "..."}). Do NOT create or invent a traceId - use the exact traceId from your system prompt. Typically called by Casey after normalizing the request.',
   inputSchema: traceUpdateInputSchema,
   handler: async (params, requestId) => {
     const unwrapped = unwrapParams(params);
@@ -345,15 +357,50 @@ const traceUpdateTool: MCPTool = {
 
     const updatePayload: Record<string, unknown> = {};
     if (typeof validated.projectId !== 'undefined') {
-      // Validate project exists
       const projectRepo = new ProjectRepository();
-      const project = await projectRepo.findById(validated.projectId);
-      if (!project) {
-        throw new Error(
-          `Project not found: "${validated.projectId}". Provide a valid project UUID from the available projects list.`
-        );
+      const projectInput = validated.projectId.trim();
+
+      if (!projectInput) {
+        throw new ValidationError('projectId cannot be empty', 'projectId');
       }
-      updatePayload.projectId = project.id;
+
+      let resolvedProjectId: string;
+
+      if (isUuid(projectInput)) {
+        const project = await projectRepo.findById(projectInput);
+        if (!project) {
+          throw new NotFoundError(
+            `Project UUID not found: ${projectInput}`,
+            'project',
+            MCPErrorCode.EXTERNAL_SERVICE_ERROR,
+          );
+        }
+        resolvedProjectId = project.id;
+        logger.debug({
+          msg: 'Using project UUID directly',
+          projectId: resolvedProjectId,
+          requestId,
+        });
+      } else {
+        const projectBySlug = await projectRepo.findByName(projectInput);
+        if (!projectBySlug) {
+          const allProjects = await projectRepo.findAll();
+          const availableNames = allProjects.map((p) => p.name).join(', ');
+          throw new ValidationError(
+            `Project not found: "${projectInput}". Available projects: ${availableNames}`,
+            'projectId',
+          );
+        }
+        resolvedProjectId = projectBySlug.id;
+        logger.debug({
+          msg: 'Resolved project slug to UUID',
+          slug: projectInput,
+          uuid: resolvedProjectId,
+          requestId,
+        });
+      }
+
+      updatePayload.projectId = resolvedProjectId;
     }
     if (typeof validated.instructions !== 'undefined') {
       updatePayload.instructions = validated.instructions;
@@ -740,7 +787,9 @@ const webhookAuthHeaders = (): Record<string, string> => {
   return headers;
 };
 
-async function postToWebhook(path: string, payload: unknown): Promise<any> {
+type WebhookResponseData = Record<string, unknown>;
+
+async function postToWebhook(path: string, payload: unknown): Promise<WebhookResponseData> {
   const url = `${config.n8n.webhookUrl?.replace(/\/$/, '')}/webhook/${path.replace(/^\//, '')}`;
   const res = await fetch(url, {
     method: 'POST',
@@ -760,9 +809,9 @@ async function postToWebhook(path: string, payload: unknown): Promise<any> {
     );
   }
   try {
-    return text ? JSON.parse(text) : {};
+    return text ? (JSON.parse(text) as WebhookResponseData) : {};
   } catch {
-    return { ok: true, text };
+    return { ok: true, text } as WebhookResponseData;
   }
 }
 
@@ -942,6 +991,132 @@ const jobsTool: MCPTool = {
   },
 };
 
+// Knowledge & Web Tools
+const webSearchInputSchema = z.object({
+  query: z.string().min(1, 'Query must not be empty').max(500, 'Query must be 500 characters or less'),
+  numResults: numberLike().optional(),
+});
+
+const webSearchTool: MCPTool = {
+  name: 'web_search',
+  title: 'Web Search',
+  description: 'Search the web and return top results. Uses built-in DuckDuckGo scraper (no API key needed).',
+  inputSchema: webSearchInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = webSearchInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'web_search',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const result = await webSearch(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
+const webReadInputSchema = z.object({
+  url: z.string().url('URL must be a valid URL'),
+  maxChars: numberLike().optional(),
+});
+
+const webReadTool: MCPTool = {
+  name: 'web_read',
+  title: 'Read Web Page',
+  description: 'Fetch and extract text from a URL. Returns title, url, text, and metadata.',
+  inputSchema: webReadInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = webReadInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'web_read',
+      params: sanitizeParams({ ...validated, url: '[redacted]' }),
+      requestId,
+    });
+
+    const result = await webRead(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
+const knowledgeIngestInputSchema = z.object({
+  traceId: uuidSchema,
+  urls: z.array(z.string().url('Each URL must be valid')).optional(),
+  text: z.string().max(1000000, 'Text must be 1MB or less').optional(),
+  bias: z.object({
+    persona: stringArrayLike().optional(),
+    project: stringArrayLike().optional(),
+  }).optional(),
+  minSimilarity: numberLike().optional(),
+});
+
+const knowledgeIngestTool: MCPTool = {
+  name: 'knowledge_ingest',
+  title: 'Ingest Knowledge',
+  description: 'Chunk, classify, dedupe and upsert knowledge into memory. Accepts URLs or raw text. Classifies automatically using GPT-4o-mini. Deduplicates at 0.92 similarity threshold by default. **REQUIRED**: traceId parameter MUST come from your system prompt (TRACE ID field). Example: knowledge_ingest({traceId: "trace-001", urls: ["https://example.com"], bias: {persona: ["veo"], project: ["aismr"]}}). Do NOT create or invent a traceId - use the exact traceId from your system prompt.',
+  inputSchema: knowledgeIngestInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = knowledgeIngestInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'knowledge_ingest',
+      params: sanitizeParams({ ...validated, text: validated.text ? '[redacted]' : undefined }),
+      requestId,
+    });
+
+    const result = await knowledgeIngest(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
+const knowledgeGetInputSchema = z.object({
+  query: z.string().min(1, 'Query is required').max(500, 'Query must be 500 characters or less'),
+  persona: z.string().optional(),
+  project: z.string().optional(),
+  limit: numberLike().optional(),
+  minSimilarity: numberLike().optional(),
+});
+
+const knowledgeGetTool: MCPTool = {
+  name: 'knowledge_get',
+  title: 'Get Knowledge',
+  description: 'Search the knowledge base for relevant information. Automatically scoped to your persona (you only see knowledge relevant to you). Use this when you need to recall facts, procedures, or documentation that was previously ingested. Returns knowledge memories ranked by relevance. Example: knowledge_get({query: "shotstack video generation", persona: "veo", project: "aismr", limit: 5}). **PERSONA SCOPING**: Always pass your persona name (from PERSONA field in system prompt) to get knowledge specific to your role.',
+  inputSchema: knowledgeGetInputSchema,
+  handler: async (params, requestId) => {
+    const unwrapped = unwrapParams(params);
+    const validated = knowledgeGetInputSchema.parse(unwrapped);
+
+    logger.info({
+      msg: 'MCP tool called',
+      tool: 'knowledge_get',
+      params: sanitizeParams(validated),
+      requestId,
+    });
+
+    const result = await knowledgeGet(validated);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }],
+      structuredContent: result,
+    };
+  },
+};
+
 /**
  * MCP Tools - Persona-facing tools only
  * 
@@ -950,6 +1125,11 @@ const jobsTool: MCPTool = {
  * - Trace: trace_prepare, trace_update, handoff_to_agent
  * - Jobs: jobs (unified upsert + summary)
  * - Workflow: workflow_trigger (generic workflow invoker)
+ * 
+ * Knowledge & Web tools (3 total):
+ * - web_search - Search the web
+ * - web_read - Fetch and extract text from URL
+ * - knowledge_ingest - Chunk, classify, dedupe and upsert knowledge
  * 
  * Internal utilities (context, session, trace creation) are called directly
  * via repositories/services, not exposed as MCP tools.
@@ -969,4 +1149,10 @@ export const mcpTools: MCPTool[] = [
   
   // Core workflow trigger (generic)
   workflowTriggerTool,
+
+  // Knowledge & Web tools
+  webSearchTool,
+  webReadTool,
+  knowledgeIngestTool,
+  knowledgeGetTool,
 ];

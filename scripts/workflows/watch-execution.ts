@@ -9,7 +9,6 @@
  *   npm run watch:latest      # Watch most recent execution
  */
 
-import { N8nClient } from '../../src/integrations/n8n/client.js';
 import { config } from '../../src/config/index.js';
 
 const colors = {
@@ -28,6 +27,18 @@ function log(message: string, color?: keyof typeof colors) {
   console.log(`${colorCode}${message}${colors.reset}`);
 }
 
+type ExecutionRunItem = {
+  startTime: number;
+  executionTime: number;
+  data?: {
+    main?: Array<Array<{ json: unknown }>>;
+  };
+  error?: {
+    message: string;
+    description?: string;
+  };
+};
+
 interface ExecutionDetails {
   id: string;
   workflowId: string;
@@ -36,15 +47,7 @@ interface ExecutionDetails {
   stoppedAt?: string;
   workflowData: {
     resultData: {
-      runData: Record<string, Array<{
-        startTime: number;
-        executionTime: number;
-        data: any;
-        error?: {
-          message: string;
-          description?: string;
-        };
-      }>>;
+      runData: Record<string, ExecutionRunItem[]>;
       error?: {
         message: string;
         node?: {
@@ -66,7 +69,7 @@ async function getExecutionDetails(executionId: string, baseUrl: string, apiKey:
     throw new Error(`Failed to get execution: ${response.status}`);
   }
 
-  return response.json();
+  return (await response.json()) as ExecutionDetails;
 }
 
 async function getLatestExecution(baseUrl: string, apiKey: string): Promise<string> {
@@ -80,8 +83,8 @@ async function getLatestExecution(baseUrl: string, apiKey: string): Promise<stri
     throw new Error(`Failed to list executions: ${response.status}`);
   }
 
-  const result = await response.json();
-  const executions = result.data || [];
+  const result = (await response.json()) as { data?: Array<{ id: string }> };
+  const executions = Array.isArray(result.data) ? result.data : [];
   
   if (executions.length === 0) {
     throw new Error('No executions found');

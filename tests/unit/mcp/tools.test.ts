@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mcpTools } from '@/mcp/tools.js';
 import { db } from '@/db/client.js';
 import { memories } from '@/db/schema.js';
-import { MemoryRepository } from '@/db/repositories/memory-repository.js';
 
 const getTool = (name: string) => {
   const tool = mcpTools.find((t) => t.name === name);

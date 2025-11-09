@@ -5,6 +5,8 @@
  * that are used across multiple modules.
  */
 
+import { config } from '../config/index.js';
+
 /**
  * Default number of memories to retrieve when no limit is specified
  */
@@ -24,12 +26,12 @@ export const MAX_RETRIES = 3;
 /**
  * Session time-to-live in milliseconds (30 minutes)
  */
-export const SESSION_TTL_MS = 30 * 60 * 1000;
+export const SESSION_TTL_MS = config.session.ttlMs;
 
 /**
  * Maximum number of sessions to keep in memory
  */
-export const MAX_SESSIONS = 1000;
+export const MAX_SESSIONS = config.session.maxSessionsPerUser;
 
 /**
  * Initial delay for retry operations (milliseconds)

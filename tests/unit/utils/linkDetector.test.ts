@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { detectRelatedMemories } from '@/utils/linkDetector.js';
 import { storeMemory } from '@/tools/memory/storeTool.js';
 import { db } from '@/db/client.js';
@@ -39,6 +39,7 @@ describe('linkDetector', () => {
 
       expect(related.length).toBeGreaterThan(0);
       expect(related).toContain(memory1.id);
+      expect(related).toContain(memory2.id);
     });
 
     it('should filter by project', async () => {

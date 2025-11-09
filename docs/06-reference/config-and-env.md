@@ -168,14 +168,34 @@ TELEGRAM_USER_ID=123456789
 
 ### Security
 
-#### ALLOWED_ORIGINS
-CORS allowed origins (comma-separated).
+#### ALLOWED_CORS_ORIGINS
+Comma-separated list of CORS origins allowed to call the MCP endpoint.
 
 ```bash
-ALLOWED_ORIGINS=https://yourdomain.com,https://n8n.yourdomain.com
+ALLOWED_CORS_ORIGINS=https://n8n.yourdomain.com,https://studio.yourdomain.com
 ```
 
-**Default:** http://localhost:5678,http://localhost:3000
+**Default:** (empty) — fail-closed, rejects all cross-origin requests.  
+**Tip:** Always set explicit origins in staging/production.
+
+#### ALLOWED_HOST_KEYS
+Comma-separated list of hostnames/IPs allowed to connect to the MCP transport (DNS rebinding protection).
+
+```bash
+ALLOWED_HOST_KEYS=127.0.0.1,localhost,mcp-server,mcp.yourdomain.com
+```
+
+**Default:** 127.0.0.1, localhost, mcp-server  
+**Note:** Port variants are added automatically using the configured server port.
+
+#### DEBUG_AUTH
+Enables verbose authentication logging (hashes, headers) for debugging. **Never enable in production.**
+
+```bash
+DEBUG_AUTH=false
+```
+
+**Default:** false
 
 #### RATE_LIMIT_MAX
 Maximum requests per time window.
@@ -194,6 +214,26 @@ RATE_LIMIT_TIME_WINDOW=1 minute
 ```
 
 **Default:** 1 minute
+
+### Session
+
+#### SESSION_TTL_MS
+Time-to-live (in milliseconds) for MCP session transports before automatic cleanup.
+
+```bash
+SESSION_TTL_MS=3600000
+```
+
+**Default:** 3600000 (1 hour)
+
+#### MAX_SESSIONS_PER_USER
+Maximum number of active sessions to retain (LRU eviction beyond this threshold).
+
+```bash
+MAX_SESSIONS_PER_USER=10
+```
+
+**Default:** 10
 
 ---
 
