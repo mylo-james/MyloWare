@@ -1,0 +1,19 @@
+{
+  "id": "search_archive",
+  "step": 2,
+  "type": "mcp_call",
+  "description": "Search archive for similar ideas using keyword search",
+  "mcp_call": {
+    "tool": "memory_search",
+    "params": {
+      "query": "${context.userInput}",
+      "project": "aismr",
+      "limit": 20
+    },
+    "storeAs": "archiveResults"
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

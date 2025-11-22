@@ -1,0 +1,23 @@
+{
+  "id": "search_inspiration",
+  "step": 3,
+  "type": "mcp_call",
+  "description": "Search for inspiration patterns using hybrid search with graph expansion",
+  "dependsOn": ["search_archive"],
+  "mcp_call": {
+    "tool": "memory_search",
+    "params": {
+      "query": "${context.userInput}",
+      "project": "aismr",
+      "expandGraph": true,
+      "maxHops": 2,
+      "temporalBoost": true,
+      "limit": 30
+    },
+    "storeAs": "inspirationResults"
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

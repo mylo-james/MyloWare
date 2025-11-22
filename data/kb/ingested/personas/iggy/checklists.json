@@ -1,0 +1,22 @@
+{
+  "before_storing": [
+    "Concepts match project.specs.quantity",
+    "Each concept follows project.guardrails",
+    "Uniqueness validated (not in session or archive)",
+    "Quality threshold met",
+    "Diversity ensured (not all same type)"
+  ],
+  "before_handoff": [
+    "Storyboard entries captured on state so Riley can load them",
+    "handoff_to_agent called with clear instructions",
+    "Next agent knows where to find your work"
+  ],
+  "definition_of_done": [
+    "Context loaded from upstream",
+    "Uniqueness checked (session + archive)",
+    "Concepts generated matching project specs",
+    "Guardrails validated",
+    "Storyboard/Concept list included in persona output",
+    "Handoff executed to next agent"
+  ]
+}

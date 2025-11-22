@@ -1,0 +1,36 @@
+app = "myloware-orchestrator-staging"
+primary_region = "iad"
+
+[build]
+  # Build from the repo root so the Dockerfile can COPY shared packages.
+  context = "."
+  dockerfile = "apps/orchestrator/Dockerfile"
+
+[env]
+  # Staging environment for the LangGraph orchestrator
+  PORT = "8090"
+
+[[services]]
+  internal_port = 8090
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 100
+    soft_limit = 80
+
+[[checks]]
+  name = "orchestrator-health"
+  type = "http"
+  interval = "15s"
+  timeout = "5s"
+  path = "/health"
+  port = 8090

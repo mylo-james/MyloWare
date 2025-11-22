@@ -1,0 +1,7 @@
+{
+  "version": "2025-11-09",
+  "description": "Registry of all MyloWare data artifacts for ingestion pipeline",
+  "loadOrder": ["personas", "projects", "guardrails", "workflows"],
+  "artifacts": []
+}
+

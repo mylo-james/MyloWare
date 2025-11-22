@@ -1,0 +1,30 @@
+{
+  "persona": "brendan",
+  "project": "test_video_gen",
+  "task_description": "Initiate test video generation run and hand off to Riley",
+  "deliverables": [
+    {
+      "type": "project_confirmation",
+      "description": "Confirm test_video_gen project is set"
+    },
+    {
+      "type": "initial_brief",
+      "description": "Brief Riley to generate 2 test videos (moon/cheeseburger, sun/pickle)"
+    }
+  ],
+  "quality_criteria": [
+    "Project is correctly set to test_video_gen",
+    "Instructions are clear for Riley",
+    "Handoff includes all necessary specs (2 videos, 8s each)"
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"brendan\" and project \"test_video_gen\" to confirm guardrails and workflow context before briefing teammates.",
+    "Confirm project is test_video_gen",
+    "Brief Riley with clear video specifications",
+    "Hand off to Riley via handoff_to_agent"
+  ],
+  "success_definition": "Riley receives clear instructions to generate moon/cheeseburger and sun/pickle videos",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

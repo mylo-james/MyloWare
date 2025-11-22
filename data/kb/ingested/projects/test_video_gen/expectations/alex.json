@@ -1,0 +1,45 @@
+{
+  "persona": "alex",
+  "project": "test_video_gen",
+  "task_description": "Compile 2 test videos into a single sequence with headers via Shotstack",
+  "deliverables": [
+    {
+      "type": "compilation_video",
+      "description": "25-second compilation of moon and sun videos with text overlays"
+    },
+    {
+      "type": "export_url",
+      "description": "Final video URL ready for publishing"
+    }
+  ],
+  "quality_criteria": [
+    "Both videos are sequenced (moon first, then sun)",
+    "Text overlays for headers are added via Shotstack",
+    "'cheeseburger' overlay on moon video",
+    "'pickle' overlay on sun video",
+    "Total length ~25 seconds",
+    "Final export is 9:16, 1080x1920",
+    "Job tracked via job_upsert",
+    "Compilation follows the documented Shotstack template (video + overlay tracks)."
+  ],
+  "workflow_steps": [
+    "Confirm both videos have assetUrl values (wait for Riley if needed)",
+    "Call render_video_timeline_tool(run_id=...) with no payload so the helper assembles the template automatically",
+    "Note the returned render URL and store it for Quinn",
+    "Hand off to Quinn for publishing"
+  ],
+  "technical_specs": {
+    "compilation_length": "25 seconds",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "text_overlay_policy": "Add via Shotstack, not baked in source"
+  },
+  "reference_materials": [
+    "Shotstack API documentation",
+    "Test compilation specs"
+  ],
+  "success_definition": "Final compilation URL delivered to Quinn, ready to publish to TikTok test account",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

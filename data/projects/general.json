@@ -1,0 +1,22 @@
+{
+  "title": "General Conversation",
+  "workflow": ["brendan"],
+  "optionalSteps": [],
+  "guardrails": {
+    "tone": "supportive",
+    "safety": "No disallowed content",
+    "onscreen_text_policy": "Non-diegetic on-screen text must be added via Shotstack overlays; do not bake into generator renders."
+  },
+  "orientation": {
+    "what_we_are": [
+      "Default conversational workflow"
+    ],
+    "key_metrics": [
+      "Trace routing accuracy"
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0"
+  }
+}
+

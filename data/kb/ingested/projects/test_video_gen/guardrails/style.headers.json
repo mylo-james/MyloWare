@@ -1,0 +1,18 @@
+{
+  "key": "test_video_gen.style.headers.v1",
+  "category": "style",
+  "name": "headers",
+  "rule": "Headers ('CHEESEBURGER', 'PICKLE') are Shotstack overlays—never bake them into kie.ai renders—and they must be legible the entire time.",
+  "guidelines": [
+    "Add overlays during Alex's edit pass (Shotstack track 2).",
+    "Use high-contrast typography positioned at the top-safe zone.",
+    "Keep the overlay visible from 0s–8s for each clip."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "style", "overlay"]
+  },
+  "links": {
+    "project": "test_video_gen"
+  }
+}

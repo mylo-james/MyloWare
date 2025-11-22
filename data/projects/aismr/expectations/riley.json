@@ -1,0 +1,56 @@
+{
+  "persona": "riley",
+  "project": "aismr",
+  "task_description": "Write 12 screenplay beats from modifiers and generate videos via kie.ai (without text overlays)",
+  "deliverables": [
+    {
+      "type": "screenplay_beats",
+      "count": 12,
+      "format": "8-second micro-film scripts with technical specs"
+    },
+    {
+      "type": "video_stubs",
+      "count": 12,
+      "format": "Rendered videos with URLs and metadata"
+    }
+  ],
+  "quality_criteria": [
+    "Each screenplay must be exactly 8 seconds runtime",
+    "Whisper beat must occur at ~3 seconds",
+    "Must enforce hand-count rule (max 2 hands per shot)",
+    "Scripts must be actionable for video generation",
+    "Videos do NOT include baked-in text (Alex will add overlays via Shotstack)",
+    "All videos must be 9:16 aspect ratio, 1080x1920 resolution",
+    "Job tracking must be complete with all video URLs stored",
+    "References knowledge_get insights (screenplay and kie.ai guidance) in the resulting scripts."
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"riley\" and project \"aismr\" to refresh screenplay and kie.ai guidance before writing scripts.",
+    "Load Iggy's modifiers via memory_search",
+    "Write 12 screenplay beats matching each modifier",
+    "Validate each script against technical constraints",
+    "Submit each screenplay to kie.ai for video generation",
+    "Track all jobs via job_upsert",
+    "Monitor completion via jobs_summary",
+    "Store video URLs and metadata with memory_store",
+    "Hand off to Alex with compilation instructions"
+  ],
+  "technical_specs": {
+    "runtime": "8.0 seconds",
+    "whisper_timing": "3.0 seconds",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "format": "single-shot, no cuts",
+    "max_hands": 2,
+    "text_overlay_policy": "Do NOT bake text into videos - Alex will add all text overlays via Shotstack"
+  },
+  "reference_materials": [
+    "AISMR screenplay format guide",
+    "Technical constraints from guardrails",
+    "kie.ai API documentation"
+  ],
+  "success_definition": "12 clean video URLs (no text overlays) delivered to Alex with screenplay context for caption generation",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

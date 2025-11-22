@@ -1,0 +1,18 @@
+{
+  "key": "test_video_gen.content.test_videos.v1",
+  "category": "content",
+  "name": "test_videos",
+  "rule": "Test Video Gen always produces two fixed clips: moon/\"cheeseburger\" followed by sun/\"pickle\". Keep prompts simple so the pipeline focuses on exercising tooling, not creative variance.",
+  "guidelines": [
+    "Clip 1 subject = moon and overlay header = \"cheeseburger\".",
+    "Clip 2 subject = sun and overlay header = \"pickle\".",
+    "Keep both prompts lightweight and literal so we can quickly verify the run end-to-end."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "content", "test"]
+  },
+  "links": {
+    "project": "test_video_gen"
+  }
+}

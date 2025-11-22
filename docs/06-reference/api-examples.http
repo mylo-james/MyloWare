@@ -1,0 +1,49 @@
+### Chat with Brendan (start a Test Video Gen run)
+POST http://localhost:8080/v1/chat/brendan
+Content-Type: application/json
+x-api-key: {{API_KEY}}
+
+{
+  "user_id": "demo",
+  "message": "Make a Test Video Gen run about LangGraph"
+}
+
+### Check run status
+GET http://localhost:8080/v1/runs/{{runId}}
+x-api-key: {{API_KEY}}
+
+### Get HITL approval links (ideate, prepublish)
+GET http://localhost:8080/v1/hitl/link/{{runId}}/ideate
+x-api-key: {{API_KEY}}
+
+GET http://localhost:8080/v1/hitl/link/{{runId}}/prepublish
+x-api-key: {{API_KEY}}
+
+### Approve HITL gates directly (when you already have the token)
+GET http://localhost:8080/v1/hitl/approve/{{runId}}/ideate?token={{token}}
+x-api-key: {{API_KEY}}
+
+GET http://localhost:8080/v1/hitl/approve/{{runId}}/prepublish?token={{token}}
+x-api-key: {{API_KEY}}
+
+### List artifacts for a run (via API helper route, if exposed)
+GET http://localhost:8080/v1/runs/{{runId}}/artifacts
+x-api-key: {{API_KEY}}
+
+### Webhook endpoints (used by providers; shown here for reference)
+POST http://localhost:8080/v1/webhooks/kieai
+Content-Type: application/json
+X-Request-Id: {{requestId}}
+X-Timestamp: {{epochSeconds}}
+X-Signature: {{hmacSignature}}
+
+{ ...provider-payload-here... }
+
+POST http://localhost:8080/v1/webhooks/upload-post
+Content-Type: application/json
+X-Request-Id: {{requestId}}
+X-Timestamp: {{epochSeconds}}
+X-Signature: {{hmacSignature}}
+
+{ ...provider-payload-here... }
+

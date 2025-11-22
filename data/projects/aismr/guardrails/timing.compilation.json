@@ -1,0 +1,16 @@
+{
+  "key": "aismr.timing.compilation.v1",
+  "category": "timing",
+  "name": "compilation",
+  "rule": "Total compilation ~110s (12 videos + title cards)",
+  "validation": "Alex validates before storing",
+  "enforcement": "strict",
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "timing", "compilation"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

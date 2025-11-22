@@ -1,0 +1,23 @@
+{
+  "before_storing": [
+    "Edit job completed (jobs_summary confirms)",
+    "User approval received via HITL",
+    "Format validated against project specs",
+    "Final URL accessible"
+  ],
+  "before_handoff": [
+    "memory_store called with traceId in metadata",
+    "Final edit URL stored and findable",
+    "handoff_to_agent called with clear instructions",
+    "Next agent knows where to find your work"
+  ],
+  "definition_of_done": [
+    "Videos loaded from upstream",
+    "Edit created via workflow_trigger",
+    "Job tracked and monitored",
+    "User approval received",
+    "Final URL stored with traceId",
+    "Handoff executed to next agent"
+  ]
+}
+

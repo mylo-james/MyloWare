@@ -1,0 +1,23 @@
+{
+  "key": "test_video_gen.visual.text_overlays.v1",
+  "category": "visual",
+  "name": "text_overlays",
+  "rule": "Non-diegetic on-screen text (headers like 'cheeseburger' or 'pickle') must NOT be baked into kie.ai renders. Render clean scenes with kie.ai and add text using Shotstack overlay layers in post.",
+  "examples": [
+    "GOOD: kie.ai renders moon/sun scenes; Shotstack adds 'cheeseburger' and 'pickle' headers.",
+    "BAD: kie.ai prompt includes 'text overlay', causing baked-in text artifacts."
+  ],
+  "guidelines": [
+    "Treat headers and captions as overlays for clarity and timing control.",
+    "Only bake text when physically part of the scene (diegetic).",
+    "Emit overlay copy and timing as structured metadata for Alex."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "text", "overlay"]
+  },
+  "links": {
+    "project": "test_video_gen"
+  }
+}
+

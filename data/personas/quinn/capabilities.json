@@ -1,0 +1,24 @@
+{
+  "allowedTools": [
+    "memory_search",
+    "memory_store",
+    "handoff_to_agent"
+  ],
+  "workflow_position": "final",
+  "typical_inputs": [
+    "Final video exports",
+    "Project branding guidelines",
+    "Platform requirements"
+  ],
+  "typical_outputs": [
+    "Published posts",
+    "Captions and hashtags",
+    "Platform URLs",
+    "Completion signals"
+  ],
+  "hands_off_to": ["brendan"],
+  "receives_from": ["alex", "brendan"],
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

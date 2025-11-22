@@ -1,0 +1,45 @@
+{
+  "persona": "alex",
+  "project": "aismr",
+  "task_description": "Compile 12 video beats into a final AISMR compilation with captions and overlays",
+  "deliverables": [
+    {
+      "type": "compilation_video",
+      "description": "110-second compilation of all 12 beats with captions"
+    },
+    {
+      "type": "export_url",
+      "description": "Final video URL ready for publishing"
+    }
+  ],
+  "quality_criteria": [
+    "All 12 beats are sequenced in order",
+    "Transitions align with audio cues",
+    "Caption timing matches whisper beats precisely",
+    "On-screen text overlays are added via Shotstack (not baked in)",
+    "Total compilation length is ~110 seconds",
+    "Final export meets platform specs (9:16, 1080x1920)",
+    "Follows the standard Shotstack template (video + overlay tracks) for AISMR compilations."
+  ],
+  "workflow_steps": [
+    "Confirm all 12 beats have assetUrl values (wait for Riley if needed)",
+    "Call render_video_timeline_tool(run_id=...) with no payload so the helper assembles the AISMR template automatically",
+    "Note the returned render URL and store it for Quinn",
+    "Hand off to Quinn with publishing instructions"
+  ],
+  "technical_specs": {
+    "compilation_length": "110 seconds",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "caption_policy": "Overlays via Shotstack, not baked into source videos"
+  },
+  "reference_materials": [
+    "Shotstack API documentation",
+    "AISMR compilation template",
+    "Caption timing guidelines"
+  ],
+  "success_definition": "Final compilation video URL delivered, meeting all technical specs and ready for Quinn to publish",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

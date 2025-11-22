@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  python-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install '.[dev]'
+
+      - name: Run lint (ruff + adapter guard)
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: make lint
+
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install ".[dev]"
+
+      - name: Run tests + coverage (shared with local make target)
+        env:
+          PYTHONUNBUFFERED: '1'
+          COVERAGE_FAIL_UNDER: 80
+          PROVIDERS_MODE: mock  # 🔒 Enforce mock mode in CI to prevent costly API calls
+        run: make test-coverage
+
+      - name: Upload Python coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: python-coverage.xml

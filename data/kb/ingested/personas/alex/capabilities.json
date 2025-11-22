@@ -1,0 +1,25 @@
+{
+  "allowedTools": [
+    "memory_search",
+    "memory_store",
+    "handoff_to_agent",
+    "job_upsert",
+    "jobs_summary"
+  ],
+  "workflow_position": "late",
+  "typical_inputs": [
+    "Individual video clips",
+    "Project specifications",
+    "Caption requirements"
+  ],
+  "typical_outputs": [
+    "Compiled videos",
+    "Export URLs",
+    "Technical metadata"
+  ],
+  "hands_off_to": ["quinn", "brendan"],
+  "receives_from": ["riley", "brendan"],
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

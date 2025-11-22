@@ -1,0 +1,23 @@
+{
+  "title": "AISMR Surreal Studio",
+  "workflow": ["brendan", "iggy", "riley", "alex", "quinn"],
+  "optionalSteps": [],
+  "guardrails": {
+    "tone": "surreal_impossible",
+    "delivery": "TikTok-ready pacing",
+    "safety": "Filter disallowed subjects",
+    "onscreen_text_policy": "Non-diegetic on-screen text must be added via Shotstack overlays; do not bake into kie.ai renders."
+  },
+  "orientation": {
+    "what_we_are": [
+      "Surreal short-form storytelling studio"
+    ],
+    "key_metrics": [
+      "Completion rate",
+      "Modifier originality"
+    ]
+  },
+  "metadata": {
+    "version": "1.0.0"
+  }
+}

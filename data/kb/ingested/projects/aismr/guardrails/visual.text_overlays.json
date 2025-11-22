@@ -1,0 +1,23 @@
+{
+  "key": "aismr.visual.text_overlays.v1",
+  "category": "visual",
+  "name": "text_overlays",
+  "rule": "Non-diegetic on-screen text (captions, headers, labels, CTAs) must NOT be baked into kie.ai renders. Render clean scenes with kie.ai and add text using Shotstack overlay layers in post.",
+  "examples": [
+    "GOOD: kie.ai renders the object-only scene; Shotstack adds a 'cheeseburger' header overlay.",
+    "BAD: kie.ai prompt includes 'text \"cheeseburger\" on screen', causing baked-in text artifacts."
+  ],
+  "guidelines": [
+    "Treat captions, lower-thirds, headers, and calls-to-action as overlays.",
+    "Only bake text if it is physically present in-scene (diegetic signage).",
+    "Extract overlay copy and timing as structured metadata for Alex to place in Shotstack."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "text", "overlay"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

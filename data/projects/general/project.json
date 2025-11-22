@@ -1,0 +1,24 @@
+{
+  "name": "general",
+  "title": "General Conversations",
+  "description": "Default fallback project for ad-hoc conversations",
+  "workflow": ["brendan"],
+  "optionalSteps": [],
+  "specs": {
+    "maxResponseSeconds": 30
+  },
+  "settings": {},
+  "guardrails": {
+    "summary": "Simple conversation guardrails",
+    "categories": ["response"],
+    "onscreen_text_policy": "Non-diegetic on-screen text must be added via Shotstack overlays; do not bake into generator renders."
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["project", "conversation", "fallback"]
+  },
+  "links": {
+    "personas": ["brendan"]
+  }
+}
+

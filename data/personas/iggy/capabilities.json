@@ -1,0 +1,22 @@
+{
+  "allowedTools": [
+    "memory_search",
+    "transfer_to_riley"
+  ],
+  "workflow_position": "early",
+  "typical_inputs": [
+    "Project briefs",
+    "Creative direction",
+    "Previous work archives"
+  ],
+  "typical_outputs": [
+    "Concept lists",
+    "Creative briefs",
+    "Ideation documents"
+  ],
+  "hands_off_to": ["riley", "brendan"],
+  "receives_from": ["brendan"],
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

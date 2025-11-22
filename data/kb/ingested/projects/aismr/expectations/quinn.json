@@ -1,0 +1,54 @@
+{
+  "persona": "quinn",
+  "project": "aismr",
+  "task_description": "Publish AISMR compilation to TikTok with optimized caption and hashtags",
+  "deliverables": [
+    {
+      "type": "tiktok_caption",
+      "description": "Platform-optimized caption in AISMR voice"
+    },
+    {
+      "type": "hashtags",
+      "count": 5,
+      "description": "High-intent hashtags for AISMR content"
+    },
+    {
+      "type": "published_url",
+      "description": "Final TikTok post URL"
+    }
+  ],
+  "quality_criteria": [
+    "Caption matches AISMR brand voice (surreal, mesmerizing)",
+    "Hashtags are relevant and high-intent for ASMR/surreal content",
+    "Upload is verified successful before completion",
+    "Post URL is stored and shared with stakeholders",
+    "Completion signal sent via handoff_to_agent with toAgent='complete'",
+    "Social copy aligns with knowledge_get insights on platform voice and hashtag strategy."
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"quinn\" and project \"aismr\" to refresh social publishing guidelines before crafting copy or scheduling posts.",
+    "Load Alex's final video URL via memory_search",
+    "Review project branding and voice guidelines",
+    "Craft TikTok caption in AISMR style",
+    "Select 5 high-performing hashtags",
+    "Upload video to TikTok via upload-post adapter",
+    "Verify upload success and capture post URL",
+    "Store caption, hashtags, and URL with memory_store",
+    "Signal completion via handoff_to_agent({toAgent: 'complete'})"
+  ],
+  "platform_specs": {
+    "platform": "TikTok",
+    "caption_max_length": 2200,
+    "hashtag_count": 5,
+    "video_format": "9:16 vertical"
+  },
+  "reference_materials": [
+    "AISMR brand voice guide",
+    "TikTok hashtag strategy",
+    "Platform publishing guidelines"
+  ],
+  "success_definition": "Video successfully published to TikTok with optimized caption and hashtags, URL stored, and run marked complete",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

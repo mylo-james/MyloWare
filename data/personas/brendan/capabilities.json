@@ -1,0 +1,24 @@
+{
+  "allowedTools": [
+    "trace_update",
+    "memory_search",
+    "memory_store",
+    "handoff_to_agent"
+  ],
+  "workflow_position": "coordinator",
+  "typical_inputs": [
+    "User requests",
+    "Completion signals from team"
+  ],
+  "typical_outputs": [
+    "Project assignments",
+    "Initial briefs",
+    "Completion confirmations"
+  ],
+  "hands_off_to": ["iggy", "riley", "alex", "quinn"],
+  "receives_from": ["iggy", "riley", "alex", "quinn"],
+  "metadata": {
+    "version": "2.0.0"
+  }
+}
+

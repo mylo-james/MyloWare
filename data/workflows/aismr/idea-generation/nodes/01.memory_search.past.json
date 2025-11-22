@@ -1,0 +1,20 @@
+{
+  "id": "remember_past_ideas",
+  "step": 1,
+  "type": "mcp_call",
+  "description": "Retrieve past ideas from episodic memory to avoid duplicates",
+  "mcp_call": {
+    "tool": "memory_search",
+    "params": {
+      "query": "past AISMR ideas generated",
+      "memoryTypes": ["episodic"],
+      "project": "aismr",
+      "limit": 50
+    },
+    "storeAs": "pastIdeas"
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

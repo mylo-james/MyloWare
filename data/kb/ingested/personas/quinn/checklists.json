@@ -1,0 +1,23 @@
+{
+  "before_storing": [
+    "Final edit loaded from upstream",
+    "Caption and hashtags generated",
+    "Platform requirements met",
+    "Publish successful"
+  ],
+  "before_completion": [
+    "memory_store called with traceId in metadata",
+    "Publish URL stored and findable",
+    "handoff_to_agent({toAgent: 'complete'}) called",
+    "User notified with results"
+  ],
+  "definition_of_done": [
+    "Final edit loaded from upstream",
+    "Caption generated",
+    "Published to platforms",
+    "Publish URL stored with traceId",
+    "Completion signaled",
+    "User notified"
+  ]
+}
+

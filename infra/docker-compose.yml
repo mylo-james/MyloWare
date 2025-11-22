@@ -1,0 +1,164 @@
+name: myloware
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: myloware_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-myloware}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: myloware_redis
+    restart: unless-stopped
+    command: [
+      "redis-server",
+      "--appendonly",
+      "yes",
+      "--requirepass",
+      "${REDIS_PASSWORD:-redis_local_password_f3b7d9c4e8a2405cb1d6ea3f79d2c5af}"
+    ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ../
+      dockerfile: apps/api/Dockerfile
+    container_name: myloware_api
+    depends_on:
+      - postgres
+      - redis
+      - orchestrator
+    env_file:
+      - ../${ENV_FILE:-.env}
+    environment:
+      DB_URL: postgresql+psycopg://postgres:postgres@postgres:5432/myloware
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_local_password_f3b7d9c4e8a2405cb1d6ea3f79d2c5af}@redis:6379/0
+      PROM_ENDPOINT: ${PROM_ENDPOINT:-http://prometheus:9090}
+      API_KEY: ${API_KEY:-dev-local-api-key}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      ORCHESTRATOR_BASE_URL: http://orchestrator:8090
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../alembic:/app/alembic:ro
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  orchestrator:
+    build:
+      context: ../
+      dockerfile: apps/orchestrator/Dockerfile
+    container_name: myloware_orchestrator
+    depends_on:
+      - postgres
+    env_file:
+      - ../${ENV_FILE:-.env}
+    environment:
+      DB_URL: postgresql+psycopg://postgres:postgres@postgres:5432/myloware
+      API_KEY: ${API_KEY:-dev-local-api-key}
+      API_BASE_URL: http://api:8080
+    ports:
+      - "8090:8090"
+    volumes:
+      - ../alembic:/app/alembic:ro
+    command: [
+      "uvicorn",
+      "orchestrator.server:app",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8090"
+    ]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  mcp:
+    build:
+      context: ../
+      dockerfile: apps/mcp_adapter/Dockerfile
+    container_name: myloware_mcp
+    profiles: ["mcp"]
+    depends_on:
+      - api
+      - orchestrator
+    env_file:
+      - ../${ENV_FILE:-.env}
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://api:8080}
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8090}
+      API_KEY: ${API_KEY:-dev-local-api-key}
+      MCP_ADAPTER_PORT: ${MCP_ADAPTER_PORT:-3000}
+    ports:
+      - "${MCP_ADAPTER_PORT:-3000}:3000"
+    command: ["uvicorn", "mcp_adapter.main:app", "--host", "0.0.0.0", "--port", "3000"]
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: myloware_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: myloware_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.1.0
+    container_name: myloware_cloudflared
+    depends_on:
+      - api
+    restart: unless-stopped
+    command: ["tunnel", "--config", "/etc/cloudflared/config.yml", "run", "myloware-api"]
+    volumes:
+      - ../cloudflared:/etc/cloudflared:ro
+
+volumes:
+  postgres-data:
+  redis-data:
+  grafana-data:

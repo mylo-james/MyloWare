@@ -1,0 +1,29 @@
+app = "myloware-api-staging"
+primary_region = "iad"
+
+[build]
+  # Build from the repo root so the Dockerfile can COPY shared packages.
+  context = "../.."
+  dockerfile = "Dockerfile"
+
+[env]
+  # Staging environment for the Python API
+  ENVIRONMENT = "staging"
+  PORT = "8080"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 100
+    soft_limit = 80

@@ -1,0 +1,37 @@
+name: Docs Check (links)
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "**/*.md"
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "**/*.md"
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install link checker
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install linkchecker==10.4.0
+
+      - name: Check links in docs
+        run: |
+          linkchecker docs \
+            --check-extern \
+            --no-status \
+            --ignore-url 'https?://localhost' \
+            --ignore-url 'https?://127\.0\.0\.1' \
+            --ignore-url 'file://.*'

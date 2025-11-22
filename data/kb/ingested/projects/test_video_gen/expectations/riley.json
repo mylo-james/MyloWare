@@ -1,0 +1,64 @@
+{
+  "persona": "riley",
+  "project": "test_video_gen",
+  "task_description": "Write scripts for and generate 2 test videos via kie.ai: moon and sun",
+  "deliverables": [
+    {
+      "type": "scripts",
+      "count": 2,
+      "format": "Video generation prompts for moon and sun"
+    },
+    {
+      "type": "test_videos",
+      "count": 2,
+      "format": "Video URLs without text overlays"
+    }
+  ],
+  "quality_criteria": [
+    "Script 1: Clear prompt for moon scene",
+    "Script 2: Clear prompt for sun scene",
+    "Videos do NOT include baked-in text (Alex will add overlays)",
+    "Both videos are 8 seconds duration",
+    "Both videos are 9:16 aspect ratio, 1080x1920",
+    "All jobs tracked via job_upsert",
+    "All video URLs stored with metadata including which header goes with which",
+    "Scripts acknowledge knowledge_get results for pacing and kie.ai constraints."
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"riley\" and project \"test_video_gen\" to refresh screenplay and kie.ai test guidelines before writing scripts.",
+    "Load specs from Brendan's handoff",
+    "Write script/prompt for video 1: moon scene",
+    "Write script/prompt for video 2: sun scene",
+    "Generate video 1 via kie.ai (moon, no text)",
+    "Generate video 2 via kie.ai (sun, no text)",
+    "Track both jobs with job_upsert",
+    "Wait for completion and store URLs with metadata",
+    "Store mapping: moon \u2192 'cheeseburger', sun \u2192 'pickle'",
+    "Hand off to Alex with clear instructions on which text goes where"
+  ],
+  "technical_specs": {
+    "video_count": 2,
+    "runtime": "8.0 seconds each",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "text_overlay_policy": "Do NOT bake text into videos - Alex will add overlays",
+    "videos": [
+      {
+        "subject": "moon",
+        "note": "Alex will add 'cheeseburger' overlay"
+      },
+      {
+        "subject": "sun",
+        "note": "Alex will add 'pickle' overlay"
+      }
+    ]
+  },
+  "reference_materials": [
+    "kie.ai API documentation",
+    "Test video specifications"
+  ],
+  "success_definition": "2 clean video URLs (no text) delivered to Alex with clear mapping of which header text goes on which video",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

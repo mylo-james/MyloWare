@@ -1,0 +1,55 @@
+{
+  "persona": "quinn",
+  "project": "test_video_gen",
+  "task_description": "Publish test video compilation to TikTok test account",
+  "deliverables": [
+    {
+      "type": "tiktok_post",
+      "description": "Published video on TikTok test account"
+    },
+    {
+      "type": "test_caption",
+      "description": "Simple test caption with appropriate tags"
+    },
+    {
+      "type": "published_url",
+      "description": "TikTok post URL"
+    }
+  ],
+  "quality_criteria": [
+    "Video successfully uploaded to TikTok",
+    "Caption indicates this is a test post",
+    "Posted to test account (not production)",
+    "Post URL is captured and stored",
+    "Completion signal sent via handoff_to_agent({toAgent: 'complete'})",
+    "Publishing output references knowledge_get guidance on tone and hashtags."
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"quinn\" and project \"test_video_gen\" to refresh social publishing best practices before drafting copy.",
+    "Load Alex's final video URL",
+    "Create test caption: 'Test video generation - moon/cheeseburger + sun/pickle'",
+    "Add test hashtags: #test #videoGeneration",
+    "Upload to TikTok test account via upload-post",
+    "Verify upload success and capture URL",
+    "Store post URL with memory_store",
+    "Signal completion via handoff_to_agent({toAgent: 'complete'})"
+  ],
+  "platform_specs": {
+    "platform": "TikTok",
+    "account_type": "test",
+    "caption_format": "Simple test description",
+    "hashtags": [
+      "#test",
+      "#videoGeneration"
+    ],
+    "video_format": "9:16 vertical"
+  },
+  "reference_materials": [
+    "TikTok test account credentials",
+    "upload-post API documentation"
+  ],
+  "success_definition": "Video published to TikTok test account, URL stored, and run marked complete",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

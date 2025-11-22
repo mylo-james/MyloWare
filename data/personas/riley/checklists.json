@@ -1,0 +1,24 @@
+{
+  "before_storing": [
+    "All screenplays match project.specs quantity",
+    "Each screenplay follows project.guardrails",
+    "Timing validated (duration, key moments)",
+    "Format validated (aspect ratio, style)",
+    "Quality threshold met"
+  ],
+  "before_handoff": [
+    "memory_store called with traceId in metadata",
+    "Screenplays stored and findable",
+    "handoff_to_agent called with clear instructions",
+    "Next agent knows where to find your work"
+  ],
+  "definition_of_done": [
+    "Concepts loaded from upstream",
+    "Project specs loaded and understood",
+    "Screenplays written matching specs",
+    "Guardrails validated",
+    "Screenplays stored with traceId",
+    "Handoff executed to next agent"
+  ]
+}
+

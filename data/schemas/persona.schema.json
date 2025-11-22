@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/persona.json",
+  "title": "Persona",
+  "description": "AI persona configuration manifest",
+  "$ref": "#/definitions/Persona",
+  "definitions": {
+    "Persona": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tone": {
+          "type": "string"
+        },
+        "allowedTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "defaultProject": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": {}
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "personas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "ownerPersona": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "guardrails": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "defaultProject": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "description",
+        "tone",
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+# Cloudflare Tunnel configuration (single tunnel)
+tunnel: myloware-api
+credentials-file: /etc/cloudflared/credentials/myloware-api.json
+origincert: /etc/cloudflared/cert.pem
+
+ingress:
+  - hostname: myloware-api.mjames.dev
+    service: https://myloware-api-staging.fly.dev
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+      httpHostHeader: myloware-api-staging.fly.dev
+      originServerName: myloware-api-staging.fly.dev
+  - service: http_status:404

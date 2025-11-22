@@ -1,0 +1,19 @@
+{
+  "name": "Test Video Generation",
+  "slug": "test_video_gen",
+  "description": "Simple test project for validating the full video production pipeline. Generates two videos (moon/cheeseburger and sun/pickle) to verify workflow from start to publish.",
+  "output_format": "TikTok-ready vertical video (9:16)",
+  "target_platform": "TikTok (test account)",
+  "target_audience": "Internal testing and validation",
+  "brand_voice": "Simple and straightforward",
+  "key_metrics": [
+    "Workflow completion time",
+    "Video generation success rate",
+    "Publishing success"
+  ],
+  "metadata": {
+    "version": "2.0.0",
+    "tags": ["test", "video-generation", "workflow-validation"]
+  }
+}
+

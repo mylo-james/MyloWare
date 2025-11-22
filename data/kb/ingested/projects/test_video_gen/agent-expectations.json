@@ -1,0 +1,72 @@
+{
+  "brendan": {
+    "instructions_template": "Kick off a test_video_gen run. Confirm the project is test_video_gen, record the brief as run metadata, then hand off to Iggy with a clear request for two test clips (moon/cheeseburger and sun/pickle).",
+    "handoff_checklist": [
+      "Project confirmed as test_video_gen in the run record",
+      "Brief restated as a simple test-video request (2 clips: moon/cheeseburger and sun/pickle)",
+      "Any upstream memories or prior runs reviewed for context"
+    ],
+    "kb_checklist": [
+      "memory_search(\"test_video_gen overview\") to restate the persona order (Brendan → Iggy → Riley → Alex → Quinn), runId handling, and evidence requirements.",
+      "memory_search(\"test_video_gen hitl guardrails\") to restate any approval points and must-mention guardrails before briefing Iggy."
+    ],
+    "tools": ["memory_search"]
+  },
+  "iggy": {
+    "deliverable": "2 storyboard beats",
+    "requirements": [
+      "Video 1: Moon with 'cheeseburger' header text",
+      "Video 2: Sun with 'pickle' header text",
+      "Keep concepts simple and focused on testing the pipeline"
+    ],
+    "handoff_template": "Finish your work. The graph will automatically proceed to Riley.",
+    "kb_checklist": [
+      "Run memory_search(\"test_video_gen overview format\") to confirm duration, aspect ratio, and overlay guidance.",
+      "Run memory_search(\"test_video_gen guardrails headers\") to restate the header style and test constraints."
+    ],
+    "tools": ["memory_search"]
+  },
+  "riley": {
+    "deliverable": "Test scripts + KieAI submissions",
+    "requirements": [
+      "Write concise scripts for both clips (moon/cheeseburger, sun/pickle) using the storyboard beats",
+      "Call submit_generation_jobs_tool with both videos so kie.ai can render live assets",
+      "Use wait_for_generations_tool until both videos show generated/publishing status",
+      "Hand off to Alex once clips are ready"
+    ],
+    "handoff_template": "Finish your work. The graph will automatically proceed to Alex.",
+    "kb_checklist": [
+      "memory_search(\"test_video_gen script timing\") to confirm beat duration and whisper cue.",
+      "memory_search(\"test_video_gen kieai prompts\") to review prompt formatting and guardrails."
+    ],
+    "tools": ["memory_search", "submit_generation_jobs_tool", "wait_for_generations_tool"]
+  },
+  "alex": {
+    "instructions_template": "Once clips have assetUrl values, call render_video_timeline_tool (no payload) so the helper stitches them automatically.",
+    "deliverable": "Compiled render URL + artifacts",
+    "requirements": [
+      "Verify generated clips exist (assetUrl populated)",
+      "Call render_video_timeline_tool exactly once per run; let the template handle stitching and overlays",
+      "Only retry if the tool returns an explicit error",
+      "Summarize the render result and hand off to Quinn"
+    ],
+    "kb_checklist": [
+      "Optional: memory_search(\"Shotstack Timeline JSON Schema Contract\", k=3) if you need to re-read the template.",
+      "Optional: memory_search(\"test_video_gen rendering guardrails\") to recall overlay/format rules."
+    ],
+    "tools": ["memory_search", "render_video_timeline_tool"]
+  },
+  "quinn": {
+    "deliverable": "Test post metadata",
+    "requirements": [
+      "Generate simple test caption",
+      "Mark as test content (testAccount: true)",
+      "Call publish_to_tiktok_tool and report the canonical URL"
+    ],
+    "kb_checklist": [
+      "memory_search(\"test_video_gen publish guardrails\") to confirm caption tone and tagging.",
+      "memory_search(\"test_video_gen test_account\") to restate any disclaimers for mock runs."
+    ],
+    "tools": ["memory_search", "publish_to_tiktok_tool"]
+  }
+}

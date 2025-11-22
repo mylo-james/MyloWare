@@ -1,0 +1,17 @@
+{
+  "key": "aismr.timing.runtime.v1",
+  "category": "timing",
+  "name": "runtime",
+  "rule": "Exactly 8.0s ±0.1s per video",
+  "validation": "Riley must validate before storing",
+  "tolerance": "±0.1s",
+  "enforcement": "strict",
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "timing"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

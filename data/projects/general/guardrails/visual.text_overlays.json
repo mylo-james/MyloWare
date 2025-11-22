@@ -1,0 +1,23 @@
+{
+  "key": "general.visual.text_overlays.v1",
+  "category": "visual",
+  "name": "text_overlays",
+  "rule": "When producing videos, non-diegetic on-screen text must NOT be baked into generator renders. Add text using Shotstack overlay layers in post.",
+  "examples": [
+    "GOOD: Generator renders clean scene; editor adds captions via overlays.",
+    "BAD: Prompt includes 'text on screen', resulting in baked-in artifacts."
+  ],
+  "guidelines": [
+    "Use overlays for captions, labels, and calls-to-action.",
+    "Only bake text if it is physically part of the scene (diegetic signage)."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "text", "overlay"]
+  },
+  "links": {
+    "project": "general"
+  }
+}
+
+

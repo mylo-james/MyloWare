@@ -1,0 +1,18 @@
+{
+  "id": "generate_ideas",
+  "step": 4,
+  "type": "llm_generation",
+  "description": "Generate 12 unique AISMR ideas using LLM with structured output",
+  "dependsOn": ["remember_past_ideas", "search_archive", "search_inspiration"],
+  "llm_generation": {
+    "model": "gpt-4",
+    "prompt": "Generate exactly 12 unique AISMR video ideas about ${context.userInput}. Each idea must be in Title Case descriptor + singular object format (two words). For each idea, provide a 2-4 sentence vibe covering emotion, hook, texture, feasibility, replay value, and environment potential. Exclude any ideas similar to these past ideas: ${pastIdeas}. Use these patterns for inspiration: ${inspirationResults}.",
+    "structuredOutput": true,
+    "storeAs": "generatedIdeas",
+    "temperature": 0.8
+  },
+  "links": {
+    "workflow": "aismr.idea_generation.v1"
+  }
+}
+

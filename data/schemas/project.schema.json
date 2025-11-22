@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/project.json",
+  "title": "Project",
+  "description": "Production project configuration",
+  "$ref": "#/definitions/Project",
+  "definitions": {
+    "Project": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workflow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          }
+        },
+        "optionalSteps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "default": []
+        },
+        "specs": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "guardrails": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": {}
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "personas": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z_]+$"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "description",
+        "workflow",
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

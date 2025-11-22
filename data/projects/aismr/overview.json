@@ -1,0 +1,20 @@
+{
+  "name": "AISMR Surreal Studio",
+  "slug": "aismr",
+  "description": "Surreal short-form video content combining ASMR triggers with impossible visuals. 8-second micro-films of everyday objects with tactile, mesmerizing modifiers.",
+  "output_format": "TikTok-ready vertical video (9:16)",
+  "target_platform": "TikTok",
+  "target_audience": "TikTok users seeking surreal, relaxing, ASMR-style content",
+  "brand_voice": "Surreal, mesmerizing, slightly unsettling, tactile",
+  "key_metrics": [
+    "Completion rate",
+    "Modifier originality",
+    "Rendering success rate",
+    "Publishing success"
+  ],
+  "metadata": {
+    "version": "2.0.0",
+    "tags": ["aismr", "video-production", "surreal", "tiktok"]
+  }
+}
+

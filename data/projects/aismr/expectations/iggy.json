@@ -1,0 +1,40 @@
+{
+  "persona": "iggy",
+  "project": "aismr",
+  "task_description": "Generate 12 surreal object-modifier pairs for AISMR video production",
+  "deliverables": [
+    {
+      "type": "modifier_list",
+      "count": 12,
+      "format": "Structured list with object + modifier + rationale for each"
+    }
+  ],
+  "quality_criteria": [
+    "Each modifier must be unique within this run",
+    "Must not duplicate recent modifiers (check last 50 runs in archive)",
+    "Must align with surreal_impossible tone from guardrails",
+    "Must be concrete, visualizable, and tactile",
+    "Risky or boundary-pushing concepts must be flagged",
+    "At least 3 references to archive memories for inspiration",
+    "Knowledge_get results are referenced to avoid duplicates and respect guardrails."
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"iggy\" and project \"aismr\" to review creative guardrails and past modifier knowledge before ideating.",
+    "Load Brendan's brief and project context via memory_search",
+    "Search archive for recent AISMR modifiers to avoid duplication",
+    "Generate 12 unique object-modifier pairs",
+    "Validate each for originality and guardrail compliance",
+    "Document creative rationale for each concept",
+    "Store output with memory_store",
+    "Hand off to Riley with clear instructions"
+  ],
+  "reference_materials": [
+    "Previous AISMR modifiers archive",
+    "Texture taxonomy from knowledge base",
+    "Disallowed concepts from guardrails"
+  ],
+  "success_definition": "12 approved modifiers that pass novelty check, guardrail validation, and are ready for screenplay conversion",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "key": "aismr.audio.music.v1",
+  "category": "audio",
+  "name": "music",
+  "rule": "Forbidden - no music allowed",
+  "validation": "Riley must explicitly state 'no music'",
+  "enforcement": "strict",
+  "guidelines": ["Any music fails validation"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "audio", "forbidden"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}
+

@@ -1,0 +1,18 @@
+{
+  "key": "test_video_gen.timing.duration.v1",
+  "category": "timing",
+  "name": "duration",
+  "rule": "Exactly two clips, each 8 seconds long, with headers visible for the full duration.",
+  "guidelines": [
+    "Enforce `videoDuration === 8` in kie.ai submissions.",
+    "Ensure overlays span the entire clip (0s–8s).",
+    "Reject runs that produce anything other than two clips."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "timing", "duration"]
+  },
+  "links": {
+    "project": "test_video_gen"
+  }
+}

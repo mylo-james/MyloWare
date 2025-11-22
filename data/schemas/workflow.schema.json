@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/workflow.json",
+  "title": "Workflow",
+  "description": "Procedural workflow definition",
+  "$ref": "#/definitions/Workflow",
+  "definitions": {
+    "Workflow": {
+      "type": "object",
+      "properties": {
+        "workflowKey": {
+          "type": "string",
+          "pattern": "^[a-z_]+\\.[a-z_]+\\.[vV]\\d+$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "ownerPersona": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "project": {
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": {}
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "ownerPersona": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "guardrails": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "workflowKey",
+        "name",
+        "description",
+        "ownerPersona",
+        "project",
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

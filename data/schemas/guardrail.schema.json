@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://myloware.dev/schemas/guardrail.json",
+  "title": "Guardrail",
+  "description": "Production guardrail definition",
+  "$ref": "#/definitions/Guardrail",
+  "definitions": {
+    "Guardrail": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "rule": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "guidelines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "validation": {
+          "type": "string"
+        },
+        "tolerance": {
+          "type": "string"
+        },
+        "enforcement": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": {}
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "project": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "personas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "ownerPersona": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            },
+            "guardrails": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "defaultProject": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "key",
+        "category",
+        "name",
+        "rule",
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

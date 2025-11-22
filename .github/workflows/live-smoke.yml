@@ -1,0 +1,48 @@
+name: Live Smoke (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-smoke:
+    if: ${{ secrets.LIVE_SMOKE_ENABLED == '1' }}
+    runs-on: ubuntu-latest
+    env:
+      PROVIDERS_MODE: live
+      LIVE_SMOKE: "1"
+      USE_MOCK_PROVIDERS: "false"
+      KIEAI_API_KEY: ${{ secrets.LIVE_SMOKE_KIEAI_API_KEY }}
+      SHOTSTACK_API_KEY: ${{ secrets.LIVE_SMOKE_SHOTSTACK_API_KEY }}
+      UPLOAD_POST_API_KEY: ${{ secrets.LIVE_SMOKE_UPLOAD_POST_API_KEY }}
+      WEBHOOK_BASE_URL: ${{ secrets.LIVE_SMOKE_WEBHOOK_BASE_URL }}
+      DB_URL: ${{ secrets.LIVE_SMOKE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate secrets
+        run: |
+          missing=0
+          for var in KIEAI_API_KEY SHOTSTACK_API_KEY UPLOAD_POST_API_KEY WEBHOOK_BASE_URL DB_URL; do
+            if [ -z "${!var}" ]; then
+              echo "Missing secret: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Configure LIVE_SMOKE_* secrets (and set LIVE_SMOKE_ENABLED=1) before running this workflow."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Run live smoke test (test_video_gen)
+        env:
+          LIVE_SMOKE_MAX_WAIT: ${{ github.event.inputs.max_wait || 900 }}
+          LIVE_SMOKE_POLL_SECONDS: 10
+        run: pytest tests/integration/live/test_video_gen_live_smoke.py -q

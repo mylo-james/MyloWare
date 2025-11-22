@@ -1,0 +1,113 @@
+{
+  "uid": "myloware-orch",
+  "title": "MyloWare Orchestration",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["myloware"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API Request Duration p95",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job='api'}[5m])) by (le))",
+          "legendFormat": "api p95"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "API Error Rate",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job='api',status!='200'}[5m])) / sum(rate(http_requests_total{job='api'}[5m]))",
+          "legendFormat": "error rate"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Orchestrator Request Duration p95",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job='orchestrator'}[5m])) by (le))",
+          "legendFormat": "orchestrator p95"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Orchestrator Error Rate",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job='orchestrator',status!='200'}[5m])) / sum(rate(http_requests_total{job='orchestrator'}[5m]))",
+          "legendFormat": "error rate"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Video Pipeline Stage Latency p95",
+      "gridPos": {"x": 0, "y": 16, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(kieai_job_seconds_bucket[5m])) by (le))",
+          "legendFormat": "kie.ai submit p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(shotstack_render_seconds_bucket[5m])) by (le))",
+          "legendFormat": "Shotstack render p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ffmpeg_normalize_seconds_bucket[5m])) by (le))",
+          "legendFormat": "FFmpeg normalize p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(upload_post_seconds_bucket[5m])) by (le))",
+          "legendFormat": "upload-post publish p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "API Request Rate",
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job='api'}[5m]))",
+          "legendFormat": "api rps"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "API Rate Limit Hits (429/s)",
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job='api',status='429'}[5m]))",
+          "legendFormat": "429/s"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Success/Failure Rate",
+      "gridPos": {"x": 0, "y": 32, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job='api',route=~\"/v1/webhooks/.*\",status=~\"2..\"}[5m]))",
+          "legendFormat": "success"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{job='api',route=~\"/v1/webhooks/.*\",status!~\"2..\"}[5m]))",
+          "legendFormat": "failures"
+        }
+      ]
+    }
+  ]
+}

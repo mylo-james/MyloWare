@@ -1,0 +1,35 @@
+{
+  "name": "aismr",
+  "title": "AISMR - Surreal Object Videos",
+  "description": "8-second micro-films of everyday objects with impossible modifiers. Tactile, mesmerizing, slightly unsettling.",
+  "workflow": ["brendan", "iggy", "riley", "alex", "quinn"],
+  "hitlPoints": ["after_iggy", "before_quinn"],
+  "optionalSteps": [],
+  "specs": {
+    "videoCount": 12,
+    "videoDuration": 8.0,
+    "whisperTiming": 3.0,
+    "maxHands": 2,
+    "compilationLength": 110,
+    "format": "9:16 vertical, single-shot, no cuts",
+    "aspectRatio": "9:16",
+    "resolution": "1080x1920"
+  },
+  "settings": {
+    "provider": "runway",
+    "platforms": ["tiktok"],
+    "hitlPoints": ["after_iggy", "before_quinn"]
+  },
+  "guardrails": {
+    "summary": "Strict timing, visual, audio, and style constraints for AISMR production",
+    "categories": ["timing", "visual", "audio", "style"],
+    "onscreen_text_policy": "Non-diegetic on-screen text must be added via Shotstack overlays; do not bake into kie.ai renders."
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["project", "aismr", "video-production"]
+  },
+  "links": {
+    "personas": ["brendan", "iggy", "riley", "alex", "quinn"]
+  }
+}

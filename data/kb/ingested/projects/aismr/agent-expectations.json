@@ -1,0 +1,71 @@
+{
+  "brendan": {
+    "instructions_template": "Kick off an AISMR run about {topic}. Confirm the project is AISMR, capture the topic as run metadata, then hand off to Iggy with a clear brief.",
+    "handoff_checklist": [
+      "Project confirmed as AISMR in the run record (or corrected if misclassified)",
+      "Topic validated and scoped to AISMR constraints (8-second surreal object vignette)",
+      "Any upstream memories or prior runs reviewed for context"
+    ],
+    "kb_checklist": [
+      "memory_search(\"aismr overview pipeline\") to restate persona order (Brendan → Iggy → Riley → Alex → Quinn), 12-modifier requirement, and artifact expectations.",
+      "memory_search(\"aismr guardrails hitl\") to restate tactile guardrails plus the ideate/prepublish approval gates before briefing Iggy."
+    ],
+    "tools": ["memory_search"]
+  },
+  "iggy": {
+    "deliverable": "12 surreal object-modifier pairs",
+    "requirements": [
+      "Each modifier must be unique and tactile",
+      "At least 3 references to archive memories",
+      "Tag risky ideas for Brendan review"
+    ],
+    "handoff_template": "Use transfer_to_riley() once all 12 modifiers are ready.",
+    "kb_checklist": [
+      "memory_search(\"aismr modifiers archive\") to understand recent successes and avoid repeats.",
+      "memory_search(\"aismr guardrails tactile\") to restate material/tactile constraints before ideating."
+    ],
+    "tools": ["memory_search", "transfer_to_riley"]
+  },
+  "riley": {
+    "deliverable": "12 screenplay beats matching modifiers + kie.ai clip stubs",
+    "validation": [
+      "Runtime 8 seconds per beat",
+      "Whisper beat at ~3 seconds",
+      "Enforce hand-count rule"
+    ],
+    "handoff_template": "Call transfer_to_alex() after kie.ai clips finish rendering.",
+    "kb_checklist": [
+      "memory_search(\"aismr script timing guardrails\") to capture runtime, whisper cue, and hand-count policy.",
+      "memory_search(\"aismr kieai prompts\") to confirm prompt formatting + audio instructions."
+    ],
+    "tools": ["memory_search", "submit_generation_jobs_tool", "wait_for_generations_tool", "transfer_to_alex"]
+  },
+  "alex": {
+    "instructions_template": "Once Riley's clips have assetUrl values, call render_video_timeline_tool (no payload) so the helper assembles the AISMR template automatically.",
+    "deliverable": "Compilation edit with captions",
+    "requirements": [
+      "Confirm all 12 beats are generated before rendering",
+      "Invoke render_video_timeline_tool exactly once; rely on the template for sequencing and overlays",
+      "Only retry if the helper returns an explicit error",
+      "Export final link for Quinn"
+    ],
+    "kb_checklist": [
+      "Optional: memory_search(\"aismr editing cadence\") to restate beat order and transition style.",
+      "Optional: memory_search(\"aismr captioning guardrails\") to confirm typography and audio alignment."
+    ],
+    "tools": ["memory_search", "render_video_timeline_tool", "transfer_to_quinn"]
+  },
+  "quinn": {
+    "deliverable": "Published post copy + hashtags",
+    "requirements": [
+      "Generate TikTok caption in AISMR voice",
+      "Select 5 high-intent hashtags",
+      "Call publish_to_tiktok_tool and report the canonical URL"
+    ],
+    "kb_checklist": [
+      "memory_search(\"aismr publish guardrails\") to confirm caption tone, hashtags, and disclosures.",
+      "memory_search(\"aismr moderation checklist\") to restate safety checks prior to publish."
+    ],
+    "tools": ["memory_search", "publish_to_tiktok_tool"]
+  }
+}

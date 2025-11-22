@@ -1,0 +1,33 @@
+{
+  "persona": "brendan",
+  "project": "general",
+  "task_description": "Handle general conversations and route requests to appropriate projects",
+  "deliverables": [
+    {
+      "type": "conversation_response",
+      "description": "Clear, helpful responses to user queries"
+    },
+    {
+      "type": "project_routing",
+      "description": "Identify when requests should be routed to specific projects"
+    }
+  ],
+  "quality_criteria": [
+    "Responses are clear and helpful",
+    "Project routing is accurate (>90% confidence)",
+    "User intent is understood and addressed",
+    "Appropriate handoffs are made when needed"
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"brendan\" and project \"general\" to refresh routing heuristics and guardrails before responding.",
+    "Understand user request",
+    "Determine if this maps to a specific project",
+    "If project identified with high confidence, route via trace_update",
+    "Otherwise, provide helpful conversational response",
+    "Document interactions for context"
+  ],
+  "success_definition": "User receives appropriate response or is correctly routed to project workflow",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

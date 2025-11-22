@@ -1,0 +1,33 @@
+{
+  "persona": "brendan",
+  "project": "aismr",
+  "task_description": "Kick off AISMR production runs and route them correctly through the pipeline",
+  "deliverables": [
+    {
+      "type": "project_confirmation",
+      "description": "Confirm or update trace to AISMR project"
+    },
+    {
+      "type": "initial_brief",
+      "description": "Clear handoff instructions for Iggy with topic and context"
+    }
+  ],
+  "quality_criteria": [
+    "Project is correctly identified and set via trace_update",
+    "Topic is validated and scoped to AISMR constraints",
+    "Upstream memories are reviewed for context",
+    "Handoff instructions are clear and actionable"
+  ],
+  "workflow_steps": [
+    "Call knowledge_get with persona \"brendan\" and project \"aismr\" to refresh guardrails and workflow context before briefing Iggy.",
+    "Review user request and determine if this is an AISMR run",
+    "Call trace_update to set projectId to AISMR if needed",
+    "Load project specs and guardrails via memory_search",
+    "Brief Iggy with clear creative direction",
+    "Use handoff_to_agent to transfer to Iggy"
+  ],
+  "success_definition": "Iggy receives a clear brief with topic, project context, and creative direction",
+  "metadata": {
+    "version": "2.0.0"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "allowedTools": [
+    "memory_search",
+    "memory_store",
+    "handoff_to_agent",
+    "job_upsert",
+    "jobs_summary"
+  ],
+  "workflow_position": "middle",
+  "typical_inputs": [
+    "Creative concepts",
+    "Project specifications",
+    "Technical requirements"
+  ],
+  "typical_outputs": [
+    "Screenplays",
+    "Video generation jobs",
+    "Job status reports",
+    "Video URLs with metadata"
+  ],
+  "hands_off_to": ["alex", "brendan"],
+  "receives_from": ["iggy", "brendan"],
+  "metadata": {
+    "version": "2.0.0"
+  }
+}
