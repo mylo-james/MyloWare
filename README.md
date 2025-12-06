@@ -1,354 +1,465 @@
-# MyloWare - Multi-Agent AI Video Production Platform
+<p align="center">
+  <img src="https://raw.githubusercontent.com/meta-llama/llama-stack/main/docs/resources/llama-stack-logo.png" width="200" alt="Llama Stack">
+</p>
+
+<h1 align="center">MyloWare</h1>
 
 <p align="center">
-  <strong>Production-grade orchestration platform coordinating specialized AI agents for automated video content creation</strong>
+  <strong>A production-grade multi-agent video production platform built entirely on Llama Stack</strong>
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-features">Features</a> •
-  <a href="#%EF%B8%8F-architecture">Architecture</a> •
-  <a href="docs/">Documentation</a> •
-  <a href="ROADMAP.md">Roadmap</a> •
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="#features">Features</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#llama-stack-integration">Llama Stack</a> •
+  <a href="#development">Development</a> •
+  <a href="#deployment">Deployment</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.11-blue" alt="Python 3.11"/>
-  <img src="https://img.shields.io/badge/coverage-%E2%89%A582%25-brightgreen" alt="Coverage ≥82%"/>
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome"/>
+  <a href="https://github.com/your-org/myloware/actions/workflows/ci.yml"><img src="https://github.com/your-org/myloware/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/your-org/myloware"><img src="https://codecov.io/gh/your-org/myloware/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/llama--stack-0.3.4+-green.svg" alt="Llama Stack">
 </p>
 
 ---
 
-## 🎬 What is MyloWare?
+## What is MyloWare?
 
-MyloWare is a **production-ready AI orchestration platform** that coordinates multiple specialized AI agents to automate complex video production workflows - from ideation through generation, editing, and publishing.
+MyloWare demonstrates how to build a **production-ready, multi-agent application** using [Llama Stack](https://github.com/meta-llama/llama-stack) as the foundation. It's not a wrapper around LangChain or another framework—it's built from the ground up on Llama Stack's unified API.
 
-**Think of it as a conductor for AI agents:** One agent brainstorms creative concepts (Iggy), another generates video clips (Riley), a third assembles and edits them (Alex), and a fourth publishes to social platforms (Quinn) - all coordinated through a robust LangGraph state machine with human oversight gates.
-
-### Perfect For
-
-- 🎥 **Content Creators** - Automate video production at scale
-- 🏢 **Engineering Teams** - Learn production-grade multi-agent patterns
-- 📊 **AI Researchers** - Explore multi-agent coordination strategies
-- 🚀 **Startups** - Build AI-powered media pipelines quickly
-
-### Key Highlights
-
-- **🤖 Multi-Agent Coordination** - Specialized AI personas (Supervisor, Ideator, Producer, Editor, Publisher) collaborate via LangGraph state machines
-- **🔒 Production-Grade** - HITL gates, audit logging, webhook reliability (DLQ + idempotency), circuit breakers, 82% test coverage
-- **🎨 Complete Video Pipeline** - End-to-end: ideation → generation (kie.ai) → editing (Shotstack) → publishing (TikTok via upload-post)
-- **📊 Full Observability** - LangSmith tracing, Prometheus metrics, Grafana dashboards, Sentry error tracking
-- **🚀 Cloud-Ready** - Deployed on Fly.io with PostgreSQL+pgvector, Redis, Docker
-- **✅ Well-Tested** - 82% code coverage enforced via CI, comprehensive unit & integration tests
-
----
-
-## 📽️ Quick Demo
-
-```bash
-# Start a production AISMR workflow via the Brendan supervisor
-curl -X POST http://localhost:8080/v1/chat/brendan \
-  -H "x-api-key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "demo",
-    "message": "Create an AISMR video about ocean waves and rain"
-  }'
-
-# What happens:
-# 1. Brendan (supervisor) analyzes the request → proposes workflow
-# 2. Iggy (ideator) generates 12 creative modifiers → HITL approval gate
-# 3. Riley (producer) generates video clips via kie.ai → waits for webhooks
-# 4. Alex (editor) assembles timeline and renders via Shotstack
-# 5. Quinn (publisher) posts to TikTok with metadata → returns URL
-
-# Or use the CLI:
-mw-py demo aismr
-```
-
----
-
-## 🏗️ Architecture
+**The workflow**: A user sends a message via Telegram → A supervisor agent classifies the request → Multiple specialized agents collaborate to produce a video → The video is published to TikTok.
 
 ```
-┌─────────────────┐
-│  Entry Points   │
-│  - Telegram     │──────┐
-│  - HTTP API     │      │
-│  - MCP Client   │      │
-└─────────────────┘      │
-                         ▼
-                  ┌──────────────┐         ┌──────────────────┐
-                  │   FastAPI    │────────▶│   PostgreSQL     │
-                  │   Gateway    │         │   + pgvector     │
-                  │   :8080      │         │   (knowledge)    │
-                  └──────────────┘         └──────────────────┘
-                         │
-                         ▼
-                  ┌──────────────┐         ┌──────────────────┐
-                  │  LangGraph   │────────▶│   LangSmith      │
-                  │ Orchestrator │         │    (tracing)     │
-                  │   :8090      │         └──────────────────┘
-                  └──────────────┘
-                         │
-            ┌────────────┼────────────┬────────────┐
-            ▼            ▼            ▼            ▼
-       ┌────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
-       │Brendan │  │  Iggy   │  │  Riley  │  │  Alex   │  ...
-       │(Super) │  │(Ideate) │  │(Produce)│  │ (Edit)  │
-       └────────┘  └─────────┘  └─────────┘  └─────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           MyloWare Architecture                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│    Telegram ──▶ Supervisor ──▶ Ideator ──▶ Producer ──▶ Editor ──▶ Publisher │
+│        │            │             │           │           │           │     │
+│        │            │             │           │           │           │     │
+│        ▼            ▼             ▼           ▼           ▼           ▼     │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                      Llama Stack Distribution                        │   │
+│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
+│   │  │ Agents   │ │  Tools   │ │ Vector IO│ │  Safety  │ │Telemetry │  │   │
+│   │  │   API    │ │   API    │ │   API    │ │   API    │ │   API    │  │   │
+│   │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
+│   │                                                                     │   │
+│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐               │   │
+│   │  │  Memory  │ │  Eval    │ │ Datasetio│ │ Scoring  │               │   │
+│   │  │   API    │ │   API    │ │   API    │ │   API    │               │   │
+│   │  └──────────┘ └──────────┘ └──────────┘ └──────────┘               │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                        │
+│                                    ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                         Together AI                                  │   │
+│   │               (Llama 3.2 3B/8B + Llama Guard 3)                     │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Tech Stack:**
-- **Backend:** Python 3.11, FastAPI, LangChain, LangGraph
-- **Database:** PostgreSQL 15 + pgvector (for knowledge retrieval)
-- **Caching:** Redis
-- **AI:** OpenAI GPT-4, embedding models
-- **Video:** kie.ai (generation), Shotstack (editing), FFmpeg (normalization)
-- **Observability:** LangSmith, Prometheus, Grafana, Sentry
-- **Deployment:** Docker, Fly.io
+## Features
 
----
+### 🦙 **100% Llama Stack Native**
 
-## 🚀 Quick Start
+No LangChain. No LangGraph. No abstractions on top of abstractions. MyloWare uses Llama Stack's APIs directly:
+
+| Llama Stack API  | MyloWare Usage                              |
+| ---------------- | ------------------------------------------- |
+| **Agents API**   | Multi-agent orchestration with tool calling |
+| **Tools API**    | Web Search (Tavily), RAG, Memory, Custom tools |
+| **Vector I/O**   | Knowledge base for project context          |
+| **Memory Banks** | User preference persistence                 |
+| **Safety API**   | Llama Guard input/output shields            |
+| **Telemetry**    | Full trace correlation across agents        |
+| **Eval API**     | Quality assessment with LLM-as-judge        |
+| **Datasetio**    | Dataset management for evaluations          |
+
+### 🎭 **Multi-Agent Pipeline**
+
+```yaml
+# data/projects/aismr/workflow.yaml
+steps:
+  - agent: ideator # Generate video ideas using web research + knowledge
+    hitl_gate: post_ideation
+  - agent: producer # Create video clips with KIE.ai
+  - agent: editor # Render final video with Remotion
+  - agent: publisher # Publish to TikTok
+    hitl_gate: pre_publish
+```
+
+### 🔧 **Config-Driven Agents**
+
+Agent definitions live in YAML with inheritance:
+
+```yaml
+# data/shared/agents/ideator.yaml (base)
+role: ideator
+model: meta-llama/Llama-3.2-3B-Instruct
+tools:
+  - builtin::websearch
+  - builtin::rag/knowledge_search
+shields:
+  input: [llama_guard]
+  output: [llama_guard]
+
+# data/projects/aismr/agents/ideator.yaml (override)
+instructions: |
+  You are a creative ideator for ASMR video production...
+```
+
+### 👤 **Human-in-the-Loop Gates**
+
+Workflows pause at HITL gates for human approval:
+
+```python
+result = run_workflow(client, "Create a calming video about rain")
+# → Status: AWAITING_IDEATION_APPROVAL
+
+result = approve_gate(client, run_id, gate="ideation")
+# → Continues to producer → editor → AWAITING_PUBLISH_APPROVAL
+```
+
+### 📊 **Full Observability**
+
+Every agent turn is traced with Llama Stack Telemetry:
+
+```python
+from observability.telemetry import query_run_traces
+
+traces = query_run_traces(client, run_id="abc-123")
+# Returns all spans for this run across all agents
+```
+
+## Quick Start
 
 ### Prerequisites
-- Python 3.11+
-- Docker & Docker Compose
-- OpenAI API key (for LLM functionality)
 
-### 1. Clone and Setup
+- Python 3.11+
+- [Together AI](https://together.ai) API key
+
+### 1. Clone & Install
 
 ```bash
-git clone https://github.com/mylo-james/myloware.git
+git clone https://github.com/your-org/myloware.git
 cd myloware
 
-# Create virtual environment
-python3.11 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
-pip install -e '.[dev]'
+pip install -e ".[dev]"
 ```
 
 ### 2. Configure Environment
 
 ```bash
-# Copy example env file
 cp .env.example .env
-
-# Edit .env with your API keys (minimum required):
-# - API_KEY (for auth)
-# - OPENAI_API_KEY (for LLM)
-# - DB_URL will use local Postgres via Docker
 ```
 
-### 3. Start Services
+Edit `.env` with your API keys:
 
 ```bash
-# Start Postgres, Redis, API, Orchestrator, Prometheus, Grafana
-make up
+# Required
+TOGETHER_API_KEY=your-together-api-key
+API_KEY=your-myloware-api-key
 
-# Run database migrations
-make migrate
-
-# Verify services are healthy
-curl http://localhost:8080/health
-curl http://localhost:8090/health
+# External Services (for video production)
+KIE_API_KEY=your-kie-api-key
+UPLOAD_POST_API_KEY=your-upload-post-api-key
 ```
 
-### 4. Run a Workflow
+### 3. Start Llama Stack
 
 ```bash
-# Start a test workflow via CLI
-mw-py demo aismr
+# Start the Llama Stack distribution
+llama stack run llama_stack/run.yaml
+```
 
-# Or via direct API call
-curl -X POST http://localhost:8080/v1/chat/brendan \
-  -H "x-api-key: $API_KEY" \
+### 4. Run Tests
+
+```bash
+# Unit tests (all mocked, no API calls)
+pytest tests/unit/ -v
+
+# Integration tests (uses real Llama Stack)
+pytest tests/integration/ -v -m integration
+```
+
+### 5. Start the API
+
+```bash
+# Start FastAPI server
+uvicorn api.server:app --reload
+```
+
+### 6. Try It Out
+
+```bash
+# Check health
+curl http://localhost:8000/health
+
+# Start a workflow
+curl -X POST http://localhost:8000/v1/runs/start \
+  -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"demo","message":"Create an AISMR video about candles"}'
-
-# For production workflows, enable LangChain personas:
-export ENABLE_LANGCHAIN_PERSONAS=true
-make restart
+  -d '{"project": "test_video_gen", "brief": "Create a calming nature video"}'
 ```
 
-### 5. Run Tests
+## Llama Stack Integration
+
+### Distribution Configuration
+
+MyloWare's Llama Stack configuration lives in `llama_stack/run.yaml`:
+
+```yaml
+# Inference via Together AI
+inference:
+  - provider_id: together
+    provider_type: remote::together
+    config:
+      api_key: ${env.TOGETHER_API_KEY}
+
+# Models available
+models:
+  - model_id: meta-llama/Llama-3.2-3B-Instruct
+    provider_id: together
+  - model_id: meta-llama/Llama-Guard-3-8B
+    provider_id: together
+
+# Safety shields
+shields:
+  - shield_id: llama_guard
+    provider_id: llama-guard
+
+# Knowledge base
+vector_dbs:
+  - vector_db_id: myloware-knowledge
+    provider_id: faiss
+
+# User preferences
+memory_banks:
+  - memory_bank_id: user-preferences
+    provider_id: faiss
+
+# Tools
+tools:
+  # Web search provided by Together distribution (builtin::websearch)
+  - tool_id: builtin::rag/knowledge_search
+  - tool_id: builtin::memory/query
+
+# Observability
+telemetry:
+  - provider_id: meta-reference
+    config:
+      service_name: myloware
+      sinks: [console, otel_trace, otel_metric]
+```
+
+### Agent Creation
+
+Agents are created using the factory with config inheritance:
+
+```python
+from agents.factory import create_agent
+
+# Creates agent from:
+# 1. data/shared/agents/ideator.yaml (base)
+# 2. data/projects/aismr/agents/ideator.yaml (override)
+agent = create_agent(
+    client=client,
+    project="aismr",
+    role="ideator",
+    vector_db_id="myloware-knowledge",
+)
+
+# Use the agent
+session = agent.create_session("my-session")
+response = agent.create_turn(
+    session_id=session,
+    messages=[{"role": "user", "content": "Generate ASMR video ideas"}],
+)
+```
+
+### Tools
+
+MyloWare uses both Llama Stack built-in tools and custom tools:
+
+| Tool                            | Type     | Used By                      |
+| ------------------------------- | -------- | ---------------------------- |
+| `builtin::websearch`            | Built-in | Ideator (web research)       |
+| `builtin::rag/knowledge_search` | Built-in | All agents (project context) |
+| `builtin::memory/query`         | Built-in | Supervisor (user prefs)      |
+| `kie_generate`                  | Custom   | Producer (video generation)  |
+| `remotion_render`               | Custom   | Editor (video rendering)     |
+| `upload_post`                   | Custom   | Publisher (TikTok posting)   |
+
+## Project Structure
+
+```
+MyloWare/
+├── src/
+│   ├── agents/           # Agent factory and role-specific code
+│   ├── api/              # FastAPI application
+│   ├── cli/              # Command-line interface
+│   ├── config/           # Settings, loaders, guardrails
+│   ├── knowledge/        # Knowledge base loading
+│   ├── memory/           # Memory bank operations
+│   ├── observability/    # Telemetry, evaluation, datasets
+│   ├── storage/          # Database models and repositories
+│   ├── tools/            # Custom Llama Stack tools
+│   └── workflows/        # Orchestrator and HITL gates
+│
+├── data/
+│   ├── shared/
+│   │   └── agents/       # Base agent YAML configs
+│   ├── projects/
+│   │   ├── aismr/        # ASMR video project
+│   │   └── test_video_gen/  # Test project
+│   └── knowledge/        # Knowledge base documents
+│
+├── llama_stack/
+│   └── run.yaml          # Llama Stack distribution config
+│
+├── tests/
+│   ├── unit/             # Unit tests (mocked)
+│   └── integration/      # Integration tests (real APIs)
+│
+└── scripts/
+    └── deploy/           # Fly.io deployment scripts
+```
+
+## Development
+
+### Quick Commands
 
 ```bash
-make test              # Unit tests (mock mode by default)
-make test-coverage     # Full suite with coverage check (≥82%)
-make smoke             # Quick smoke test
+# Setup
+make dev-install    # Install with dev dependencies + pre-commit hooks
+
+# Quality checks
+make lint           # Run ruff linter
+make format         # Auto-format code
+make type-check     # Run mypy
+make test           # Run unit tests
+make ci             # Run all checks (lint + mypy + test)
+
+# Docker
+make docker-up      # Start all services
+make docker-down    # Stop services
+make docker-logs    # Follow logs
+
+# Database
+make db-migrate     # Run migrations
 ```
 
-**Next Steps:** See [Documentation](docs/README.md) for detailed guides.
+### Documentation
 
----
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System design and component overview |
+| [Runbook](docs/RUNBOOK.md) | Production operations guide |
+| [ADRs](docs/decisions/) | Architecture Decision Records |
+| [Contributing](CONTRIBUTING.md) | How to contribute |
 
-## 📚 Documentation
+### Pre-commit Hooks
 
-- **[Getting Started](docs/01-getting-started/)** - Installation, setup, first run
-- **[Architecture](docs/02-architecture/)** - System design, patterns, decisions
-- **[How-To Guides](docs/03-how-to/)** - Common tasks and workflows
-- **[Operations](docs/05-operations/)** - Deployment, monitoring, troubleshooting
-- **[API Reference](docs/06-reference/)** - Endpoints, CLI, configuration
-- **[Contributing](docs/07-contributing/)** - Development guide, coding standards
-
----
-
-## 🗺️ Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features and release timeline.
-
-**Current Release:** v1.0 - Production baseline with complete multi-agent orchestration (Nov 2025)
-
-**Next:** v1.1.0 - Publishing expansion (YouTube, Instagram Reels)
-
----
-
-## 🧪 Testing
+This project uses pre-commit hooks for code quality:
 
 ```bash
-make test                  # Run unit tests
-make test-coverage         # Run with coverage report (≥82% enforced)
-make lint                  # Run linters (ruff + custom rules)
+pip install pre-commit
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
 ```
 
-**Current Coverage:** 82% (target: ≥80%)
+## Deployment
 
-**Test Organization:**
-- `tests/unit/` - Fast, isolated unit tests
-- `tests/integration/` - Cross-component integration tests
-- `tests/integration/live/` - Optional live provider tests (gated behind `@pytest.mark.live_smoke`)
-
----
-
-## 🛠️ Development
-
-### Local Development Loop
+### Fly.io (Recommended)
 
 ```bash
-make up                    # Start all services
-make down                  # Stop all services
-make logs                  # Tail API + orchestrator logs
-make lint                  # Run linters
-mw-py validate env         # Check environment setup
-mw-py runs watch <run_id>  # Watch a run in real-time
+# 1. Initial setup
+./scripts/deploy/setup.sh
+
+# 2. Configure secrets
+./scripts/deploy/secrets.sh
+
+# 3. Deploy
+./scripts/deploy/deploy.sh
+
+# 4. Register Telegram webhook
+./scripts/deploy/telegram_webhook.sh
 ```
 
-### Project Structure
-
-```
-myloware/
-├── apps/               # Application services
-│   ├── api/           # FastAPI gateway (Brendan front door)
-│   ├── orchestrator/  # LangGraph workflow execution
-│   └── mcp_adapter/   # Optional MCP integration
-├── adapters/          # External service integrations
-│   ├── ai_providers/  # kie.ai, Shotstack
-│   ├── social/        # upload-post (TikTok)
-│   └── persistence/   # Database, cache, vector store
-├── core/              # Business logic
-├── content/           # Video editing, persona guidance
-├── cli/               # Unified command-line interface (mw-py)
-├── tests/             # Comprehensive test suite
-├── docs/              # Documentation
-└── infra/             # Docker Compose, configs
-```
-
----
-
-## 🚢 Deployment
-
-### Fly.io (Production)
+### Docker
 
 ```bash
-# Deploy API
-flyctl deploy -c fly.api.toml --strategy immediate
+# Build
+docker build -t myloware .
 
-# Deploy Orchestrator
-flyctl deploy -c fly.orchestrator.toml --strategy immediate
-
-# Set secrets
-flyctl secrets set API_KEY=xxx OPENAI_API_KEY=xxx DB_URL=xxx LANGSMITH_API_KEY=xxx
+# Run
+docker run -p 8000:8000 --env-file .env myloware
 ```
 
-### Docker (Any Platform)
+## Testing Strategy
+
+| Level           | Command                 | What It Tests                         |
+| --------------- | ----------------------- | ------------------------------------- |
+| **Unit**        | `pytest tests/unit/`    | All logic with mocked clients         |
+| **Integration** | `pytest -m integration` | Real Llama Stack + fake external APIs |
+| **E2E**         | Manual via Telegram     | Full flow including real video APIs   |
 
 ```bash
-# Build images
-docker compose -f infra/docker-compose.yml build
+# Quick check (recommended before commits)
+pytest tests/unit/ -v --tb=short
 
-# Run in production mode
-docker compose -f infra/docker-compose.yml up -d
+# Full test with coverage
+pytest tests/unit/ -v --cov=src --cov-report=html
 ```
 
-See [Deployment Guide](docs/03-how-to/release-cut-and-rollback.md) for details.
+## API Reference
 
----
+### Endpoints
 
-## 📊 Observability
+| Method | Path                        | Description          |
+| ------ | --------------------------- | -------------------- |
+| `GET`  | `/health`                   | Health check         |
+| `POST` | `/v1/runs/start`            | Start a workflow     |
+| `GET`  | `/v1/runs/{run_id}`         | Get run status       |
+| `POST` | `/v1/runs/{run_id}/approve` | Approve HITL gate    |
+| `POST` | `/v1/chat/supervisor`       | Chat with supervisor |
+| `POST` | `/v1/telegram/webhook`      | Telegram webhook     |
+| `POST` | `/v1/webhooks/kieai`        | KIE.ai callback      |
+| `POST` | `/v1/webhooks/remotion`     | Remotion callback    |
 
-- **LangSmith:** Every AI interaction is traced with run context
-- **Prometheus + Grafana:** Metrics dashboards at `:9090` and `:3000`
-- **Sentry:** Error tracking and alerting with release tagging
-- **Structured Logging:** JSON logs with request IDs for distributed tracing
+### Authentication
 
----
+All endpoints (except webhooks) require an API key:
 
-## 🔐 Security
+```bash
+curl -H "X-API-Key: your-api-key" http://localhost:8000/v1/runs
+```
 
-- ✅ API key authentication on all endpoints
-- ✅ HMAC webhook signature verification (SHA-256)
-- ✅ Host allowlists for SSRF protection
-- ✅ Secrets management via environment variables
-- ✅ Idempotency keys for webhook replay protection
-- ✅ Automated security scanning in CI (pip-audit)
+## Contributing
 
-See [Security Guide](docs/05-operations/security-hardening.md).
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Run tests: `pytest tests/unit/`
+4. Run linting: `ruff check src/`
+5. Commit: `git commit -m 'Add amazing feature'`
+6. Push: `git push origin feature/amazing-feature`
+7. Open a Pull Request
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Links
-- [Development Setup](docs/01-getting-started/new-developer-onboarding.md)
-- [Testing Guide](docs/07-contributing/testing.md)
-- [Adding a Persona](docs/03-how-to/add-a-persona.md)
-- [Adding a Project](docs/03-how-to/add-a-project.md)
-
----
-
-## 📝 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🙏 Acknowledgments
-
-Built with:
-- [LangChain](https://langchain.com/) & [LangGraph](https://langchain-ai.github.io/langgraph/) - AI orchestration
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [PostgreSQL](https://postgresql.org/) + [pgvector](https://github.com/pgvector/pgvector) - Vector database
-- [Fly.io](https://fly.io/) - Cloud deployment platform
-
----
-
-## 📧 Contact
-
-- **GitHub:** [@mylo-james](https://github.com/mylo-james)
-- **LinkedIn:** [Mylo James](https://www.linkedin.com/in/myloj/)
-- **Email:** mylo.james114@gmail.com
-
----
-
 <p align="center">
-  <sub>Built to demonstrate production-grade AI orchestration patterns</sub>
+  Built with 🦙 <a href="https://github.com/meta-llama/llama-stack">Llama Stack</a>
 </p>

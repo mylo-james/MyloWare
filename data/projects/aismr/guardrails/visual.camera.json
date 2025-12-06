@@ -3,7 +3,7 @@
   "category": "visual",
   "name": "camera",
   "rule": "Single continuous shot, no cuts or transitions",
-  "validation": "Riley must ensure continuity",
+  "validation": "Producer must ensure continuity",
   "enforcement": "strict",
   "guidelines": ["Macro focus", "Object-centric"],
   "metadata": {

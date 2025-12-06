@@ -1,0 +1,15 @@
+name: default
+description: Full test workflow for pipeline validation
+
+steps:
+  - agent: ideator
+
+  - agent: producer
+
+  - agent: editor
+
+  - agent: publisher
+
+# Published to AISMR account for testing
+supervisor: supervisor
+

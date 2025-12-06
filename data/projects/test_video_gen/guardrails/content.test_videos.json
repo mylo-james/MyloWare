@@ -2,11 +2,13 @@
   "key": "test_video_gen.content.test_videos.v1",
   "category": "content",
   "name": "test_videos",
-  "rule": "Test Video Gen always produces two fixed clips: moon/\"cheeseburger\" followed by sun/\"pickle\". Keep prompts simple so the pipeline focuses on exercising tooling, not creative variance.",
+  "rule": "Test Video Gen always produces two fixed clips: ocean/\"CALM WATERS\" followed by mountains/\"PEAK VIEWS\". The Ideator generates creative scene ideas within these themes, keeping prompts simple so the pipeline focuses on exercising tooling, not creative variance.",
   "guidelines": [
-    "Clip 1 subject = moon and overlay header = \"cheeseburger\".",
-    "Clip 2 subject = sun and overlay header = \"pickle\".",
-    "Keep both prompts lightweight and literal so we can quickly verify the run end-to-end."
+    "Ideator generates creative variations for each scene while staying within the theme.",
+    "Clip 1 theme = ocean/water, overlay header = \"CALM WATERS\".",
+    "Clip 2 theme = mountains/peaks, overlay header = \"PEAK VIEWS\".",
+    "Keep prompts lightweight and literal so we can quickly verify the run end-to-end.",
+    "Final videos are published to the AISMR account."
   ],
   "metadata": {
     "version": "1.0.0",

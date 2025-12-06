@@ -1,0 +1,14 @@
+[
+  {
+    "input": "Create 3 ASMR video ideas about rain sounds",
+    "expected_behavior": "Should generate creative, relaxing themes with sensory details"
+  },
+  {
+    "input": "Create video ideas for a cooking channel",
+    "expected_behavior": "Should suggest visually appealing dishes with step-by-step structure"
+  },
+  {
+    "input": "Generate ideas for AI technology explainer videos",
+    "expected_behavior": "Should propose accessible explanations with real-world examples"
+  }
+]

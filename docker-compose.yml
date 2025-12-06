@@ -1,0 +1,170 @@
+# =============================================================================
+# MyloWare Local Development Docker Compose
+# =============================================================================
+#
+# Usage:
+#   docker compose up -d
+#
+# Services:
+#   - llama-stack: Llama Stack distribution (port 5001)
+#   - postgres: PostgreSQL database (port 5432)
+#   - langfuse: LLM Observability UI (port 3000)
+#   - myloware: MyloWare API (port 8000)
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Llama Stack Distribution (Starter - supports OpenAI + Together + Fireworks)
+  # ---------------------------------------------------------------------------
+  llama-stack:
+    image: llamastack/distribution-starter:latest
+    platform: linux/amd64 # Required for ARM Macs
+    ports:
+      - '5001:5001'
+    env_file: .env
+    environment:
+      - TOGETHER_API_KEY
+      - OPENAI_API_KEY
+      - DISTRO_NAME=starter
+    volumes:
+      - llama_stack_data:/data
+    command: ['--port', '5001']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5001/v1/models']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database (shared by MyloWare and Langfuse)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Langfuse (LLM Observability)
+  # ---------------------------------------------------------------------------
+  langfuse:
+    image: langfuse/langfuse:2
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/langfuse
+      - NEXTAUTH_SECRET=myloware-langfuse-secret-change-in-prod
+      - NEXTAUTH_URL=http://localhost:3000
+      - SALT=myloware-salt-change-in-prod
+      - TELEMETRY_ENABLED=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '--spider',
+          'http://localhost:3000/api/public/health',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ---------------------------------------------------------------------------
+  # MyloWare API
+  # ---------------------------------------------------------------------------
+  myloware:
+    build: .
+    ports:
+      - '8000:8000'
+    env_file: .env
+    environment:
+      # Core settings
+      - PYTHONPATH=/app/src
+      - LLAMA_STACK_URL=http://llama-stack:5001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/myloware
+      - LOG_LEVEL=DEBUG
+      - USE_FAKE_PROVIDERS=${USE_FAKE_PROVIDERS:-true}
+      # Langfuse (local)
+      # Langfuse: Use LANGFUSE_BASE_URL from .env, or fallback to local container
+      - LANGFUSE_HOST=${LANGFUSE_BASE_URL:-http://langfuse:3000}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+    depends_on:
+      llama-stack:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      langfuse:
+        condition: service_started # Don't wait for health - Langfuse startup is slow
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Remotion Render Service (self-hosted video rendering)
+  # ---------------------------------------------------------------------------
+  remotion-service:
+    build: ./remotion-service
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - CONCURRENCY=2
+      - PUBLIC_BASE_URL=http://remotion-service:3001
+      - WEBHOOK_SECRET=${REMOTION_WEBHOOK_SECRET:-}
+    volumes:
+      - remotion_output:/app/output
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - myloware
+
+volumes:
+  postgres_data:
+  llama_stack_data:
+  remotion_output:
+# =============================================================================
+# Usage Notes
+# =============================================================================
+#
+# Start all services:
+#   docker compose up -d
+#
+# View logs:
+#   docker compose logs -f myloware
+#
+# View traces (Langfuse):
+#   Open http://localhost:3000
+#   First time: Create account, then create a project to get API keys
+#   Add keys to .env: LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY
+#
+# Stop all services:
+#   docker compose down
+#
+# Stop and remove volumes:
+#   docker compose down -v
+#
+# =============================================================================

@@ -3,7 +3,7 @@
   "category": "timing",
   "name": "whisper",
   "rule": "Single whispered word at 3.0s ±0.05s",
-  "validation": "Riley must validate timing",
+  "validation": "Producer must validate timing",
   "tolerance": "±0.05s",
   "enforcement": "strict",
   "metadata": {

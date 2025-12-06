@@ -1,0 +1,59 @@
+{
+  "name": "MyloWare",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  
+  "postCreateCommand": "make dev-install",
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "esbenp.prettier-vscode",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
+      }
+    }
+  },
+  
+  "forwardPorts": [8000, 5001, 3001, 5432],
+  
+  "portsAttributes": {
+    "8000": {"label": "MyloWare API"},
+    "5001": {"label": "Llama Stack"},
+    "3001": {"label": "Remotion Service"},
+    "5432": {"label": "PostgreSQL"}
+  },
+  
+  "remoteEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}/src"
+  },
+  
+  "mounts": [
+    "source=${localEnv:HOME}/.cache/huggingface,target=/root/.cache/huggingface,type=bind,consistency=cached"
+  ]
+}
+

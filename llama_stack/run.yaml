@@ -1,0 +1,105 @@
+# =============================================================================
+# MyloWare Llama Stack Configuration (v2 format)
+# =============================================================================
+# Supports Together AI (Llama models) and OpenAI
+
+version: 2
+image_name: starter
+
+# APIs to enable - using only standard APIs available in starter
+apis:
+  - agents
+  - inference
+  - vector_io
+  - tool_runtime
+
+# -----------------------------------------------------------------------------
+# Providers
+# -----------------------------------------------------------------------------
+providers:
+  # Inference - Multiple providers for flexibility
+  inference:
+    # Together AI for Llama models
+    - provider_id: together
+      provider_type: remote::together
+      config:
+        api_key: ${env.TOGETHER_API_KEY}
+    
+    # OpenAI
+    - provider_id: openai
+      provider_type: remote::openai
+      config:
+        api_key: ${env.OPENAI_API_KEY}
+
+  # Vector Store for RAG
+  vector_io:
+    - provider_id: faiss
+      provider_type: inline::faiss
+      config:
+        kvstore:
+          type: sqlite
+          db_path: /data/faiss_store.db
+
+  # Agents
+  agents:
+    - provider_id: meta-reference
+      provider_type: inline::meta-reference
+      config:
+        persistence_store:
+          type: sqlite
+          db_path: /data/agents.db
+
+  # Tool Runtime
+  tool_runtime:
+    - provider_id: rag
+      provider_type: inline::rag
+      config: {}
+
+# -----------------------------------------------------------------------------
+# Models
+# -----------------------------------------------------------------------------
+models:
+  # OpenAI GPT-4o-mini - Good for tool calling
+  - model_id: openai/gpt-4o-mini
+    provider_id: openai
+    provider_model_id: gpt-4o-mini
+
+  # Llama models via Together AI  
+  - model_id: meta-llama/Llama-3.3-70B-Instruct
+    provider_id: together
+    provider_model_id: meta-llama/Llama-3.3-70B-Instruct-Turbo
+
+  - model_id: meta-llama/Llama-3.2-3B-Instruct
+    provider_id: together
+    provider_model_id: meta-llama/Llama-3.2-3B-Instruct-Turbo
+
+# No shields for now
+shields: []
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: /data/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: /data/sqlstore.db
+  stores:
+    metadata:
+      backend: kv_default
+      namespace: registry
+    inference:
+      backend: sql_default
+      table_name: inference_store
+    conversations:
+      backend: sql_default
+      table_name: conversations
+
+# -----------------------------------------------------------------------------
+# Server
+# -----------------------------------------------------------------------------
+server:
+  port: 5001

@@ -1,0 +1,71 @@
+# Project: test_video_gen
+# Motivational Video Channel - Publishing Phase
+
+instructions: |
+  # Motivational Video Publisher
+  
+  Publish the video to TikTok with engaging caption and hashtags.
+  
+  ## Input
+  
+  You receive:
+  - Video URL to publish
+  - Original ideation content (theme, mood, text overlays)
+  
+  ## Your Task
+  
+  1. Generate engaging caption (under 150 characters)
+  2. Generate relevant hashtags (5-8 tags, no # prefix)
+  3. Call `upload_post` to publish
+  
+  ## Caption Guidelines
+  
+  - Hook viewers in first 3 words
+  - Reference the video's theme/message
+  - Include a call to action (follow, like, save)
+  - Use emojis sparingly (1-2 max)
+  - Under 150 characters
+  
+  ## Hashtag Strategy
+  
+  Mix of:
+  - Broad reach: motivation, mindset, success
+  - Niche specific: based on video theme
+  - Trending: motivationalquotes, dailymotivation
+  - Channel branding: Add your own later
+  
+  Good hashtags for motivation content:
+  - motivation, mindset, success, grinding
+  - motivationalquotes, dailymotivation
+  - selfdevelopment, personalgrowth
+  - inspirational, nevergiveup
+  
+  ## upload_post Call
+  
+  ```json
+  {
+    "video_url": "[the video URL provided]",
+    "caption": "[your caption under 150 chars]",
+    "tags": ["motivation", "mindset", "success", ...],
+    "account_id": "AISMR"
+  }
+  ```
+  
+  ## Example
+  
+  For a video about persistence/climbing:
+  
+  ```json
+  {
+    "video_url": "http://localhost:3001/output/xxx.mp4",
+    "caption": "The climb is hard but the view is worth it 🔥 Double tap if you refuse to quit",
+    "tags": ["motivation", "mindset", "nevergiveup", "climbing", "success", "grindset"],
+    "account_id": "AISMR"
+  }
+  ```
+
+tools:
+  - upload_post
+  - type: file_search
+    vector_store_ids: ["project_kb_myloware"]
+

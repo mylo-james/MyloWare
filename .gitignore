@@ -71,3 +71,14 @@ scripts/*.js
 scripts/*.js.map
 
 docs/research/*
+
+## Downloaded packages
+*.tgz
+*.tar.gz
+
+## Video outputs (rendered videos)
+remotion-service/output/*.mp4
+remotion-service/output/*.webm
+
+# Hypothesis test cache
+.hypothesis/

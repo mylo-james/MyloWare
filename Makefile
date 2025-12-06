@@ -1,63 +1,135 @@
-COMPOSE ?= docker compose --env-file .env -f infra/docker-compose.yml
-PYTEST ?= pytest -q
-PYTEST_TARGETS ?= tests/unit tests/integration/python_api tests/integration/python_orchestrator
-COVERAGE_FAIL_UNDER ?= 80
-PYTHON ?= python3
+# MyloWare Makefile
+# Common commands for development workflow
 
-.PHONY: up down logs lint test test-coverage coverage-report smoke type-check security deploy-staging-api deploy-staging-orchestrator migrate-staging demo-aismr demo-test-video-gen check-env
+.PHONY: help install dev-install test lint format type-check ci docker-up docker-down clean
 
-up:
-	$(COMPOSE) up -d
+# Default target
+help:
+	@echo "MyloWare Development Commands"
+	@echo "=============================="
+	@echo ""
+	@echo "Setup:"
+	@echo "  make install       Install production dependencies"
+	@echo "  make dev-install   Install with dev dependencies"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make lint          Run linter (ruff)"
+	@echo "  make format        Format code (black + ruff)"
+	@echo "  make type-check    Run type checker (mypy)"
+	@echo "  make test          Run unit tests"
+	@echo "  make test-cov      Run tests with coverage"
+	@echo "  make ci            Run all CI checks locally"
+	@echo ""
+	@echo "Docker:"
+	@echo "  make docker-up     Start all services"
+	@echo "  make docker-down   Stop all services"
+	@echo "  make docker-logs   Follow service logs"
+	@echo ""
+	@echo "Database:"
+	@echo "  make db-migrate    Run database migrations"
+	@echo "  make db-reset      Reset database (WARNING: drops data)"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make clean         Remove build artifacts"
 
-down:
-	$(COMPOSE) down --remove-orphans
+# =============================================================================
+# Setup
+# =============================================================================
 
-logs:
-	$(COMPOSE) logs -f api orchestrator
+install:
+	pip install -e .
+
+dev-install:
+	pip install -e ".[dev]"
+	@echo "Installing pre-commit hooks..."
+	pre-commit install || echo "pre-commit not installed, skipping hooks"
+
+# =============================================================================
+# Quality Checks
+# =============================================================================
 
 lint:
-	ruff check apps/api apps/orchestrator --select E9,F63,F7,F82
-	$(PYTHON) scripts/dev/lint_no_direct_adapter_instantiation.py apps cli core content
+	ruff check src/ tests/
 
-test:
-	@echo "🔒 Running tests in MOCK mode (PROVIDERS_MODE=mock)"
-	PROVIDERS_MODE=mock $(PYTEST) $(PYTEST_TARGETS)
-
-test-coverage:
-	@echo "🔒 Running coverage tests in MOCK mode (PROVIDERS_MODE=mock)"
-	$(PYTHON) -m coverage erase
-	PROVIDERS_MODE=mock $(PYTHON) -m coverage run -m pytest -q $(PYTEST_TARGETS)
-	$(PYTHON) -m coverage json -o coverage.json
-	$(PYTHON) -m coverage xml -o python-coverage.xml
-	$(PYTHON) -m coverage report --fail-under=$(COVERAGE_FAIL_UNDER)
-
-coverage-report:
-	$(PYTHON) -m coverage report --fail-under=$(COVERAGE_FAIL_UNDER)
-
-smoke:
-	./scripts/smoke.sh
+format:
+	black src/ tests/
+	ruff check --fix src/ tests/
 
 type-check:
-	mypy apps/ --strict
+	mypy src/ --ignore-missing-imports
 
-security:
-	$(PYTHON) -m pip install pip-audit --quiet
-	$(PYTHON) -m pip_audit
+test:
+	PYTHONPATH=src pytest tests/unit/ -v --tb=short
 
-deploy-staging-api:
-	flyctl deploy --config fly.api.toml
+test-cov:
+	PYTHONPATH=src pytest tests/unit/ -v --tb=short --cov=src --cov-report=html --cov-report=term
 
-deploy-staging-orchestrator:
-	flyctl deploy --config fly.orchestrator.toml
+test-integration:
+	PYTHONPATH=src pytest tests/integration/ -v --tb=short -m integration
 
-migrate-staging:
-	bash infra/scripts/migrate_staging.sh
+# Run all CI checks locally
+ci: lint type-check test
+	@echo "✅ All CI checks passed!"
 
-demo-aismr:
-	mw-py demo aismr --env staging
+# =============================================================================
+# Docker
+# =============================================================================
 
-demo-test-video-gen:
-	mw-py demo test-video-gen --env staging
+docker-up:
+	docker compose up -d
+	@echo "Services starting... Check status with 'docker compose ps'"
 
-check-env:
-	mw-py validate env
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
+docker-build:
+	docker compose build
+
+# =============================================================================
+# Database
+# =============================================================================
+
+db-migrate:
+	PYTHONPATH=src alembic upgrade head
+
+db-reset:
+	@echo "⚠️  This will DROP all data. Press Ctrl+C to cancel."
+	@sleep 3
+	PYTHONPATH=src alembic downgrade base
+	PYTHONPATH=src alembic upgrade head
+
+# =============================================================================
+# Cleanup
+# =============================================================================
+
+clean:
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info/
+	rm -rf src/*.egg-info/
+	rm -rf .pytest_cache/
+	rm -rf .ruff_cache/
+	rm -rf .mypy_cache/
+	rm -rf htmlcov/
+	rm -rf .coverage
+	rm -rf coverage.xml
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo "✅ Cleaned build artifacts"
+
+# =============================================================================
+# Development Helpers
+# =============================================================================
+
+# Start API server in development mode
+serve:
+	PYTHONPATH=src uvicorn api.server:app --reload --host 0.0.0.0 --port 8000
+
+# Run a single workflow (for testing)
+run-workflow:
+	@echo "Usage: make run-workflow PROJECT=test_video_gen BRIEF='your brief'"
+	PYTHONPATH=src python -c "from cli.main import cli; cli()" workflow start $(PROJECT) "$(BRIEF)"
+

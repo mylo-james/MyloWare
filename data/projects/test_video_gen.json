@@ -1,0 +1,46 @@
+{
+  "name": "test_video_gen",
+  "title": "Test Video Generation",
+  "description": "Simple test project that generates two nature videos for validating the full workflow pipeline. Published to AISMR account.",
+  "workflow": ["ideator", "producer", "editor", "publisher"],
+  "hitl_gates": [],
+  "specs": {
+    "video_count": 2,
+    "video_duration": 8.0,
+    "videos": [
+      {
+        "subject": "ocean",
+        "header": "CALM WATERS",
+        "prompt": "A serene ocean with gentle waves at golden hour"
+      },
+      {
+        "subject": "mountains",
+        "header": "PEAK VIEWS",
+        "prompt": "A majestic mountain range with snow-capped peaks at sunrise"
+      }
+    ],
+    "compilation_length": 20,
+    "format": "9:16 vertical, header text overlay",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "editing": {
+      "concat_order": ["ocean", "mountains"],
+      "overlay_style": {
+        "position": "top",
+        "text_transform": "uppercase",
+        "background": "#000000AA",
+        "color": "#FFFFFF",
+        "font_size": 48
+      }
+    }
+  },
+  "platforms": ["tiktok"],
+  "settings": {
+    "test_mode": true,
+    "auto_approve_hitl": true
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2024-12-04"
+  }
+}

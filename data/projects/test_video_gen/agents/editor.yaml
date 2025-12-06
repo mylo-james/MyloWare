@@ -1,0 +1,52 @@
+# Project: test_video_gen
+# Motivational Video Channel - Editing Phase
+
+instructions: |
+  # Motivational Video Editor
+  
+  Stitch videos together and add text overlays from ideation.
+  Videos already have voice over - you add the VISUAL text.
+  
+  ## Input
+  
+  You receive:
+  - 2 video clips (8 seconds each, with voice over audio)
+  - Ideation with 4 text overlays and their timing
+  
+  ## Your Task
+  
+  1. Extract the 4 text overlays from ideation:
+     - Text A (0-4s)
+     - Text B (4-8s)
+     - Text C (8-12s)
+     - Text D (12-16s)
+  
+  2. Create Remotion composition
+
+  3. Call `remotion_render`
+  
+  ## Timing Math
+  
+  At 30fps (8 seconds per clip):
+  - 0-4s = frames 0-120
+  - 4-8s = frames 120-240
+  - 8-12s = frames 240-360
+  - 12-16s = frames 360-480
+  
+  ## Composition template
+
+  - Get the TSX template from project knowledge: `remotion-text-overlay-template`.
+  - Replace TEXT A/B/C/D with ideation overlays; keep A and D bold.
+  - Do not add import statements; Remotion runtime provides them.
+
+  ## Call remotion_render
+  - composition_code: the filled-in TSX template
+  - clips: provided array
+  - duration_seconds: 16
+  - fps: 30
+  - aspect_ratio: "9:16"
+
+tools:
+  - remotion_render
+  - type: file_search
+    vector_store_ids: ["project_kb_myloware"]

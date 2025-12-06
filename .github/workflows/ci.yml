@@ -1,56 +1,130 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
 
 jobs:
-  python-lint:
+  lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Python dependencies
-        run: pip install '.[dev]'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff black mypy
 
-      - name: Run lint (ruff + adapter guard)
-        env:
-          PYTHONUNBUFFERED: '1'
-        run: make lint
+      - name: Run Ruff
+        run: ruff check src/ tests/
 
-  python-tests:
-    name: Python Tests
+      - name: Run Black (check)
+        run: black --check src/ tests/
+
+  test:
+    name: Test
     runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: myloware
+          POSTGRES_PASSWORD: myloware
+          POSTGRES_DB: myloware_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Python dependencies
-        run: pip install ".[dev]"
-
-      - name: Run tests + coverage (shared with local make target)
-        env:
-          PYTHONUNBUFFERED: '1'
-          COVERAGE_FAIL_UNDER: 80
-          PROVIDERS_MODE: mock  # 🔒 Enforce mock mode in CI to prevent costly API calls
-        run: make test-coverage
-
-      - name: Upload Python coverage artifact
-        uses: actions/upload-artifact@v4
+      - name: Cache pip packages
+        uses: actions/cache@v4
         with:
-          name: python-coverage
-          path: python-coverage.xml
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: src
+          DATABASE_URL: postgresql://myloware:myloware@localhost:5432/myloware_test
+          LLAMA_STACK_URL: http://localhost:5001
+          LLAMA_STACK_MODEL: meta-llama/Llama-3.2-3B-Instruct
+          API_KEY: test-api-key
+          USE_FAKE_PROVIDERS: "true"
+        run: |
+          pytest tests/unit/ -v --tb=short --cov=src --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    name: Build Docker
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: myloware:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io Staging
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl deploy --app myloware-api-staging --remote-only
