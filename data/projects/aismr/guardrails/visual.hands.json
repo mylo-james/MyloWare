@@ -3,7 +3,7 @@
   "category": "visual",
   "name": "hands",
   "rule": "Maximum 2 hands visible at any time",
-  "validation": "Riley must state hand count explicitly",
+  "validation": "Producer must state hand count explicitly",
   "enforcement": "strict",
   "guidelines": ["No exceptions allowed"],
   "metadata": {

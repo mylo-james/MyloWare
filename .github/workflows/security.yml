@@ -5,10 +5,13 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    # Run weekly on Monday at 9am UTC
+    - cron: "0 9 * * 1"
 
 jobs:
   python-security:
-    name: Python Dependency Security Scan
+    name: Python Dependency Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,11 +22,31 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install Python dependencies
-        run: pip install ".[dev]"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pip-audit
+          pip install -e .
 
-      - name: Run pip-audit via make security
-        env:
-          PYTHONUNBUFFERED: "1"
-        run: make security
+      - name: Run pip-audit
+        run: |
+          pip-audit --strict --progress-spinner off
 
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

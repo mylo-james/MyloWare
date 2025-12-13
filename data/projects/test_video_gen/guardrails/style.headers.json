@@ -2,9 +2,9 @@
   "key": "test_video_gen.style.headers.v1",
   "category": "style",
   "name": "headers",
-  "rule": "Headers ('CHEESEBURGER', 'PICKLE') are Shotstack overlays—never bake them into kie.ai renders—and they must be legible the entire time.",
+  "rule": "Headers ('CALM WATERS', 'PEAK VIEWS') are Remotion overlays—never bake them into Sora generations—and they must be legible the entire time.",
   "guidelines": [
-    "Add overlays during Alex's edit pass (Shotstack track 2).",
+    "Add overlays during Editor's edit pass (Remotion composition).",
     "Use high-contrast typography positioned at the top-safe zone.",
     "Keep the overlay visible from 0s–8s for each clip."
   ],

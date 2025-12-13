@@ -1,91 +1,97 @@
-from __future__ import annotations
+"""Pytest configuration and shared fixtures."""
 
 import os
 import sys
-import types
+from pathlib import Path
 
 import pytest
 
-
-def _ensure_langgraph_symbols() -> None:
-    try:
-        import langgraph.graph as graph_module  # type: ignore
-    except ImportError:
-        graph_module = types.ModuleType("langgraph.graph")
-        sys.modules["langgraph.graph"] = graph_module
-        langgraph_pkg = types.ModuleType("langgraph")
-        langgraph_pkg.graph = graph_module  # type: ignore[attr-defined]
-        sys.modules["langgraph"] = langgraph_pkg
-    else:
-        sys.modules["langgraph.graph"] = graph_module
-    for attr in ("CompiledGraph", "StateGraph", "START", "END"):
-        if not hasattr(graph_module, attr):
-            setattr(graph_module, attr, object())
+# Ensure source tree is importable without editable install (Python >=3.12 not always available)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = PROJECT_ROOT / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
 
 
-_ensure_langgraph_symbols()
+def pytest_configure(config):
+    """Configure pytest markers and environment for tests."""
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+
+    # Set safe defaults for unit tests to avoid external dependencies
+    # These can be overridden by individual tests that need different behavior
+    os.environ.setdefault("LLAMA_STACK_PROVIDER", "fake")
+    os.environ.setdefault("SORA_PROVIDER", "fake")
+    os.environ.setdefault("REMOTION_PROVIDER", "fake")
+    os.environ.setdefault("UPLOAD_POST_PROVIDER", "fake")
+    os.environ.setdefault("DISABLE_BACKGROUND_WORKFLOWS", "true")
+    os.environ.setdefault("FAIL_FAST_ON_STARTUP", "false")
+    os.environ.setdefault("WEBHOOK_BASE_URL", "http://localhost:8000")
+    # Force SQLite for tests to avoid PostgreSQL schema issues
+    # Tests that need a specific DB should set settings.database_url explicitly
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_default.db"
 
 
-@pytest.fixture(scope="session", autouse=True)
-def enforce_mock_providers():
-    """
-    🚨 CRITICAL: Enforce mock mode for ALL tests to prevent expensive API calls.
-    
-    This fixture runs automatically for every test session and forces
-    PROVIDERS_MODE=mock unless the test is explicitly marked with
-    @pytest.mark.live_smoke.
-    
-    This prevents accidental $50+ test runs when PROVIDERS_MODE=live
-    is set in your .env file or environment.
-    
-    To run live provider tests:
-        pytest -m live_smoke tests/integration/live/
-    
-    This fixture ensures:
-    - Unit tests NEVER hit live APIs
-    - Integration tests use mocks by default
-    - Only opt-in live tests can use real providers
-    """
-    original_value = os.environ.get("PROVIDERS_MODE")
-    
-    # Force mock mode for all tests by default
-    os.environ["PROVIDERS_MODE"] = "mock"
-    
-    yield
-    
-    # Restore original value after test session
-    if original_value is not None:
-        os.environ["PROVIDERS_MODE"] = original_value
-    else:
-        os.environ.pop("PROVIDERS_MODE", None)
+@pytest.fixture
+def anyio_backend() -> str:
+    """Run anyio tests on asyncio (SQLAlchemy/asyncio-based stack)."""
+    return "asyncio"
+
+
+@pytest.fixture
+def sample_brief() -> str:
+    """Sample video brief for testing."""
+    return "Create a 30-second video about AI technology trends"
 
 
 @pytest.fixture(autouse=True)
-def ensure_mock_mode_per_test(request):
-    """
-    Per-test enforcement of mock mode.
-    
-    This fixture runs before each individual test to ensure
-    PROVIDERS_MODE=mock is set, unless the test is marked
-    with @pytest.mark.live_smoke.
-    
-    This provides defense-in-depth: even if the session fixture
-    is bypassed, individual tests still get mock mode.
-    """
-    is_live_smoke_test = request.node.get_closest_marker("live_smoke") is not None
-    
-    if not is_live_smoke_test:
-        # Force mock mode
-        original = os.environ.get("PROVIDERS_MODE")
-        os.environ["PROVIDERS_MODE"] = "mock"
-        
-        yield
-        
-        # Restore
-        if original is not None:
-            os.environ["PROVIDERS_MODE"] = original
-        else:
-            os.environ.pop("PROVIDERS_MODE", None)
-    else:
-        # Live smoke test - allow whatever is set
-        yield
+def reset_rate_limiter():
+    """Reset rate limiter state between tests to avoid collision."""
+    try:
+        from api.server import limiter
+
+        # Clear SlowAPI limiter storage before each test
+        if hasattr(limiter, "_limiter") and limiter._limiter:
+            storage = limiter._limiter.storage
+            if hasattr(storage, "reset"):
+                storage.reset()
+            elif hasattr(storage, "storage"):
+                # In-memory storage - clear the dict
+                storage.storage.clear()
+    except ImportError:
+        pass  # server not imported yet
+
+    yield
+
+    # Clean up after test as well
+    try:
+        from api.server import limiter
+
+        if hasattr(limiter, "_limiter") and limiter._limiter:
+            storage = limiter._limiter.storage
+            if hasattr(storage, "reset"):
+                storage.reset()
+            elif hasattr(storage, "storage"):
+                storage.storage.clear()
+    except ImportError:
+        pass
+
+
+@pytest.fixture
+def api_headers() -> dict[str, str]:
+    """Default API headers for authenticated endpoints."""
+    from config import settings
+
+    return {"X-API-Key": settings.api_key}
+
+
+@pytest.fixture
+async def async_client():
+    """httpx AsyncClient wired to the FastAPI app with lifespan enabled."""
+    from httpx import ASGITransport, AsyncClient
+
+    from api.server import app
+
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            yield client

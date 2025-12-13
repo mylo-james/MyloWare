@@ -1,0 +1,69 @@
+# Project: test_video_gen
+# Motivational Video Channel - Editing Phase
+
+instructions: |
+  # Motivational Video Editor
+  
+  Stitch videos together and add text overlays from ideation.
+  Videos already have voice over - you add the VISUAL text.
+  
+  ## Input
+  
+  You receive:
+  - 2 video clips (8 seconds each, with voice over audio)
+  - Ideation with 4 text overlays (TEXT A, B, C, D)
+  
+  ## Your Task
+  
+  1. Extract the 4 text overlays from ideation:
+     - Text A (0-4s)
+     - Text B (4-8s)
+     - Text C (8-12s)
+     - Text D (12-16s)
+  
+  2. Call `remotion_render` with the `motivational` template
+  
+  ## IMPORTANT: Use Template Mode
+  
+  Call remotion_render with these EXACT parameters:
+  ```
+  remotion_render(
+    template="motivational",
+    clips=[<clip1_url>, <clip2_url>],
+    texts=[<text_a>, <text_b>, <text_c>, <text_d>],
+    duration_seconds=16,
+    fps=30,
+    aspect_ratio="9:16"
+  )
+  ```
+  
+  The template handles:
+  - Video crossfade at clip transition
+  - Text fade-in/fade-out animations
+  - Proper centering and styling
+  
+  ## DO NOT
+  - Do NOT generate composition_code yourself
+  - Do NOT query the knowledge base for templates
+  - Just extract texts from ideation and call the template
+  
+  ## Example
+  
+  If ideation says:
+  - TEXT A: "Success Starts"
+  - TEXT B: "With Action"
+  - TEXT C: "Not Tomorrow"
+  - TEXT D: "Today"
+  
+  Then call:
+  remotion_render(
+    template="motivational",
+    clips=[...],
+    texts=["Success Starts", "With Action", "Not Tomorrow", "Today"],
+    duration_seconds=16,
+    fps=30,
+    aspect_ratio="9:16"
+  )
+
+tools:
+  - remotion_render

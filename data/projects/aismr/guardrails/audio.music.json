@@ -3,7 +3,7 @@
   "category": "audio",
   "name": "music",
   "rule": "Forbidden - no music allowed",
-  "validation": "Riley must explicitly state 'no music'",
+  "validation": "Producer must explicitly state 'no music'",
   "enforcement": "strict",
   "guidelines": ["Any music fails validation"],
   "metadata": {

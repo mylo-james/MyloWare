@@ -1,63 +1,194 @@
-COMPOSE ?= docker compose --env-file .env -f infra/docker-compose.yml
-PYTEST ?= pytest -q
-PYTEST_TARGETS ?= tests/unit tests/integration/python_api tests/integration/python_orchestrator
-COVERAGE_FAIL_UNDER ?= 80
-PYTHON ?= python3
+# MyloWare Makefile
+# Common commands for development workflow
 
-.PHONY: up down logs lint test test-coverage coverage-report smoke type-check security deploy-staging-api deploy-staging-orchestrator migrate-staging demo-aismr demo-test-video-gen check-env
+.PHONY: help install dev-install test test-fast test-parity test-live lint format type-check ci docker-up docker-down clean eval openapi perf sbom e2e-local
 
-up:
-	$(COMPOSE) up -d
+# Default knobs (override as needed)
+BASE_URL ?= http://localhost:8000
+API_KEY ?= dev-api-key
 
-down:
-	$(COMPOSE) down --remove-orphans
+# Default target
+help:
+	@echo "MyloWare Development Commands"
+	@echo "=============================="
+	@echo ""
+	@echo "Setup:"
+	@echo "  make install       Install production dependencies"
+	@echo "  make dev-install   Install with dev dependencies"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make lint          Run linter (ruff)"
+	@echo "  make format        Format code (black + ruff)"
+	@echo "  make type-check    Run type checker (mypy)"
+	@echo "  make test          Run unit tests"
+	@echo "  make test-cov      Run tests with coverage"
+	@echo "  make ci            Run all CI checks locally"
+	@echo "  make eval          Run LLM-as-judge evaluation"
+	@echo "  make eval-dry      Dry run (load dataset only)"
+	@echo ""
+	@echo "Demo:"
+	@echo "  make demo          Prepare .env from example with safe defaults"
+	@echo "  make openapi       Export OpenAPI spec to openapi.json"
+	@echo "  make perf          Run k6 perf smoke (/runs/start + webhooks)"
+	@echo "  make e2e-local     In-process e2e (start → webhooks → artifacts)"
+	@echo "  make sbom          Generate CycloneDX SBOM (sbom.json)"
+	@echo ""
+	@echo "Docker:"
+	@echo "  make docker-up     Start all services"
+	@echo "  make docker-down   Stop all services"
+	@echo "  make docker-logs   Follow service logs"
+	@echo ""
+	@echo "Observability:"
+	@echo "  make watch-traces  Watch traces in console (polls Jaeger API)"
+	@echo ""
+	@echo "Database:"
+	@echo "  make db-migrate    Run database migrations"
+	@echo "  make db-reset      Reset database (WARNING: drops data)"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make clean         Remove build artifacts"
 
-logs:
-	$(COMPOSE) logs -f api orchestrator
+# =============================================================================
+# Setup
+# =============================================================================
+
+install:
+	pip install -e .
+
+dev-install:
+	pip install -e ".[dev]"
+	@echo "Installing pre-commit hooks..."
+	pre-commit install || echo "pre-commit not installed, skipping hooks"
+
+demo:
+	cp -n .env.example .env || true
+	@echo "Demo env ready (.env). USE_FAKE_PROVIDERS=true, safety shields enabled."
+
+openapi:
+	PYTHONPATH=src python scripts/generate_openapi.py
+
+perf:
+	k6 run -e BASE_URL=$(BASE_URL) -e API_KEY=$(API_KEY) scripts/perf/runs_and_webhooks.js
+
+e2e-local:
+	PYTHONPATH=src python scripts/e2e_local.py
+
+sbom:
+	python -m pip install -q "cyclonedx-bom>=4.0.0"
+	cyclonedx-py -o sbom.json -F json
+
+# =============================================================================
+# Quality Checks
+# =============================================================================
 
 lint:
-	ruff check apps/api apps/orchestrator --select E9,F63,F7,F82
-	$(PYTHON) scripts/dev/lint_no_direct_adapter_instantiation.py apps cli core content
+	ruff check src/ tests/
 
-test:
-	@echo "🔒 Running tests in MOCK mode (PROVIDERS_MODE=mock)"
-	PROVIDERS_MODE=mock $(PYTEST) $(PYTEST_TARGETS)
-
-test-coverage:
-	@echo "🔒 Running coverage tests in MOCK mode (PROVIDERS_MODE=mock)"
-	$(PYTHON) -m coverage erase
-	PROVIDERS_MODE=mock $(PYTHON) -m coverage run -m pytest -q $(PYTEST_TARGETS)
-	$(PYTHON) -m coverage json -o coverage.json
-	$(PYTHON) -m coverage xml -o python-coverage.xml
-	$(PYTHON) -m coverage report --fail-under=$(COVERAGE_FAIL_UNDER)
-
-coverage-report:
-	$(PYTHON) -m coverage report --fail-under=$(COVERAGE_FAIL_UNDER)
-
-smoke:
-	./scripts/smoke.sh
+format:
+	black src/ tests/
+	ruff check --fix src/ tests/
 
 type-check:
-	mypy apps/ --strict
+	mypy src/ --ignore-missing-imports
 
-security:
-	$(PYTHON) -m pip install pip-audit --quiet
-	$(PYTHON) -m pip_audit
+test:
+	PYTHONPATH=src pytest tests/unit/ -v --tb=short
 
-deploy-staging-api:
-	flyctl deploy --config fly.api.toml
+# Fast lane (default)
+test-fast: test
 
-deploy-staging-orchestrator:
-	flyctl deploy --config fly.orchestrator.toml
+# Parity lane (opt-in)
+test-parity:
+	RUN_PARITY=1 PYTHONPATH=src pytest -v --tb=short -m parity
 
-migrate-staging:
-	bash infra/scripts/migrate_staging.sh
+# Live lane (manual)
+test-live:
+	PYTHONPATH=src pytest -v --tb=short -m live
 
-demo-aismr:
-	mw-py demo aismr --env staging
+test-cov:
+	PYTHONPATH=src pytest tests/unit/ -v --tb=short --cov=src --cov-report=html --cov-report=term
 
-demo-test-video-gen:
-	mw-py demo test-video-gen --env staging
+test-integration:
+	PYTHONPATH=src pytest tests/integration/ -v --tb=short -m integration
 
-check-env:
-	mw-py validate env
+# Run all CI checks locally
+ci: lint type-check test
+	@echo "✅ All CI checks passed!"
+
+# Run evaluation pipeline (LLM-as-judge)
+# Override threshold: EVAL_THRESHOLD=4.0 make eval
+EVAL_THRESHOLD ?= 3.5
+EVAL_DATASET ?= data/eval/ideator_test_cases.json
+
+eval:
+	PYTHONPATH=src python -m cli.main eval score --dataset $(EVAL_DATASET) --threshold $(EVAL_THRESHOLD)
+
+eval-dry:
+	PYTHONPATH=src python -m cli.main eval score --dataset $(EVAL_DATASET) --dry-run
+
+# =============================================================================
+# Docker
+# =============================================================================
+
+docker-up:
+	docker compose up -d
+	@echo "Services starting... Check status with 'docker compose ps'"
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
+docker-build:
+	docker compose build
+
+# =============================================================================
+# Database
+# =============================================================================
+
+db-migrate:
+	PYTHONPATH=src alembic upgrade head
+
+db-reset:
+	@echo "⚠️  This will DROP all data. Press Ctrl+C to cancel."
+	@sleep 3
+	PYTHONPATH=src alembic downgrade base
+	PYTHONPATH=src alembic upgrade head
+
+# =============================================================================
+# Cleanup
+# =============================================================================
+
+clean:
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info/
+	rm -rf src/*.egg-info/
+	rm -rf .pytest_cache/
+	rm -rf .ruff_cache/
+	rm -rf .mypy_cache/
+	rm -rf htmlcov/
+	rm -rf .coverage
+	rm -rf coverage.xml
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo "✅ Cleaned build artifacts"
+
+# =============================================================================
+# Development Helpers
+# =============================================================================
+
+# Start API server in development mode
+serve:
+	PYTHONPATH=src uvicorn api.server:app --reload --host 0.0.0.0 --port 8000
+
+# Run a single workflow (for testing)
+run-workflow:
+	@echo "Usage: make run-workflow PROJECT=test_video_gen BRIEF='your brief'"
+	PYTHONPATH=src python -c "from cli.main import cli; cli()" workflow start $(PROJECT) "$(BRIEF)"
+
+# Watch Jaeger traces in console (Llama Stack native observability)
+watch-traces:
+	@echo "Watching Jaeger traces... (Ctrl+C to stop)"
+	@python scripts/watch_traces.py

@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created": "2024-12-06",
+    "description": "Test cases for evaluating video ideation quality"
+  },
+  "test_cases": [
+    {
+      "id": "tc-001",
+      "input": "Create 3 ASMR video ideas about rain sounds",
+      "reference": "Ideas should focus on relaxation, include sensory details, and be visually calming",
+      "tags": ["asmr", "relaxation", "nature"]
+    },
+    {
+      "id": "tc-002",
+      "input": "Generate ideas for a cooking channel featuring Italian cuisine",
+      "reference": "Should include authentic Italian dishes, visual appeal, and step-by-step guidance",
+      "tags": ["cooking", "italian", "tutorial"]
+    },
+    {
+      "id": "tc-003",
+      "input": "Create video ideas for AI technology explainers aimed at beginners",
+      "reference": "Should be accessible, use analogies, and include real-world examples",
+      "tags": ["tech", "education", "ai"]
+    },
+    {
+      "id": "tc-004",
+      "input": "Generate 5 short-form video ideas about productivity tips for remote workers",
+      "reference": "Practical, actionable tips that can be demonstrated visually",
+      "tags": ["productivity", "remote-work", "tips"]
+    },
+    {
+      "id": "tc-005",
+      "input": "Create ASMR video ideas featuring office sounds and typing",
+      "reference": "Should evoke calm focus, include variety of office ambient sounds",
+      "tags": ["asmr", "office", "focus"]
+    },
+    {
+      "id": "tc-006",
+      "input": "Generate video ideas for a fitness channel targeting beginners",
+      "reference": "Low-impact exercises, encouraging tone, clear demonstrations",
+      "tags": ["fitness", "beginner", "health"]
+    },
+    {
+      "id": "tc-007",
+      "input": "Create video ideas about space exploration for young audiences",
+      "reference": "Engaging, educational, age-appropriate language, visual spectacle",
+      "tags": ["science", "space", "kids"]
+    },
+    {
+      "id": "tc-008",
+      "input": "Generate ideas for a travel vlog series in Japan",
+      "reference": "Cultural insights, beautiful locations, local food, respectful representation",
+      "tags": ["travel", "japan", "culture"]
+    },
+    {
+      "id": "tc-009",
+      "input": "Create video ideas for DIY home improvement projects",
+      "reference": "Practical projects, clear instructions, budget-friendly options",
+      "tags": ["diy", "home", "tutorial"]
+    },
+    {
+      "id": "tc-010",
+      "input": "Generate ASMR video ideas with a cozy cafe theme",
+      "reference": "Coffee sounds, ambient chatter, rain on windows, warm aesthetic",
+      "tags": ["asmr", "cafe", "cozy"]
+    },
+    {
+      "id": "tc-011",
+      "input": "Create educational video ideas about personal finance for millennials",
+      "reference": "Relatable scenarios, actionable advice, avoiding jargon",
+      "tags": ["finance", "education", "millennial"]
+    },
+    {
+      "id": "tc-012",
+      "input": "Generate ideas for a pet care channel focusing on cats",
+      "reference": "Health tips, behavior insights, entertaining cat content",
+      "tags": ["pets", "cats", "tips"]
+    },
+    {
+      "id": "tc-013",
+      "input": "Create video ideas for a gaming channel covering indie games",
+      "reference": "Discovery of hidden gems, honest reviews, gameplay highlights",
+      "tags": ["gaming", "indie", "reviews"]
+    },
+    {
+      "id": "tc-014",
+      "input": "Generate ideas for meditation and mindfulness videos",
+      "reference": "Calming voice, beautiful visuals, various meditation styles",
+      "tags": ["meditation", "mindfulness", "wellness"]
+    },
+    {
+      "id": "tc-015",
+      "input": "Create video ideas about sustainable living and eco-friendly tips",
+      "reference": "Practical swaps, positive framing, avoid guilt-tripping",
+      "tags": ["sustainability", "eco", "lifestyle"]
+    }
+  ]
+}

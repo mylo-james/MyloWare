@@ -8,12 +8,14 @@ build/
 coverage/
 .nyc_output/
 *.tsbuildinfo
+*.egg-info/
 
 ## Python coverage and test artifacts
 .coverage
 coverage.xml
 python-coverage.xml
 coverage.json
+htmlcov/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -71,3 +73,28 @@ scripts/*.js
 scripts/*.js.map
 
 docs/research/*
+
+## Downloaded packages
+*.tgz
+*.tar.gz
+
+## Video outputs (rendered videos)
+remotion-service/output/*.mp4
+remotion-service/output/*.webm
+
+# Hypothesis test cache
+.hypothesis/
+
+# Local test databases
+test_*.db
+*.db-wal
+*.db-shm
+e2e_local.db
+
+# Knowledge base manifests/cache (generated)
+data/.kb_manifest.json
+data/.kb_upload_cache.json
+
+# Local fixtures / artifacts (do not commit)
+fake_clips/
+artifacts/

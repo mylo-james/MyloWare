@@ -4,7 +4,7 @@
   "name": "specs",
   "rule": "Test clips are always 9:16 vertical, 1080x1920, 8 seconds each, yielding a ~20 second compilation.",
   "guidelines": [
-    "Enforce aspect ratio 9:16 throughout kie.ai + Shotstack.",
+    "Enforce aspect ratio 9:16 throughout Sora + Remotion.",
     "Normalize renders to 1080x1920 @ 30fps before upload.",
     "Two clips × 8 seconds (+ transitions) should land between 16–24 seconds total."
   ],
