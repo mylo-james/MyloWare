@@ -1,0 +1,4 @@
+skips:
+  # Importing subprocess is common; we care about how it's used (shell=True, untrusted args),
+  # which is covered by other Bandit checks.
+  - B404

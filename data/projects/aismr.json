@@ -1,0 +1,61 @@
+{
+  "name": "aismr",
+  "title": "AI ASMR Zodiac Video Production",
+  "description": "Your sign your [topic] - 12 surreal zodiac-themed ASMR variations compiled into a ~74 second video.",
+  "workflow": ["ideator", "producer", "editor", "publisher"],
+  "hitl_gates": ["ideation", "publish"],
+  "specs": {
+    "video_count": 12,
+    "video_duration": 8.0,
+    "overlap_duration": 2.0,
+    "compilation_length": 74,
+    "format": "9:16 vertical ASMR",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "zodiac_order": [
+      "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+      "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    ],
+    "style": {
+      "mood": "mesmerizing, slightly surreal",
+      "audio": "foley only, NO music",
+      "visuals": "surreal, impossible physics, tactile textures"
+    },
+    "voice": {
+      "timing": 3.0,
+      "style": "whispered object name"
+    },
+    "editing": {
+      "transitions": "2s true crossfade (4s content into 2s)",
+      "overlay_style": {
+        "format": "Sign - Object",
+        "position": "bottom",
+        "text_transform": "none",
+        "background": "transparent",
+        "color": "#FFFFFF",
+        "font_size": 48,
+        "fade_with_transition": true
+      }
+    }
+  },
+  "platforms": ["tiktok"],
+  "overlay_extractor": "aismr",
+  "object_validator": "aismr_objects",
+  "caption_format": "Your month your {topic}",
+  "settings": {
+    "test_mode": false,
+    "auto_approve_hitl": false
+  },
+  "guardrails": {
+    "no_faces": true,
+    "no_text_in_generation": true,
+    "no_music": true,
+    "safe_for_work": true
+  },
+  "metadata": {
+    "version": "2.0.1",
+    "created": "2024-12-04",
+    "updated": "2025-12-06"
+  }
+}

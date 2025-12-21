@@ -1,0 +1,22 @@
+{
+  "key": "aismr.visual.text_overlays.v1",
+  "category": "visual",
+  "name": "text_overlays",
+  "rule": "Non-diegetic on-screen text (captions, headers, labels, CTAs) must NOT be baked into Sora generations. Render clean scenes with Sora and add text using Remotion overlay layers in post.",
+  "examples": [
+    "GOOD: Sora renders the object-only scene; Remotion adds a header overlay.",
+    "BAD: Sora prompt includes 'text on screen', causing baked-in text artifacts."
+  ],
+  "guidelines": [
+    "Treat captions, lower-thirds, headers, and calls-to-action as overlays.",
+    "Only bake text if it is physically present in-scene (diegetic signage).",
+    "Extract overlay copy and timing as structured metadata for Editor to place in Remotion."
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "text", "overlay"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

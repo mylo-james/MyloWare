@@ -1,0 +1,16 @@
+{
+  "key": "aismr.style.originality.v1",
+  "category": "style",
+  "name": "originality",
+  "rule": "Must validate uniqueness against archive",
+  "validation": "Ideator checks before storing",
+  "tolerance": "Similarity <0.85",
+  "enforcement": "strict",
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "style", "uniqueness"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

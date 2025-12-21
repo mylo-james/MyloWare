@@ -1,0 +1,14 @@
+{
+  "key": "aismr.style.mood.v1",
+  "category": "style",
+  "name": "mood",
+  "rule": "Mesmerizing, slightly unsettling",
+  "guidelines": ["Hypnotic motion", "Subtle unease", "Beautiful but strange"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "style", "mood"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

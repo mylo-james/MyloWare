@@ -1,0 +1,9 @@
+{
+  "id": "evt_69449cf62cdc8190a854f95b368a5d4d",
+  "object": "event",
+  "created_at": 1766104310,
+  "type": "video.failed",
+  "data": {
+    "id": "video_abc123"
+  }
+}

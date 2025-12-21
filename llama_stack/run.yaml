@@ -1,0 +1,123 @@
+# =============================================================================
+# MyloWare Llama Stack Configuration (v2 format)
+# =============================================================================
+# Supports Together AI (Llama models) and OpenAI
+
+version: 2
+image_name: starter
+
+# APIs to enable - using only standard APIs available in starter
+apis:
+  - agents
+  - inference
+  - vector_io
+  - files
+  - tool_runtime
+
+# -----------------------------------------------------------------------------
+# Providers
+# -----------------------------------------------------------------------------
+providers:
+  # Inference - Multiple providers for flexibility
+  inference:
+    # Together AI for Llama models
+    - provider_id: together
+      provider_type: remote::together
+      config:
+        api_key: ${env.TOGETHER_API_KEY}
+
+    # OpenAI
+    - provider_id: openai
+      provider_type: remote::openai
+      config:
+        api_key: ${env.OPENAI_API_KEY}
+
+  # Vector Store for RAG - using sqlite-vec for hybrid search support
+  vector_io:
+    - provider_id: sqlite-vec
+      provider_type: inline::sqlite-vec
+      config:
+        db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/myloware}/sqlite_vec.db
+        persistence:
+          namespace: vector_io::sqlite_vec
+          backend: kv_default
+
+  # Agents
+  agents:
+    - provider_id: meta-reference
+      provider_type: inline::meta-reference
+      config:
+        persistence_store:
+          type: sqlite
+          db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/myloware}/agents.db
+
+  # Files API for document handling
+  files:
+    - provider_id: localfs
+      provider_type: inline::localfs
+      config:
+        storage_dir: ${env.SQLITE_STORE_DIR:=/.llama/distributions/myloware}/files
+
+  # Tool Runtime - use built-in RAG from vector_io
+  tool_runtime:
+    - provider_id: rag-runtime
+      provider_type: inline::rag-runtime
+      config: {}
+
+# -----------------------------------------------------------------------------
+# Models
+# -----------------------------------------------------------------------------
+models:
+  # OpenAI GPT-4o-mini - Good for tool calling
+  - model_id: openai/gpt-4o-mini
+    provider_id: openai
+    provider_model_id: gpt-4o-mini
+
+  # Llama models via Together AI
+  - model_id: meta-llama/Llama-3.3-70B-Instruct
+    provider_id: together
+    provider_model_id: meta-llama/Llama-3.3-70B-Instruct-Turbo
+
+  - model_id: meta-llama/Llama-3.2-3B-Instruct
+    provider_id: together
+    provider_model_id: meta-llama/Llama-3.2-3B-Instruct-Turbo
+
+# No shields for now
+shields: []
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/myloware}/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/myloware}/sqlstore.db
+  stores:
+    metadata:
+      backend: kv_default
+      namespace: registry
+    inference:
+      backend: sql_default
+      table_name: inference_store
+    conversations:
+      backend: sql_default
+      table_name: conversations
+
+# -----------------------------------------------------------------------------
+# Vector Store Defaults (for hybrid search)
+# -----------------------------------------------------------------------------
+vector_stores:
+  default_provider_id: sqlite-vec
+  default_embedding_model:
+    provider_id: sentence-transformers
+    model_id: nomic-ai/nomic-embed-text-v1.5
+
+# -----------------------------------------------------------------------------
+# Server
+# -----------------------------------------------------------------------------
+server:
+  port: 5001

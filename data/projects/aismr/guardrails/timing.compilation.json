@@ -1,0 +1,22 @@
+{
+  "key": "aismr.timing.compilation.v2",
+  "category": "timing",
+  "name": "compilation",
+  "rule": "Total compilation 74s (12 clips × 8s - 11 overlaps × 2s)",
+  "validation": "Editor validates before storing",
+  "enforcement": "strict",
+  "calculation": {
+    "clips": 12,
+    "clip_duration": 8,
+    "overlap_duration": 2,
+    "total_overlaps": 11,
+    "formula": "(12 × 8) - (11 × 2) = 96 - 22 = 74s"
+  },
+  "metadata": {
+    "version": "2.0.1",
+    "tags": ["guardrail", "timing", "compilation"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

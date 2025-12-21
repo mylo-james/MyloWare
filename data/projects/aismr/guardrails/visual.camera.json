@@ -1,0 +1,16 @@
+{
+  "key": "aismr.visual.camera.v1",
+  "category": "visual",
+  "name": "camera",
+  "rule": "Single continuous shot, no cuts or transitions",
+  "validation": "Producer must ensure continuity",
+  "enforcement": "strict",
+  "guidelines": ["Macro focus", "Object-centric"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual", "camera"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

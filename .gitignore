@@ -1,0 +1,112 @@
+## Dependencies
+node_modules/
+.venv/
+
+## Build artifacts
+dist/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+*.egg-info/
+
+## Python coverage and test artifacts
+.coverage
+.coverage_*
+coverage.xml
+python-coverage.xml
+coverage.json
+coverage_*.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+## Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+## Environment files
+.env
+.env.*
+!.env.example
+
+## Editor, OS, and Python cache files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+__pycache__/
+*.pyc
+
+## Project data
+.tmp*
+tmp/
+**/tmp/
+cloudflared/credentials/*
+!cloudflared/credentials/.gitkeep
+!cloudflared/credentials/README.md
+cloudflared/cert.pem
+
+# Evidence and operational artifacts (may contain secret hashes)
+evidence/
+
+# Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Local AI agent bundles / logs (reference only; keep untracked by default)
+.bmad-core/
+.bmad-infrastructure-devops/
+.ai/
+
+# Firebase CLI deploy cache
+.firebase/
+
+# Temporary documentation (should be moved to archive-docs/)
+# These patterns help prevent documentation bloat in root directory
+# Note: Patterns are commented to allow intentional temporary docs during development
+# Uncomment and move files to archive-docs/ when cleanup is needed
+
+# *COMPLIANCE*.md
+# *FIX*.md
+# *REVIEW*.md
+# plan-*.md
+review-*.md
+
+# Compiled JavaScript files (should not be committed)
+*.js.map
+scripts/*.js
+scripts/*.js.map
+
+docs/research/*
+
+## Downloaded packages
+*.tgz
+*.tar.gz
+
+## Video outputs (rendered videos)
+remotion-service/output/*.mp4
+remotion-service/output/*.webm
+services/remotion/.remotion/
+services/remotion/output/
+
+# Hypothesis test cache
+.hypothesis/
+
+# Local test databases
+test_*.db
+*.db-wal
+*.db-shm
+e2e_local.db
+
+# Knowledge base manifests/cache (generated)
+data/.kb_manifest.json
+data/.kb_upload_cache.json
+
+# Local fixtures / artifacts (do not commit)
+fake_clips/
+artifacts/

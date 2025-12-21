@@ -1,0 +1,14 @@
+{
+  "key": "aismr.audio.foley.v1",
+  "category": "audio",
+  "name": "foley",
+  "rule": "Required - tactile, realistic foley sounds",
+  "guidelines": ["Object interactions", "Material sounds", "Ambient texture"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "audio", "foley"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

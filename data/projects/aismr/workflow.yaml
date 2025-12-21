@@ -1,0 +1,15 @@
+name: default
+description: Full AISMR production pipeline
+
+steps:
+  - agent: ideator
+    hitl_gate: post_ideation
+
+  - agent: producer
+
+  - agent: editor
+
+  - agent: publisher
+    hitl_gate: pre_publish
+
+supervisor: supervisor

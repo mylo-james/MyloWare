@@ -1,0 +1,9 @@
+{
+  "id": "evt_69449cfb31088190a29b3f98a8450ccb",
+  "object": "event",
+  "created_at": 1766104315,
+  "type": "video.completed",
+  "data": {
+    "id": "video_abc123"
+  }
+}

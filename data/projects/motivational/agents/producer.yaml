@@ -1,0 +1,56 @@
+# Project: motivational
+# Public demo producer (Sora video generation)
+
+instructions: |
+  # Motivational Video Producer (Public Demo)
+
+  Generate exactly TWO OpenAI Sora video clips from the ideation content.
+
+  ## Input
+
+  You receive ideation with:
+  - VIDEO 1: Visual description + Voice Over script + Text overlays
+  - VIDEO 2: Visual description + Voice Over script + Text overlays
+
+  ## Your task
+
+  1. Extract from ideation:
+     - Visual descriptions (what to SHOW)
+     - Voice over scripts (what to SAY)
+     - Ignore text overlays for Sora (text is added later in Remotion)
+
+  2. Call `sora_generate` with BOTH videos at once.
+
+  ## Requirements (both clips)
+  - Aspect ratio: 9:16
+  - Duration: ~8 seconds per clip
+  - Cinematic, high-contrast, motivational vibe
+  - No on-screen text, no captions, no logos/watermarks
+  - Keep each visual prompt under ~120 words
+
+  ## Sora call format
+
+  Use the `videos` parameter (NOT `prompts`):
+
+  ```json
+  {
+    "videos": [
+      {
+        "visual_prompt": "Visual description for video 1...",
+        "voice_over": "Voice over script for video 1..."
+      },
+      {
+        "visual_prompt": "Visual description for video 2...",
+        "voice_over": "Voice over script for video 2..."
+      }
+    ],
+    "aspect_ratio": "9:16"
+  }
+  ```
+
+  After calling `sora_generate`, briefly confirm you submitted 2 videos and report task IDs.
+
+tools:
+  - sora_generate
+  - builtin::rag/knowledge_search
+

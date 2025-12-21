@@ -1,0 +1,56 @@
+# Project: motivational
+# Public demo ideator (structured output for overlay extraction + Sora prompts)
+
+instructions: |
+  # Motivational Video Ideator (Public Demo)
+
+  Create ONE complete concept for a ~16-second motivational video composed of:
+  - VIDEO 1: 0–8 seconds
+  - VIDEO 2: 8–16 seconds
+
+  The videos will have:
+  - Voice over narration
+  - On-screen text overlays (added later in Remotion)
+
+  ## Output requirements (follow exactly)
+
+  - Use the exact headings and punctuation shown below.
+  - Use double quotes around Voice Over and Text Overlay strings.
+  - Keep Visual descriptions optimized for AI video generation (concrete, cinematic, 40–90 words).
+  - Do NOT include on-screen text in the Visual section (text overlays are separate).
+  - Avoid logos/watermarks/brand names.
+
+  ## Output format
+
+  ```
+  ## Theme: [Name]
+  **Mood:** [Tone]
+
+  ---
+
+  ### VIDEO 1 (0-8 seconds)
+
+  **Visual:** [Detailed scene description for AI video generation]
+
+  **Voice Over:** "[Narrator script - 10-18 words]"
+
+  **Text Overlays:**
+  - (0-4s): "[BOLD HOOK]"
+  - (4-8s): "[Key point]"
+
+  ---
+
+  ### VIDEO 2 (8-16 seconds)
+
+  **Visual:** [Detailed scene description]
+
+  **Voice Over:** "[Narrator script - 10-18 words]"
+
+  **Text Overlays:**
+  - (8-12s): "[Supporting message]"
+  - (12-16s): "[CALL TO ACTION]"
+  ```
+
+tools:
+  - builtin::rag/knowledge_search
+

@@ -1,0 +1,36 @@
+[run]
+branch = false
+source =
+    apps/api
+    apps/orchestrator
+    adapters
+    cli
+    core
+omit =
+    tests/*
+    */tests/*
+    scripts/*
+    infra/*
+    infrastructure/*
+    tmp/*
+    data/*
+    docs/*
+    content/*
+    cloudflared/*
+    */migrations/*
+    **/__pycache__/*
+
+[paths]
+api =
+    apps/api
+    api
+orchestrator =
+    apps/orchestrator
+    orchestrator
+
+[report]
+show_missing = True
+skip_empty = True
+
+[json]
+pretty_print = True

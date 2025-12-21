@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyloWare Demo</title>
+    <meta
+      name="description"
+      content="Public demo: generate a short-form video with MyloWare."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body
+    data-api-base="https://api.myloware.mjames.dev"
+    data-api-fallback="https://myloware-api.fly.dev"
+  >
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-left" aria-hidden="true"></div>
+        <div class="brand">
+          <span class="brand-mark" aria-label="MyloWare">MyloWare</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn ghost is-hidden" id="top-new-run-btn" type="button">
+            Generate video
+          </button>
+          <a
+            class="topbar-link"
+            href="https://api.myloware.mjames.dev/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Docs
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout" aria-live="polite">
+      <aside class="rail rail-left" id="rail-left">
+        <section class="card note">
+          <h2>About</h2>
+          <p class="muted">
+            Generate a short-form video from a topic. Approve the draft and the final render right
+            here.
+          </p>
+          <p class="muted">
+            Runs are saved in this browser. Use “Share” on a run to resume elsewhere.
+          </p>
+        </section>
+
+        <details class="card collapsible-card" id="runs-details" open>
+          <summary>
+            <div class="card-head compact collapsible-head">
+              <h2>Runs</h2>
+              <div class="collapsible-actions">
+                <button class="btn tertiary" id="refresh-runs" type="button">Refresh</button>
+                <span class="chevron" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M7 10l5 5 5-5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </summary>
+          <div class="collapsible-body">
+            <div class="runs-list" id="runs-list"></div>
+          </div>
+        </details>
+      </aside>
+
+      <section class="feed">
+        <article class="card post-card" id="demo-card">
+          <header class="post-head">
+            <div class="post-user">
+              <div class="avatar" aria-hidden="true">MW</div>
+              <div class="post-meta">
+                <div class="post-title">
+                  <span class="handle">myloware</span>
+                  <span class="sep">•</span>
+                  <span class="muted">public demo</span>
+                </div>
+                <p class="sub">Generate a short-form video from a topic.</p>
+              </div>
+            </div>
+            <div class="post-actions">
+              <button class="btn ghost is-hidden" id="new-run-btn" type="button">
+                Generate a new video
+              </button>
+              <span id="status-pill" class="status-pill">Idle</span>
+            </div>
+          </header>
+
+          <p class="topic-line is-hidden" id="topic-line"></p>
+
+          <section class="stepper-wrap" aria-label="Workflow timeline">
+            <ol class="stepper" id="timeline-tabs">
+              <li class="step active" data-step="begin" title="Begin">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 6v12m-6-6h12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Begin</span>
+              </li>
+              <li class="step" data-step="ideation" title="Ideation">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 3a7 7 0 0 0-4 12c.7.6 1 1.2 1 2v1h6v-1c0-.8.3-1.4 1-2A7 7 0 0 0 12 3Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M9.5 21h5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Ideate</span>
+              </li>
+              <li class="step approval" data-step="idea-approval" title="Idea approval">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M9 12l2 2 4-4"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Approve</span>
+              </li>
+              <li class="step" data-step="production" title="Production">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M3 7h18M3 12h18M3 17h18"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Produce</span>
+              </li>
+              <li class="step" data-step="render" title="Render">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 6h16v12H4z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M10 9l5 3-5 3V9Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Render</span>
+              </li>
+              <li class="step approval" data-step="publish-approval" title="Publish approval">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 17v-8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M8.5 12.5 12 9l3.5 3.5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M4 20h16"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Approve</span>
+              </li>
+              <li class="step" data-step="publish" title="Publish">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Publish</span>
+              </li>
+              <li class="step" data-step="done" title="Done">
+                <span class="dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M20 6 9 17l-5-5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span class="label">Done</span>
+              </li>
+            </ol>
+            <div class="status-inline">
+              <span id="status-time" class="status-time"></span>
+            </div>
+          </section>
+
+          <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
+
+          <section class="timeline-panels">
+            <div class="timeline-panel active" data-panel="begin">
+              <form id="demo-form" class="form">
+                <label for="brief">What do you want the video to be about?</label>
+                <textarea
+                  id="brief"
+                  name="brief"
+                  placeholder="Example: resilience after setbacks, building discipline, handling rejection."
+                  required
+                  maxlength="4000"
+                ></textarea>
+                <div class="actions">
+                  <button type="submit" id="start-btn" class="btn primary">Generate video</button>
+                </div>
+                <p class="hint">
+                  Typical run time: 2–4 minutes · Rate limited + safety shields
+                </p>
+              </form>
+            </div>
+
+            <div class="timeline-panel" data-panel="ideation">
+              <h2>Ideation</h2>
+              <p class="muted">Drafting the narrative and on-screen overlays.</p>
+              <div class="loader">
+                <div class="spinner" aria-hidden="true"></div>
+                <p class="muted" id="ideation-live">Working…</p>
+              </div>
+              <div class="mini-activity-wrap" aria-label="Latest activity">
+                <div class="mini-activity-head">Latest</div>
+                <ul class="mini-activity" id="mini-activity"></ul>
+              </div>
+            </div>
+
+            <div class="timeline-panel" data-panel="idea-approval">
+              <h2>Idea approval</h2>
+              <p class="muted">Review the draft below, then approve to continue.</p>
+              <div class="artifact">
+                <div class="artifact-head">
+                  <span>Draft</span>
+                  <button class="btn tertiary" id="copy-ideas-btn" type="button">Copy</button>
+                </div>
+                <div class="artifact-body" id="ideas-body"></div>
+              </div>
+              <input
+                id="idea-approval-comment"
+                name="idea-approval-comment"
+                placeholder="Optional comment"
+                maxlength="240"
+              />
+              <div class="hitl-actions">
+                <button class="btn secondary" id="reject-idea-btn" type="button">Reject</button>
+                <button class="btn primary" id="approve-idea-btn" type="button">Approve</button>
+              </div>
+            </div>
+
+            <div class="timeline-panel" data-panel="production">
+              <h2>Production</h2>
+              <p class="muted">Generating clips (OpenAI Sora). This can take a few minutes.</p>
+              <div class="metric">
+                <span class="metric-label">Clips ready</span>
+                <span class="metric-value" id="clip-count">—</span>
+              </div>
+              <div class="progress-bar" aria-label="Video generation progress">
+                <div class="progress-fill" id="video-progress-fill"></div>
+              </div>
+              <p class="muted" id="video-progress-label">Waiting for clips…</p>
+            </div>
+
+            <div class="timeline-panel" data-panel="render">
+              <h2>Render</h2>
+              <p class="muted">Rendering the final video.</p>
+              <div class="metric">
+                <span class="metric-label">Render status</span>
+                <span class="metric-value" id="render-status">—</span>
+              </div>
+              <div class="progress-bar" aria-label="Render progress">
+                <div class="progress-fill" id="render-progress-fill"></div>
+              </div>
+              <p class="muted" id="render-progress-label">Waiting for render updates…</p>
+              <div class="preview" id="render-preview"></div>
+            </div>
+
+            <div class="timeline-panel" data-panel="publish-approval">
+              <h2>Publish approval</h2>
+              <p class="muted">Review the render below, then approve to publish to TikTok.</p>
+              <div class="preview" id="publish-preview"></div>
+              <input
+                id="publish-approval-comment"
+                name="publish-approval-comment"
+                placeholder="Optional comment"
+                maxlength="240"
+              />
+              <div class="hitl-actions">
+                <button class="btn secondary" id="reject-publish-btn" type="button">Reject</button>
+                <button class="btn primary" id="approve-publish-btn" type="button">Approve</button>
+              </div>
+            </div>
+
+            <div class="timeline-panel" data-panel="publish">
+              <h2>Publishing</h2>
+              <p class="muted">Sending the final video to TikTok.</p>
+              <div class="loader">
+                <div class="spinner" aria-hidden="true"></div>
+                <p class="muted">Publishing…</p>
+              </div>
+            </div>
+
+            <div class="timeline-panel" data-panel="done">
+              <div class="panel-head">
+                <h2>Done</h2>
+              </div>
+              <div class="result-body" id="result-body"></div>
+            </div>
+          </section>
+        </article>
+      </section>
+
+      <aside class="rail rail-right" id="rail-right">
+        <section class="card" id="activity-card">
+          <header class="card-head compact">
+            <h2>Activity</h2>
+            <button class="btn tertiary" id="refresh-now" type="button">Refresh</button>
+          </header>
+          <ul class="activity" id="activity-list"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

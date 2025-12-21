@@ -1,0 +1,46 @@
+#!/bin/bash
+# =============================================================================
+# MyloWare Fly.io Initial Setup
+# =============================================================================
+# Run this once to create the Fly.io app and database.
+#
+# Prerequisites:
+# - flyctl installed: https://fly.io/docs/hands-on/install-flyctl/
+# - Authenticated: fly auth login
+# =============================================================================
+
+set -euo pipefail
+
+APP_NAME="${MYLOWARE_APP_NAME:-myloware-api}"
+REGION="${MYLOWARE_REGION:-sjc}"
+
+echo "=== MyloWare Fly.io Setup ==="
+echo "App: $APP_NAME"
+echo "Region: $REGION"
+echo ""
+
+# Create the app
+echo "Creating Fly.io app..."
+fly apps create "$APP_NAME" --org personal || echo "App may already exist"
+
+# Create PostgreSQL database
+echo "Creating Fly Postgres database..."
+fly postgres create \
+    --name "${APP_NAME}-db" \
+    --region "$REGION" \
+    --vm-size shared-cpu-1x \
+    --volume-size 1 \
+    --initial-cluster-size 1 \
+    || echo "Database may already exist"
+
+# Attach database to app
+echo "Attaching database to app..."
+fly postgres attach "${APP_NAME}-db" --app "$APP_NAME" || echo "May already be attached"
+
+echo ""
+echo "=== Setup Complete ==="
+echo ""
+echo "Next steps:"
+echo "1. Run: ./scripts/deploy/secrets.sh"
+echo "2. Run: ./scripts/deploy/deploy.sh"
+echo "3. Run: ./scripts/deploy/telegram_webhook.sh"

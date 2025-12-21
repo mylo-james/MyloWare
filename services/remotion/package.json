@@ -1,0 +1,30 @@
+{
+  "name": "remotion-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx api/server.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/api/server.js",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.382",
+    "@remotion/cli": "^4.0.382",
+    "@remotion/renderer": "^4.0.382",
+    "express": "^4.19.2",
+    "nanoid": "^5.0.7",
+    "p-queue": "^7.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.382"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.9.4",
+    "@types/react": "^18.3.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

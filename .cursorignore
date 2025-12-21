@@ -1,0 +1,25 @@
+# Never send secrets to AI tools
+.env
+.env.*
+!.env.example
+!.env.testing.example
+
+# Local prompt bundles (reference only)
+.bmad-core/
+.bmad-infrastructure-devops/
+.ai/
+
+# Local environments + caches
+.venv/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tmp/
+tmp/
+
+# Local databases / artifacts
+*.db
+*.db-wal
+*.db-shm

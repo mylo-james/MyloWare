@@ -1,0 +1,17 @@
+{
+  "key": "aismr.timing.runtime.v2",
+  "category": "timing",
+  "name": "runtime",
+  "rule": "Exactly 8.0s per video clip",
+  "validation": "Producer must validate before storing",
+  "tolerance": "±0.1s",
+  "enforcement": "strict",
+  "notes": "Target short clips (~8s) for a consistent pacing across episodes.",
+  "metadata": {
+    "version": "2.0.1",
+    "tags": ["guardrail", "timing"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

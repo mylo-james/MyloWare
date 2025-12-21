@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "myloware-mjames"
+  },
+  "targets": {
+    "myloware-mjames": {
+      "hosting": {
+        "myloware": [
+          "myloware"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,38 @@
+{
+  "name": "motivational",
+  "title": "Motivational TikTok Video Production",
+  "description": "Generate a short motivational TikTok video from a user-provided topic (public demo workflow).",
+  "workflow": ["ideator", "producer", "editor", "publisher"],
+  "hitl_gates": ["ideation", "publish"],
+  "specs": {
+    "video_count": 2,
+    "video_duration": 8.0,
+    "overlap_duration": 0.0,
+    "compilation_length": 16,
+    "format": "9:16 vertical, motivational template with text overlays",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "editing": {
+      "transitions": "cut",
+      "overlay_style": {
+        "position": "center",
+        "text_transform": "none",
+        "background": "#00000088",
+        "color": "#FFFFFF",
+        "font_size": 56
+      }
+    }
+  },
+  "platforms": ["tiktok"],
+  "overlay_extractor": "motivational",
+  "publisher_prompt_template": "Publish this video: {video_url}\n\nTopic: {topic}\n\nWrite a short motivational caption (<= 150 chars) and add 3–8 tags.",
+  "settings": {
+    "test_mode": false,
+    "auto_approve_hitl": false
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-12-22"
+  }
+}

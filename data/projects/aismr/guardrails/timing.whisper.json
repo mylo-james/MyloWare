@@ -1,0 +1,16 @@
+{
+  "key": "aismr.timing.whisper.v1",
+  "category": "timing",
+  "name": "whisper",
+  "rule": "Single whispered word at 3.0s ±0.05s",
+  "validation": "Producer must validate timing",
+  "tolerance": "±0.05s",
+  "enforcement": "strict",
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "timing", "audio"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

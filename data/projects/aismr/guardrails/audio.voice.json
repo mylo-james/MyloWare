@@ -1,0 +1,14 @@
+{
+  "key": "aismr.audio.voice.v1",
+  "category": "audio",
+  "name": "voice",
+  "rule": "Single whispered word at 3.0s",
+  "guidelines": ["ASMR-style whisper", "One word only", "Tactile sound"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "audio", "voice"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

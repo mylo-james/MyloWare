@@ -1,0 +1,37 @@
+#!/bin/bash
+# =============================================================================
+# MyloWare Fly.io Deployment
+# =============================================================================
+# Deploys MyloWare to Fly.io
+# =============================================================================
+
+set -euo pipefail
+
+APP_NAME="${MYLOWARE_APP_NAME:-myloware-api}"
+
+echo "=== MyloWare Fly.io Deployment ==="
+echo "App: $APP_NAME"
+echo ""
+
+# Run database migrations first
+echo "Running database migrations..."
+fly ssh console --app "$APP_NAME" -C "cd /app && PYTHONPATH=src alembic upgrade head" || {
+    echo "Note: Migrations may run on first deploy automatically"
+}
+
+# Deploy
+echo "Deploying application..."
+fly deploy --app "$APP_NAME"
+
+# Verify deployment
+echo ""
+echo "Checking health..."
+sleep 5
+curl -s "https://${APP_NAME}.fly.dev/health" | jq .
+
+echo ""
+echo "=== Deployment Complete ==="
+echo ""
+echo "App URL: https://${APP_NAME}.fly.dev"
+echo "Health: https://${APP_NAME}.fly.dev/health"
+echo "Logs: fly logs --app $APP_NAME"

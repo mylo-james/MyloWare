@@ -1,0 +1,16 @@
+{
+  "key": "aismr.visual.hands.v1",
+  "category": "visual",
+  "name": "hands",
+  "rule": "Maximum 2 hands visible at any time",
+  "validation": "Producer must state hand count explicitly",
+  "enforcement": "strict",
+  "guidelines": ["No exceptions allowed"],
+  "metadata": {
+    "version": "1.0.0",
+    "tags": ["guardrail", "visual"]
+  },
+  "links": {
+    "project": "aismr"
+  }
+}

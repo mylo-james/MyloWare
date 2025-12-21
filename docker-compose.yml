@@ -1,0 +1,227 @@
+# =============================================================================
+# MyloWare Local Development Docker Compose
+# =============================================================================
+#
+# Usage:
+#   docker compose up -d
+#
+# Services:
+#   - llama-stack: Llama Stack distribution (port 5001)
+#   - postgres: PostgreSQL database (port 5432)
+#   - jaeger: Distributed tracing UI (port 16686)
+#   - myloware: MyloWare API (port 8000)
+#   - remotion: Video rendering service (port 3001)
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Llama Stack Distribution (Starter with Milvus-Lite for Hybrid Search)
+  # ---------------------------------------------------------------------------
+  llama-stack:
+    image: llamastack/distribution-starter:latest
+    platform: linux/amd64 # Required for ARM Macs
+    ports:
+      - '5001:5001'
+    env_file: .env
+    environment:
+      - TOGETHER_API_KEY
+      - OPENAI_API_KEY
+      - BRAVE_API_KEY
+      - SQLITE_STORE_DIR=/.llama/distributions/starter
+      # Use custom config with Milvus-Lite for hybrid search
+      - RUN_CONFIG_PATH=/app/run-milvus.yaml
+      # Telemetry export to Jaeger
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    volumes:
+      - llama_stack_data:/.llama
+      - ./llama_stack/run-milvus.yaml:/app/run-milvus.yaml
+    command: ['--port', '5001']
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5001/v1/models']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database (shared by MyloWare and Langfuse)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg15  # Postgres with pgvector extension
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Jaeger (Distributed Tracing - Llama Stack Native)
+  # ---------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - '16686:16686'  # Jaeger UI
+      - '4317:4317'    # OTLP gRPC
+      - '4318:4318'    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:16686']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # MyloWare API
+  # ---------------------------------------------------------------------------
+  myloware:
+    build: .
+    ports:
+      - '8000:8000'
+    env_file: .env
+    environment:
+      # Core settings
+      - PYTHONPATH=/app/src
+      - LLAMA_STACK_URL=http://llama-stack:5001
+      - LLAMA_STACK_PROVIDER=${LLAMA_STACK_PROVIDER:-real}
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/myloware
+      - WORKFLOW_DISPATCHER=${WORKFLOW_DISPATCHER:-db}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://myloware:8000}
+      - LOG_LEVEL=DEBUG
+      - SORA_PROVIDER=${SORA_PROVIDER:-fake}
+      - REMOTION_PROVIDER=${REMOTION_PROVIDER:-fake}
+      - UPLOAD_POST_PROVIDER=${UPLOAD_POST_PROVIDER:-fake}
+      # Service URLs (Docker network)
+      - REMOTION_SERVICE_URL=http://remotion:3001
+      - REMOTION_API_SECRET=${REMOTION_API_SECRET:-}
+      - REMOTION_SANDBOX_ENABLED=${REMOTION_SANDBOX_ENABLED:-false}
+      - REMOTION_SANDBOX_STRICT=${REMOTION_SANDBOX_STRICT:-false}
+      - REMOTION_ALLOW_COMPOSITION_CODE=${REMOTION_ALLOW_COMPOSITION_CODE:-false}
+      # OpenTelemetry (Llama Stack native)
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_SERVICE_NAME=myloware
+    volumes:
+      - ./artifacts/transcoded:/tmp/myloware_videos
+      - ./fake_clips:/app/fake_clips:ro
+    depends_on:
+      llama-stack:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # MyloWare Worker (durable job queue)
+  # ---------------------------------------------------------------------------
+  myloware-worker:
+    build: .
+    command: ["bash", "-lc", "alembic upgrade head && myloware worker run"]
+    env_file: .env
+    environment:
+      - PYTHONPATH=/app/src
+      - LLAMA_STACK_URL=http://llama-stack:5001
+      - LLAMA_STACK_PROVIDER=${LLAMA_STACK_PROVIDER:-real}
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/myloware
+      - WORKFLOW_DISPATCHER=${WORKFLOW_DISPATCHER:-db}
+      - WEBHOOK_BASE_URL=${WEBHOOK_BASE_URL:-http://myloware:8000}
+      - LOG_LEVEL=DEBUG
+      - SORA_PROVIDER=${SORA_PROVIDER:-fake}
+      - REMOTION_PROVIDER=${REMOTION_PROVIDER:-fake}
+      - UPLOAD_POST_PROVIDER=${UPLOAD_POST_PROVIDER:-fake}
+      - REMOTION_SERVICE_URL=http://remotion:3001
+      - REMOTION_API_SECRET=${REMOTION_API_SECRET:-}
+      - REMOTION_SANDBOX_ENABLED=${REMOTION_SANDBOX_ENABLED:-false}
+      - REMOTION_SANDBOX_STRICT=${REMOTION_SANDBOX_STRICT:-false}
+      - REMOTION_ALLOW_COMPOSITION_CODE=${REMOTION_ALLOW_COMPOSITION_CODE:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_SERVICE_NAME=myloware-worker
+    volumes:
+      - ./artifacts/transcoded:/tmp/myloware_videos
+      - ./fake_clips:/app/fake_clips:ro
+    depends_on:
+      llama-stack:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Remotion Render Service (self-hosted video rendering)
+  # ---------------------------------------------------------------------------
+  remotion:
+    build: ./services/remotion
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - CONCURRENCY=2
+      - PUBLIC_BASE_URL=http://remotion:3001
+      - WEBHOOK_SECRET=${REMOTION_WEBHOOK_SECRET:-}
+      - REMOTION_API_SECRET=${REMOTION_API_SECRET:-}
+      - REMOTION_SANDBOX_ENABLED=${REMOTION_SANDBOX_ENABLED:-false}
+      - REMOTION_SANDBOX_STRICT=${REMOTION_SANDBOX_STRICT:-false}
+      - REMOTION_ALLOW_COMPOSITION_CODE=${REMOTION_ALLOW_COMPOSITION_CODE:-false}
+      - REMOTION_OUTPUT_PUBLIC=${REMOTION_OUTPUT_PUBLIC:-false}
+      - REMOTION_CALLBACK_ALLOWLIST=${REMOTION_CALLBACK_ALLOWLIST:-myloware}
+      - REMOTION_RENDER_TIMEOUT_SECONDS=${REMOTION_RENDER_TIMEOUT_SECONDS:-900}
+      - REMOTION_CALLBACK_TIMEOUT_MS=${REMOTION_CALLBACK_TIMEOUT_MS:-5000}
+      - REMOTION_FRAME_CONCURRENCY=${REMOTION_FRAME_CONCURRENCY:-100%}
+      - REMOTION_BUNDLE_CACHE_MAX=${REMOTION_BUNDLE_CACHE_MAX:-32}
+      - REMOTION_BUNDLE_CACHE_TTL_SECONDS=${REMOTION_BUNDLE_CACHE_TTL_SECONDS:-3600}
+      - REMOTION_BROWSER_IDLE_TTL_SECONDS=${REMOTION_BROWSER_IDLE_TTL_SECONDS:-300}
+    volumes:
+      - remotion_output:/app/output
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - myloware
+
+volumes:
+  postgres_data:
+  llama_stack_data:
+  remotion_output:
+  myloware_transcoded:
+# =============================================================================
+# Usage Notes
+# =============================================================================
+#
+# Start all services:
+#   docker compose up -d
+#
+# View logs:
+#   docker compose logs -f myloware
+#
+# View traces (Jaeger):
+#   Open http://localhost:16686
+#   Select service: llama-stack or myloware
+#
+# Stop all services:
+#   docker compose down
+#
+# Stop and remove volumes:
+#   docker compose down -v
+#
+# =============================================================================

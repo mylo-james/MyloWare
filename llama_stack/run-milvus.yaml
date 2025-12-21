@@ -1,0 +1,136 @@
+# Llama Stack Configuration with Milvus-Lite for Hybrid Search
+# =============================================================
+# Extends the starter distribution with Milvus-Lite provider and OpenAI embeddings
+
+version: 2
+image_name: myloware-milvus
+
+apis:
+  - agents
+  - inference
+  - vector_io
+  - safety
+  - tool_runtime
+  - files
+
+providers:
+  # Inference - OpenAI and Together
+  inference:
+    - provider_id: openai
+      provider_type: remote::openai
+      config:
+        api_key: ${env.OPENAI_API_KEY:=}
+    - provider_id: together
+      provider_type: remote::together
+      config:
+        api_key: ${env.TOGETHER_API_KEY:=}
+
+  # Vector I/O - Milvus-Lite for hybrid search
+  vector_io:
+    - provider_id: milvus
+      provider_type: inline::milvus
+      config:
+        db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/starter}/milvus_store.db
+        persistence:
+          namespace: vector_io::milvus
+          backend: kv_default
+
+  # Safety - Llama Guard
+  safety:
+    - provider_id: llama-guard
+      provider_type: inline::llama-guard
+      config:
+        excluded_categories: []
+
+  # Tool Runtime
+  tool_runtime:
+    - provider_id: rag-runtime
+      provider_type: inline::rag-runtime
+    - provider_id: brave-search
+      provider_type: remote::brave-search
+      config:
+        api_key: ${env.BRAVE_API_KEY:=}
+        max_results: 3
+
+  # Files - Local filesystem
+  files:
+    - provider_id: meta-reference-files
+      provider_type: inline::localfs
+      config:
+        storage_dir: ${env.FILES_STORAGE_DIR:=/.llama/distributions/starter/files}
+        metadata_store:
+          table_name: files_metadata
+          backend: sql_default
+
+  # Agents
+  agents:
+    - provider_id: meta-reference
+      provider_type: inline::meta-reference
+      config:
+        persistence:
+          agent_state:
+            namespace: agents
+            backend: kv_default
+          responses:
+            table_name: responses
+            backend: sql_default
+
+storage:
+  backends:
+    kv_default:
+      type: kv_sqlite
+      db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/starter}/kvstore.db
+    sql_default:
+      type: sql_sqlite
+      db_path: ${env.SQLITE_STORE_DIR:=/.llama/distributions/starter}/sql_store.db
+  stores:
+    metadata:
+      namespace: registry
+      backend: kv_default
+    inference:
+      table_name: inference_store
+      backend: sql_default
+    conversations:
+      table_name: openai_conversations
+      backend: sql_default
+
+# Models
+models:
+  - model_id: openai/gpt-4o-mini
+    provider_id: openai
+  - model_id: openai/gpt-4o
+    provider_id: openai
+  - model_id: openai/text-embedding-3-small
+    provider_id: openai
+  - model_id: together/meta-llama/Llama-3.3-70B-Instruct-Turbo
+    provider_id: together
+  - model_id: content_safety
+    provider_id: llama-guard
+
+# Registered resources
+# Note: tool_groups are auto-registered by the starter distribution
+registered_resources:
+  models: []
+  shields:
+    - shield_id: content_safety
+      provider_id: llama-guard
+  vector_dbs: []
+  datasets: []
+  scoring_fns: []
+  benchmarks: []
+  tool_groups: []
+
+# Vector store defaults
+vector_stores:
+  default_provider_id: milvus
+  default_embedding_model:
+    provider_id: openai
+    model_id: text-embedding-3-small
+
+# Server configuration
+server:
+  port: 5001
+
+# Telemetry - enabled at server level (not as an API)
+telemetry:
+  enabled: true

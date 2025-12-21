@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name", "title", "workflow"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Unique project identifier"
+    },
+    "overlay_extractor": {
+      "type": "string",
+      "description": "Registered overlay extractor to use for this project"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable project name"
+    },
+    "description": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["ideator", "producer", "editor", "publisher", "supervisor"]
+      },
+      "minItems": 1,
+      "description": "Ordered list of agent roles in workflow"
+    },
+    "hitl_gates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["ideation", "publish"]
+      },
+      "description": "HITL gates to pause at"
+    },
+    "specs": {
+      "type": "object",
+      "description": "Project-specific video specifications"
+    },
+    "platforms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["tiktok", "youtube", "instagram"]
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "test_mode": {"type": "boolean"},
+        "auto_approve_hitl": {"type": "boolean"}
+      }
+    }
+  }
+}
